@@ -1,6 +1,12 @@
 import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { ZodError } from "zod";
+import { config } from "./infrastructure/config.js";
+import {
+  getDatabaseStartupState,
+  tableExists,
+  validateDatabaseConnection
+} from "./infrastructure/database/health.js";
 import { registerAuthHook } from "./modules/auth/auth.hooks.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { permissionsRoutes } from "./modules/permissions/permissions.routes.js";
@@ -20,7 +26,20 @@ export async function buildServer() {
     credentials: true,
   });
 
-  app.get("/api/health", async () => ({ ok: true }));
+  app.get("/api/health", async () => {
+    const dbConnected = await validateDatabaseConnection();
+    const usersTableExists = dbConnected ? await tableExists("users") : false;
+    const startupState = getDatabaseStartupState();
+
+    return {
+      ok: true,
+      api_running: true,
+      app_version: config.appVersion,
+      db_connected: dbConnected,
+      migrations_ok: dbConnected && usersTableExists && startupState.migrationsOk,
+      users_table_exists: usersTableExists
+    };
+  });
 
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof ZodError) {

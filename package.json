@@ -5,14 +5,20 @@
   "description": "Local desktop real-estate listings manager for Iraqi brokerage offices.",
   "scripts": {
     "dev": "concurrently -k -n renderer,desktop -c cyan,green \"pnpm --filter @dalaly/renderer dev\" \"wait-on http://127.0.0.1:5173 && pnpm --filter @dalaly/desktop dev\"",
-    "build": "pnpm --filter @dalaly/server build && pnpm --filter @dalaly/renderer build",
+    "build": "pnpm build:server && pnpm build:renderer && pnpm assert:dist-assets",
+    "build:renderer": "pnpm --filter @dalaly/renderer build",
+    "build:server": "pnpm --filter @dalaly/server build",
+    "build:desktop": "pnpm --filter @dalaly/desktop build",
+    "assert:dist-assets": "node scripts/assert-production-assets.mjs",
     "start": "pnpm --filter @dalaly/desktop start",
     "db:migrate": "pnpm --filter @dalaly/server db:migrate",
     "lint": "pnpm --filter @dalaly/server lint && pnpm --filter @dalaly/renderer lint",
-    "package": "pnpm build && pnpm --filter @dalaly/desktop package",
+    "dist": "pnpm build && pnpm build:desktop",
+    "package": "pnpm dist",
     "package:portable": "pnpm build && pnpm --filter @dalaly/desktop package:portable",
     "package:installer": "pnpm build && pnpm --filter @dalaly/desktop package:installer",
-    "release": "pnpm build && pnpm --filter @dalaly/desktop release"
+    "release": "pnpm dist",
+    "clean": "pnpm --filter @dalaly/server clean && pnpm --filter @dalaly/renderer clean && pnpm --filter @dalaly/desktop clean"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

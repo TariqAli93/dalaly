@@ -1,6 +1,10 @@
 import { type FastifyPluginAsync } from "fastify";
 import { config } from "../../infrastructure/config.js";
-import { pool } from "../../infrastructure/database/pool.js";
+import {
+  getDatabaseStartupState,
+  tableExists,
+  validateDatabaseConnection
+} from "../../infrastructure/database/health.js";
 import {
   adminExists,
   cleanupExpiredSessions,
@@ -13,14 +17,50 @@ import { loginSchema, setupAdminSchema } from "./auth.schema.js";
 export const authRoutes: FastifyPluginAsync = async (app) => {
   app.get("/setup-status", async () => {
     const dbConnected = await validateDatabaseConnection();
+    if (!dbConnected) {
+      return {
+        api_running: true,
+        app_version: config.appVersion,
+        db_connected: false,
+        migrations_ok: false,
+        users_table_exists: false,
+        admin_exists: false
+      };
+    }
+
+    const usersTableExists = await tableExists("users");
+    if (!usersTableExists) {
+      return {
+        api_running: true,
+        app_version: config.appVersion,
+        db_connected: true,
+        migrations_ok: false,
+        users_table_exists: false,
+        admin_exists: false
+      };
+    }
+
+    const startupState = getDatabaseStartupState();
+
     return {
+      api_running: true,
       app_version: config.appVersion,
-      db_connected: dbConnected,
-      admin_exists: dbConnected ? await adminExists() : false
+      db_connected: true,
+      migrations_ok: startupState.migrationsOk,
+      users_table_exists: true,
+      admin_exists: await adminExists()
     };
   });
 
   app.post("/setup-admin", async (request, reply) => {
+    if (!(await validateDatabaseConnection())) {
+      return reply.code(503).send({ message: "PostgreSQL غير متصل." });
+    }
+
+    if (!(await tableExists("users"))) {
+      return reply.code(503).send({ message: "قاعدة البيانات غير جاهزة. تعذر العثور على جدول المستخدمين." });
+    }
+
     const exists = await adminExists();
     if (exists) {
       return reply.code(409).send({ message: "تم إنشاء مستخدم المدير مسبقاً." });
@@ -69,12 +109,3 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     };
   });
 };
-
-async function validateDatabaseConnection() {
-  try {
-    await pool.query("select 1");
-    return true;
-  } catch {
-    return false;
-  }
-}

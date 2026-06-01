@@ -13,7 +13,10 @@ export const config = {
     port: Number(process.env.DB_PORT ?? 5432),
     database: process.env.DB_NAME ?? "codel_dalaly",
     user: process.env.DB_USER ?? "postgres",
-    password: process.env.DB_PASSWORD ?? "postgres",
+    password: process.env.DB_PASSWORD ?? "root",
+    connectionTimeoutMillis: Number(
+      process.env.DB_CONNECTION_TIMEOUT_MS ?? 1500,
+    ),
   },
   admin: {
     username: process.env.ADMIN_USERNAME ?? "admin",

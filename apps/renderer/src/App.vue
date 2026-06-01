@@ -188,8 +188,11 @@ const loginForm = ref({ username: "admin", pin: "" });
 const setupForm = ref({ username: "admin", pin: "" });
 
 const setupStatus = ref({
+  api_running: false,
   app_version: "0.1.0",
   db_connected: false,
+  migrations_ok: false,
+  users_table_exists: false,
   admin_exists: false,
 });
 
@@ -360,6 +363,14 @@ async function boot() {
       authMode.value = "login";
       notifyError(
         "تعذر الاتصال بقاعدة البيانات. تحقق من إعدادات PostgreSQL المحلية.",
+      );
+      return;
+    }
+
+    if (!setupStatus.value.migrations_ok || !setupStatus.value.users_table_exists) {
+      authMode.value = "login";
+      notifyError(
+        "قاعدة البيانات متصلة لكن الجداول لم تجهز بعد. راجع سجلات التطبيق أو أعد تشغيله بعد التأكد من مسار migrations.",
       );
       return;
     }
