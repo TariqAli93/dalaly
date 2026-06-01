@@ -1,7 +1,14 @@
-import { and, eq, gt, sql } from "drizzle-orm";
+import { and, count, eq, gt, lte } from "drizzle-orm";
 import { config } from "../../infrastructure/config.js";
 import { db } from "../../infrastructure/database/db.js";
 import { sessions, users, type User } from "../../infrastructure/database/schema.js";
+import {
+  assignSuperAdminRole,
+  countActiveSuperAdmins,
+  getUserRolesAndPermissions,
+  type AuthPermission,
+  type AuthRole
+} from "../rbac/rbac.service.js";
 import {
   createSessionToken,
   hashPin,
@@ -9,19 +16,32 @@ import {
   verifyPin
 } from "./crypto.js";
 
-export type AuthUser = Pick<User, "id" | "username" | "role">;
+export type AuthUser = Pick<User, "id" | "username" | "displayName" | "isActive"> & {
+  roles: AuthRole[];
+  permissions: AuthPermission[];
+};
 
 export async function bootstrapDefaultAdmin() {
   const hasAdmin = await adminExists();
-  if (hasAdmin) {
+  if (!hasAdmin) {
+    await createAdmin(config.admin.username, config.admin.pin);
     return;
   }
 
-  await createAdmin(config.admin.username, config.admin.pin);
+  const [firstUser] = await db.select().from(users).limit(1);
+  if (firstUser) {
+    await assignSuperAdminRole(firstUser.id);
+    if ((await countActiveSuperAdmins()) === 0) {
+      await db
+        .update(users)
+        .set({ isActive: true, updatedAt: new Date() })
+        .where(eq(users.id, firstUser.id));
+    }
+  }
 }
 
 export async function adminExists() {
-  const result = await db.select({ count: sql<number>`count(*)::int` }).from(users);
+  const result = await db.select({ count: count() }).from(users);
   return Number(result[0]?.count ?? 0) > 0;
 }
 
@@ -29,12 +49,14 @@ export async function createAdmin(username: string, pin: string) {
   const pinHash = await hashPin(pin);
   const [user] = await db
     .insert(users)
-    .values({ username, pinHash, role: "administrator" })
+    .values({ username, displayName: username, pinHash })
     .returning({
       id: users.id,
       username: users.username,
-      role: users.role
+      displayName: users.displayName,
+      isActive: users.isActive
     });
+  await assignSuperAdminRole(user.id);
   return user;
 }
 
@@ -62,7 +84,7 @@ export async function login(username: string, pin: string) {
   return {
     token,
     expires_at: expiresAt.toISOString(),
-    user: toAuthUser(user)
+    ...(await buildAuthPayload(user))
   };
 }
 
@@ -79,7 +101,8 @@ export async function resolveSession(token: string): Promise<AuthUser | null> {
       user: {
         id: users.id,
         username: users.username,
-        role: users.role
+        displayName: users.displayName,
+        isActive: users.isActive
       }
     })
     .from(sessions)
@@ -97,17 +120,37 @@ export async function resolveSession(token: string): Promise<AuthUser | null> {
     return null;
   }
 
-  return session.user;
+  return buildAuthUser(session.user);
 }
 
 export async function cleanupExpiredSessions() {
-  await db.delete(sessions).where(sql`${sessions.expiresAt} <= now()`);
+  await db.delete(sessions).where(lte(sessions.expiresAt, new Date()));
 }
 
-function toAuthUser(user: User): AuthUser {
+export async function buildAuthPayload(user: Pick<User, "id" | "username" | "displayName" | "isActive">) {
+  const authUser = await buildAuthUser(user);
+  return {
+    user: {
+      id: authUser.id,
+      username: authUser.username,
+      display_name: authUser.displayName,
+      is_active: authUser.isActive
+    },
+    roles: authUser.roles,
+    permissions: authUser.permissions
+  };
+}
+
+async function buildAuthUser(
+  user: Pick<User, "id" | "username" | "displayName" | "isActive">
+): Promise<AuthUser> {
+  const { roles, permissions } = await getUserRolesAndPermissions(user.id);
   return {
     id: user.id,
     username: user.username,
-    role: user.role
+    displayName: user.displayName,
+    isActive: user.isActive,
+    roles,
+    permissions
   };
 }

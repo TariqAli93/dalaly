@@ -1,21 +1,17 @@
-import { sql } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import { properties } from "../../infrastructure/database/schema.js";
 
 export async function getSummaryStats() {
-  const [totals, byType, byLegalType, byPricingMethod] = await Promise.all([
-    db
-      .select({
-        total: sql<number>`count(*)::int`,
-        available: sql<number>`count(*) filter (where ${properties.status} = 'available')::int`,
-        sold: sql<number>`count(*) filter (where ${properties.status} = 'sold')::int`,
-        archived: sql<number>`count(*) filter (where ${properties.status} = 'archived')::int`
-      })
-      .from(properties),
+  const [total, available, sold, archived, byType, byLegalType, byPricingMethod] = await Promise.all([
+    db.select({ count: count() }).from(properties),
+    db.select({ count: count() }).from(properties).where(eq(properties.status, "available")),
+    db.select({ count: count() }).from(properties).where(eq(properties.status, "sold")),
+    db.select({ count: count() }).from(properties).where(eq(properties.status, "archived")),
     db
       .select({
         name: properties.propertyType,
-        count: sql<number>`count(*)::int`
+        count: count()
       })
       .from(properties)
       .groupBy(properties.propertyType)
@@ -23,7 +19,7 @@ export async function getSummaryStats() {
     db
       .select({
         name: properties.legalType,
-        count: sql<number>`count(*)::int`
+        count: count()
       })
       .from(properties)
       .groupBy(properties.legalType)
@@ -31,7 +27,7 @@ export async function getSummaryStats() {
     db
       .select({
         name: properties.pricingMethod,
-        count: sql<number>`count(*)::int`
+        count: count()
       })
       .from(properties)
       .groupBy(properties.pricingMethod)
@@ -39,7 +35,10 @@ export async function getSummaryStats() {
   ]);
 
   return {
-    ...totals[0],
+    total: total[0]?.count ?? 0,
+    available: available[0]?.count ?? 0,
+    sold: sold[0]?.count ?? 0,
+    archived: archived[0]?.count ?? 0,
     by_type: byType,
     by_legal_type: byLegalType,
     by_pricing_method: byPricingMethod

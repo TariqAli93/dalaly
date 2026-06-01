@@ -5,6 +5,7 @@ import {
   index,
   numeric,
   pgTable,
+  primaryKey,
   text,
   timestamp
 } from "drizzle-orm/pg-core";
@@ -13,11 +14,56 @@ export const users = pgTable("users", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
   username: text("username").notNull().unique(),
   pinHash: text("pin_hash").notNull(),
-  role: text("role").notNull().default("administrator"),
+  displayName: text("display_name").notNull(),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
 });
+
+export const roles = pgTable("roles", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  isSystem: boolean("is_system").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+});
+
+export const permissions = pgTable("permissions", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  key: text("key").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  module: text("module").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+});
+
+export const userRoles = pgTable(
+  "user_roles",
+  {
+    userId: bigint("user_id", { mode: "number" })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    roleId: bigint("role_id", { mode: "number" })
+      .notNull()
+      .references(() => roles.id, { onDelete: "cascade" })
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.roleId] })]
+);
+
+export const rolePermissions = pgTable(
+  "role_permissions",
+  {
+    roleId: bigint("role_id", { mode: "number" })
+      .notNull()
+      .references(() => roles.id, { onDelete: "cascade" }),
+    permissionId: bigint("permission_id", { mode: "number" })
+      .notNull()
+      .references(() => permissions.id, { onDelete: "cascade" })
+  },
+  (table) => [primaryKey({ columns: [table.roleId, table.permissionId] })]
+);
 
 export const sessions = pgTable(
   "sessions",
@@ -70,6 +116,10 @@ export const properties = pgTable(
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+export type Role = typeof roles.$inferSelect;
+export type NewRole = typeof roles.$inferInsert;
+export type Permission = typeof permissions.$inferSelect;
+export type NewPermission = typeof permissions.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
 export type Property = typeof properties.$inferSelect;
 export type NewProperty = typeof properties.$inferInsert;

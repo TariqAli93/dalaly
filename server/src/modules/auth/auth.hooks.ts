@@ -35,3 +35,15 @@ export function registerAuthHook(app: FastifyInstance) {
     request.user = user;
   });
 }
+
+export function requirePermission(permission: string) {
+  return async function permissionGuard(
+    request: import("fastify").FastifyRequest,
+    reply: import("fastify").FastifyReply
+  ) {
+    const hasPermission = request.user?.permissions.some((item) => item.key === permission);
+    if (!hasPermission) {
+      return reply.code(403).send({ message: "ليست لديك صلاحية تنفيذ هذه العملية." });
+    }
+  };
+}

@@ -23,7 +23,7 @@
     "electron-builder": "^26.8.1"
   },
   "build": {
-    "appId": "iq.dalaly.desktop",
+    "appId": "codel.dalaly.desktop",
     "productName": "Dalaly",
     "publish": null,
     "directories": {

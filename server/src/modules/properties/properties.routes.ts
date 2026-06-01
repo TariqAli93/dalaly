@@ -1,4 +1,5 @@
 import { type FastifyPluginAsync } from "fastify";
+import { requirePermission } from "../auth/auth.hooks.js";
 import {
   archiveProperty,
   createProperty,
@@ -19,12 +20,12 @@ function parseId(value: string) {
 }
 
 export const propertiesRoutes: FastifyPluginAsync = async (app) => {
-  app.get("/", async (request) => {
+  app.get("/", { preHandler: requirePermission("properties.read") }, async (request) => {
     const filters = propertyFiltersSchema.parse(request.query);
     return listProperties(filters);
   });
 
-  app.get("/:id", async (request, reply) => {
+  app.get("/:id", { preHandler: requirePermission("properties.read") }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const propertyId = parseId(id);
     if (!propertyId) {
@@ -40,13 +41,13 @@ export const propertiesRoutes: FastifyPluginAsync = async (app) => {
     return property;
   });
 
-  app.post("/", async (request, reply) => {
+  app.post("/", { preHandler: requirePermission("properties.create") }, async (request, reply) => {
     const payload = propertyPayloadSchema.parse(request.body);
     const property = await createProperty(payload);
     return reply.code(201).send(property);
   });
 
-  app.put("/:id", async (request, reply) => {
+  app.put("/:id", { preHandler: requirePermission("properties.update") }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const propertyId = parseId(id);
     if (!propertyId) {
@@ -63,7 +64,7 @@ export const propertiesRoutes: FastifyPluginAsync = async (app) => {
     return property;
   });
 
-  app.delete("/:id", async (request, reply) => {
+  app.delete("/:id", { preHandler: requirePermission("properties.delete") }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const propertyId = parseId(id);
     if (!propertyId) {
@@ -79,7 +80,7 @@ export const propertiesRoutes: FastifyPluginAsync = async (app) => {
     return { deleted: true, property };
   });
 
-  app.patch("/:id/archive", async (request, reply) => {
+  app.patch("/:id/archive", { preHandler: requirePermission("properties.archive") }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const propertyId = parseId(id);
     if (!propertyId) {
@@ -95,7 +96,7 @@ export const propertiesRoutes: FastifyPluginAsync = async (app) => {
     return property;
   });
 
-  app.patch("/:id/restore", async (request, reply) => {
+  app.patch("/:id/restore", { preHandler: requirePermission("properties.restore") }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const propertyId = parseId(id);
     if (!propertyId) {

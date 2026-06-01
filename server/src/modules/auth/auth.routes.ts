@@ -52,9 +52,22 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     return { ok: true };
   });
 
-  app.get("/me", async (request) => ({
-    user: request.user
-  }));
+  app.get("/me", async (request) => {
+    if (!request.user) {
+      return { user: null, roles: [], permissions: [] };
+    }
+
+    return {
+      user: {
+        id: request.user.id,
+        username: request.user.username,
+        display_name: request.user.displayName,
+        is_active: request.user.isActive
+      },
+      roles: request.user.roles,
+      permissions: request.user.permissions
+    };
+  });
 };
 
 async function validateDatabaseConnection() {

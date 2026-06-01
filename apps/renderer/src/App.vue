@@ -4,7 +4,41 @@ import { useDisplay, useTheme } from "vuetify";
 
 type PropertyStatus = "available" | "reserved" | "sold" | "archived";
 type AuthMode = "checking" | "setup" | "login" | "app";
-type ViewName = "dashboard" | "properties" | "form" | "settings";
+type ViewName =
+  | "dashboard"
+  | "properties"
+  | "form"
+  | "users"
+  | "roles"
+  | "settings";
+
+type AuthUserRecord = {
+  id: number;
+  username: string;
+  display_name: string;
+  is_active: boolean;
+};
+
+type RoleRecord = {
+  id: number;
+  name: string;
+  description: string | null;
+  is_system: boolean;
+  permission_ids: number[];
+};
+
+type PermissionRecord = {
+  id: number;
+  key: string;
+  name: string;
+  description: string | null;
+  module: string;
+};
+
+type ManagedUserRecord = AuthUserRecord & {
+  role_ids: number[];
+  roles: RoleRecord[];
+};
 
 type PropertyRecord = {
   id: number;
@@ -72,7 +106,12 @@ const statuses = [
   { title: "مؤرشف", value: "archived" },
 ];
 
-const navItems: Array<{ title: string; value: ViewName; icon: string }> = [
+const baseNavItems: Array<{
+  title: string;
+  value: ViewName;
+  icon: string;
+  permission?: string;
+}> = [
   {
     title: "لوحة البداية",
     value: "dashboard",
@@ -82,9 +121,32 @@ const navItems: Array<{ title: string; value: ViewName; icon: string }> = [
     title: "العروض العقارية",
     value: "properties",
     icon: "mdi-home-city-outline",
+    permission: "properties.read",
   },
-  { title: "إضافة عرض", value: "form", icon: "mdi-plus-box-outline" },
-  { title: "الإعدادات", value: "settings", icon: "mdi-cog-outline" },
+  {
+    title: "إضافة عرض",
+    value: "form",
+    icon: "mdi-plus-box-outline",
+    permission: "properties.create",
+  },
+  {
+    title: "المستخدمون",
+    value: "users",
+    icon: "mdi-account-group-outline",
+    permission: "users.read",
+  },
+  {
+    title: "الأدوار والصلاحيات",
+    value: "roles",
+    icon: "mdi-shield-key-outline",
+    permission: "roles.read",
+  },
+  {
+    title: "الإعدادات",
+    value: "settings",
+    icon: "mdi-cog-outline",
+    permission: "settings.read",
+  },
 ];
 
 const authMode = ref<AuthMode>("checking");
@@ -98,9 +160,9 @@ const authLoading = ref(false);
 const detailsDialog = ref(false);
 
 const token = ref(localStorage.getItem(SESSION_KEY) ?? "");
-const currentUser = ref<{ id: number; username: string; role: string } | null>(
-  null,
-);
+const currentUser = ref<AuthUserRecord | null>(null);
+const currentRoles = ref<RoleRecord[]>([]);
+const currentPermissions = ref<PermissionRecord[]>([]);
 
 const globalSearchRef = ref<{ focus?: () => void } | null>(null);
 const propertyFormRef = ref<{
@@ -132,8 +194,17 @@ const setupStatus = ref({
 });
 
 const properties = ref<PropertyRecord[]>([]);
+const users = ref<ManagedUserRecord[]>([]);
+const roles = ref<RoleRecord[]>([]);
+const permissions = ref<PermissionRecord[]>([]);
 const selectedProperty = ref<PropertyRecord | null>(null);
 const editingId = ref<number | null>(null);
+const userDialog = ref(false);
+const roleDialog = ref(false);
+const permissionDialog = ref(false);
+const editingUserId = ref<number | null>(null);
+const editingRoleId = ref<number | null>(null);
+const editingPermissionId = ref<number | null>(null);
 
 const remoteStatus = ref({
   enabled: false,
@@ -184,6 +255,24 @@ const defaultForm = (): PropertyForm => ({
 });
 
 const form = ref<PropertyForm>(defaultForm());
+const userForm = ref({
+  username: "",
+  display_name: "",
+  pin: "",
+  is_active: true,
+  role_ids: [] as number[],
+});
+const roleForm = ref({
+  name: "",
+  description: "",
+  permission_ids: [] as number[],
+});
+const permissionForm = ref({
+  key: "",
+  name: "",
+  description: "",
+  module: "",
+});
 
 const headers = [
   { title: "الكود", key: "code", sortable: true },
@@ -198,10 +287,26 @@ const headers = [
 ];
 
 const isDarkMode = computed(() => themeName.value === "dalalyDark");
+const currentUserPermissions = computed(() =>
+  currentPermissions.value.map((permission) => permission.key),
+);
+const navItems = computed(() =>
+  baseNavItems.filter((item) => !item.permission || can(item.permission)),
+);
 
 const pageTitle = computed(
-  () => navItems.find((item) => item.value === activeView.value)?.title ?? "",
+  () =>
+    navItems.value.find((item) => item.value === activeView.value)?.title ?? "",
 );
+const permissionsByModule = computed(() => {
+  const groups = new Map<string, PermissionRecord[]>();
+  for (const permission of permissions.value) {
+    const group = groups.get(permission.module) ?? [];
+    group.push(permission);
+    groups.set(permission.module, group);
+  }
+  return [...groups.entries()].map(([module, items]) => ({ module, items }));
+});
 
 const isDirectPrice = computed(
   () => form.value.pricing_method === DIRECT_PRICE,
@@ -265,8 +370,7 @@ async function boot() {
     }
 
     if (token.value) {
-      const me = await api<{ user: typeof currentUser.value }>("/auth/me");
-      currentUser.value = me.user;
+      await loadCurrentUser();
       authMode.value = "app";
       await refreshAll();
       return;
@@ -356,7 +460,9 @@ async function loginUser() {
   try {
     const result = await publicApi<{
       token: string;
-      user: { id: number; username: string; role: string };
+      user: AuthUserRecord;
+      roles: RoleRecord[];
+      permissions: PermissionRecord[];
     }>("/auth/login", {
       method: "POST",
       body: JSON.stringify(loginForm.value),
@@ -364,6 +470,8 @@ async function loginUser() {
 
     token.value = result.token;
     currentUser.value = result.user;
+    currentRoles.value = result.roles;
+    currentPermissions.value = result.permissions;
     localStorage.setItem(SESSION_KEY, result.token);
     authMode.value = "app";
 
@@ -381,8 +489,21 @@ async function logoutUser() {
 
   token.value = "";
   currentUser.value = null;
+  currentRoles.value = [];
+  currentPermissions.value = [];
   localStorage.removeItem(SESSION_KEY);
   authMode.value = "login";
+}
+
+async function loadCurrentUser() {
+  const me = await api<{
+    user: AuthUserRecord;
+    roles: RoleRecord[];
+    permissions: PermissionRecord[];
+  }>("/auth/me");
+  currentUser.value = me.user;
+  currentRoles.value = me.roles;
+  currentPermissions.value = me.permissions;
 }
 
 async function loadProperties() {
@@ -428,11 +549,199 @@ async function loadRemoteStatus() {
 }
 
 async function refreshAll() {
-  await Promise.all([loadProperties(), loadStats(), loadRemoteStatus()]);
+  await Promise.all([
+    can("properties.read") ? loadProperties() : Promise.resolve(),
+    can("properties.read") ? loadStats() : Promise.resolve(),
+    can("settings.read") ? loadRemoteStatus() : Promise.resolve(),
+    can("users.read") ? loadUsers() : Promise.resolve(),
+    can("roles.read") ? loadRolesAndPermissions() : Promise.resolve(),
+  ]);
 }
 
 async function refreshPropertyData() {
   await Promise.all([loadProperties(), loadStats()]);
+}
+
+async function loadUsers() {
+  try {
+    users.value = await api<ManagedUserRecord[]>("/users");
+  } catch (error) {
+    notifyError(getErrorMessage(error));
+  }
+}
+
+async function loadRolesAndPermissions() {
+  try {
+    const [roleRows, permissionRows] = await Promise.all([
+      api<RoleRecord[]>("/roles"),
+      api<PermissionRecord[]>("/permissions"),
+    ]);
+    roles.value = roleRows;
+    permissions.value = permissionRows;
+  } catch (error) {
+    notifyError(getErrorMessage(error));
+  }
+}
+
+function openUserDialog(user?: ManagedUserRecord) {
+  editingUserId.value = user?.id ?? null;
+  userForm.value = {
+    username: user?.username ?? "",
+    display_name: user?.display_name ?? "",
+    pin: "",
+    is_active: user?.is_active ?? true,
+    role_ids: user?.role_ids ? [...user.role_ids] : [],
+  };
+  userDialog.value = true;
+}
+
+async function saveUser() {
+  try {
+    const payload = {
+      ...userForm.value,
+      pin: userForm.value.pin || undefined,
+    };
+    if (editingUserId.value) {
+      await api(`/users/${editingUserId.value}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+      notifySuccess("تم تحديث المستخدم.");
+    } else {
+      await api("/users", {
+        method: "POST",
+        body: JSON.stringify(userForm.value),
+      });
+      notifySuccess("تم إنشاء المستخدم.");
+    }
+    userDialog.value = false;
+    await loadUsers();
+  } catch (error) {
+    notifyError(getErrorMessage(error));
+  }
+}
+
+async function toggleUserActive(user: ManagedUserRecord) {
+  try {
+    await api(
+      `/users/${user.id}/${user.is_active ? "deactivate" : "activate"}`,
+      {
+        method: "PATCH",
+      },
+    );
+    await loadUsers();
+    notifySuccess(user.is_active ? "تم تعطيل المستخدم." : "تم تفعيل المستخدم.");
+  } catch (error) {
+    notifyError(getErrorMessage(error));
+  }
+}
+
+function askDeleteUser(user: ManagedUserRecord) {
+  openConfirm({
+    title: `حذف ${user.username}`,
+    body: "هل تريد حذف هذا المستخدم؟",
+    confirmText: "حذف",
+    color: "error",
+    onConfirm: async () => {
+      await api(`/users/${user.id}`, { method: "DELETE" });
+      await loadUsers();
+      notifySuccess("تم حذف المستخدم.");
+    },
+  });
+}
+
+function openRoleDialog(role?: RoleRecord) {
+  editingRoleId.value = role?.id ?? null;
+  roleForm.value = {
+    name: role?.name ?? "",
+    description: role?.description ?? "",
+    permission_ids: role?.permission_ids ? [...role.permission_ids] : [],
+  };
+  roleDialog.value = true;
+}
+
+async function saveRole() {
+  try {
+    const payload = {
+      name: roleForm.value.name,
+      description: roleForm.value.description,
+    };
+    const role = editingRoleId.value
+      ? await api<RoleRecord>(`/roles/${editingRoleId.value}`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        })
+      : await api<RoleRecord>("/roles", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+
+    await api(`/roles/${role.id}/permissions`, {
+      method: "PUT",
+      body: JSON.stringify({ permission_ids: roleForm.value.permission_ids }),
+    });
+    roleDialog.value = false;
+    await loadRolesAndPermissions();
+    notifySuccess("تم حفظ الدور والصلاحيات.");
+  } catch (error) {
+    notifyError(getErrorMessage(error));
+  }
+}
+
+function askDeleteRole(role: RoleRecord) {
+  openConfirm({
+    title: `حذف ${role.name}`,
+    body: "هل تريد حذف هذا الدور؟",
+    confirmText: "حذف",
+    color: "error",
+    onConfirm: async () => {
+      await api(`/roles/${role.id}`, { method: "DELETE" });
+      await loadRolesAndPermissions();
+      notifySuccess("تم حذف الدور.");
+    },
+  });
+}
+
+function openPermissionDialog(permission?: PermissionRecord) {
+  editingPermissionId.value = permission?.id ?? null;
+  permissionForm.value = {
+    key: permission?.key ?? "",
+    name: permission?.name ?? "",
+    description: permission?.description ?? "",
+    module: permission?.module ?? "",
+  };
+  permissionDialog.value = true;
+}
+
+async function savePermission() {
+  try {
+    const path = editingPermissionId.value
+      ? `/permissions/${editingPermissionId.value}`
+      : "/permissions";
+    await api(path, {
+      method: editingPermissionId.value ? "PUT" : "POST",
+      body: JSON.stringify(permissionForm.value),
+    });
+    permissionDialog.value = false;
+    await loadRolesAndPermissions();
+    notifySuccess("تم حفظ الصلاحية.");
+  } catch (error) {
+    notifyError(getErrorMessage(error));
+  }
+}
+
+function askDeletePermission(permission: PermissionRecord) {
+  openConfirm({
+    title: `حذف ${permission.key}`,
+    body: "هل تريد حذف هذه الصلاحية؟",
+    confirmText: "حذف",
+    color: "error",
+    onConfirm: async () => {
+      await api(`/permissions/${permission.id}`, { method: "DELETE" });
+      await loadRolesAndPermissions();
+      notifySuccess("تم حذف الصلاحية.");
+    },
+  });
 }
 
 async function saveProperty() {
@@ -748,6 +1057,10 @@ function statusColor(status: string) {
   }[status];
 }
 
+function can(permission: string) {
+  return currentUserPermissions.value.includes(permission);
+}
+
 function notifySuccess(text: string) {
   snackbar.value = { show: true, text, color: "success" };
 }
@@ -975,22 +1288,6 @@ function getErrorMessage(error: unknown) {
                   إدارة محلية وسريعة لعروض البيع والتسويق داخل المكتب.
                 </div>
               </div>
-              <div class="d-flex ga-2 flex-wrap">
-                <v-btn
-                  color="primary"
-                  prepend-icon="mdi-plus"
-                  @click="openCreateForm"
-                >
-                  إضافة عرض
-                </v-btn>
-                <v-btn
-                  variant="tonal"
-                  prepend-icon="mdi-home-search"
-                  @click="setView('properties')"
-                >
-                  بحث العروض
-                </v-btn>
-              </div>
             </div>
 
             <div v-if="activeView === 'dashboard'">
@@ -1050,6 +1347,7 @@ function getErrorMessage(error: unknown) {
                   <v-card-title>إجراءات يومية</v-card-title>
                   <v-card-text class="quick-actions">
                     <v-btn
+                      v-if="can('properties.create')"
                       variant="tonal"
                       prepend-icon="mdi-home-plus"
                       @click="openCreateForm"
@@ -1057,6 +1355,7 @@ function getErrorMessage(error: unknown) {
                       تسجيل عرض جديد
                     </v-btn>
                     <v-btn
+                      v-if="can('properties.read')"
                       variant="tonal"
                       prepend-icon="mdi-check-circle-outline"
                       @click="applyQuickFilter('status', 'available')"
@@ -1064,6 +1363,7 @@ function getErrorMessage(error: unknown) {
                       العروض المتاحة
                     </v-btn>
                     <v-btn
+                      v-if="can('properties.read')"
                       variant="tonal"
                       prepend-icon="mdi-tune"
                       @click="
@@ -1299,6 +1599,7 @@ function getErrorMessage(error: unknown) {
                         @click="viewDetails(item)"
                       />
                       <v-btn
+                        v-if="can('properties.update')"
                         icon="mdi-pencil"
                         size="small"
                         variant="text"
@@ -1306,7 +1607,10 @@ function getErrorMessage(error: unknown) {
                         @click="editProperty(item)"
                       />
                       <v-btn
-                        v-if="item.status === 'archived'"
+                        v-if="
+                          item.status === 'archived' &&
+                          can('properties.restore')
+                        "
                         icon="mdi-archive-arrow-up-outline"
                         color="success"
                         size="small"
@@ -1315,7 +1619,7 @@ function getErrorMessage(error: unknown) {
                         @click="askRestore(item)"
                       />
                       <v-btn
-                        v-else
+                        v-else-if="can('properties.archive')"
                         icon="mdi-archive-arrow-down-outline"
                         color="warning"
                         size="small"
@@ -1324,6 +1628,7 @@ function getErrorMessage(error: unknown) {
                         @click="askArchive(item)"
                       />
                       <v-btn
+                        v-if="can('properties.delete')"
                         icon="mdi-delete-outline"
                         size="small"
                         variant="text"
@@ -1456,6 +1761,204 @@ function getErrorMessage(error: unknown) {
               </v-form>
             </div>
 
+            <div v-else-if="activeView === 'users'">
+              <v-card rounded="lg" variant="flat" border>
+                <v-card-title class="d-flex align-center">
+                  <span>إدارة المستخدمين</span>
+                  <v-spacer />
+                  <v-btn
+                    v-if="can('users.create')"
+                    color="primary"
+                    prepend-icon="mdi-account-plus"
+                    @click="openUserDialog()"
+                  >
+                    إضافة مستخدم
+                  </v-btn>
+                </v-card-title>
+                <v-card-text>
+                  <v-empty-state
+                    v-if="!users.length"
+                    icon="mdi-account-group-outline"
+                    title="لا توجد مستخدمون"
+                  />
+                  <v-table v-else density="comfortable">
+                    <thead>
+                      <tr>
+                        <th>المستخدم</th>
+                        <th>الاسم</th>
+                        <th>الأدوار</th>
+                        <th>الحالة</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="user in users" :key="user.id">
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.display_name }}</td>
+                        <td>
+                          <v-chip
+                            v-for="role in user.roles"
+                            :key="role.id"
+                            class="ma-1"
+                            size="small"
+                            variant="tonal"
+                          >
+                            {{ role.name }}
+                          </v-chip>
+                        </td>
+                        <td>
+                          <v-chip
+                            :color="user.is_active ? 'success' : undefined"
+                            size="small"
+                            variant="tonal"
+                          >
+                            {{ user.is_active ? "فعال" : "معطل" }}
+                          </v-chip>
+                        </td>
+                        <td class="text-end">
+                          <v-btn
+                            v-if="can('users.update')"
+                            icon="mdi-pencil"
+                            size="small"
+                            variant="text"
+                            @click="openUserDialog(user)"
+                          />
+                          <v-btn
+                            v-if="can('users.update')"
+                            :icon="
+                              user.is_active
+                                ? 'mdi-account-off-outline'
+                                : 'mdi-account-check-outline'
+                            "
+                            size="small"
+                            variant="text"
+                            @click="toggleUserActive(user)"
+                          />
+                          <v-btn
+                            v-if="can('users.delete')"
+                            icon="mdi-delete-outline"
+                            color="error"
+                            size="small"
+                            variant="text"
+                            @click="askDeleteUser(user)"
+                          />
+                        </td>
+                      </tr>
+                    </tbody>
+                  </v-table>
+                </v-card-text>
+              </v-card>
+            </div>
+
+            <div v-else-if="activeView === 'roles'">
+              <div class="settings-grid">
+                <v-card rounded="lg" variant="flat" border>
+                  <v-card-title class="d-flex align-center">
+                    <span>الأدوار</span>
+                    <v-spacer />
+                    <v-btn
+                      v-if="can('roles.create')"
+                      color="primary"
+                      prepend-icon="mdi-shield-plus-outline"
+                      @click="openRoleDialog()"
+                    >
+                      إضافة Role
+                    </v-btn>
+                  </v-card-title>
+                  <v-card-text>
+                    <v-list lines="two">
+                      <v-list-item
+                        v-for="role in roles"
+                        :key="role.id"
+                        :title="role.name"
+                        :subtitle="role.description || 'بدون وصف'"
+                      >
+                        <template #append>
+                          <v-chip
+                            v-if="role.is_system"
+                            class="me-2"
+                            size="small"
+                            variant="tonal"
+                            >System</v-chip
+                          >
+                          <v-btn
+                            v-if="can('roles.update')"
+                            icon="mdi-pencil"
+                            size="small"
+                            variant="text"
+                            @click="openRoleDialog(role)"
+                          />
+                          <v-btn
+                            v-if="can('roles.delete') && !role.is_system"
+                            icon="mdi-delete-outline"
+                            color="error"
+                            size="small"
+                            variant="text"
+                            @click="askDeleteRole(role)"
+                          />
+                        </template>
+                      </v-list-item>
+                    </v-list>
+                  </v-card-text>
+                </v-card>
+
+                <v-card rounded="lg" variant="flat" border>
+                  <v-card-title class="d-flex align-center">
+                    <span>الصلاحيات</span>
+                    <v-spacer />
+                    <v-btn
+                      v-if="can('roles.create')"
+                      variant="tonal"
+                      prepend-icon="mdi-key-plus"
+                      @click="openPermissionDialog()"
+                    >
+                      إضافة صلاحية
+                    </v-btn>
+                  </v-card-title>
+                  <v-card-text>
+                    <v-expansion-panels variant="accordion">
+                      <v-expansion-panel
+                        v-for="group in permissionsByModule"
+                        :key="group.module"
+                      >
+                        <v-expansion-panel-title>{{
+                          group.module
+                        }}</v-expansion-panel-title>
+                        <v-expansion-panel-text>
+                          <v-list density="compact">
+                            <v-list-item
+                              v-for="permission in group.items"
+                              :key="permission.id"
+                              :title="permission.name"
+                              :subtitle="permission.key"
+                            >
+                              <template #append>
+                                <v-btn
+                                  v-if="can('roles.update')"
+                                  icon="mdi-pencil"
+                                  size="small"
+                                  variant="text"
+                                  @click="openPermissionDialog(permission)"
+                                />
+                                <v-btn
+                                  v-if="can('roles.delete')"
+                                  icon="mdi-delete-outline"
+                                  color="error"
+                                  size="small"
+                                  variant="text"
+                                  @click="askDeletePermission(permission)"
+                                />
+                              </template>
+                            </v-list-item>
+                          </v-list>
+                        </v-expansion-panel-text>
+                      </v-expansion-panel>
+                    </v-expansion-panels>
+                  </v-card-text>
+                </v-card>
+              </div>
+            </div>
+
             <div v-else-if="activeView === 'settings'">
               <div class="settings-grid">
                 <v-card rounded="lg" variant="flat" border>
@@ -1507,6 +2010,7 @@ function getErrorMessage(error: unknown) {
                   <v-card-actions>
                     <v-spacer />
                     <v-btn
+                      v-if="can('settings.update')"
                       color="primary"
                       prepend-icon="mdi-cloud-upload-outline"
                       @click="enableRemote"
@@ -1514,6 +2018,7 @@ function getErrorMessage(error: unknown) {
                       تشغيل
                     </v-btn>
                     <v-btn
+                      v-if="can('settings.update')"
                       variant="text"
                       prepend-icon="mdi-cloud-off-outline"
                       @click="disableRemote"
@@ -1675,13 +2180,17 @@ function getErrorMessage(error: unknown) {
           <v-card-actions>
             <v-spacer />
             <v-btn
+              v-if="can('properties.update')"
               variant="tonal"
               prepend-icon="mdi-pencil"
               @click="editProperty(selectedProperty)"
               >تعديل</v-btn
             >
             <v-btn
-              v-if="selectedProperty.status === 'archived'"
+              v-if="
+                selectedProperty.status === 'archived' &&
+                can('properties.restore')
+              "
               color="success"
               variant="tonal"
               prepend-icon="mdi-archive-arrow-up-outline"
@@ -1689,7 +2198,7 @@ function getErrorMessage(error: unknown) {
               >إرجاع من الأرشيف</v-btn
             >
             <v-btn
-              v-else
+              v-else-if="can('properties.archive')"
               color="warning"
               variant="tonal"
               prepend-icon="mdi-archive-arrow-down-outline"
@@ -1697,11 +2206,128 @@ function getErrorMessage(error: unknown) {
               >أرشفة</v-btn
             >
             <v-btn
+              v-if="can('properties.delete')"
               color="error"
               variant="text"
               prepend-icon="mdi-delete-outline"
               @click="askDelete(selectedProperty)"
               >حذف</v-btn
+            >
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <v-dialog v-model="userDialog" width="620">
+        <v-card rounded="lg">
+          <v-card-title>{{
+            editingUserId ? "تعديل مستخدم" : "إضافة مستخدم"
+          }}</v-card-title>
+          <v-card-text>
+            <div class="dialog-grid">
+              <v-text-field v-model="userForm.username" label="Username" />
+              <v-text-field
+                v-model="userForm.display_name"
+                label="الاسم الظاهر"
+              />
+              <v-text-field
+                v-model="userForm.pin"
+                :label="editingUserId ? 'PIN جديد اختياري' : 'PIN'"
+                type="password"
+              />
+              <v-switch
+                v-model="userForm.is_active"
+                label="فعال"
+                color="primary"
+                hide-details
+              />
+              <v-select
+                v-model="userForm.role_ids"
+                :items="roles"
+                item-title="name"
+                item-value="id"
+                label="الأدوار"
+                multiple
+                chips
+                class="span-2"
+              />
+            </div>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn variant="text" @click="userDialog = false">إلغاء</v-btn>
+            <v-btn color="primary" variant="flat" @click="saveUser">حفظ</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <v-dialog v-model="roleDialog" width="760">
+        <v-card rounded="lg">
+          <v-card-title>{{
+            editingRoleId ? "تعديل Role" : "إضافة Role"
+          }}</v-card-title>
+          <v-card-text>
+            <div class="dialog-grid">
+              <v-text-field v-model="roleForm.name" label="اسم الدور" />
+              <v-text-field v-model="roleForm.description" label="الوصف" />
+            </div>
+            <v-divider class="my-4" />
+            <div class="text-subtitle-2 mb-2">الصلاحيات</div>
+            <v-expansion-panels variant="accordion">
+              <v-expansion-panel
+                v-for="group in permissionsByModule"
+                :key="group.module"
+              >
+                <v-expansion-panel-title>{{
+                  group.module
+                }}</v-expansion-panel-title>
+                <v-expansion-panel-text>
+                  <v-checkbox
+                    v-for="permission in group.items"
+                    :key="permission.id"
+                    v-model="roleForm.permission_ids"
+                    :value="permission.id"
+                    :label="`${permission.name} (${permission.key})`"
+                    density="compact"
+                    hide-details
+                  />
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+            </v-expansion-panels>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn variant="text" @click="roleDialog = false">إلغاء</v-btn>
+            <v-btn color="primary" variant="flat" @click="saveRole">حفظ</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <v-dialog v-model="permissionDialog" width="620">
+        <v-card rounded="lg">
+          <v-card-title>{{
+            editingPermissionId ? "تعديل صلاحية" : "إضافة صلاحية"
+          }}</v-card-title>
+          <v-card-text>
+            <div class="dialog-grid">
+              <v-text-field
+                v-model="permissionForm.key"
+                label="Permission Key"
+              />
+              <v-text-field v-model="permissionForm.name" label="الاسم" />
+              <v-text-field v-model="permissionForm.module" label="Module" />
+              <v-text-field
+                v-model="permissionForm.description"
+                label="الوصف"
+              />
+            </div>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn variant="text" @click="permissionDialog = false"
+              >إلغاء</v-btn
+            >
+            <v-btn color="primary" variant="flat" @click="savePermission"
+              >حفظ</v-btn
             >
           </v-card-actions>
         </v-card>

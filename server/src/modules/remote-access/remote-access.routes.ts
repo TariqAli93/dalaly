@@ -1,4 +1,5 @@
 import { type FastifyPluginAsync } from "fastify";
+import { requirePermission } from "../auth/auth.hooks.js";
 import {
   disableRemoteAccess,
   enableRemoteAccess,
@@ -6,7 +7,7 @@ import {
 } from "./remote-access.service.js";
 
 export const remoteAccessRoutes: FastifyPluginAsync = async (app) => {
-  app.get("/status", async () => getRemoteStatus());
-  app.post("/enable", async () => enableRemoteAccess());
-  app.post("/disable", async () => disableRemoteAccess());
+  app.get("/status", { preHandler: requirePermission("settings.read") }, async () => getRemoteStatus());
+  app.post("/enable", { preHandler: requirePermission("settings.update") }, async () => enableRemoteAccess());
+  app.post("/disable", { preHandler: requirePermission("settings.update") }, async () => disableRemoteAccess());
 };

@@ -3,9 +3,12 @@ import Fastify from "fastify";
 import { ZodError } from "zod";
 import { registerAuthHook } from "./modules/auth/auth.hooks.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
+import { permissionsRoutes } from "./modules/permissions/permissions.routes.js";
 import { propertiesRoutes } from "./modules/properties/properties.routes.js";
 import { remoteAccessRoutes } from "./modules/remote-access/remote-access.routes.js";
+import { rolesRoutes } from "./modules/roles/roles.routes.js";
 import { statsRoutes } from "./modules/stats/stats.routes.js";
+import { usersRoutes } from "./modules/users/users.routes.js";
 
 export async function buildServer() {
   const app = Fastify({ logger: true });
@@ -39,6 +42,9 @@ export async function buildServer() {
   registerAuthHook(app);
   await app.register(authRoutes, { prefix: "/api/auth" });
   await app.register(propertiesRoutes, { prefix: "/api/properties" });
+  await app.register(usersRoutes, { prefix: "/api/users" });
+  await app.register(rolesRoutes, { prefix: "/api/roles" });
+  await app.register(permissionsRoutes, { prefix: "/api/permissions" });
   await app.register(statsRoutes, { prefix: "/api/stats" });
   await app.register(remoteAccessRoutes, { prefix: "/api/remote-access" });
 
