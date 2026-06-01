@@ -1,0 +1,96 @@
+{
+  "name": "@dalaly/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dalaly Windows desktop application shell.",
+  "author": "Dalaly",
+  "type": "module",
+  "main": "src/main.js",
+  "scripts": {
+    "dev": "cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron ./src/main.js",
+    "start": "electron ./src/main.js",
+    "package": "electron-builder --win nsis portable --publish never",
+    "package:portable": "electron-builder --win portable --publish never",
+    "package:installer": "electron-builder --win nsis --publish never",
+    "release": "electron-builder --win nsis portable --publish never"
+  },
+  "dependencies": {
+    "electron-log": "^5.4.4"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0",
+    "electron": "39.8.10",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "iq.dalaly.desktop",
+    "productName": "Dalaly",
+    "publish": null,
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../../server/dist",
+        "to": "server/dist",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../../server/drizzle",
+        "to": "server/drizzle",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../renderer/dist",
+        "to": "renderer/dist",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../../node_modules",
+        "to": "node_modules",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../../tools",
+        "to": "tools",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "Dalaly-${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "Dalaly-Portable-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Dalaly",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "artifactName": "Dalaly-Setup-${version}-${arch}.${ext}"
+    }
+  }
+}

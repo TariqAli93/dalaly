@@ -1,0 +1,30 @@
+{
+  "name": "dalaly",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local desktop real-estate listings manager for Iraqi brokerage offices.",
+  "scripts": {
+    "dev": "concurrently -k -n renderer,desktop -c cyan,green \"pnpm --filter @dalaly/renderer dev\" \"wait-on http://127.0.0.1:5173 && pnpm --filter @dalaly/desktop dev\"",
+    "build": "pnpm --filter @dalaly/server build && pnpm --filter @dalaly/renderer build",
+    "start": "pnpm --filter @dalaly/desktop start",
+    "db:migrate": "pnpm --filter @dalaly/server db:migrate",
+    "lint": "pnpm --filter @dalaly/server lint && pnpm --filter @dalaly/renderer lint",
+    "package": "pnpm build && pnpm --filter @dalaly/desktop package",
+    "package:portable": "pnpm build && pnpm --filter @dalaly/desktop package:portable",
+    "package:installer": "pnpm build && pnpm --filter @dalaly/desktop package:installer",
+    "release": "pnpm build && pnpm --filter @dalaly/desktop release"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "wait-on": "^8.0.4"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild"
+    ]
+  }
+}
