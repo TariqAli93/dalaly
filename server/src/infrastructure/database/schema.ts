@@ -104,6 +104,21 @@ export const districts = pgTable(
   (table) => [index("idx_districts_governorate").on(table.governorateId)]
 );
 
+export const neighborhoods = pgTable(
+  "neighborhoods",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    districtId: bigint("district_id", { mode: "number" })
+      .notNull()
+      .references(() => districts.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [index("idx_neighborhoods_district").on(table.districtId)]
+);
+
 export const properties = pgTable(
   "properties",
   {
@@ -121,8 +136,11 @@ export const properties = pgTable(
     district: text("district"),
     governorateId: bigint("governorate_id", { mode: "number" }),
     districtId: bigint("district_id", { mode: "number" }),
+    neighborhoodId: bigint("neighborhood_id", { mode: "number" }),
+    neighborhood: text("neighborhood"),
     governorateText: text("governorate_text"),
     districtText: text("district_text"),
+    neighborhoodText: text("neighborhood_text"),
     addressDetails: text("address_details"),
     ownerName: text("owner_name").notNull(),
     ownerPhone: text("owner_phone").notNull(),
@@ -130,7 +148,9 @@ export const properties = pgTable(
     status: text("status").notNull().default("available"),
     notes: text("notes"),
     // حقول عراقية اختيارية إضافية
+    nazal: text("nazal"), // النزال: عمق الأرض (يقترن بالواجهة frontage)
     plotNumber: text("plot_number"),
+    plotLetter: text("plot_letter"),
     subdistrictNumber: text("subdistrict_number"),
     subdistrictName: text("subdistrict_name"),
     mahalla: text("mahalla"),
@@ -154,7 +174,8 @@ export const properties = pgTable(
     index("idx_properties_pricing_method").on(table.pricingMethod),
     index("idx_properties_district").on(table.district),
     index("idx_properties_governorate_id").on(table.governorateId),
-    index("idx_properties_district_id").on(table.districtId)
+    index("idx_properties_district_id").on(table.districtId),
+    index("idx_properties_neighborhood_id").on(table.neighborhoodId)
   ]
 );
 
@@ -261,6 +282,8 @@ export type Governorate = typeof governorates.$inferSelect;
 export type NewGovernorate = typeof governorates.$inferInsert;
 export type District = typeof districts.$inferSelect;
 export type NewDistrict = typeof districts.$inferInsert;
+export type Neighborhood = typeof neighborhoods.$inferSelect;
+export type NewNeighborhood = typeof neighborhoods.$inferInsert;
 export type PropertyImage = typeof propertyImages.$inferSelect;
 export type NewPropertyImage = typeof propertyImages.$inferInsert;
 export type AuditLog = typeof auditLogs.$inferSelect;

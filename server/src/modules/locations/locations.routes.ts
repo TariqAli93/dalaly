@@ -3,16 +3,21 @@ import { requirePermission } from "../auth/auth.hooks.js";
 import {
   createDistrict,
   createGovernorate,
+  createNeighborhood,
   deleteDistrict,
   deleteGovernorate,
+  deleteNeighborhood,
   getLocations,
   updateDistrict,
-  updateGovernorate
+  updateGovernorate,
+  updateNeighborhood
 } from "./locations.repository.js";
 import {
   districtPayloadSchema,
   districtUpdateSchema,
-  governoratePayloadSchema
+  governoratePayloadSchema,
+  neighborhoodPayloadSchema,
+  neighborhoodUpdateSchema
 } from "./locations.schema.js";
 
 function parseId(value: string) {
@@ -102,6 +107,47 @@ export const locationsRoutes: FastifyPluginAsync = async (app) => {
         return reply
           .code(400)
           .send({ message: error instanceof Error ? error.message : "تعذر حذف المنطقة." });
+      }
+    }
+  );
+
+  app.post(
+    "/neighborhoods",
+    { preHandler: requirePermission("locations.manage") },
+    async (request, reply) => {
+      const payload = neighborhoodPayloadSchema.parse(request.body);
+      const neighborhood = await createNeighborhood(payload);
+      return reply.code(201).send(neighborhood);
+    }
+  );
+
+  app.put(
+    "/neighborhoods/:id",
+    { preHandler: requirePermission("locations.manage") },
+    async (request, reply) => {
+      const id = parseId((request.params as { id: string }).id);
+      if (!id) return reply.code(400).send({ message: "معرف الحي غير صحيح." });
+      const payload = neighborhoodUpdateSchema.parse(request.body);
+      const neighborhood = await updateNeighborhood(id, payload);
+      if (!neighborhood) return reply.code(404).send({ message: "الحي غير موجود." });
+      return neighborhood;
+    }
+  );
+
+  app.delete(
+    "/neighborhoods/:id",
+    { preHandler: requirePermission("locations.manage") },
+    async (request, reply) => {
+      const id = parseId((request.params as { id: string }).id);
+      if (!id) return reply.code(400).send({ message: "معرف الحي غير صحيح." });
+      try {
+        const neighborhood = await deleteNeighborhood(id);
+        if (!neighborhood) return reply.code(404).send({ message: "الحي غير موجود." });
+        return { deleted: true, neighborhood };
+      } catch (error) {
+        return reply
+          .code(400)
+          .send({ message: error instanceof Error ? error.message : "تعذر حذف الحي." });
       }
     }
   );

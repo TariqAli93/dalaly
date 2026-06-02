@@ -63,7 +63,7 @@ export const NAV_ITEMS: NavItem[] = [
     permission: "roles.read",
   },
   {
-    title: "المحافظات والمناطق",
+    title: "المحافظات والمناطق والأحياء",
     to: "/locations",
     icon: "mdi-map-marker-outline",
     permission: "locations.manage",

@@ -6,17 +6,23 @@ import { useLocations } from "../composables/useLocations";
 import { useConfirm } from "../composables/useConfirm";
 import { useSnackbar } from "../composables/useSnackbar";
 import { useRefresh } from "../composables/useRefresh";
-import type { District, Governorate } from "../types";
+import type { District, Governorate, Neighborhood } from "../types";
 
-const { governorates, districts, loadLocations, service } = useLocations();
+const { governorates, districts, neighborhoods, loadLocations, service } =
+  useLocations();
 const { openConfirm } = useConfirm();
 const { notifySuccess, notifyError } = useSnackbar();
 const { setRefreshHandler } = useRefresh();
 
 const selectedGovId = ref<number | null>(null);
+const selectedDistId = ref<number | null>(null);
 
 const selectedDistricts = computed(() =>
   districts.value.filter((d) => d.governorate_id === selectedGovId.value),
+);
+
+const selectedNeighborhoods = computed(() =>
+  neighborhoods.value.filter((n) => n.district_id === selectedDistId.value),
 );
 
 const govDialog = ref(false);
@@ -27,11 +33,20 @@ const distDialog = ref(false);
 const editingDist = ref<District | null>(null);
 const distForm = ref({ name: "", is_active: true });
 
+const neighDialog = ref(false);
+const editingNeigh = ref<Neighborhood | null>(null);
+const neighForm = ref({ name: "", is_active: true });
+
 async function refresh() {
   await loadLocations(true);
   if (selectedGovId.value === null && governorates.value.length) {
     selectedGovId.value = governorates.value[0].id;
   }
+}
+
+function selectGov(id: number) {
+  selectedGovId.value = id;
+  selectedDistId.value = null;
 }
 
 function openGovDialog(gov?: Governorate) {
@@ -63,7 +78,10 @@ function askDeleteGov(gov: Governorate) {
     color: "error",
     onConfirm: async () => {
       await service.deleteGovernorate(gov.id);
-      if (selectedGovId.value === gov.id) selectedGovId.value = null;
+      if (selectedGovId.value === gov.id) {
+        selectedGovId.value = null;
+        selectedDistId.value = null;
+      }
       await refresh();
       notifySuccess("تم حذف المحافظة.");
     },
@@ -137,6 +155,61 @@ async function toggleDist(dist: District) {
   }
 }
 
+function openNeighDialog(neigh?: Neighborhood) {
+  editingNeigh.value = neigh ?? null;
+  neighForm.value = {
+    name: neigh?.name ?? "",
+    is_active: neigh?.is_active ?? true,
+  };
+  neighDialog.value = true;
+}
+
+async function saveNeigh() {
+  if (!selectedDistId.value) return;
+  try {
+    if (editingNeigh.value) {
+      await service.updateNeighborhood(editingNeigh.value.id, neighForm.value);
+    } else {
+      await service.createNeighborhood({
+        district_id: selectedDistId.value,
+        name: neighForm.value.name,
+        is_active: neighForm.value.is_active,
+      });
+    }
+    neighDialog.value = false;
+    await refresh();
+    notifySuccess("تم حفظ الحي.");
+  } catch (error) {
+    notifyError(getErrorMessage(error));
+  }
+}
+
+function askDeleteNeigh(neigh: Neighborhood) {
+  openConfirm({
+    title: `حذف ${neigh.name}`,
+    body: "لا يمكن الحذف إذا كان مرتبطاً بعقارات.",
+    confirmText: "حذف",
+    color: "error",
+    onConfirm: async () => {
+      await service.deleteNeighborhood(neigh.id);
+      await refresh();
+      notifySuccess("تم حذف الحي.");
+    },
+  });
+}
+
+async function toggleNeigh(neigh: Neighborhood) {
+  try {
+    await service.updateNeighborhood(neigh.id, {
+      name: neigh.name,
+      is_active: !neigh.is_active,
+    });
+    await refresh();
+  } catch (error) {
+    notifyError(getErrorMessage(error));
+  }
+}
+
 onMounted(() => {
   setRefreshHandler(refresh);
   void refresh();
@@ -145,11 +218,11 @@ onMounted(() => {
 
 <template>
   <AppLayout
-    title="المحافظات والمناطق"
+    title="المحافظات والمناطق والأحياء"
     subtitle="تسريع إدخال العقارات والفلترة."
   >
     <div class="flex gap-4">
-      <v-card rounded="lg" variant="flat" border class="w-full md:w-1/2">
+      <v-card rounded="lg" variant="flat" border class="w-full md:w-1/3">
         <v-card-title class="d-flex align-center">
           <span>المحافظات</span>
           <v-spacer />
@@ -173,7 +246,7 @@ onMounted(() => {
               :key="gov.id"
               :active="selectedGovId === gov.id"
               :title="gov.name"
-              @click="selectedGovId = gov.id"
+              @click="selectGov(gov.id)"
             >
               <template #append>
                 <v-switch
@@ -203,7 +276,7 @@ onMounted(() => {
         </v-card-text>
       </v-card>
 
-      <v-card rounded="lg" variant="flat" border class="w-full md:w-1/2">
+      <v-card rounded="lg" variant="flat" border class="w-full md:w-1/3">
         <v-card-title class="d-flex align-center">
           <span>المناطق</span>
           <v-spacer />
@@ -231,7 +304,9 @@ onMounted(() => {
             <v-list-item
               v-for="dist in selectedDistricts"
               :key="dist.id"
+              :active="selectedDistId === dist.id"
               :title="dist.name"
+              @click="selectedDistId = dist.id"
             >
               <template #append>
                 <v-switch
@@ -240,19 +315,78 @@ onMounted(() => {
                   density="compact"
                   hide-details
                   @update:model-value="toggleDist(dist)"
+                  @click.stop
                 />
                 <v-btn
                   icon="mdi-pencil"
                   size="small"
                   variant="text"
-                  @click="openDistDialog(dist)"
+                  @click.stop="openDistDialog(dist)"
                 />
                 <v-btn
                   icon="mdi-delete-outline"
                   color="error"
                   size="small"
                   variant="text"
-                  @click="askDeleteDist(dist)"
+                  @click.stop="askDeleteDist(dist)"
+                />
+              </template>
+            </v-list-item>
+          </v-list>
+        </v-card-text>
+      </v-card>
+
+      <v-card rounded="lg" variant="flat" border class="w-full md:w-1/3">
+        <v-card-title class="d-flex align-center">
+          <span>الأحياء</span>
+          <v-spacer />
+          <v-btn
+            color="primary"
+            prepend-icon="mdi-plus"
+            :disabled="!selectedDistId"
+            @click="openNeighDialog()"
+          >
+            إضافة حي
+          </v-btn>
+        </v-card-title>
+        <v-card-text>
+          <v-empty-state
+            v-if="!selectedDistId"
+            icon="mdi-arrow-left"
+            title="اختر منطقة لعرض أحيائها"
+          />
+          <v-empty-state
+            v-else-if="!selectedNeighborhoods.length"
+            icon="mdi-map-marker-off-outline"
+            title="لا توجد أحياء لهذه المنطقة"
+          />
+          <v-list v-else>
+            <v-list-item
+              v-for="neigh in selectedNeighborhoods"
+              :key="neigh.id"
+              :title="neigh.name"
+            >
+              <template #append>
+                <v-switch
+                  :model-value="neigh.is_active"
+                  color="primary"
+                  density="compact"
+                  hide-details
+                  @update:model-value="toggleNeigh(neigh)"
+                  @click.stop
+                />
+                <v-btn
+                  icon="mdi-pencil"
+                  size="small"
+                  variant="text"
+                  @click.stop="openNeighDialog(neigh)"
+                />
+                <v-btn
+                  icon="mdi-delete-outline"
+                  color="error"
+                  size="small"
+                  variant="text"
+                  @click.stop="askDeleteNeigh(neigh)"
                 />
               </template>
             </v-list-item>
@@ -301,6 +435,28 @@ onMounted(() => {
           <v-spacer />
           <v-btn variant="text" @click="distDialog = false">إلغاء</v-btn>
           <v-btn color="primary" variant="flat" @click="saveDist">حفظ</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="neighDialog" width="460">
+      <v-card rounded="lg">
+        <v-card-title>{{
+          editingNeigh ? "تعديل حي" : "إضافة حي"
+        }}</v-card-title>
+        <v-card-text>
+          <v-text-field v-model="neighForm.name" label="اسم الحي" autofocus />
+          <v-switch
+            v-model="neighForm.is_active"
+            label="مفعّل"
+            color="primary"
+            hide-details
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="neighDialog = false">إلغاء</v-btn>
+          <v-btn color="primary" variant="flat" @click="saveNeigh">حفظ</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

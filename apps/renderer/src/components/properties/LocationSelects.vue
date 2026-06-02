@@ -6,17 +6,33 @@ const governorateId = defineModel<number | null>("governorateId", {
   default: null,
 });
 const districtId = defineModel<number | null>("districtId", { default: null });
+const neighborhoodId = defineModel<number | null>("neighborhoodId", {
+  default: null,
+});
 const governorateText = defineModel<string>("governorateText", { default: "" });
 const districtText = defineModel<string>("districtText", { default: "" });
+const neighborhoodText = defineModel<string>("neighborhoodText", {
+  default: "",
+});
 
-const { activeGovernorates, districtsByGovernorate, loadLocations } =
-  useLocations();
+const {
+  activeGovernorates,
+  districtsByGovernorate,
+  neighborhoodsByDistrict,
+  loadLocations,
+} = useLocations();
 
 const govManual = ref(Boolean(governorateText.value) && !governorateId.value);
 const distManual = ref(Boolean(districtText.value) && !districtId.value);
+const neighManual = ref(
+  Boolean(neighborhoodText.value) && !neighborhoodId.value,
+);
 
 const districtItems = computed(() =>
   districtsByGovernorate(governorateId.value),
+);
+const neighborhoodItems = computed(() =>
+  neighborhoodsByDistrict(districtId.value),
 );
 
 onMounted(() => void loadLocations());
@@ -39,9 +55,26 @@ function toggleDistManual() {
   }
 }
 
-// عند تغيير المحافظة من القائمة، صفّر المنطقة المختارة من القائمة.
+function toggleNeighManual() {
+  neighManual.value = !neighManual.value;
+  if (neighManual.value) {
+    neighborhoodId.value = null;
+  } else {
+    neighborhoodText.value = "";
+  }
+}
+
+// عند تغيير المحافظة من القائمة، صفّر المنطقة والحي المختارَين من القائمة.
 watch(governorateId, () => {
-  if (!govManual.value) districtId.value = null;
+  if (!govManual.value) {
+    districtId.value = null;
+    if (!neighManual.value) neighborhoodId.value = null;
+  }
+});
+
+// عند تغيير المنطقة من القائمة، صفّر الحي المختار من القائمة.
+watch(districtId, () => {
+  if (!neighManual.value) neighborhoodId.value = null;
 });
 </script>
 
@@ -109,13 +142,45 @@ watch(governorateId, () => {
         {{ distManual ? "اختيار من القائمة" : "إدخال يدوي" }}
       </v-btn>
     </div>
+
+    <div class="location-field">
+      <v-select
+        v-if="!neighManual"
+        v-model="neighborhoodId"
+        :items="neighborhoodItems"
+        item-title="name"
+        item-value="id"
+        label="الحي"
+        :disabled="!districtId"
+        :hint="!districtId ? 'اختر المنطقة أولاً أو أدخل الحي يدوياً' : ''"
+        persistent-hint
+        clearable
+        density="comfortable"
+        class="w-100"
+      />
+      <v-text-field
+        v-else
+        v-model="neighborhoodText"
+        label="الحي (إدخال يدوي)"
+        density="comfortable"
+        class="w-100"
+      />
+      <v-btn
+        size="small"
+        variant="text"
+        :prepend-icon="neighManual ? 'mdi-format-list-bulleted' : 'mdi-pencil'"
+        @click="toggleNeighManual"
+      >
+        {{ neighManual ? "اختيار من القائمة" : "إدخال يدوي" }}
+      </v-btn>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .location-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 .location-field {
@@ -123,7 +188,7 @@ watch(governorateId, () => {
   flex-direction: column;
   align-items: flex-start;
 }
-@media (max-width: 760px) {
+@media (max-width: 960px) {
   .location-grid {
     grid-template-columns: 1fr;
   }

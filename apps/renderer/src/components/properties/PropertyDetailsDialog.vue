@@ -3,7 +3,8 @@ import { ref, watch } from "vue";
 import { statusColor, statusLabel } from "../../constants/domain";
 import { usePermissions } from "../../composables/usePermissions";
 import { getPropertyAudit } from "../../services/properties.service";
-import { formatMoney } from "../../utils/format";
+import { formatMoney, formatPlot } from "../../utils/format";
+import { neighborhoodOf } from "../../utils/exportProperty";
 import type { AuditLogRecord, PropertyRecord } from "../../types";
 import PropertyExportMenu from "./PropertyExportMenu.vue";
 import AuditLogList from "./AuditLogList.vue";
@@ -28,7 +29,7 @@ const auditLogs = ref<AuditLogRecord[]>([]);
 const auditLoading = ref(false);
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleString("ar-IQ");
+  return new Date(value).toLocaleString("ar-IQ", { numberingSystem: "latn" });
 }
 
 async function loadAudit(id: number) {
@@ -122,8 +123,22 @@ watch(
                 <div class="detail-value">{{ property.district || "-" }}</div>
               </div>
               <div class="detail-item">
-                <div class="detail-label">المدينة</div>
-                <div class="detail-value">{{ property.city || "-" }}</div>
+                <div class="detail-label">الحي</div>
+                <div class="detail-value">{{ neighborhoodOf(property) || "-" }}</div>
+              </div>
+              <div v-if="property.frontage" class="detail-item">
+                <div class="detail-label">الواجهة (متر)</div>
+                <div class="detail-value">{{ property.frontage }}</div>
+              </div>
+              <div v-if="property.nazal" class="detail-item">
+                <div class="detail-label">النزال / العمق (متر)</div>
+                <div class="detail-value">{{ property.nazal }}</div>
+              </div>
+              <div v-if="property.plot_number" class="detail-item">
+                <div class="detail-label">رقم القطعة</div>
+                <div class="detail-value">
+                  {{ formatPlot(property.plot_number, property.plot_letter) }}
+                </div>
               </div>
               <div class="detail-item">
                 <div class="detail-label">اسم المالك</div>
@@ -136,10 +151,6 @@ watch(
               <div class="detail-item">
                 <div class="detail-label">آخر تحديث</div>
                 <div class="detail-value">{{ formatDate(property.updated_at) }}</div>
-              </div>
-              <div v-if="property.frontage" class="detail-item">
-                <div class="detail-label">الواجهة</div>
-                <div class="detail-value">{{ property.frontage }}</div>
               </div>
               <div v-if="property.rooms_count" class="detail-item">
                 <div class="detail-label">عدد الغرف</div>

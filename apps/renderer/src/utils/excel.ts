@@ -1,6 +1,7 @@
 import * as XLSX from "xlsx";
 import { statusLabel } from "../constants/domain";
-import { formatMoney } from "./format";
+import { formatMoney, formatPlot } from "./format";
+import { neighborhoodOf } from "./exportProperty";
 import type { PropertyRecord } from "../types";
 
 /** تصدير قائمة العروض إلى ملف Excel وتنزيله. */
@@ -11,8 +12,13 @@ export function exportPropertiesToXlsx(properties: PropertyRecord[]) {
     "الصفة القانونية": p.legal_type,
     المحافظة: p.governorate ?? "",
     المنطقة: p.district ?? "",
+    الحي: neighborhoodOf(p),
+    "رقم القطعة": formatPlot(p.plot_number, p.plot_letter),
+    "حرف القطعة": p.plot_letter ?? "",
     المساحة: p.area_value,
     "وحدة المساحة": p.area_unit,
+    "الواجهة (م)": p.frontage ?? "",
+    "النزال / العمق (م)": p.nazal ?? "",
     "طريقة التسعير": p.pricing_method,
     "سعر الوحدة": p.unit_price ?? "",
     "السعر الكلي": formatMoney(p.total_price),
@@ -62,7 +68,12 @@ export const IMPORT_FIELDS: ImportField[] = [
   { key: "unit_price", label: "سعر الوحدة", keywords: ["سعر الوحدة", "سعر المتر"] },
   { key: "total_price", label: "السعر الكلي", keywords: ["السعر الكلي", "السعر الإجمالي", "السعر"] },
   { key: "governorate_text", label: "المحافظة", keywords: ["محافظة"] },
-  { key: "district_text", label: "المنطقة", keywords: ["منطقة", "حي"] },
+  { key: "district_text", label: "المنطقة", keywords: ["منطقة"] },
+  { key: "neighborhood_text", label: "الحي", keywords: ["حي"] },
+  { key: "plot_number", label: "رقم القطعة", keywords: ["رقم القطعة", "قطعة"] },
+  { key: "plot_letter", label: "حرف القطعة", keywords: ["حرف"] },
+  { key: "frontage", label: "الواجهة", keywords: ["واجهة"] },
+  { key: "nazal", label: "النزال / العمق", keywords: ["نزال", "عمق"] },
   { key: "owner_name", label: "اسم المالك", keywords: ["مالك", "اسم"] },
   { key: "owner_phone", label: "هاتف المالك", keywords: ["هاتف", "موبايل", "رقم"] },
   { key: "notes", label: "ملاحظات", keywords: ["ملاحظ"] },

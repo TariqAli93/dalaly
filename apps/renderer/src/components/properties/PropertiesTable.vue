@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { statusColor, statusLabel } from "../../constants/domain";
-import { formatMoney } from "../../utils/format";
+import { formatMoney, formatPlot } from "../../utils/format";
+import { neighborhoodOf } from "../../utils/exportProperty";
 import type { PropertyRecord } from "../../types";
 import PropertyActions from "./PropertyActions.vue";
 
@@ -18,10 +19,13 @@ const emit = defineEmits<{
 const headers = [
   { title: "الكود", key: "code", sortable: true },
   { title: "النوع", key: "property_type" },
-  { title: "الصفة القانونية", key: "legal_type" },
   { title: "المنطقة", key: "district" },
+  { title: "الحي", key: "neighborhood" },
+  { title: "رقم القطعة", key: "plot" },
   { title: "المساحة", key: "area" },
-  { title: "التسعير", key: "pricing_method" },
+  { title: "الواجهة", key: "frontage" },
+  { title: "النزال", key: "nazal" },
+  { title: "المالك", key: "owner_name" },
   { title: "السعر الكلي", key: "total_price" },
   { title: "الحالة", key: "status" },
   { title: "", key: "actions", sortable: false, align: "end" as const },
@@ -51,6 +55,12 @@ const headers = [
       density="compact"
       hover
     >
+      <template #item.neighborhood="{ item }">
+        {{ neighborhoodOf(item) || "-" }}
+      </template>
+      <template #item.plot="{ item }">
+        {{ formatPlot(item.plot_number, item.plot_letter) || "-" }}
+      </template>
       <template #item.area="{ item }">
         {{ item.area_value }} {{ item.area_unit }}
       </template>

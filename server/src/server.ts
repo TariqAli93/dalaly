@@ -1,6 +1,7 @@
 import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { ZodError } from "zod";
+import { DuplicatePlotError } from "./shared/errors.js";
 import { getSetupStatus } from "./infrastructure/database/health.js";
 import { registerAuthHook } from "./modules/auth/auth.hooks.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
@@ -44,6 +45,10 @@ export async function buildServer() {
           message: issue.message,
         })),
       });
+    }
+
+    if (error instanceof DuplicatePlotError) {
+      return reply.code(409).send({ message: error.message });
     }
 
     app.log.error(error);

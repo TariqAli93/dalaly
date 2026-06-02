@@ -38,7 +38,9 @@ const SCOPES = [
 ];
 
 function fmt(value: string | null) {
-  return value ? new Date(value).toLocaleString("ar-IQ") : "—";
+  return value
+    ? new Date(value).toLocaleString("ar-IQ", { numberingSystem: "latn" })
+    : "—";
 }
 function fmtSize(bytes: number | null) {
   if (!bytes) return "—";

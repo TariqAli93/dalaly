@@ -86,7 +86,7 @@ async function runBackup() {
 }
 
 function when(value: string) {
-  return new Date(value).toLocaleString("ar-IQ");
+  return new Date(value).toLocaleString("ar-IQ", { numberingSystem: "latn" });
 }
 function daysSince(value: string) {
   return Math.floor((Date.now() - new Date(value).getTime()) / 86400000);

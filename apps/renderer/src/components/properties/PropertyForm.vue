@@ -11,6 +11,7 @@ import {
 import { formatMoney, toNumber } from "../../utils/format";
 import type { PropertyForm } from "../../types";
 import LocationSelects from "./LocationSelects.vue";
+import NumberField from "../app/NumberField.vue";
 
 const model = defineModel<PropertyForm>({ required: true });
 
@@ -80,29 +81,40 @@ defineExpose({ validate, computedTotal });
         <LocationSelects
           v-model:governorate-id="model.governorate_id"
           v-model:district-id="model.district_id"
+          v-model:neighborhood-id="model.neighborhood_id"
           v-model:governorate-text="model.governorate_text"
           v-model:district-text="model.district_text"
+          v-model:neighborhood-text="model.neighborhood_text"
         />
-        <div class="d-flex gap-4 mt-2">
+        <v-text-field
+          v-model="model.address_details"
+          class="w-100 mt-2"
+          label="العنوان التفصيلي"
+        />
+
+        <v-divider class="my-4" />
+        <div class="text-subtitle-2 mb-2">أبعاد الأرض</div>
+        <div class="d-flex gap-4">
           <v-text-field
-            v-model="model.city"
+            v-model="model.frontage"
             class="w-100"
-            label="المدينة / القضاء"
+            label="الواجهة (متر)"
           />
           <v-text-field
-            v-model="model.address_details"
+            v-model="model.nazal"
             class="w-100"
-            label="العنوان التفصيلي"
+            label="النزال / العمق (متر)"
+            hint="عمق الأرض بالمتر، مثال: 12.5"
+            persistent-hint
           />
         </div>
 
         <v-divider class="my-4" />
         <div class="form-grid">
-          <v-text-field
+          <NumberField
             v-model="model.area_value"
             :rules="[required, positive]"
             label="المساحة"
-            type="number"
           />
           <v-select
             v-model="model.area_unit"
@@ -116,19 +128,19 @@ defineExpose({ validate, computedTotal });
             :rules="[required]"
             label="طريقة التسعير"
           />
-          <v-text-field
+          <NumberField
             v-if="!isDirectPrice"
             v-model="model.unit_price"
             :rules="[required, positive]"
+            :decimals="false"
             label="سعر الوحدة"
-            type="number"
           />
-          <v-text-field
+          <NumberField
             v-else
             v-model="model.total_price"
             :rules="[required, positive]"
+            :decimals="false"
             label="السعر الإجمالي المباشر"
-            type="number"
           />
           <v-text-field
             :model-value="formatMoney(computedTotal)"
@@ -175,6 +187,11 @@ defineExpose({ validate, computedTotal });
               <div class="form-grid">
                 <v-text-field v-model="model.plot_number" label="رقم القطعة" />
                 <v-text-field
+                  v-model="model.plot_letter"
+                  label="حرف القطعة (اختياري)"
+                  hint="يقبل العربي والإنجليزي مثل: أ أو A"
+                />
+                <v-text-field
                   v-model="model.subdistrict_number"
                   label="رقم المقاطعة"
                 />
@@ -190,7 +207,6 @@ defineExpose({ validate, computedTotal });
                   label="أقرب نقطة دالة"
                 />
                 <v-text-field v-model="model.street_width" label="عرض الشارع" />
-                <v-text-field v-model="model.frontage" label="الواجهة" />
                 <v-text-field
                   v-model="model.rooms_count"
                   label="عدد الغرف"

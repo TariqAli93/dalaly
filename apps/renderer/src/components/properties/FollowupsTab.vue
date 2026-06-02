@@ -43,7 +43,9 @@ function typeLabel(value: string) {
   return TYPES.find((t) => t.value === value)?.title ?? value;
 }
 function fmt(value: string | null) {
-  return value ? new Date(value).toLocaleString("ar-IQ") : "";
+  return value
+    ? new Date(value).toLocaleString("ar-IQ", { numberingSystem: "latn" })
+    : "";
 }
 function toLocalInput(iso: string | null) {
   if (!iso) return "";

@@ -19,10 +19,13 @@ export type PropertyRecord = {
   governorate: string | null;
   city: string | null;
   district: string | null;
+  neighborhood: string | null;
   governorate_id: number | null;
   district_id: number | null;
+  neighborhood_id: number | null;
   governorate_text: string | null;
   district_text: string | null;
+  neighborhood_text: string | null;
   address_details: string | null;
   owner_name: string;
   owner_phone: string;
@@ -30,7 +33,9 @@ export type PropertyRecord = {
   status: PropertyStatus;
   notes: string | null;
   // حقول عراقية اختيارية إضافية
+  nazal: string | null;
   plot_number: string | null;
+  plot_letter: string | null;
   subdistrict_number: string | null;
   subdistrict_name: string | null;
   mahalla: string | null;
@@ -55,18 +60,21 @@ export type PropertyForm = {
   pricing_method: string;
   unit_price: string | number | null;
   total_price: string | number;
-  city: string | null;
   governorate_id: number | null;
   district_id: number | null;
+  neighborhood_id: number | null;
   governorate_text: string;
   district_text: string;
+  neighborhood_text: string;
   address_details: string | null;
   owner_name: string;
   owner_phone: string;
   owner_notes: string | null;
   status: PropertyStatus;
   notes: string | null;
+  nazal: string;
   plot_number: string;
+  plot_letter: string;
   subdistrict_number: string;
   subdistrict_name: string;
   mahalla: string;
@@ -89,6 +97,11 @@ export type PropertyFilters = {
   district: string;
   governorate_id: number | null;
   district_id: number | null;
+  neighborhood_id: number | null;
+  plot_number: string;
+  plot_letter: string;
+  area_min: string;
+  area_max: string;
   price_min: string;
   price_max: string;
   q: string;

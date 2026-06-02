@@ -30,7 +30,9 @@ const FREQ = [
 ];
 
 function fmt(value?: string | null) {
-  return value ? new Date(value).toLocaleString("ar-IQ") : "—";
+  return value
+    ? new Date(value).toLocaleString("ar-IQ", { numberingSystem: "latn" })
+    : "—";
 }
 
 async function load() {

@@ -8,6 +8,7 @@ import {
   STATUSES,
 } from "../../constants/domain";
 import { useLocations } from "../../composables/useLocations";
+import NumberField from "../app/NumberField.vue";
 import type { PropertyFilters } from "../../types";
 
 const model = defineModel<PropertyFilters>({ required: true });
@@ -15,8 +16,16 @@ const model = defineModel<PropertyFilters>({ required: true });
 const emit = defineEmits<{ apply: []; clear: [] }>();
 
 const advancedOpen = ref(false);
-const { activeGovernorates, districtsByGovernorate, loadLocations } = useLocations();
+const {
+  activeGovernorates,
+  districtsByGovernorate,
+  neighborhoodsByDistrict,
+  loadLocations,
+} = useLocations();
 const districtItems = computed(() => districtsByGovernorate(model.value.governorate_id));
+const neighborhoodItems = computed(() =>
+  neighborhoodsByDistrict(model.value.district_id),
+);
 
 onMounted(() => void loadLocations());
 </script>
@@ -83,6 +92,17 @@ onMounted(() => void loadLocations());
           clearable
         />
         <v-select
+          v-model="model.neighborhood_id"
+          :items="neighborhoodItems"
+          item-title="name"
+          item-value="id"
+          label="الحي (من القائمة)"
+          :disabled="!model.district_id"
+          density="compact"
+          hide-details
+          clearable
+        />
+        <v-select
           v-model="model.property_type"
           :items="PROPERTY_TYPES"
           label="نوع العقار"
@@ -122,17 +142,45 @@ onMounted(() => void loadLocations());
           clearable
         />
         <v-text-field
-          v-model="model.price_min"
-          label="السعر من"
-          type="number"
+          v-model="model.plot_number"
+          label="رقم القطعة"
           density="compact"
           hide-details
           clearable
         />
         <v-text-field
+          v-model="model.plot_letter"
+          label="حرف القطعة"
+          density="compact"
+          hide-details
+          clearable
+        />
+        <NumberField
+          v-model="model.area_min"
+          label="المساحة من"
+          density="compact"
+          hide-details
+          clearable
+        />
+        <NumberField
+          v-model="model.area_max"
+          label="المساحة إلى"
+          density="compact"
+          hide-details
+          clearable
+        />
+        <NumberField
+          v-model="model.price_min"
+          :decimals="false"
+          label="السعر من"
+          density="compact"
+          hide-details
+          clearable
+        />
+        <NumberField
           v-model="model.price_max"
+          :decimals="false"
           label="السعر إلى"
-          type="number"
           density="compact"
           hide-details
           clearable

@@ -34,7 +34,7 @@ function icon(action: string) {
   return ACTION_ICONS[action] ?? "mdi-history";
 }
 function when(value: string) {
-  return new Date(value).toLocaleString("ar-IQ");
+  return new Date(value).toLocaleString("ar-IQ", { numberingSystem: "latn" });
 }
 function detail(log: AuditLogRecord) {
   const value = (log.new_value ?? {}) as Record<string, unknown>;

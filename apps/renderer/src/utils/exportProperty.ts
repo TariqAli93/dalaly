@@ -1,5 +1,5 @@
 import { statusLabel } from "../constants/domain";
-import { formatMoney } from "./format";
+import { formatMoney, formatPlot } from "./format";
 import type { PropertyRecord } from "../types";
 
 function line(label: string, value: unknown) {
@@ -13,6 +13,10 @@ function governorateOf(p: PropertyRecord) {
 function districtOf(p: PropertyRecord) {
   return p.district || p.district_text || "";
 }
+/** اسم الحي المعروض: المحلول من القائمة أو النص اليدوي أو حقل المدينة القديم. */
+export function neighborhoodOf(p: PropertyRecord) {
+  return p.neighborhood || p.neighborhood_text || p.city || "";
+}
 
 /** نص تفصيلي كامل مناسب للدلال العراقي. */
 export function buildPropertyText(p: PropertyRecord) {
@@ -21,16 +25,18 @@ export function buildPropertyText(p: PropertyRecord) {
   text += line("نوع العقار", p.property_type);
   text += line("المحافظة", governorateOf(p));
   text += line("المنطقة", districtOf(p));
+  text += line("الحي", neighborhoodOf(p));
   text += line("الجنس", p.legal_type);
   text += line("المساحة", `${p.area_value} ${p.area_unit}`);
   text += line("السعر", `${formatMoney(p.total_price)} دينار`);
   if (p.is_negotiable) text += "السعر قابل للتفاوض\n";
   text += line("الحالة", statusLabel(p.status));
-  text += line("الواجهة", p.frontage);
+  text += line("الواجهة (متر)", p.frontage);
+  text += line("النزال / العمق (متر)", p.nazal);
   text += line("عرض الشارع", p.street_width);
   text += line("عدد الغرف", p.rooms_count);
   text += line("عدد الحمامات", p.bathrooms_count);
-  text += line("رقم القطعة", p.plot_number);
+  text += line("رقم القطعة", formatPlot(p.plot_number, p.plot_letter));
   text += line("المقاطعة", p.subdistrict_name);
   text += line("المحلة", p.mahalla);
   text += line("الزقاق", p.alley);
@@ -49,8 +55,12 @@ export function buildWhatsappText(p: PropertyRecord) {
   text += line("النوع", p.property_type);
   text += line("المحافظة", governorateOf(p));
   text += line("المنطقة", districtOf(p));
+  text += line("الحي", neighborhoodOf(p));
   text += line("الجنس", p.legal_type);
   text += line("المساحة", `${p.area_value} ${p.area_unit}`);
+  text += line("رقم القطعة", formatPlot(p.plot_number, p.plot_letter));
+  if (p.frontage || p.nazal)
+    text += line("الواجهة × النزال", `${p.frontage || "?"} × ${p.nazal || "?"} م`);
   text += line("السعر", `${formatMoney(p.total_price)} دينار`);
   if (p.is_negotiable) text += "💬 السعر قابل للتفاوض\n";
   if (p.notes) text += line("ملاحظات", p.notes);
@@ -60,7 +70,9 @@ export function buildWhatsappText(p: PropertyRecord) {
 
 /** وصف مختصر للإعلان. */
 export function buildAdText(p: PropertyRecord) {
-  const place = [governorateOf(p), districtOf(p)].filter(Boolean).join(" - ");
+  const place = [governorateOf(p), districtOf(p), neighborhoodOf(p)]
+    .filter(Boolean)
+    .join(" - ");
   const parts = [
     `${p.property_type} للبيع`,
     place,

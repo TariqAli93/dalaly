@@ -1,4 +1,9 @@
-import type { District, Governorate, LocationsResponse } from "../types";
+import type {
+  District,
+  Governorate,
+  LocationsResponse,
+  Neighborhood,
+} from "../types";
 import { request } from "./api.service";
 
 export function getLocations() {
@@ -51,6 +56,33 @@ export function updateDistrict(
 
 export function deleteDistrict(id: number) {
   return request<{ deleted: boolean }>(`/locations/districts/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export function createNeighborhood(payload: {
+  district_id: number;
+  name: string;
+  is_active?: boolean;
+}) {
+  return request<Neighborhood>("/locations/neighborhoods", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateNeighborhood(
+  id: number,
+  payload: { name: string; is_active: boolean },
+) {
+  return request<Neighborhood>(`/locations/neighborhoods/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteNeighborhood(id: number) {
+  return request<{ deleted: boolean }>(`/locations/neighborhoods/${id}`, {
     method: "DELETE",
   });
 }
