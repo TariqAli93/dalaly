@@ -31,8 +31,9 @@ export const config = {
   databaseUrl,
   dbConfigured: hasExplicitDbEnv,
   // مجلد بيانات التطبيق (userData في الإنتاج) لتخزين الصور والنسخ الاحتياطية.
+  // كل المسارات تُبنى عبر path.join — آمنة مع أسماء المستخدمين التي تحتوي فراغات.
   appDataDir,
-  imagesDir: path.join(appDataDir, "images", "properties"),
+  imagesDir: process.env.IMAGES_DIR?.trim() || path.join(appDataDir, "images", "properties"),
   backupsDir: process.env.BACKUP_DIR?.trim() || path.join(appDataDir, "backups"),
   internalToken: process.env.INTERNAL_TOKEN?.trim() || "",
   db: {

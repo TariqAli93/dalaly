@@ -14,6 +14,7 @@
     "test:runtime": "node scripts/runtime-smoke.mjs",
     "test:runtime:phase1": "node scripts/runtime-smoke-phase1.mjs",
     "test:runtime:phase2": "node scripts/runtime-smoke-phase2.mjs",
+    "test:runtime:spaces": "node scripts/runtime-smoke-spaces.mjs",
     "clean": "node scripts/clean-dist.mjs"
   },
   "dependencies": {

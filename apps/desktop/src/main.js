@@ -147,7 +147,10 @@ function startLocalApi() {
 
   serverProcess = spawn(command, args, {
     cwd: serverDir,
-    shell: process.platform === "win32",
+    // shell:false في الإنتاج لتجنّب مشاكل المسارات التي تحتوي فراغات (مثل
+    // C:\Users\Futer House\...). shell مطلوب فقط في التطوير لتشغيل pnpm.cmd.
+    shell: isDev && process.platform === "win32",
+    windowsHide: true,
     stdio: isDev ? "inherit" : ["ignore", "pipe", "pipe"],
     env: {
       ...process.env,
@@ -155,8 +158,11 @@ function startLocalApi() {
       ELECTRON_RUN_AS_NODE: isDev ? undefined : "1",
       API_HOST: apiHost,
       API_PORT: apiPort,
+      // كل المسارات تُمرَّر عبر متغيرات بيئة جاهزة (path.join) بلا تحليل نصوص.
       DRIZZLE_MIGRATIONS_DIR: migrationsDir,
       APP_DATA_DIR: appDataDir,
+      IMAGES_DIR: path.join(appDataDir, "images", "properties"),
+      BACKUP_DIR: path.join(appDataDir, "backups"),
       INTERNAL_TOKEN: internalToken,
     },
   });
