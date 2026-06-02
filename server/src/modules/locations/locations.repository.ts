@@ -1,0 +1,130 @@
+import { and, asc, count, eq } from "drizzle-orm";
+import { db } from "../../infrastructure/database/db.js";
+import {
+  districts,
+  governorates,
+  properties
+} from "../../infrastructure/database/schema.js";
+import { toApiObject, toApiObjects } from "../../shared/utils/case.js";
+import {
+  type DistrictPayload,
+  type DistrictUpdatePayload,
+  type GovernoratePayload
+} from "./locations.schema.js";
+
+export async function getLocations() {
+  const [governorateRows, districtRows] = await Promise.all([
+    db.select().from(governorates).orderBy(asc(governorates.name)),
+    db.select().from(districts).orderBy(asc(districts.name))
+  ]);
+
+  return {
+    governorates: toApiObjects(governorateRows),
+    districts: toApiObjects(districtRows)
+  };
+}
+
+export async function createGovernorate(payload: GovernoratePayload) {
+  const [row] = await db
+    .insert(governorates)
+    .values({ name: payload.name, isActive: payload.is_active })
+    .returning();
+  return toApiObject(row);
+}
+
+export async function updateGovernorate(id: number, payload: GovernoratePayload) {
+  const [row] = await db
+    .update(governorates)
+    .set({ name: payload.name, isActive: payload.is_active, updatedAt: new Date() })
+    .where(eq(governorates.id, id))
+    .returning();
+  return row ? toApiObject(row) : null;
+}
+
+export async function deleteGovernorate(id: number) {
+  const linked = await countPropertiesByGovernorate(id);
+  if (linked > 0) {
+    throw new Error("لا يمكن حذف محافظة مرتبطة بعقارات.");
+  }
+
+  const [row] = await db
+    .delete(governorates)
+    .where(eq(governorates.id, id))
+    .returning();
+  return row ? toApiObject(row) : null;
+}
+
+export async function createDistrict(payload: DistrictPayload) {
+  const [row] = await db
+    .insert(districts)
+    .values({
+      governorateId: payload.governorate_id,
+      name: payload.name,
+      isActive: payload.is_active
+    })
+    .returning();
+  return toApiObject(row);
+}
+
+export async function updateDistrict(id: number, payload: DistrictUpdatePayload) {
+  const [row] = await db
+    .update(districts)
+    .set({ name: payload.name, isActive: payload.is_active, updatedAt: new Date() })
+    .where(eq(districts.id, id))
+    .returning();
+  return row ? toApiObject(row) : null;
+}
+
+export async function deleteDistrict(id: number) {
+  const linked = await countPropertiesByDistrict(id);
+  if (linked > 0) {
+    throw new Error("لا يمكن حذف منطقة مرتبطة بعقارات.");
+  }
+
+  const [row] = await db.delete(districts).where(eq(districts.id, id)).returning();
+  return row ? toApiObject(row) : null;
+}
+
+export async function getGovernorateName(id: number) {
+  const [row] = await db
+    .select({ name: governorates.name })
+    .from(governorates)
+    .where(eq(governorates.id, id))
+    .limit(1);
+  return row?.name ?? null;
+}
+
+export async function getDistrictName(id: number) {
+  const [row] = await db
+    .select({ name: districts.name })
+    .from(districts)
+    .where(eq(districts.id, id))
+    .limit(1);
+  return row?.name ?? null;
+}
+
+async function countPropertiesByGovernorate(id: number) {
+  const [row] = await db
+    .select({ count: count() })
+    .from(properties)
+    .where(eq(properties.governorateId, id));
+  return Number(row?.count ?? 0);
+}
+
+async function countPropertiesByDistrict(id: number) {
+  const [row] = await db
+    .select({ count: count() })
+    .from(properties)
+    .where(eq(properties.districtId, id));
+  return Number(row?.count ?? 0);
+}
+
+// تستخدمها وحدة المواقع لاحقاً عند الحاجة لمنع التكرار داخل المحافظة.
+export async function districtExists(governorateId: number, name: string) {
+  const [row] = await db
+    .select({ id: districts.id })
+    .from(districts)
+    .where(and(eq(districts.governorateId, governorateId), eq(districts.name, name)))
+    .limit(1);
+  return Boolean(row);
+}

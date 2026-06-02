@@ -5,6 +5,7 @@ import {
   createProperty,
   deleteProperty,
   getProperty,
+  getPropertyAudit,
   listProperties,
   restoreProperty,
   updateProperty
@@ -41,9 +42,18 @@ export const propertiesRoutes: FastifyPluginAsync = async (app) => {
     return property;
   });
 
+  app.get("/:id/audit", { preHandler: requirePermission("audit.read") }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const propertyId = parseId(id);
+    if (!propertyId) {
+      return reply.code(400).send({ message: "معرف العقار غير صحيح." });
+    }
+    return getPropertyAudit(propertyId);
+  });
+
   app.post("/", { preHandler: requirePermission("properties.create") }, async (request, reply) => {
     const payload = propertyPayloadSchema.parse(request.body);
-    const property = await createProperty(payload);
+    const property = await createProperty(payload, request.user?.id);
     return reply.code(201).send(property);
   });
 
@@ -55,7 +65,7 @@ export const propertiesRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const payload = propertyPayloadSchema.parse(request.body);
-    const property = await updateProperty(propertyId, payload);
+    const property = await updateProperty(propertyId, payload, request.user?.id);
 
     if (!property) {
       return reply.code(404).send({ message: "العقار غير موجود." });
@@ -71,7 +81,7 @@ export const propertiesRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(400).send({ message: "معرف العقار غير صحيح." });
     }
 
-    const property = await deleteProperty(propertyId);
+    const property = await deleteProperty(propertyId, request.user?.id);
 
     if (!property) {
       return reply.code(404).send({ message: "العقار غير موجود." });
@@ -87,7 +97,7 @@ export const propertiesRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(400).send({ message: "معرف العقار غير صحيح." });
     }
 
-    const property = await archiveProperty(propertyId);
+    const property = await archiveProperty(propertyId, request.user?.id);
 
     if (!property) {
       return reply.code(404).send({ message: "العقار غير موجود." });
@@ -103,7 +113,7 @@ export const propertiesRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(400).send({ message: "معرف العقار غير صحيح." });
     }
 
-    const property = await restoreProperty(propertyId);
+    const property = await restoreProperty(propertyId, request.user?.id);
 
     if (!property) {
       return reply.code(404).send({ message: "العقار غير موجود." });

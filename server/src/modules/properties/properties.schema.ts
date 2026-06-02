@@ -14,6 +14,9 @@ const optionalText = z
   .nullable()
   .transform((value) => (value ? value : null));
 
+const optionalId = z.coerce.number().int().positive().optional().nullable();
+const optionalCount = z.coerce.number().int().nonnegative().optional().nullable();
+
 export const propertyPayloadSchema = z
   .object({
     property_type: z.enum(PROPERTY_TYPES),
@@ -26,12 +29,29 @@ export const propertyPayloadSchema = z
     governorate: optionalText,
     city: optionalText,
     district: optionalText,
+    governorate_id: optionalId,
+    district_id: optionalId,
+    governorate_text: optionalText,
+    district_text: optionalText,
     address_details: optionalText,
     owner_name: z.string().trim().min(1),
     owner_phone: z.string().trim().min(1),
     owner_notes: optionalText,
     status: z.enum(STATUSES).default("available"),
-    notes: optionalText
+    notes: optionalText,
+    // حقول عراقية اختيارية إضافية
+    plot_number: optionalText,
+    subdistrict_number: optionalText,
+    subdistrict_name: optionalText,
+    mahalla: optionalText,
+    alley: optionalText,
+    house_number: optionalText,
+    nearest_landmark: optionalText,
+    street_width: optionalText,
+    frontage: optionalText,
+    rooms_count: optionalCount,
+    bathrooms_count: optionalCount,
+    is_negotiable: z.coerce.boolean().optional().default(false)
   })
   .superRefine((value, ctx) => {
     if (
@@ -64,6 +84,8 @@ export const propertyFiltersSchema = z.object({
   pricing_method: z.enum(PRICING_METHODS).optional(),
   status: z.enum(STATUSES).optional(),
   district: z.string().optional(),
+  governorate_id: z.coerce.number().int().positive().optional(),
+  district_id: z.coerce.number().int().positive().optional(),
   price_min: z.coerce.number().optional(),
   price_max: z.coerce.number().optional(),
   q: z.string().optional()

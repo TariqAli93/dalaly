@@ -13,6 +13,6 @@ export default defineConfig({
   banner: {
     js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);"
   },
-  noExternal: [/^(@fastify\/cors|fastify|pg|drizzle-orm|zod|dotenv)(\/.*)?$/],
+  noExternal: [/^(@fastify\/cors|fastify|pg|drizzle-orm|zod|dotenv|adm-zip)(\/.*)?$/],
   external: ["pg-native"]
 });

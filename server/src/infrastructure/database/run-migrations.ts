@@ -5,8 +5,21 @@ import { db } from "./db.js";
 import { bootstrapDefaultAdmin } from "../../modules/auth/auth.service.js";
 import { seedSystemRbac } from "../../modules/rbac/rbac.service.js";
 
-export async function runDatabaseMigrations(migrationsFolder = getMigrationsFolder()) {
+/**
+ * يطبّق هجرات Drizzle فقط (بدون seed أو إنشاء مستخدم).
+ * يُستخدم من داخل First Run Wizard حيث يُنشأ المستخدم الأول لاحقاً
+ * ببيانات يختارها المستخدم.
+ */
+export async function applyMigrations(migrationsFolder = getMigrationsFolder()) {
   await migrate(db, { migrationsFolder });
+}
+
+/**
+ * المسار الكامل المستخدم عند إقلاع الخادم وأمر db:migrate:
+ * هجرات + بذر صلاحيات النظام + إنشاء مدير افتراضي إن لزم.
+ */
+export async function runDatabaseMigrations(migrationsFolder = getMigrationsFolder()) {
+  await applyMigrations(migrationsFolder);
   await seedSystemRbac();
   await bootstrapDefaultAdmin();
 }

@@ -17,7 +17,8 @@
     "clean": "node -e \"require('node:fs').rmSync('release',{recursive:true,force:true})\""
   },
   "dependencies": {
-    "electron-log": "^5.4.4"
+    "electron-log": "^5.4.4",
+    "nodemailer": "^6.9.16"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",

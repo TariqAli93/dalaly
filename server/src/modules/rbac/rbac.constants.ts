@@ -7,6 +7,8 @@ export const SYSTEM_PERMISSIONS = [
   { key: "properties.archive", name: "أرشفة عروض", module: "properties" },
   { key: "properties.restore", name: "إرجاع عروض مؤرشفة", module: "properties" },
   { key: "properties.delete", name: "حذف عروض", module: "properties" },
+  { key: "properties.images.manage", name: "إدارة صور العروض", module: "properties" },
+  { key: "properties.export", name: "تصدير وطباعة العروض", module: "properties" },
   { key: "users.read", name: "قراءة المستخدمين", module: "users" },
   { key: "users.create", name: "إضافة مستخدمين", module: "users" },
   { key: "users.update", name: "تعديل مستخدمين", module: "users" },
@@ -16,5 +18,16 @@ export const SYSTEM_PERMISSIONS = [
   { key: "roles.update", name: "تعديل أدوار", module: "roles" },
   { key: "roles.delete", name: "حذف أدوار", module: "roles" },
   { key: "settings.read", name: "قراءة الإعدادات", module: "settings" },
-  { key: "settings.update", name: "تعديل الإعدادات", module: "settings" }
+  { key: "settings.update", name: "تعديل الإعدادات", module: "settings" },
+  { key: "locations.manage", name: "إدارة المحافظات والمناطق", module: "locations" },
+  { key: "audit.read", name: "عرض سجل التغييرات", module: "audit" },
+  { key: "security.change_pin", name: "تغيير رمز PIN", module: "security" },
+  { key: "backups.read", name: "عرض النسخ الاحتياطية", module: "backups" },
+  { key: "backups.create", name: "إنشاء نسخة احتياطية", module: "backups" },
+  { key: "backups.restore", name: "استرجاع نسخة احتياطية", module: "backups" },
+  { key: "backups.schedule", name: "جدولة النسخ الاحتياطي بالبريد", module: "backups" },
+  { key: "followups.read", name: "عرض المتابعات", module: "followups" },
+  { key: "followups.create", name: "إضافة متابعة", module: "followups" },
+  { key: "followups.update", name: "تعديل متابعة", module: "followups" },
+  { key: "followups.delete", name: "حذف متابعة", module: "followups" }
 ] as const;

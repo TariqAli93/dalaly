@@ -8,6 +8,9 @@ import * as components from "vuetify/components";
 import * as directives from "vuetify/directives";
 import { ar } from "vuetify/locale";
 import App from "./App.vue";
+import { router } from "./router";
+import { setUnauthorizedHandler } from "./services/api.service";
+import { useAuth } from "./composables/useAuth";
 
 const vuetify = createVuetify({
   components,
@@ -47,4 +50,12 @@ const vuetify = createVuetify({
   }
 });
 
-createApp(App).use(vuetify).mount("#app");
+// عند انتهاء الجلسة (401) في أي طلب: امسح الحالة وانتقل لتسجيل الدخول.
+setUnauthorizedHandler(() => {
+  useAuth().clearAuthState();
+  if (router.currentRoute.value.path !== "/login") {
+    void router.push({ path: "/login" });
+  }
+});
+
+createApp(App).use(vuetify).use(router).mount("#app");

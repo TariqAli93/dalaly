@@ -22,6 +22,20 @@
       "when": 1780315200000,
       "tag": "0002_drop_legacy_user_role",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1780401600000,
+      "tag": "0003_phase1_broker",
+      "breakpoints": false
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1780488000000,
+      "tag": "0004_phase2_commercial",
+      "breakpoints": false
     }
   ]
 }

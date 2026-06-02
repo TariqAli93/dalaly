@@ -5,14 +5,16 @@ import {
   tableExists,
   validateDatabaseConnection
 } from "../../infrastructure/database/health.js";
+import { requirePermission } from "./auth.hooks.js";
 import {
   adminExists,
+  changePin,
   cleanupExpiredSessions,
   createAdmin,
   login,
   logout
 } from "./auth.service.js";
-import { loginSchema, setupAdminSchema } from "./auth.schema.js";
+import { changePinSchema, loginSchema, setupAdminSchema } from "./auth.schema.js";
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   app.get("/setup-status", async () => {
@@ -91,6 +93,29 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     }
     return { ok: true };
   });
+
+  app.post(
+    "/change-pin",
+    { preHandler: requirePermission("security.change_pin") },
+    async (request, reply) => {
+      if (!request.user) {
+        return reply.code(401).send({ message: "يجب تسجيل الدخول أولاً." });
+      }
+
+      const payload = changePinSchema.parse(request.body);
+      const result = await changePin(request.user.id, payload.current_pin, payload.new_pin);
+
+      if (!result.ok) {
+        const message =
+          result.reason === "invalid_pin"
+            ? "رمز PIN الحالي غير صحيح."
+            : "تعذر تغيير الرمز.";
+        return reply.code(400).send({ message });
+      }
+
+      return { ok: true };
+    }
+  );
 
   app.get("/me", async (request) => {
     if (!request.user) {

@@ -23,7 +23,14 @@ export const PRICING_METHODS = [
   "سعر إجمالي مباشر"
 ] as const;
 
-export const STATUSES = ["available", "reserved", "sold", "archived"] as const;
+export const STATUSES = [
+  "available",
+  "reserved",
+  "negotiating",
+  "sold",
+  "rented",
+  "archived"
+] as const;
 
 export type PropertyType = (typeof PROPERTY_TYPES)[number];
 export type LegalType = (typeof LEGAL_TYPES)[number];

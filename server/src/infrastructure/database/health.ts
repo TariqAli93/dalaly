@@ -1,4 +1,5 @@
-import { pool } from "./pool.js";
+import { config } from "../config.js";
+import { isDatabaseConfigured, pool } from "./pool.js";
 
 type DatabaseStartupState = {
   migrationsOk: boolean;
@@ -50,4 +51,51 @@ export function markMigrationsFailed(error: unknown, migrationsFolder: string | 
 
 export function getDatabaseStartupState() {
   return { ...startupState };
+}
+
+export type SetupStatus = {
+  api_running: true;
+  app_version: string;
+  db_configured: boolean;
+  db_connected: boolean;
+  database_exists: boolean;
+  migrations_ok: boolean;
+  users_table_exists: boolean;
+  admin_exists: boolean;
+};
+
+/**
+ * الحالة الموحّدة المستخدمة من /api/health و /api/setup/status.
+ * تُستورد adminExists ديناميكياً لتفادي دورة استيراد مع auth.service.
+ */
+export async function getSetupStatus(): Promise<SetupStatus> {
+  const base: SetupStatus = {
+    api_running: true,
+    app_version: config.appVersion,
+    db_configured: isDatabaseConfigured(),
+    db_connected: false,
+    database_exists: false,
+    migrations_ok: false,
+    users_table_exists: false,
+    admin_exists: false,
+  };
+
+  const dbConnected = await validateDatabaseConnection();
+  if (!dbConnected) {
+    return base;
+  }
+
+  base.db_connected = true;
+  base.database_exists = true;
+
+  const usersTableExists = await tableExists("users");
+  base.users_table_exists = usersTableExists;
+  base.migrations_ok = usersTableExists && startupState.migrationsOk;
+
+  if (usersTableExists) {
+    const { adminExists } = await import("../../modules/auth/auth.service.js");
+    base.admin_exists = await adminExists();
+  }
+
+  return base;
 }

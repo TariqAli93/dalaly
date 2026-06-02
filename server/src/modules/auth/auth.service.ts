@@ -45,6 +45,20 @@ export async function adminExists() {
   return Number(result[0]?.count ?? 0) > 0;
 }
 
+export async function getUserByUsername(username: string) {
+  const [user] = await db
+    .select({
+      id: users.id,
+      username: users.username,
+      displayName: users.displayName,
+      isActive: users.isActive
+    })
+    .from(users)
+    .where(eq(users.username, username))
+    .limit(1);
+  return user ?? null;
+}
+
 export async function createAdmin(username: string, pin: string) {
   const pinHash = await hashPin(pin);
   const [user] = await db
@@ -58,6 +72,25 @@ export async function createAdmin(username: string, pin: string) {
     });
   await assignSuperAdminRole(user.id);
   return user;
+}
+
+export async function changePin(userId: number, currentPin: string, newPin: string) {
+  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!user) {
+    return { ok: false as const, reason: "not_found" as const };
+  }
+
+  if (!(await verifyPin(currentPin, user.pinHash))) {
+    return { ok: false as const, reason: "invalid_pin" as const };
+  }
+
+  const pinHash = await hashPin(newPin);
+  await db
+    .update(users)
+    .set({ pinHash, updatedAt: new Date() })
+    .where(eq(users.id, userId));
+
+  return { ok: true as const };
 }
 
 export async function login(username: string, pin: string) {

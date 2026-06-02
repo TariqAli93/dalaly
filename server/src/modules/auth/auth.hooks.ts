@@ -9,6 +9,10 @@ declare module "fastify" {
 
 const publicPaths = new Set([
   "/api/health",
+  "/api/setup/status",
+  "/api/setup/test-postgres",
+  "/api/setup/initialize",
+  "/api/backup/internal-run",
   "/api/auth/setup-status",
   "/api/auth/setup-admin",
   "/api/auth/login"
@@ -21,7 +25,13 @@ export function registerAuthHook(app: FastifyInstance) {
     }
 
     const header = request.headers.authorization ?? "";
-    const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+    const headerToken = header.startsWith("Bearer ") ? header.slice(7) : "";
+    // السماح بالتوكن عبر query لطلبات الصور (<img> لا يرسل ترويسة Authorization).
+    const queryToken =
+      typeof (request.query as { token?: string })?.token === "string"
+        ? (request.query as { token?: string }).token ?? ""
+        : "";
+    const token = headerToken || queryToken;
 
     if (!token) {
       return reply.code(401).send({ message: "يجب تسجيل الدخول أولاً." });

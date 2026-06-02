@@ -1,3 +1,4 @@
+@import "tailwindcss";
 html {
   overflow-y: auto;
 }
@@ -23,6 +24,10 @@ body {
 
 .auth-panel {
   width: min(460px, 100%);
+}
+
+.wizard-panel {
+  width: min(640px, 100%);
 }
 
 .top-navbar {
