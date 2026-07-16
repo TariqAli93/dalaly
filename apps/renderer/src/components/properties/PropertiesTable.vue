@@ -38,8 +38,8 @@ const headers = [
     <v-empty-state
       v-else-if="!properties.length"
       icon="mdi-home-search-outline"
-      title="لا توجد عروض مطابقة"
-      text="غيّر الفلاتر أو أضف عرضاً جديداً."
+      title="لا توجد عقارات مطابقة للبحث"
+      text="غيّر كلمات البحث أو الفلاتر، أو أضف عرضاً جديداً."
     >
       <template #actions>
         <v-btn color="primary" prepend-icon="mdi-plus" @click="emit('create')">

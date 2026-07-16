@@ -97,7 +97,11 @@ export const propertyFiltersSchema = z.object({
   area_max: z.coerce.number().optional(),
   price_min: z.coerce.number().optional(),
   price_max: z.coerce.number().optional(),
-  q: z.string().optional()
+  q: z.string().optional(),
+  search: z.string().optional(),
+  // جاهزية الـ pagination من قاعدة البيانات (اختياري؛ بدونها تُرجع كل النتائج).
+  limit: z.coerce.number().int().positive().max(500).optional(),
+  offset: z.coerce.number().int().nonnegative().optional()
 });
 
 export type PropertyPayload = z.infer<typeof propertyPayloadSchema>;

@@ -32,6 +32,16 @@ export const STATUSES = [
   "archived"
 ] as const;
 
+// التسميات العربية للحالات — تُستخدم في البحث الشامل بالعربية.
+export const STATUS_LABELS: Record<(typeof STATUSES)[number], string> = {
+  available: "متاح",
+  reserved: "محجوز",
+  negotiating: "قيد التفاوض",
+  sold: "مباع",
+  rented: "مؤجر",
+  archived: "مؤرشف"
+};
+
 export type PropertyType = (typeof PROPERTY_TYPES)[number];
 export type LegalType = (typeof LEGAL_TYPES)[number];
 export type AreaUnit = (typeof AREA_UNITS)[number];

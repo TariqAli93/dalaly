@@ -35,7 +35,8 @@ onMounted(() => void loadLocations());
     <div class="list-toolbar">
       <v-text-field
         v-model="model.q"
-        label="بحث: كود، منطقة، مالك، هاتف"
+        label="بحث شامل"
+        placeholder="ابحث بالمالك، الهاتف، العنوان، رقم القطعة، الملاحظات..."
         density="compact"
         hide-details
         clearable

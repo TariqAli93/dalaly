@@ -1,9 +1,23 @@
-import { and, desc, eq, gte, ilike, lte, ne, or, sql } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  lte,
+  ne,
+  or,
+  sql,
+  type SQL
+} from "drizzle-orm";
 import { type AnyPgColumn } from "drizzle-orm/pg-core";
 import { db } from "../../infrastructure/database/db.js";
 import { properties, type NewProperty } from "../../infrastructure/database/schema.js";
 import {
   PROPERTY_TYPE_PREFIX,
+  STATUS_LABELS,
+  STATUSES,
   type PropertyType
 } from "../../shared/constants/domain.js";
 import { calculateTotalPrice } from "../../shared/utils/pricing.js";
@@ -74,6 +88,70 @@ function isUniquePlotViolation(error: unknown): boolean {
   );
 }
 
+// كل الحقول النصية القابلة للبحث الشامل.
+const SEARCHABLE_TEXT_COLUMNS: AnyPgColumn[] = [
+  properties.code,
+  properties.propertyType,
+  properties.legalType,
+  properties.pricingMethod,
+  properties.governorate,
+  properties.governorateText,
+  properties.city,
+  properties.district,
+  properties.districtText,
+  properties.neighborhood,
+  properties.neighborhoodText,
+  properties.addressDetails,
+  properties.ownerName,
+  properties.ownerPhone,
+  properties.ownerNotes,
+  properties.notes,
+  properties.nazal,
+  properties.plotNumber,
+  properties.plotLetter,
+  properties.subdistrictNumber,
+  properties.subdistrictName,
+  properties.mahalla,
+  properties.alley,
+  properties.houseNumber,
+  properties.nearestLandmark,
+  properties.frontage,
+  properties.streetWidth
+];
+
+/**
+ * يبني شرط البحث لكلمة واحدة: يطابق أي حقل نصي، أو الأرقام (المساحة/الأسعار)،
+ * أو الهاتف بعد إزالة الفواصل، أو حالة العقار بالعربية.
+ */
+function buildSearchClause(term: string): SQL | undefined {
+  const like = `%${term}%`;
+  const parts: SQL[] = SEARCHABLE_TEXT_COLUMNS.map((column) => ilike(column, like));
+
+  // الحقول الرقمية كنص (المساحة، سعر الوحدة، السعر الكلي).
+  parts.push(sql`cast(${properties.areaValue} as text) ilike ${like}`);
+  parts.push(sql`cast(${properties.unitPrice} as text) ilike ${like}`);
+  parts.push(sql`cast(${properties.totalPrice} as text) ilike ${like}`);
+
+  // الهاتف: مطابقة بعد إزالة كل ما عدا الأرقام (يعمل مع المسافات/الفواصل).
+  const digits = term.replace(/\D/g, "");
+  if (digits) {
+    parts.push(
+      sql`regexp_replace(coalesce(${properties.ownerPhone}, ''), '[^0-9]', '', 'g') ilike ${`%${digits}%`}`
+    );
+  }
+
+  // حالة العقار بالعربية (متاح/محجوز/...).
+  const matchedStatuses = STATUSES.filter((status) => {
+    const label = STATUS_LABELS[status] ?? "";
+    return label.includes(term) || term.includes(label);
+  });
+  if (matchedStatuses.length) {
+    parts.push(inArray(properties.status, [...matchedStatuses]));
+  }
+
+  return or(...parts);
+}
+
 export async function listProperties(filters: PropertyFilters) {
   const where = [];
 
@@ -128,44 +206,29 @@ export async function listProperties(filters: PropertyFilters) {
     where.push(lte(properties.totalPrice, String(filters.price_max)));
   }
 
-  if (filters.q) {
-    const q = `%${filters.q}%`;
-    where.push(
-      or(
-        ilike(properties.code, q),
-        ilike(properties.propertyType, q),
-        ilike(properties.legalType, q),
-        ilike(properties.governorate, q),
-        ilike(properties.city, q),
-        ilike(properties.district, q),
-        ilike(properties.neighborhood, q),
-        ilike(properties.governorateText, q),
-        ilike(properties.districtText, q),
-        ilike(properties.neighborhoodText, q),
-        ilike(properties.addressDetails, q),
-        ilike(properties.ownerName, q),
-        ilike(properties.ownerPhone, q),
-        ilike(properties.notes, q),
-        ilike(properties.nazal, q),
-        ilike(properties.plotNumber, q),
-        ilike(properties.plotLetter, q),
-        ilike(properties.subdistrictName, q),
-        ilike(properties.mahalla, q),
-        ilike(properties.alley, q),
-        ilike(properties.nearestLandmark, q),
-        ilike(properties.frontage, q),
-        ilike(properties.streetWidth, q),
-        sql`cast(${properties.areaValue} as text) ilike ${q}`
-      )
-    );
+  // بحث شامل: كل كلمة يجب أن تطابق حقلاً ما (AND بين الكلمات، OR عبر الحقول).
+  // يقبل q أو search، عربي/إنجليزي، جزء من كلمة/رقم، غير حسّاس لحالة الأحرف.
+  const searchTerm = (filters.q ?? filters.search ?? "").trim();
+  if (searchTerm) {
+    for (const token of searchTerm.split(/\s+/).filter(Boolean)) {
+      const clause = buildSearchClause(token);
+      if (clause) where.push(clause);
+    }
   }
 
-  const result = await db
+  let query = db
     .select()
     .from(properties)
     .where(where.length ? and(...where) : undefined)
-    .orderBy(desc(properties.createdAt), desc(properties.id));
+    .orderBy(desc(properties.createdAt), desc(properties.id))
+    .$dynamic();
 
+  // pagination اختياري من قاعدة البيانات (يعمل مع البحث والفلاتر).
+  if (typeof filters.limit === "number") {
+    query = query.limit(filters.limit).offset(filters.offset ?? 0);
+  }
+
+  const result = await query;
   return toApiObjects(result);
 }
 
