@@ -184,11 +184,11 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
               icon="mdi-star-outline"
               size="x-small"
               variant="flat"
-              color="amber"
+              color="warning"
               title="تعيين رئيسية"
               @click="setPrimary(image)"
             />
-            <v-icon v-else icon="mdi-star" color="amber" size="small" />
+            <v-icon v-else icon="mdi-star" color="warning" size="small" />
             <v-btn
               icon="mdi-delete-outline"
               size="x-small"
@@ -210,7 +210,9 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
 
     <!-- منطقة الرفع -->
     <template v-if="canManage">
-      <div
+      <!-- زر فعلي لا div: منطقة الرفع يجب أن تُفتح بلوحة المفاتيح أيضاً. -->
+      <button
+        type="button"
         class="dropzone"
         :class="{ 'dropzone-over': dragOver }"
         @dragover.prevent="dragOver = true"
@@ -230,7 +232,7 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
           hidden
           @change="onFileChange"
         />
-      </div>
+      </button>
 
       <!-- معاينة قبل الحفظ -->
       <div v-if="pending.length" class="pending mt-3">
@@ -270,7 +272,7 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
   width: 100%;
   max-height: 360px;
   object-fit: contain;
-  border-radius: 12px;
+  border-radius: 8px;
   background: rgba(var(--v-theme-on-surface), 0.04);
 }
 .thumbs {
@@ -303,12 +305,17 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
   gap: 2px;
 }
 .dropzone {
+  display: block;
+  width: 100%;
   margin-top: 14px;
   border: 2px dashed rgba(var(--v-theme-on-surface), 0.3);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 20px;
   text-align: center;
   cursor: pointer;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   transition: border-color 0.2s;
 }
 .dropzone-over {

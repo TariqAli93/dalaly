@@ -9,6 +9,8 @@
     "build": "node scripts/clean-dist.mjs && tsup",
     "start": "node dist/index.js",
     "db:migrate": "tsx src/infrastructure/database/migrate.ts",
+    "db:seed": "tsx src/infrastructure/database/seed.ts",
+    "db:seed:reset": "tsx src/infrastructure/database/seed.ts --reset",
     "db:generate": "drizzle-kit generate",
     "lint": "tsc -p tsconfig.json --noEmit",
     "test:runtime": "node scripts/runtime-smoke.mjs",

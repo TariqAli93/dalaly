@@ -20,6 +20,20 @@ export function formatNumber(value: unknown, maximumFractionDigits = 2) {
 }
 
 /**
+ * صيغة الجمع الصحيحة للأيام في العربية:
+ * 0 → "اليوم"، 1 → "أمس"، 2 → "يومين"، 3-10 → "أيام"، 11+ → "يوماً".
+ * بدونها تظهر عبارات مثل "منذ 45 يوم" وهي خاطئة نحوياً في كل الحالات.
+ */
+export function pluralizeDays(count: unknown): string {
+  const days = Math.max(0, Math.trunc(toNumber(count)));
+  if (days === 0) return "اليوم";
+  if (days === 1) return "أمس";
+  if (days === 2) return "منذ يومين";
+  if (days <= 10) return `منذ ${days} أيام`;
+  return `منذ ${days} يوماً`;
+}
+
+/**
  * عرض موحّد لرقم القطعة مع حرفها: "321 أ" أو "321" أو "".
  * يُستخدم في كل أماكن عرض العروض والتصدير لتجنّب تكرار المنطق.
  */

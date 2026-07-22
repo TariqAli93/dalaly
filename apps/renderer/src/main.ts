@@ -21,6 +21,16 @@ const vuetify = createVuetify({
     messages: { ar },
     rtl: { ar: true }
   },
+  // الحقول المحدّدة بإطار رفيع تتحدث نفس لغة البطاقات (flat + border).
+  // بدون هذا ترجع Vuetify إلى نمط filled المختلف عن كل الأسطح حوله.
+  defaults: {
+    VTextField: { variant: "outlined" },
+    VSelect: { variant: "outlined" },
+    VAutocomplete: { variant: "outlined" },
+    VCombobox: { variant: "outlined" },
+    VTextarea: { variant: "outlined" },
+    VFileInput: { variant: "outlined" }
+  },
   theme: {
     defaultTheme: localStorage.getItem("dalaly.theme") ?? "dalalyLight",
     themes: {
@@ -32,7 +42,13 @@ const vuetify = createVuetify({
           accent: "#c27c3a",
           surface: "#ffffff",
           background: "#f6f7f5",
-          error: "#b3261e"
+          error: "#b3261e",
+          // بدون تعريف صريح ترجع Vuetify إلى ألوان Material الافتراضية
+          // (كهرماني وأزرق) وهي خارج نظام التصميم. القيم أدناه من عائلة
+          // الأوكر والسيج نفسها، وبتباين ≥4.5:1 على الأبيض.
+          warning: "#8a5a1f",
+          success: "#2f6d4f",
+          info: "#5b6f62"
         }
       },
       dalalyDark: {
@@ -43,7 +59,10 @@ const vuetify = createVuetify({
           accent: "#d8a15f",
           surface: "#17211d",
           background: "#0f1513",
-          error: "#ffb4ab"
+          error: "#ffb4ab",
+          warning: "#d8a15f",
+          success: "#7fc9a3",
+          info: "#9db5a7"
         }
       }
     }

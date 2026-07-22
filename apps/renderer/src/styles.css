@@ -1,11 +1,68 @@
 @import "tailwindcss";
+
+:root {
+  /* عائلة الخط الوحيدة في النظام. Tahoma تعرض العربية بوضوح على أجهزة
+     Windows بدون تحميل خط خارجي (التطبيق يعمل بدون إنترنت). */
+  --dalaly-font: Tahoma, "Segoe UI", Arial, sans-serif;
+}
+
 html {
   overflow-y: auto;
 }
 
 body {
   margin: 0;
-  font-family: Tahoma, "Segoe UI", Arial, sans-serif;
+  font-family: var(--dalaly-font);
+}
+
+/* Vuetify تفرض Roboto على أصناف text-* وهي لا تحتوي حروفاً عربية،
+   فتسقط العربية على خط احتياطي غير محدد. نعيدها إلى عائلة النظام. */
+.v-application,
+.v-application .text-h1,
+.v-application .text-h2,
+.v-application .text-h3,
+.v-application .text-h4,
+.v-application .text-h5,
+.v-application .text-h6,
+.v-application .text-subtitle-1,
+.v-application .text-subtitle-2,
+.v-application .text-body-1,
+.v-application .text-body-2,
+.v-application .text-button,
+.v-application .text-caption,
+.v-application .text-overline {
+  font-family: var(--dalaly-font);
+}
+
+/* مؤشر تركيز مرئي موحّد: عناصر Vuetify كثيرة منها div بلا إطار تركيز،
+   وهذا يجعل التنقل بلوحة المفاتيح غير مرئي. */
+.v-application :focus-visible {
+  outline: 2px solid rgb(var(--v-theme-primary));
+  outline-offset: 2px;
+}
+
+/* تقليل الحركة: نلغي الحركة المكانية والتكرارية (انزلاق، توسّع، وميض
+   الهيكل العظمي) ونُبقي انتقالات اللون والشفافية لأنها هي التي تُبلّغ
+   المستخدم بتغيّر الحالة. إلغاؤها كلها يحذف التغذية الراجعة نفسها. */
+@media (prefers-reduced-motion: reduce) {
+  .v-application .v-skeleton-loader__bone::after,
+  .v-application .v-progress-linear__indeterminate .long,
+  .v-application .v-progress-linear__indeterminate .short {
+    animation: none !important;
+  }
+
+  .v-application .v-skeleton-loader__bone {
+    opacity: 0.6;
+  }
+
+  .v-application .v-dialog-transition-enter-active,
+  .v-application .v-dialog-transition-leave-active,
+  .v-application .v-expand-transition-enter-active,
+  .v-application .v-expand-transition-leave-active,
+  .v-application .v-navigation-drawer {
+    transition: opacity 120ms linear !important;
+    transform: none !important;
+  }
 }
 
 .app-shell {

@@ -12,6 +12,8 @@
     "assert:dist-assets": "node scripts/assert-production-assets.mjs",
     "start": "pnpm --filter @dalaly/desktop start",
     "db:migrate": "pnpm --filter @dalaly/server db:migrate",
+    "db:seed": "pnpm --filter @dalaly/server db:seed",
+    "db:seed:reset": "pnpm --filter @dalaly/server db:seed:reset",
     "lint": "pnpm --filter @dalaly/server lint && pnpm --filter @dalaly/renderer lint",
     "dist": "pnpm build && pnpm build:desktop",
     "package": "pnpm dist",

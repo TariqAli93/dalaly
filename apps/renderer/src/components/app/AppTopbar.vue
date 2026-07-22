@@ -17,7 +17,10 @@ function runSearch() {
 
 <template>
   <v-app-bar class="top-navbar border-b" height="74" flat density="comfortable">
-    <v-app-bar-nav-icon @click="emit('toggle-drawer')" />
+    <v-app-bar-nav-icon
+      aria-label="طيّ أو فتح قائمة التنقل"
+      @click="emit('toggle-drawer')"
+    />
     <v-app-bar-title class="font-weight-bold"> دلالي </v-app-bar-title>
 
     <v-spacer />
@@ -38,6 +41,7 @@ function runSearch() {
       icon="mdi-refresh"
       variant="text"
       title="تحديث"
+      aria-label="تحديث البيانات"
       @click="emit('refresh')"
     />
   </v-app-bar>

@@ -34,21 +34,20 @@ function toggleNav() {
   <AppSidebar v-model="drawer" v-model:rail="rail" />
   <AppTopbar @refresh="refresh" @toggle-drawer="toggleNav" />
   <v-main>
+    <!-- v-main يُصيّر عنصر <main> بنفسه، فلا نضيف عنصراً ثانياً. -->
     <v-container class="py-6" fluid>
-      <main>
-        <section>
-          <div v-if="title" class="page-header">
-            <div>
-              <div class="text-h5 font-weight-bold">{{ title }}</div>
-              <div v-if="subtitle" class="text-body-2 text-medium-emphasis">
-                {{ subtitle }}
-              </div>
+      <section>
+        <div v-if="title" class="page-header">
+          <div>
+            <h1 class="text-h5 font-weight-bold">{{ title }}</h1>
+            <div v-if="subtitle" class="text-body-2 text-medium-emphasis">
+              {{ subtitle }}
             </div>
-            <slot name="header-actions" />
           </div>
-          <slot />
-        </section>
-      </main>
+          <slot name="header-actions" />
+        </div>
+        <slot />
+      </section>
     </v-container>
   </v-main>
 </template>

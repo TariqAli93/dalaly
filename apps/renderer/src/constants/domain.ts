@@ -85,6 +85,11 @@ export function statusLabel(status: string) {
   return STATUSES.find((item) => item.value === status)?.title ?? status;
 }
 
+/**
+ * لون الحالة وفق نظام التصميم: التيل للمتاح (نشِط)، الأوكر لما ينتظر قراراً
+ * بشرياً (محجوز / قيد التفاوض)، السيج لما استقرّ (مباع / مؤجر)، ومحايد
+ * للمؤرشف. اللافتة النصية هي التي تفرّق بين حالتي كل عائلة.
+ */
 export function statusColor(status: string) {
   return (
     {
@@ -92,7 +97,7 @@ export function statusColor(status: string) {
       reserved: "accent",
       negotiating: "warning",
       sold: "secondary",
-      rented: "info",
+      rented: "secondary",
       archived: undefined,
     } as Record<string, string | undefined>
   )[status];

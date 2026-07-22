@@ -50,10 +50,7 @@ defineExpose({ validate, computedTotal });
       <v-card-title>
         {{ editing ? "تعديل عرض عقاري" : "إضافة عرض عقاري" }}
       </v-card-title>
-      <v-card-subtitle>
-        أدخل بيانات العقار والمالك. السعر الكلي يحسب فورياً ويعاد حسابه في الـ
-        API عند الحفظ.
-      </v-card-subtitle>
+
       <v-card-text>
         <div class="form-grid">
           <v-select
@@ -91,23 +88,6 @@ defineExpose({ validate, computedTotal });
           class="w-100 mt-2"
           label="العنوان التفصيلي"
         />
-
-        <v-divider class="my-4" />
-        <div class="text-subtitle-2 mb-2">أبعاد الأرض</div>
-        <div class="d-flex gap-4">
-          <v-text-field
-            v-model="model.frontage"
-            class="w-100"
-            label="الواجهة (متر)"
-          />
-          <v-text-field
-            v-model="model.nazal"
-            class="w-100"
-            label="النزال / العمق (متر)"
-            hint="عمق الأرض بالمتر، مثال: 12.5"
-            persistent-hint
-          />
-        </div>
 
         <v-divider class="my-4" />
         <div class="form-grid">
@@ -152,6 +132,23 @@ defineExpose({ validate, computedTotal });
             label="السعر قابل للتفاوض"
             color="primary"
             hide-details
+          />
+        </div>
+
+        <v-divider class="my-4" />
+        <div class="text-subtitle-2 mb-2">أبعاد الأرض</div>
+        <div class="d-flex gap-4">
+          <v-text-field
+            v-model="model.frontage"
+            class="w-100"
+            label="الواجهة (متر)"
+          />
+          <v-text-field
+            v-model="model.nazal"
+            class="w-100"
+            label="النزال / العمق (متر)"
+            hint="عمق الأرض بالمتر، مثال: 12.5"
+            persistent-hint
           />
         </div>
 

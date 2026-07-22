@@ -1,0 +1,321 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-22T00:00:00.000Z",
+  "title": "Design System: Dalaly",
+  "extensions": {
+    "colorMeta": {
+      "registry-teal": {
+        "role": "primary",
+        "displayName": "Registry Teal",
+        "canonical": "oklch(45.9% 0.073 197.5)",
+        "tonalRamp": [
+          "oklch(18% 0.030 197.5)",
+          "oklch(29% 0.048 197.5)",
+          "oklch(38% 0.062 197.5)",
+          "oklch(45.9% 0.073 197.5)",
+          "oklch(58% 0.085 197.5)",
+          "oklch(71% 0.078 197.5)",
+          "oklch(84% 0.048 197.5)",
+          "oklch(95% 0.018 197.5)"
+        ]
+      },
+      "registry-teal-light": {
+        "role": "primary",
+        "displayName": "Registry Teal Light",
+        "canonical": "oklch(71.2% 0.098 186.7)",
+        "tonalRamp": [
+          "oklch(20% 0.035 186.7)",
+          "oklch(32% 0.055 186.7)",
+          "oklch(44% 0.075 186.7)",
+          "oklch(57% 0.092 186.7)",
+          "oklch(71.2% 0.098 186.7)",
+          "oklch(81% 0.075 186.7)",
+          "oklch(89% 0.048 186.7)",
+          "oklch(96% 0.018 186.7)"
+        ]
+      },
+      "sage-ink": {
+        "role": "secondary",
+        "displayName": "Sage Ink",
+        "canonical": "oklch(52.1% 0.031 156.7)",
+        "tonalRamp": [
+          "oklch(19% 0.014 156.7)",
+          "oklch(30% 0.022 156.7)",
+          "oklch(41% 0.028 156.7)",
+          "oklch(52.1% 0.031 156.7)",
+          "oklch(63% 0.032 156.7)",
+          "oklch(75.1% 0.033 156.7)",
+          "oklch(86% 0.022 156.7)",
+          "oklch(95% 0.010 156.7)"
+        ]
+      },
+      "seal-ochre": {
+        "role": "tertiary",
+        "displayName": "Seal Ochre",
+        "canonical": "oklch(64.8% 0.119 61.2)",
+        "tonalRamp": [
+          "oklch(22% 0.045 61.2)",
+          "oklch(34% 0.070 61.2)",
+          "oklch(46% 0.095 61.2)",
+          "oklch(56% 0.110 61.2)",
+          "oklch(64.8% 0.119 61.2)",
+          "oklch(74.7% 0.106 61.2)",
+          "oklch(86% 0.068 61.2)",
+          "oklch(95% 0.028 61.2)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "oklch(100% 0 0)",
+        "tonalRamp": [
+          "oklch(18.9% 0.010 172.9)",
+          "oklch(23.7% 0.016 168.5)",
+          "oklch(35% 0.008 160)",
+          "oklch(50% 0.005 160)",
+          "oklch(68% 0.004 140)",
+          "oklch(85% 0.003 130)",
+          "oklch(97.5% 0.003 128.5)",
+          "oklch(100% 0 0)"
+        ]
+      },
+      "paper-field": {
+        "role": "neutral",
+        "displayName": "Paper Field",
+        "canonical": "oklch(97.5% 0.003 128.5)",
+        "tonalRamp": [
+          "oklch(18.9% 0.010 172.9)",
+          "oklch(23.7% 0.016 168.5)",
+          "oklch(35% 0.008 160)",
+          "oklch(50% 0.005 160)",
+          "oklch(68% 0.004 140)",
+          "oklch(85% 0.003 130)",
+          "oklch(97.5% 0.003 128.5)",
+          "oklch(100% 0 0)"
+        ]
+      },
+      "night-surface": {
+        "role": "neutral",
+        "displayName": "Night Surface",
+        "canonical": "oklch(23.7% 0.016 168.5)",
+        "tonalRamp": [
+          "oklch(15% 0.010 170)",
+          "oklch(18.9% 0.010 172.9)",
+          "oklch(23.7% 0.016 168.5)",
+          "oklch(32% 0.018 168)",
+          "oklch(45% 0.020 166)",
+          "oklch(62% 0.018 164)",
+          "oklch(80% 0.012 160)",
+          "oklch(94% 0.006 155)"
+        ]
+      },
+      "error-red": {
+        "role": "neutral",
+        "displayName": "Error Red",
+        "canonical": "oklch(50.1% 0.178 28.7)",
+        "tonalRamp": [
+          "oklch(20% 0.070 28.7)",
+          "oklch(31% 0.110 28.7)",
+          "oklch(41% 0.150 28.7)",
+          "oklch(50.1% 0.178 28.7)",
+          "oklch(62% 0.170 28.7)",
+          "oklch(73% 0.135 28.7)",
+          "oklch(83.8% 0.089 26.8)",
+          "oklch(94% 0.035 26.8)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles and dashboard KPI numbers. The largest type in the product; nothing sits above it."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Card titles, dialog titles, the login heading."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "The default. Prose, list items, table cells, subtitles."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Field labels, detail labels, timestamps, shortcut hints. The size floor for anything carrying meaning."
+      },
+      "data": {
+        "displayName": "Data",
+        "purpose": "Record values: prices, plot numbers, detail-tile values. Bold at body size is how a value is distinguished from its label."
+      }
+    },
+    "shadows": [
+      {
+        "name": "overlay-only",
+        "value": "Vuetify default menu/dialog elevation",
+        "purpose": "The only shadows in the system. Reserved for surfaces that float and will disappear: menus, dropdowns, dialogs, snackbar. Never on cards or panels."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-transition",
+        "value": "150ms cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Hover, focus, and selection feedback on controls. Fast enough to feel like response, not choreography."
+      },
+      {
+        "name": "surface-transition",
+        "value": "250ms cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Drawer rail collapse, dialog enter, snackbar enter. The ceiling for this product."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "@media (prefers-reduced-motion: reduce) { transition-duration: 1ms }",
+        "purpose": "Mandatory alternative for every transition above."
+      }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "760px" },
+      { "name": "tablet", "value": "1100px" },
+      { "name": "vuetify-md", "value": "960px" },
+      { "name": "content-max", "value": "1440px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single most important action on a screen — save, log in, confirm. One per view.",
+      "html": "<button class=\"ds-btn-primary\">حفظ العرض</button>",
+      "css": ".ds-btn-primary { font-family: Tahoma, 'Segoe UI', Arial, sans-serif; font-size: 0.875rem; font-weight: 500; background: #116466; color: #fff; height: 40px; padding: 0 16px; border: none; border-radius: 4px; cursor: pointer; transition: background 150ms cubic-bezier(0.22,1,0.36,1); } .ds-btn-primary:hover { background: #0d5052; } .ds-btn-primary:focus-visible { outline: 2px solid #116466; outline-offset: 2px; } .ds-btn-primary:active { background: #0a4142; } @media (prefers-reduced-motion: reduce) { .ds-btn-primary { transition-duration: 1ms; } }"
+    },
+    {
+      "name": "Tonal Button",
+      "kind": "button",
+      "refersTo": "button-tonal",
+      "description": "The workhorse action, used 47 times across the app: quick actions, toolbar operations, secondary confirmations.",
+      "html": "<button class=\"ds-btn-tonal\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/></svg>إضافة عرض</button>",
+      "css": ".ds-btn-tonal { display: inline-flex; align-items: center; gap: 8px; font-family: Tahoma, 'Segoe UI', Arial, sans-serif; font-size: 0.875rem; font-weight: 500; background: rgba(17,100,102,0.12); color: #116466; height: 40px; padding: 0 16px; border: none; border-radius: 4px; cursor: pointer; transition: background 150ms cubic-bezier(0.22,1,0.36,1); } .ds-btn-tonal:hover { background: rgba(17,100,102,0.20); } .ds-btn-tonal:focus-visible { outline: 2px solid #116466; outline-offset: 2px; } @media (prefers-reduced-motion: reduce) { .ds-btn-tonal { transition-duration: 1ms; } }"
+    },
+    {
+      "name": "Outlined Input",
+      "kind": "input",
+      "refersTo": "input-outlined",
+      "description": "The confirmed target input language: hairline border matching the surfaces around it. Codebase currently renders Vuetify's default filled variant — known gap.",
+      "html": "<div class=\"ds-field\" dir=\"rtl\"><label class=\"ds-field-label\" for=\"ds-plot\">رقم القطعة</label><input class=\"ds-field-input\" id=\"ds-plot\" value=\"1245\" /></div>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; font-family: Tahoma, 'Segoe UI', Arial, sans-serif; } .ds-field-label { font-size: 0.82rem; color: rgba(0,0,0,0.68); } .ds-field-input { height: 40px; padding: 0 12px; font-size: 0.875rem; font-family: inherit; color: #17211d; background: #fff; border: 1px solid rgba(0,0,0,0.22); border-radius: 4px; transition: border-color 150ms cubic-bezier(0.22,1,0.36,1); } .ds-field-input:hover { border-color: rgba(0,0,0,0.38); } .ds-field-input:focus { outline: none; border-color: #116466; box-shadow: 0 0 0 1px #116466; } @media (prefers-reduced-motion: reduce) { .ds-field-input { transition-duration: 1ms; } }"
+    },
+    {
+      "name": "Surface Card",
+      "kind": "card",
+      "refersTo": "card-surface",
+      "description": "Every panel in the app: flat, 8px corners, hairline border, no shadow. Applied 42 times with zero deviation.",
+      "html": "<section class=\"ds-card\" dir=\"rtl\"><h3 class=\"ds-card-title\">إجراءات سريعة</h3><p class=\"ds-card-body\">أربعة إجراءات يستخدمها الموظف يومياً.</p></section>",
+      "css": ".ds-card { font-family: Tahoma, 'Segoe UI', Arial, sans-serif; background: #fff; border: 1px solid rgba(0,0,0,0.12); border-radius: 8px; padding: 16px; } .ds-card-title { margin: 0 0 8px; font-size: 1.25rem; font-weight: 500; color: #17211d; } .ds-card-body { margin: 0; font-size: 0.875rem; line-height: 1.425rem; color: rgba(0,0,0,0.68); }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "chip-tonal",
+      "description": "Carries a record's state in the state's own color. Teal = available, ochre = waiting on a person, sage = settled, neutral = archived.",
+      "html": "<div dir=\"rtl\" style=\"display:flex;gap:6px\"><span class=\"ds-chip ds-chip-available\">متاح</span><span class=\"ds-chip ds-chip-waiting\">محجوز</span><span class=\"ds-chip ds-chip-settled\">مباع</span></div>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 4px; font-family: Tahoma, 'Segoe UI', Arial, sans-serif; font-size: 0.75rem; font-weight: 500; } .ds-chip-available { background: rgba(17,100,102,0.12); color: #0d5052; } .ds-chip-waiting { background: rgba(194,124,58,0.16); color: #8a5522; } .ds-chip-settled { background: rgba(91,111,98,0.14); color: #43524a; }"
+    },
+    {
+      "name": "Detail Tile",
+      "kind": "custom",
+      "refersTo": "card-surface",
+      "description": "The ledger cell from the property dialog: muted label above a bold value. Label and value are separated by weight alone — the reason the system needs no second font.",
+      "html": "<div class=\"ds-detail\" dir=\"rtl\"><div class=\"ds-detail-label\">السعر الإجمالي</div><div class=\"ds-detail-value\"><span class=\"ds-money\">450,000,000</span> دينار</div></div>",
+      "css": ".ds-detail { font-family: Tahoma, 'Segoe UI', Arial, sans-serif; border: 1px solid rgba(0,0,0,0.12); border-radius: 8px; padding: 12px; background: #fff; min-height: 76px; } .ds-detail-label { color: rgba(0,0,0,0.68); font-size: 0.82rem; margin-bottom: 6px; } .ds-detail-value { color: #17211d; font-weight: 700; font-size: 0.875rem; overflow-wrap: anywhere; } .ds-money { direction: ltr; unicode-bidi: isolate; display: inline-block; }"
+    },
+    {
+      "name": "Sidebar Navigation Item",
+      "kind": "nav",
+      "refersTo": "button-text",
+      "description": "Right-hand drawer item. Active state is the only place teal fills a nav surface; items the user lacks permission for are removed, not disabled.",
+      "html": "<nav class=\"ds-nav\" dir=\"rtl\"><a class=\"ds-nav-item ds-nav-item--active\" href=\"#\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z\"/></svg>لوحة التحكم</a><a class=\"ds-nav-item\" href=\"#\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M3 21V9l9-6 9 6v12h-7v-6h-4v6z\"/></svg>العروض</a></nav>",
+      "css": ".ds-nav { font-family: Tahoma, 'Segoe UI', Arial, sans-serif; width: 260px; padding: 8px; background: #fff; } .ds-nav-item { display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 12px; margin-bottom: 4px; border-radius: 4px; font-size: 0.875rem; color: rgba(0,0,0,0.78); text-decoration: none; transition: background 150ms cubic-bezier(0.22,1,0.36,1); } .ds-nav-item:hover { background: rgba(0,0,0,0.04); } .ds-nav-item--active { background: rgba(17,100,102,0.12); color: #116466; font-weight: 700; } .ds-nav-item:focus-visible { outline: 2px solid #116466; outline-offset: -2px; } @media (prefers-reduced-motion: reduce) { .ds-nav-item { transition-duration: 1ms; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Land Registry Ledger",
+    "overview": "دائرة الطابو keeps the truth about who owns what. Its ledgers are ruled, columned, stamped, and boring on purpose — nothing on the page is there to impress you, and every mark on it can be cited. Dalaly is that ledger made searchable. The visual system's whole job is to make a record readable at a glance and safe to change, for a broker who will look at it for six hours and an owner who will glance at it for thirty seconds.\n\nThat produces a deliberately quiet surface: a single Arabic sans doing all the work, flat panels separated by hairline rules rather than shadows, and one deep teal that appears only where the user can act or where the system is telling them where they are. Color is scarce because scarcity is what makes the status of a record legible. The ochre is the seal — the one warm mark on an otherwise cool page, reserved for things that are pending, reserved, or awaiting a human decision.\n\nIt is Arabic-native, not mirrored: RTL is the layout's ground truth, Arabic is the interface language, and the only Latin on screen is data that must stay Latin (codes, phone numbers, prices), explicitly isolated so it never flips direction mid-sentence.",
+    "keyCharacteristics": [
+      "Flat surfaces, hairline borders, zero decorative elevation",
+      "One type family; hierarchy carried by weight and size, never by a second font",
+      "Committed teal identity used sparingly — action, selection, and state only",
+      "Latin numerals everywhere, in every locale, without exception",
+      "Two full themes (light for lit offices, dark for laptops in poor light), both first-class"
+    ],
+    "rules": [
+      {
+        "name": "The Scarce Ink Rule",
+        "body": "Teal covers ≤10% of any screen. It marks what the user can act on, what is selected, and where they are. A teal surface that does none of those three is decoration and gets removed.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ochre Means Waiting Rule",
+        "body": "Seal ochre never means \"highlight.\" It means a human still has to decide something — reserved, scheduled, pending. If a state doesn't wait on a person, it doesn't get ochre.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ochre Contrast Rule",
+        "body": "Seal ochre on paper is 3.4:1. It is legal on fills, icons ≥24px, and text ≥18px. It is never legal on body text or small labels. In dark theme this restriction lifts.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Family Rule",
+        "body": "There is no second typeface. Hierarchy comes from weight (400 / 500 / 700) and size, in that order. A display font in this product would be a costume.",
+        "section": "typography"
+      },
+      {
+        "name": "The Latin Numerals Rule",
+        "body": "Every number in the interface renders in Latin digits. Mixing Arabic-Indic and Latin numerals on one screen is the single most common way an Arabic UI reads as unfinished. Not negotiable; already enforced in utils/format.ts.",
+        "section": "typography"
+      },
+      {
+        "name": "The Bidi Isolation Rule",
+        "body": "Latin-origin data inside Arabic prose (prices, phone numbers, property codes) is wrapped with direction: ltr; unicode-bidi: isolate. Any new numeric or code display gets the same treatment or it will flip.",
+        "section": "typography"
+      },
+      {
+        "name": "The Named Region Rule",
+        "body": "Layout grids are declared once in styles.css and referenced by class. A new page reuses an existing region or adds one there — it does not inline a bespoke grid-template-columns in a scoped block.",
+        "section": "layout"
+      },
+      {
+        "name": "The Field-Behind-Paper Rule",
+        "body": "Content surfaces are Paper; the app background is Paper Field. Never place a Paper card directly on another Paper card — without shadows there is nothing to separate them.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat-At-Rest Rule",
+        "body": "A surface never has a shadow because it is important. Importance is communicated by position, border, and teal. Shadow is reserved for overlays that will disappear.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Two Radii Rule",
+        "body": "8px for containers, 4px for controls. A third radius is a bug.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do use rounded=\"lg\" + variant=\"flat\" + border for every new surface. That trio is the system.",
+      "Do render every number through formatMoney / formatNumber and every date with numberingSystem: \"latn\".",
+      "Do wrap Latin-origin data in Arabic prose with the .money bidi-isolation treatment.",
+      "Do reuse a named grid region from styles.css, or add the new one there.",
+      "Do give every interactive element a real focus-visible state — this app must be fully operable from the keyboard.",
+      "Do write empty states that say what to do next, not just that there's nothing here.",
+      "Do verify new colors in both themes before shipping; dark mode is a supported mode, not a toggle."
+    ],
+    "donts": [
+      "Don't add elevation to a card or panel. Flat at rest is the rule.",
+      "Don't introduce a second typeface, or a display font in labels, buttons, or data.",
+      "Don't use Seal Ochre for body text or small labels on light surfaces (3.4:1 — it fails AA).",
+      "Don't use clamp() for type. This is a fixed-distance desktop product.",
+      "Don't nest a card inside a card. Use a divider, a tile, or nothing.",
+      "Don't put a decorative icon avatar on a block just to fill space — the dashboard's KPI row is already at the limit of that pattern.",
+      "Don't hide functionality at small breakpoints (the global search currently display: none's below 760px — that's a bug, not a pattern to copy).",
+      "Don't add motion that doesn't report a state change. 150–250ms, and every transition needs a prefers-reduced-motion alternative."
+    ]
+  }
+}
