@@ -14,7 +14,7 @@ const { mdAndUp } = useDisplay();
 // ملاحظة Vuetify: عند ربط v-model لا يُفعَّل التهيئة التلقائية لـ permanent،
 // لذا نضبط القيمة الابتدائية يدوياً ونزامنها مع نقطة الكسر.
 const drawer = ref(mdAndUp.value);
-const rail = ref(false);
+const rail = ref(true);
 watch(mdAndUp, (value) => {
   drawer.value = value;
   if (!value) rail.value = false; // على الجوال لا يوجد وضع طيّ (rail)

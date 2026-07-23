@@ -161,7 +161,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="dal-filters">
+  <div class="dal-filters bg-surface pa-3 border">
     <!-- شريط البحث + الفلاتر الأساسية (≤6، فورية) -->
     <div class="dal-filters__primary">
       <v-text-field
@@ -251,13 +251,23 @@ onBeforeUnmount(() => {
       >
         {{ c.label }}
       </v-chip>
-      <v-btn v-if="chips.length > 1" size="small" variant="text" @click="clearAll">
+      <v-btn
+        v-if="chips.length > 1"
+        size="small"
+        variant="text"
+        @click="clearAll"
+      >
         مسح الكل
       </v-btn>
     </div>
 
     <!-- فلاتر إضافية داخل Panel جانبي (لا صفحة كاملة) -->
-    <v-navigation-drawer v-model="extraOpen" temporary location="end" width="340">
+    <v-navigation-drawer
+      v-model="extraOpen"
+      temporary
+      location="end"
+      width="340"
+    >
       <div class="dal-extra__header">
         <span class="dal-section-title">فلاتر إضافية</span>
         <v-spacer />

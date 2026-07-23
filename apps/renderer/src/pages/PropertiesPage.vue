@@ -88,21 +88,21 @@ const hasActiveFilters = computed(() => {
   return (
     Boolean(
       f.q ||
-        f.status ||
-        f.property_type ||
-        f.governorate_id ||
-        f.district_id ||
-        f.neighborhood_id ||
-        f.legal_type ||
-        f.area_unit ||
-        f.pricing_method ||
-        f.district ||
-        f.plot_number ||
-        f.plot_letter ||
-        f.area_min ||
-        f.area_max ||
-        f.price_min ||
-        f.price_max,
+      f.status ||
+      f.property_type ||
+      f.governorate_id ||
+      f.district_id ||
+      f.neighborhood_id ||
+      f.legal_type ||
+      f.area_unit ||
+      f.pricing_method ||
+      f.district ||
+      f.plot_number ||
+      f.plot_letter ||
+      f.area_min ||
+      f.area_max ||
+      f.price_min ||
+      f.price_max,
     ) || favOnly.value
   );
 });
@@ -170,7 +170,8 @@ function askDelete(property: PropertyRecord) {
     color: "error",
     onConfirm: async () => {
       await service.deleteProperty(property.id);
-      if (selectedProperty.value?.id === property.id) selectedProperty.value = null;
+      if (selectedProperty.value?.id === property.id)
+        selectedProperty.value = null;
       detailsDialog.value = false;
       await refreshData();
       notifySuccess("تم حذف العرض بنجاح.");
@@ -246,10 +247,14 @@ onMounted(() => {
       </div>
     </template>
 
-    <PropertyFilters v-model="filters" @apply="loadProperties" @clear="clearFilters" />
+    <PropertyFilters
+      v-model="filters"
+      @apply="loadProperties"
+      @clear="clearFilters"
+    />
 
     <!-- شريط النتائج: العدد بسياقه، اختيارات سريعة، والفرز -->
-    <div class="dal-resultsbar">
+    <div class="dal-resultsbar bg-surface pa-3 border">
       <span class="dal-resultsbar__count">{{ resultsLabel }}</span>
       <div class="dal-quickpicks">
         <v-btn
