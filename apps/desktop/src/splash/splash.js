@@ -1,26 +1,31 @@
 // منطق شاشة البدء: يستقبل التقدم من العملية الرئيسية عبر splashAPI الآمن،
-// يحصر النسبة بين 0 و100، ويمنع رجوعها للخلف، ويقرأ رقم الإصدار ديناميكياً.
+// يحصر النسبة بين 0 و100، يمنع رجوعها للخلف، يقرأ الإصدار ديناميكياً،
+// ويحوّل الشاشة إلى وضع خطأ (مع أزرار) عند فشل الإقلاع.
 (() => {
   const statusEl = document.getElementById("status");
   const fillEl = document.getElementById("fill");
   const pctEl = document.getElementById("pct");
   const versionEl = document.getElementById("version");
+  const errorMsgEl = document.getElementById("errorMsg");
+  const retryBtn = document.getElementById("retryBtn");
+  const logsBtn = document.getElementById("logsBtn");
+  const quitBtn = document.getElementById("quitBtn");
 
   let currentPct = 0;
   let unsubscribe = null;
 
   function applyProgress(rawProgress, message, isError) {
     const progress = Math.max(0, Math.min(100, Number(rawProgress) || 0));
-    // لا يعود للخلف: نعرض الأعلى فقط.
-    if (progress >= currentPct) {
+    // النسبة لا تتقدّم في حالة الخطأ، ولا تعود للخلف أبداً.
+    if (!isError && progress >= currentPct) {
       currentPct = progress;
       fillEl.style.width = `${progress}%`;
       pctEl.textContent = `${progress}%`;
     }
     if (typeof message === "string" && message.length) {
-      statusEl.textContent = message;
+      if (isError) errorMsgEl.textContent = message;
+      else statusEl.textContent = message;
     }
-    // حالة خطأ واضحة (رسالة فقط، بلا تفاصيل تقنية).
     document.body.classList.toggle("is-error", Boolean(isError));
   }
 
@@ -47,6 +52,11 @@
       .catch(() => {
         /* يبقى العنصر النائب "الإصدار —" */
       });
+
+    // أزرار شاشة الخطأ.
+    if (retryBtn) retryBtn.addEventListener("click", () => window.splashAPI.retry());
+    if (logsBtn) logsBtn.addEventListener("click", () => window.splashAPI.openLogs());
+    if (quitBtn) quitBtn.addEventListener("click", () => window.splashAPI.quit());
   }
 
   // إزالة المستمع عند إغلاق الصفحة لمنع تسرّب الذاكرة.

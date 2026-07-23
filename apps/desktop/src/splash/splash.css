@@ -108,9 +108,71 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 14px;
+  gap: 12px;
   padding: 0 40px 8px;
   box-shadow: 0 -1px 0 rgba(203, 168, 103, 0.35);
+}
+
+.bar__loading {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* شاشة الخطأ: مخفية افتراضياً، وتظهر بدل وضع التحميل عند الفشل. */
+.bar__error {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.is-error .bar__loading {
+  display: none;
+}
+.is-error .bar__error {
+  display: flex;
+}
+.bar__error-msg {
+  color: #f2c879;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+.bar__error-actions {
+  display: flex;
+  gap: 10px;
+}
+.btn {
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: transparent;
+  color: #eaf3f1;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.btn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.btn--primary {
+  background: var(--gold);
+  color: #23180a;
+  border-color: var(--gold);
+}
+.btn--primary:hover {
+  background: var(--gold-bright);
+}
+.btn--ghost {
+  border-color: transparent;
+  color: rgba(234, 243, 241, 0.75);
 }
 
 .bar__status {
@@ -182,14 +244,6 @@ body {
 .bar__version {
   color: rgba(234, 243, 241, 0.82);
   font-weight: 600;
-}
-
-/* حالة خطأ: رسالة تحذيرية واضحة وتعبئة هادئة، دون تفاصيل تقنية. */
-.is-error .bar__status {
-  color: #f2c879;
-}
-.is-error .progress__fill {
-  background: linear-gradient(90deg, #b5714a 0%, #cf9a63 100%);
 }
 
 /* احترام تقليل الحركة: لا انتقال متحرك لعرض الشريط. */

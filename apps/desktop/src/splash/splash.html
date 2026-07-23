@@ -104,13 +104,31 @@
 
       <!-- المنطقة السفلية البترولية: الحالة + شريط التقدم + النسبة + الإصدار -->
       <footer class="bar">
-        <p class="bar__status" id="status">جارِ بدء دلالي…</p>
-        <div class="bar__progress">
-          <div class="progress__track">
-            <div class="progress__fill" id="fill"></div>
+        <!-- وضع التحميل -->
+        <div class="bar__loading">
+          <p class="bar__status" id="status">جارِ تهيئة التطبيق…</p>
+          <div class="bar__progress">
+            <div class="progress__track">
+              <div class="progress__fill" id="fill"></div>
+            </div>
+            <span class="progress__pct" id="pct">0%</span>
           </div>
-          <span class="progress__pct" id="pct">0%</span>
         </div>
+
+        <!-- وضع الخطأ: رسالة واضحة + إجراءات (بلا تفاصيل تقنية) -->
+        <div class="bar__error">
+          <p class="bar__error-msg" id="errorMsg">تعذّر بدء التطبيق.</p>
+          <div class="bar__error-actions">
+            <button type="button" class="btn btn--primary" id="retryBtn">
+              إعادة المحاولة
+            </button>
+            <button type="button" class="btn" id="logsBtn">فتح السجلات</button>
+            <button type="button" class="btn btn--ghost" id="quitBtn">
+              إغلاق البرنامج
+            </button>
+          </div>
+        </div>
+
         <div class="bar__meta">
           <span class="bar__trust">
             <svg class="shield" viewBox="0 0 24 24" aria-hidden="true">

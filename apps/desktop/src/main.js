@@ -55,19 +55,26 @@ let mainWindow = null;
 let splashWindow = null;
 let mainReadyToShow = null;
 let scheduleTimer = null;
+let startupInFlight = false;
+
+// توقيتات شاشة البدء.
+const MIN_SPLASH_MS = 1800; // أدنى مدة ظهور حتى لو جهُز التطبيق فوراً.
+const SLOW_AFTER_MS = 8000; // بعدها نُظهر حالة "يستغرق وقتاً أطول" دون فشل.
+const READY_HOLD_MS = 200; // تثبيت 100% قبل الاختفاء.
+const FADE_MS = 250; // مدة تلاشي السبلاش.
 
 // مراحل الإقلاع مرتبطة بخطوات التشغيل الفعلية. مصدر واحد للرسائل والنسب.
+// النسبة لا تصل 100% إلا بعد جاهزية النافذة الرئيسية فعلاً.
 const SPLASH_STAGES = {
-  start: { progress: 5, message: "جارِ بدء دلالي…" },
-  config: { progress: 18, message: "جارِ تحميل الإعدادات…" },
-  backend: { progress: 45, message: "جارِ تشغيل الخدمات المحلية…" },
-  database: { progress: 65, message: "جارِ تهيئة قاعدة البيانات…" },
-  ui: { progress: 82, message: "جارِ تجهيز مساحة العمل…" },
-  waiting: { progress: 90, message: "جارِ فتح النافذة الرئيسية…" },
+  start: { progress: 6, message: "جارِ تهيئة التطبيق…" },
+  backend: { progress: 40, message: "جارِ تشغيل الخادم المحلي…" },
+  database: { progress: 66, message: "جارِ تشغيل قاعدة البيانات…" },
+  ui: { progress: 86, message: "جارِ تحميل الواجهة…" },
   ready: { progress: 100, message: "التطبيق جاهز" },
+  // slow/error لا يحملان progress كي لا يتحرّك الشريط للخلف أو للأمام.
+  slow: { message: "يستغرق التشغيل وقتاً أطول من المعتاد… يرجى الانتظار" },
   error: {
-    progress: 100,
-    message: "تعذّر بدء التطبيق. أعد المحاولة.",
+    message: "تعذّر بدء التطبيق. تحقّق من الخادم المحلي وقاعدة البيانات.",
     isError: true,
   },
 };
@@ -207,7 +214,9 @@ function startLocalApi() {
   });
 }
 
-async function waitForApi(timeoutMs = 15000) {
+// يفحص جاهزية الخادم المحلي عبر /api/health ويعيد كائن الصحة أو null عند
+// الفشل. لا يغيّر تشغيل Fastify؛ مجرّد استطلاع لنقطة الصحة الحالية.
+async function waitForApiHealth(timeoutMs = 25000) {
   const startedAt = Date.now();
 
   while (Date.now() - startedAt < timeoutMs) {
@@ -216,14 +225,16 @@ async function waitForApi(timeoutMs = 15000) {
       if (response.ok) {
         const health = await response.json().catch(() => null);
         log.info("Local API health check passed", health);
-        return;
+        return health ?? { ok: true };
       }
     } catch {
-      await new Promise((resolve) => setTimeout(resolve, 350));
+      // الخادم لم يجهز بعد؛ نُعيد المحاولة.
     }
+    await new Promise((resolve) => setTimeout(resolve, 350));
   }
 
   log.error("Local API health check timed out", { apiUrl });
+  return null;
 }
 
 function stopLocalApi() {
@@ -547,53 +558,109 @@ function closeSplashWindow() {
 }
 
 ipcMain.handle("splash:get-version", () => app.getVersion());
+// أزرار شاشة الخطأ.
+ipcMain.handle("splash:retry", () => {
+  void runStartup();
+});
+ipcMain.handle("splash:open-logs", async () => {
+  try {
+    await shell.openPath(app.getPath("logs"));
+  } catch (error) {
+    log.error("Failed to open logs folder", error);
+  }
+});
+ipcMain.handle("splash:quit", () => app.quit());
 
-app.whenReady().then(async () => {
-  createSplashWindow();
+// تلاشٍ ناعم لنافذة السبلاش عبر الشفافية، ثم تُغلق لاحقاً.
+async function fadeOutSplash(durationMs) {
+  if (!splashWindow || splashWindow.isDestroyed()) return;
+  const steps = 12;
+  const interval = Math.max(10, Math.round(durationMs / steps));
+  for (let i = 1; i <= steps; i += 1) {
+    if (!splashWindow || splashWindow.isDestroyed()) return;
+    splashWindow.setOpacity(Math.max(0, 1 - i / steps));
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+}
+
+// الجاهزية الفعلية: خادم محلي يعمل، /api/health ناجح، وقاعدة بيانات سليمة
+// إن كانت مهيأة، ثم تحميل نافذة التطبيق. يرمي خطأً عند الفشل الفادح.
+async function waitForApplicationReady() {
+  startLocalApi();
+  sendSplashProgress(SPLASH_STAGES.backend);
+
+  const health = await waitForApiHealth();
+  if (!health || health.ok !== true) {
+    throw new Error("STARTUP_BACKEND");
+  }
+
+  // قاعدة بيانات مهيّأة مسبقاً لكنها غير متصلة/فشلت هجرتها = خطأ فادح.
+  // أول تشغيل (بلا databaseUrl) حالة صحيحة تُكمل إلى معالج الإعداد.
+  const config = readAppConfig();
+  if (
+    config.databaseUrl &&
+    (health.db_connected === false || health.migrations_ok === false)
+  ) {
+    throw new Error("STARTUP_DATABASE");
+  }
+  sendSplashProgress(SPLASH_STAGES.database);
+
+  await createWindow(); // النافذة الرئيسية مخفية والمحتوى يُحمَّل.
+  sendSplashProgress(SPLASH_STAGES.ui);
+
+  // ننتظر جاهزية عرض النافذة فعلاً (مع حدّ أقصى للأمان كي لا تعلق).
+  await Promise.race([
+    mainReadyToShow ?? Promise.resolve(),
+    new Promise((resolve) => setTimeout(resolve, 6000)),
+  ]);
+}
+
+// تسلسل الإقلاع القابل لإعادة التشغيل (زر إعادة المحاولة).
+async function runStartup() {
+  if (startupInFlight) return;
+  startupInFlight = true;
+
+  // إعادة الشاشة إلى وضع التحميل (يُخفي شاشة الخطأ إن كانت ظاهرة).
+  if (splashWindow && !splashWindow.isDestroyed()) splashWindow.setOpacity(1);
+  sendSplashProgress(SPLASH_STAGES.start);
+
+  const reachedMinimum = new Promise((resolve) =>
+    setTimeout(resolve, MIN_SPLASH_MS),
+  );
+  const slowTimer = setTimeout(
+    () => sendSplashProgress(SPLASH_STAGES.slow),
+    SLOW_AFTER_MS,
+  );
 
   try {
-    sendSplashProgress(SPLASH_STAGES.start);
-    sendSplashProgress(SPLASH_STAGES.config);
+    // لا تُغلق السبلاش إلا عند تحقق الشرطين معاً: الجاهزية + الحد الأدنى.
+    await Promise.all([waitForApplicationReady(), reachedMinimum]);
+    clearTimeout(slowTimer);
 
-    // نفس خطوات الإقلاع الحالية تماماً — مربوطة بمراحل التقدم فقط.
-    startLocalApi();
-    sendSplashProgress(SPLASH_STAGES.backend);
+    sendSplashProgress(SPLASH_STAGES.ready); // 100% فقط بعد الجاهزية.
+    await new Promise((resolve) => setTimeout(resolve, READY_HOLD_MS));
+    await fadeOutSplash(FADE_MS);
 
-    await waitForApi();
-    sendSplashProgress(SPLASH_STAGES.database);
-
-    await createWindow(); // النافذة الرئيسية مخفية، والمحتوى مُحمَّل.
-    sendSplashProgress(SPLASH_STAGES.ui);
-
-    // لا نتجاوز 90% قبل جاهزية النافذة فعلياً (مع حدّ أقصى كي لا تعلق).
-    sendSplashProgress(SPLASH_STAGES.waiting);
-    await Promise.race([
-      mainReadyToShow ?? Promise.resolve(),
-      new Promise((resolve) => setTimeout(resolve, 4000)),
-    ]);
-
-    sendSplashProgress(SPLASH_STAGES.ready);
-    // انتظار قصير لإظهار اكتمال الشريط قبل التبديل.
-    await new Promise((resolve) => setTimeout(resolve, 350));
-
+    // نُظهر الرئيسية بعد انتهاء التلاشي لتفادي ظهور النافذتين معاً.
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.show();
       mainWindow.focus();
     }
     closeSplashWindow();
+    startScheduler();
   } catch (error) {
-    // خطأ إقلاع فادح: نُسجّل عبر نظام logging الحالي ونعرض رسالة واضحة
-    // دون كشف تفاصيل تقنية، ولا نُبقي الـ Splash معلّقة بلا نهاية.
+    clearTimeout(slowTimer);
+    // فشل فادح: نُبقي السبلاش ونحوّلها إلى شاشة خطأ (لا نُغلقها).
     log.error("Startup sequence failed", error);
     sendSplashProgress(SPLASH_STAGES.error);
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      await new Promise((resolve) => setTimeout(resolve, 1400));
-      mainWindow.show();
-      closeSplashWindow();
-    }
+  } finally {
+    startupInFlight = false;
   }
+}
 
-  startScheduler();
+app.whenReady().then(() => {
+  createSplashWindow();
+  void runStartup();
 
   app.on("activate", async () => {
     if (BrowserWindow.getAllWindows().length === 0) {
