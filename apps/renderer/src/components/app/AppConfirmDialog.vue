@@ -6,7 +6,7 @@ const { state, runConfirmedAction } = useConfirm();
 
 <template>
   <v-dialog v-model="state.open" width="430">
-    <v-card rounded="lg">
+    <v-card>
       <v-card-title>{{ state.title }}</v-card-title>
       <v-card-text>{{ state.body }}</v-card-text>
       <v-card-actions>

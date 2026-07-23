@@ -111,7 +111,7 @@ onMounted(() => {
 
 <template>
   <AppLayout title="المستخدمون">
-    <v-card rounded="lg" variant="flat" border>
+    <v-card variant="flat" border>
       <v-card-title class="d-flex align-center">
         <span>إدارة المستخدمين</span>
         <v-spacer />
@@ -149,7 +149,6 @@ onMounted(() => {
                   v-for="role in user.roles"
                   :key="role.id"
                   class="ma-1"
-                  size="small"
                   variant="tonal"
                 >
                   {{ role.name }}
@@ -158,7 +157,6 @@ onMounted(() => {
               <td>
                 <v-chip
                   :color="user.is_active ? 'success' : undefined"
-                  size="small"
                   variant="tonal"
                 >
                   {{ user.is_active ? "فعال" : "معطل" }}
@@ -168,7 +166,6 @@ onMounted(() => {
                 <v-btn
                   v-if="can('users.update')"
                   icon="mdi-pencil"
-                  size="small"
                   variant="text"
                   @click="openDialog(user)"
                 />
@@ -179,7 +176,6 @@ onMounted(() => {
                       ? 'mdi-account-off-outline'
                       : 'mdi-account-check-outline'
                   "
-                  size="small"
                   variant="text"
                   @click="toggleActive(user)"
                 />
@@ -187,7 +183,6 @@ onMounted(() => {
                   v-if="can('users.delete')"
                   icon="mdi-delete-outline"
                   color="error"
-                  size="small"
                   variant="text"
                   @click="askDelete(user)"
                 />
@@ -199,7 +194,7 @@ onMounted(() => {
     </v-card>
 
     <v-dialog v-model="dialog" width="620">
-      <v-card rounded="lg">
+      <v-card>
         <v-card-title>
           {{ editingId ? "تعديل مستخدم" : "إضافة مستخدم" }}
         </v-card-title>

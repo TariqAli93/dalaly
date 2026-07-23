@@ -21,7 +21,6 @@ const { can } = usePermissions();
     <FavoriteButton :property-id="property.id" />
     <v-btn
       icon="mdi-eye"
-      size="small"
       variant="text"
       title="عرض"
       @click="emit('view', property)"
@@ -29,7 +28,6 @@ const { can } = usePermissions();
     <v-btn
       v-if="can('properties.update')"
       icon="mdi-pencil"
-      size="small"
       variant="text"
       title="تعديل"
       @click="emit('edit', property)"
@@ -38,7 +36,6 @@ const { can } = usePermissions();
       v-if="property.status === 'archived' && can('properties.restore')"
       icon="mdi-archive-arrow-up-outline"
       color="success"
-      size="small"
       variant="text"
       title="إرجاع من الأرشيف"
       @click="emit('restore', property)"
@@ -47,7 +44,6 @@ const { can } = usePermissions();
       v-else-if="property.status !== 'archived' && can('properties.archive')"
       icon="mdi-archive-arrow-down-outline"
       color="warning"
-      size="small"
       variant="text"
       title="أرشفة"
       @click="emit('archive', property)"
@@ -55,7 +51,6 @@ const { can } = usePermissions();
     <v-btn
       v-if="can('properties.delete')"
       icon="mdi-delete-outline"
-      size="small"
       variant="text"
       color="error"
       title="حذف"

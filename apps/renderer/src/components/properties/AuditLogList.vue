@@ -46,7 +46,12 @@ function detail(log: AuditLogRecord) {
 
 <template>
   <div>
-    <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-2" />
+    <v-progress-linear
+      v-if="loading"
+      indeterminate
+      color="primary"
+      class="mb-2"
+    />
     <v-empty-state
       v-else-if="!logs.length"
       icon="mdi-history"
@@ -60,12 +65,14 @@ function detail(log: AuditLogRecord) {
         size="x-small"
       >
         <template #icon>
-          <v-icon :icon="icon(log.action)" size="small" />
+          <v-icon :icon="icon(log.action)" />
         </template>
         <div class="d-flex flex-column">
           <div class="font-weight-medium">
             {{ label(log.action) }}
-            <span v-if="detail(log)" class="text-medium-emphasis">— {{ detail(log) }}</span>
+            <span v-if="detail(log)" class="text-medium-emphasis"
+              >— {{ detail(log) }}</span
+            >
           </div>
           <div class="text-caption text-medium-emphasis">
             {{ log.user_name || "النظام" }} · {{ when(log.created_at) }}

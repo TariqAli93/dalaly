@@ -175,7 +175,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <v-card rounded="lg" variant="flat" border>
+  <v-card variant="flat" border>
     <v-card-title class="d-flex align-center">
       <span>النسخ الاحتياطي</span>
       <v-spacer />
@@ -269,7 +269,7 @@ onMounted(() => {
     </v-card-text>
 
     <v-dialog v-model="restoreOpen" width="520">
-      <v-card rounded="lg">
+      <v-card>
         <v-card-title>استرجاع نسخة احتياطية</v-card-title>
         <v-card-text>
           <v-alert

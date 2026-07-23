@@ -55,7 +55,7 @@ function printCredentials() {
 
 <template>
   <v-dialog v-model="open" width="460" persistent>
-    <v-card rounded="lg">
+    <v-card>
       <v-card-title class="d-flex align-center ga-2">
         <v-icon icon="mdi-check-circle" color="success" />
         <span>تم إنشاء المستخدم الأول</span>
@@ -81,19 +81,26 @@ function printCredentials() {
       <v-card-actions class="flex-wrap ga-2">
         <v-btn
           variant="tonal"
-          size="small"
           :prepend-icon="copied ? 'mdi-check' : 'mdi-content-copy'"
           @click="copyCredentials"
         >
           نسخ
         </v-btn>
-        <v-btn variant="tonal" size="small" prepend-icon="mdi-file-document-outline" @click="saveTxt">
+        <v-btn
+          variant="tonal"
+          prepend-icon="mdi-file-document-outline"
+          @click="saveTxt"
+        >
           TXT
         </v-btn>
-        <v-btn variant="tonal" size="small" prepend-icon="mdi-file-pdf-box" @click="savePdf">
+        <v-btn variant="tonal" prepend-icon="mdi-file-pdf-box" @click="savePdf">
           PDF
         </v-btn>
-        <v-btn variant="tonal" size="small" prepend-icon="mdi-printer" @click="printCredentials">
+        <v-btn
+          variant="tonal"
+          prepend-icon="mdi-printer"
+          @click="printCredentials"
+        >
           طباعة
         </v-btn>
         <v-spacer />

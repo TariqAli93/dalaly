@@ -5,10 +5,10 @@ defineProps<{ subtitle?: string }>();
 <template>
   <v-main>
     <section class="auth-screen">
-      <v-card class="auth-panel" rounded="lg" variant="flat" border>
+      <v-card class="auth-panel" variant="flat" border>
         <v-card-text class="pa-7">
           <div class="d-flex align-center ga-3 mb-7">
-            <v-avatar color="primary" rounded="lg">
+            <v-avatar color="primary">
               <v-icon icon="mdi-home-city-outline" />
             </v-avatar>
             <div>

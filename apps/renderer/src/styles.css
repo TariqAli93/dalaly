@@ -97,8 +97,8 @@ body {
 
 /* مقياس الرموز الموحّد (مسافات/زوايا) لاستخدامه في المكوّنات الجديدة. */
 :root {
-  --dal-radius-control: 4px;
-  --dal-radius-card: 8px;
+  --dal-radius-control: 0;
+  --dal-radius-card: 0;
   --dal-space-1: 4px;
   --dal-space-2: 8px;
   --dal-space-3: 12px;
@@ -113,7 +113,7 @@ body {
 .v-application .v-card.v-card--variant-flat.v-card--border {
   box-shadow: none;
   border-color: var(--dal-stroke);
-  border-radius: var(--dal-radius-card);
+  border-radius: 0;
 }
 
 /* أشرطة تمرير رفيعة بأسلوب Windows بدل الافتراضية العريضة. */
@@ -125,7 +125,7 @@ body {
   background-color: var(--dal-scroll);
   background-clip: padding-box;
   border: 3px solid transparent;
-  border-radius: 8px;
+  border-radius: 0px;
 }
 .v-application ::-webkit-scrollbar-thumb:hover {
   background-color: var(--dal-scroll-hover);
@@ -168,7 +168,7 @@ body {
 }
 /* عناصر تنقّل مكتبية مضغوطة: 34px، حافة 4px، بلا حبّة كبيرة. */
 .dal-nav-drawer .v-list-item {
-  border-radius: 4px;
+  border-radius: 0px;
   margin-block: 1px;
   min-height: 34px;
   padding-block: 0;
@@ -192,7 +192,7 @@ body {
   inset-block: 7px;
   inset-inline-start: 0;
   width: 3px;
-  border-radius: 0 2px 2px 0;
+  border-radius: 0;
   background: currentColor;
 }
 .dal-nav-footer {
@@ -272,7 +272,7 @@ body {
 /* لوح مكتبي: حدّ رفيع، زوايا صغيرة، بلا ظلّ، حشو مضغوط. بديل البطاقة. */
 .dal-panel {
   border: 1px solid var(--dal-stroke);
-  border-radius: var(--dal-radius-card);
+  border-radius: 0;
   background: rgb(var(--v-theme-surface));
 }
 .dal-panel__header {
@@ -298,7 +298,7 @@ body {
   flex-wrap: wrap;
   align-items: stretch;
   border: 1px solid var(--dal-stroke);
-  border-radius: var(--dal-radius-card);
+  border-radius: 0;
   background: rgb(var(--v-theme-surface));
   padding: 2px 0;
   margin-bottom: 12px;
@@ -434,7 +434,7 @@ body {
 
 .detail-item {
   border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
-  border-radius: 8px;
+  border-radius: 0px;
   padding: 12px;
   background: rgb(var(--v-theme-surface));
   min-height: 76px;

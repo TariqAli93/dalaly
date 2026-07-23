@@ -222,7 +222,7 @@ onMounted(() => {
     subtitle="تسريع إدخال العقارات والفلترة."
   >
     <div class="flex gap-4">
-      <v-card rounded="lg" variant="flat" border class="w-full md:w-1/3">
+      <v-card variant="flat" border class="w-full md:w-1/3">
         <v-card-title class="d-flex align-center">
           <span>المحافظات</span>
           <v-spacer />
@@ -259,14 +259,12 @@ onMounted(() => {
                 />
                 <v-btn
                   icon="mdi-pencil"
-                  size="small"
                   variant="text"
                   @click.stop="openGovDialog(gov)"
                 />
                 <v-btn
                   icon="mdi-delete-outline"
                   color="error"
-                  size="small"
                   variant="text"
                   @click.stop="askDeleteGov(gov)"
                 />
@@ -276,7 +274,7 @@ onMounted(() => {
         </v-card-text>
       </v-card>
 
-      <v-card rounded="lg" variant="flat" border class="w-full md:w-1/3">
+      <v-card variant="flat" border class="w-full md:w-1/3">
         <v-card-title class="d-flex align-center">
           <span>المناطق</span>
           <v-spacer />
@@ -319,14 +317,12 @@ onMounted(() => {
                 />
                 <v-btn
                   icon="mdi-pencil"
-                  size="small"
                   variant="text"
                   @click.stop="openDistDialog(dist)"
                 />
                 <v-btn
                   icon="mdi-delete-outline"
                   color="error"
-                  size="small"
                   variant="text"
                   @click.stop="askDeleteDist(dist)"
                 />
@@ -336,7 +332,7 @@ onMounted(() => {
         </v-card-text>
       </v-card>
 
-      <v-card rounded="lg" variant="flat" border class="w-full md:w-1/3">
+      <v-card variant="flat" border class="w-full md:w-1/3">
         <v-card-title class="d-flex align-center">
           <span>الأحياء</span>
           <v-spacer />
@@ -377,14 +373,12 @@ onMounted(() => {
                 />
                 <v-btn
                   icon="mdi-pencil"
-                  size="small"
                   variant="text"
                   @click.stop="openNeighDialog(neigh)"
                 />
                 <v-btn
                   icon="mdi-delete-outline"
                   color="error"
-                  size="small"
                   variant="text"
                   @click.stop="askDeleteNeigh(neigh)"
                 />
@@ -396,7 +390,7 @@ onMounted(() => {
     </div>
 
     <v-dialog v-model="govDialog" width="460">
-      <v-card rounded="lg">
+      <v-card>
         <v-card-title>{{
           editingGov ? "تعديل محافظة" : "إضافة محافظة"
         }}</v-card-title>
@@ -418,7 +412,7 @@ onMounted(() => {
     </v-dialog>
 
     <v-dialog v-model="distDialog" width="460">
-      <v-card rounded="lg">
+      <v-card>
         <v-card-title>{{
           editingDist ? "تعديل منطقة" : "إضافة منطقة"
         }}</v-card-title>
@@ -440,7 +434,7 @@ onMounted(() => {
     </v-dialog>
 
     <v-dialog v-model="neighDialog" width="460">
-      <v-card rounded="lg">
+      <v-card>
         <v-card-title>{{
           editingNeigh ? "تعديل حي" : "إضافة حي"
         }}</v-card-title>

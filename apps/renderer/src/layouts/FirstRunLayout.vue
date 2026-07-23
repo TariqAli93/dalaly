@@ -3,10 +3,10 @@
 <template>
   <v-main>
     <section class="auth-screen">
-      <v-card class="wizard-panel" rounded="lg" variant="flat" border>
+      <v-card class="wizard-panel" variant="flat" border>
         <v-card-text class="pa-7">
           <div class="d-flex align-center ga-3 mb-6">
-            <v-avatar color="primary" rounded="lg">
+            <v-avatar color="primary">
               <v-icon icon="mdi-rocket-launch-outline" />
             </v-avatar>
             <div>

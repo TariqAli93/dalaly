@@ -100,7 +100,6 @@ watch(districtId, () => {
         class="w-100"
       />
       <v-btn
-        size="small"
         variant="text"
         :prepend-icon="govManual ? 'mdi-format-list-bulleted' : 'mdi-pencil'"
         @click="toggleGovManual"
@@ -134,7 +133,6 @@ watch(districtId, () => {
         class="w-100"
       />
       <v-btn
-        size="small"
         variant="text"
         :prepend-icon="distManual ? 'mdi-format-list-bulleted' : 'mdi-pencil'"
         @click="toggleDistManual"
@@ -166,7 +164,6 @@ watch(districtId, () => {
         class="w-100"
       />
       <v-btn
-        size="small"
         variant="text"
         :prepend-icon="neighManual ? 'mdi-format-list-bulleted' : 'mdi-pencil'"
         @click="toggleNeighManual"

@@ -71,7 +71,7 @@ onMounted(load);
 </script>
 
 <template>
-  <v-card rounded="lg" variant="flat" border>
+  <v-card variant="flat" border>
     <v-card-title>النسخ الاحتياطي المجدول بالبريد</v-card-title>
     <v-card-text>
       <v-alert

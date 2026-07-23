@@ -39,7 +39,7 @@ const faqs = [
 
 <template>
   <AppLayout title="المساعدة" subtitle="دليل سريع لاستخدام دلالي.">
-    <v-card rounded="lg" variant="flat" border>
+    <v-card variant="flat" border>
       <v-card-text>
         <v-expansion-panels variant="accordion">
           <v-expansion-panel v-for="(faq, i) in faqs" :key="i" :title="faq.q">

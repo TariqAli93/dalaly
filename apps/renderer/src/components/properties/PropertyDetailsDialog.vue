@@ -57,13 +57,13 @@ watch(
 
 <template>
   <v-dialog v-model="open" width="980" scrollable>
-    <v-card v-if="property" rounded="lg">
+    <v-card v-if="property">
       <v-card-title class="d-flex align-center ga-2">
         <span>{{ property.code }}</span>
         <v-chip :color="statusColor(property.status)" variant="tonal">
           {{ statusLabel(property.status) }}
         </v-chip>
-        <v-chip v-if="property.is_negotiable" size="small" color="warning" variant="tonal">
+        <v-chip v-if="property.is_negotiable" color="warning" variant="tonal">
           قابل للتفاوض
         </v-chip>
         <v-spacer />
@@ -110,13 +110,17 @@ watch(
               <div class="detail-item">
                 <div class="detail-label">السعر الكلي</div>
                 <div class="detail-value">
-                  <span class="money">{{ formatMoney(property.total_price) }}</span>
+                  <span class="money">{{
+                    formatMoney(property.total_price)
+                  }}</span>
                   دينار
                 </div>
               </div>
               <div class="detail-item">
                 <div class="detail-label">المحافظة</div>
-                <div class="detail-value">{{ property.governorate || "-" }}</div>
+                <div class="detail-value">
+                  {{ property.governorate || "-" }}
+                </div>
               </div>
               <div class="detail-item">
                 <div class="detail-label">المنطقة</div>
@@ -124,7 +128,9 @@ watch(
               </div>
               <div class="detail-item">
                 <div class="detail-label">الحي</div>
-                <div class="detail-value">{{ neighborhoodOf(property) || "-" }}</div>
+                <div class="detail-value">
+                  {{ neighborhoodOf(property) || "-" }}
+                </div>
               </div>
               <div v-if="property.frontage" class="detail-item">
                 <div class="detail-label">الواجهة (متر)</div>
@@ -150,7 +156,9 @@ watch(
               </div>
               <div class="detail-item">
                 <div class="detail-label">آخر تحديث</div>
-                <div class="detail-value">{{ formatDate(property.updated_at) }}</div>
+                <div class="detail-value">
+                  {{ formatDate(property.updated_at) }}
+                </div>
               </div>
               <div v-if="property.rooms_count" class="detail-item">
                 <div class="detail-label">عدد الغرف</div>
@@ -162,7 +170,9 @@ watch(
               </div>
               <div class="detail-item">
                 <div class="detail-label">العنوان التفصيلي</div>
-                <div class="detail-value">{{ property.address_details || "-" }}</div>
+                <div class="detail-value">
+                  {{ property.address_details || "-" }}
+                </div>
               </div>
               <div class="detail-item">
                 <div class="detail-label">ملاحظات العقار</div>
@@ -189,7 +199,10 @@ watch(
       </v-card-text>
 
       <v-card-actions>
-        <PropertyExportMenu v-if="can('properties.export')" :property="property" />
+        <PropertyExportMenu
+          v-if="can('properties.export')"
+          :property="property"
+        />
         <v-spacer />
         <v-btn
           v-if="can('properties.update')"
@@ -209,7 +222,9 @@ watch(
           إرجاع من الأرشيف
         </v-btn>
         <v-btn
-          v-else-if="property.status !== 'archived' && can('properties.archive')"
+          v-else-if="
+            property.status !== 'archived' && can('properties.archive')
+          "
           color="warning"
           variant="tonal"
           prepend-icon="mdi-archive-arrow-down-outline"

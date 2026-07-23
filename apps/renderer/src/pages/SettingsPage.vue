@@ -83,7 +83,7 @@ onMounted(() => {
 <template>
   <AppLayout title="الإعدادات">
     <div class="settings-grid">
-      <v-card rounded="lg" variant="flat" border>
+      <v-card variant="flat" border>
         <v-card-title>المظهر</v-card-title>
         <v-card-text>
           <div class="d-flex align-center justify-space-between ga-4">
@@ -104,7 +104,7 @@ onMounted(() => {
         </v-card-text>
       </v-card>
 
-      <v-card rounded="lg" variant="flat" border>
+      <v-card variant="flat" border>
         <v-card-title>الاتصال الخارجي</v-card-title>
         <v-card-text>
           <v-chip
@@ -147,7 +147,7 @@ onMounted(() => {
         </v-card-actions>
       </v-card>
 
-      <v-card rounded="lg" variant="flat" border>
+      <v-card variant="flat" border>
         <v-card-title>الأمان</v-card-title>
         <v-card-text>
           <div class="d-flex align-center justify-space-between ga-4 mb-4">
@@ -187,7 +187,7 @@ onMounted(() => {
         </v-card-text>
       </v-card>
 
-      <v-card rounded="lg" variant="flat" border>
+      <v-card variant="flat" border>
         <v-card-title>النظام</v-card-title>
         <v-list lines="two">
           <v-list-item

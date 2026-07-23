@@ -110,12 +110,13 @@ const headers = [
 <style scoped>
 /* الجدول يملأ اللوح ويحمل زواياه؛ رأس ثابت الخلفية. */
 .dal-grid :deep(.v-table) {
-  border-radius: var(--dal-radius-card);
+  border-radius: 0;
 }
 .dal-grid :deep(.v-data-table__th) {
   font-size: 12.5px;
   font-weight: 700;
   white-space: nowrap;
+  gap: 0.5rem;
 }
 .dal-grid :deep(.v-data-table__td) {
   font-size: 13px;

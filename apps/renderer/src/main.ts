@@ -11,26 +11,37 @@ import App from "./App.vue";
 import { router } from "./router";
 import { setUnauthorizedHandler } from "./services/api.service";
 import { useAuth } from "./composables/useAuth";
+import { md3 } from "vuetify/blueprints";
 
 const vuetify = createVuetify({
   components,
   directives,
+  blueprint: md3,
   locale: {
     locale: "ar",
     fallback: "en",
     messages: { ar },
-    rtl: { ar: true }
+    rtl: { ar: true },
   },
   // كثافة سطح المكتب: حقول محدّدة بإطار ومضغوطة، وأزرار أقصر — لغة برامج
   // Windows لا لغة الويب. compact يقارب ارتفاع 40px للحقول.
   defaults: {
-    VTextField: { variant: "outlined", density: "compact" },
-    VSelect: { variant: "outlined", density: "compact" },
-    VAutocomplete: { variant: "outlined", density: "compact" },
-    VCombobox: { variant: "outlined", density: "compact" },
-    VTextarea: { variant: "outlined", density: "compact" },
-    VFileInput: { variant: "outlined", density: "compact" },
-    VBtn: { density: "comfortable" }
+    VTextField: { variant: "outlined", density: "comfortable" },
+    VSelect: { variant: "outlined", density: "comfortable" },
+    VAutocomplete: { variant: "outlined", density: "comfortable" },
+    VCombobox: { variant: "outlined", density: "comfortable" },
+    VTextarea: { variant: "outlined", density: "comfortable" },
+    VFileInput: {
+      variant: "outlined",
+      density: "comfortable",
+      rounded: "none",
+    },
+    VBtn: { density: "comfortable", rounded: "none" },
+    global: { rounded: "none" },
+    VCard: { rounded: "none" },
+    VDialog: { rounded: "none" },
+    VMenu: { rounded: "none" },
+    VSheet: { rounded: "none" },
   },
   theme: {
     defaultTheme: localStorage.getItem("dalaly.theme") ?? "dalalyLight",
@@ -50,8 +61,8 @@ const vuetify = createVuetify({
           // الأوكر والسيج نفسها، وبتباين ≥4.5:1 على الأبيض.
           warning: "#8a5a1f",
           success: "#2f6d4f",
-          info: "#5b6f62"
-        }
+          info: "#5b6f62",
+        },
       },
       dalalyDark: {
         dark: true,
@@ -65,11 +76,11 @@ const vuetify = createVuetify({
           error: "#ffb4ab",
           warning: "#d8a15f",
           success: "#7fc9a3",
-          info: "#9db5a7"
-        }
-      }
-    }
-  }
+          info: "#9db5a7",
+        },
+      },
+    },
+  },
 });
 
 // عند انتهاء الجلسة (401) في أي طلب: امسح الحالة وانتقل لتسجيل الدخول.

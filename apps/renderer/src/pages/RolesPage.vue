@@ -151,7 +151,7 @@ onMounted(() => {
 <template>
   <AppLayout title="الأدوار والصلاحيات">
     <div class="flex flex-col gap-4">
-      <v-card rounded="lg" variant="flat" border>
+      <v-card variant="flat" border>
         <v-card-title class="d-flex align-center">
           <span>الأدوار</span>
           <v-spacer />
@@ -173,18 +173,12 @@ onMounted(() => {
               :subtitle="role.description || 'بدون وصف'"
             >
               <template #append>
-                <v-chip
-                  v-if="role.is_system"
-                  class="me-2"
-                  size="small"
-                  variant="tonal"
-                >
+                <v-chip v-if="role.is_system" class="me-2" variant="tonal">
                   System
                 </v-chip>
                 <v-btn
                   v-if="can('roles.update')"
                   icon="mdi-pencil"
-                  size="small"
                   variant="text"
                   @click="openRoleDialog(role)"
                 />
@@ -192,7 +186,6 @@ onMounted(() => {
                   v-if="can('roles.delete') && !role.is_system"
                   icon="mdi-delete-outline"
                   color="error"
-                  size="small"
                   variant="text"
                   @click="askDeleteRole(role)"
                 />
@@ -202,7 +195,7 @@ onMounted(() => {
         </v-card-text>
       </v-card>
 
-      <v-card rounded="lg" variant="flat" border>
+      <v-card variant="flat" border>
         <v-card-title class="d-flex align-center">
           <span>الصلاحيات</span>
           <v-spacer />
@@ -236,7 +229,6 @@ onMounted(() => {
                       <v-btn
                         v-if="can('roles.update')"
                         icon="mdi-pencil"
-                        size="small"
                         variant="text"
                         @click="openPermissionDialog(permission)"
                       />
@@ -244,7 +236,6 @@ onMounted(() => {
                         v-if="can('roles.delete')"
                         icon="mdi-delete-outline"
                         color="error"
-                        size="small"
                         variant="text"
                         @click="askDeletePermission(permission)"
                       />
@@ -259,7 +250,7 @@ onMounted(() => {
     </div>
 
     <v-dialog v-model="roleDialog" width="760">
-      <v-card rounded="lg">
+      <v-card>
         <v-card-title>{{
           editingRoleId ? "تعديل Role" : "إضافة Role"
         }}</v-card-title>
@@ -301,7 +292,7 @@ onMounted(() => {
     </v-dialog>
 
     <v-dialog v-model="permissionDialog" width="620">
-      <v-card rounded="lg">
+      <v-card>
         <v-card-title>
           {{ editingPermissionId ? "تعديل صلاحية" : "إضافة صلاحية" }}
         </v-card-title>

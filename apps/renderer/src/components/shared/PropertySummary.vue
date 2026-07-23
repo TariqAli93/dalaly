@@ -28,7 +28,11 @@ const phoneDigits = computed(() =>
   (props.property.owner_phone || "").replace(/\D/g, ""),
 );
 const location = computed(() =>
-  [props.property.governorate, props.property.district, props.property.neighborhood]
+  [
+    props.property.governorate,
+    props.property.district,
+    props.property.neighborhood,
+  ]
     .filter(Boolean)
     .join(" · "),
 );
@@ -39,7 +43,10 @@ const rows = computed(() => {
   const unit = p.area_unit || "";
   const items: Array<{ label: string; value: string; money?: boolean }> = [
     { label: "المساحة", value: `${p.area_value ?? ""} ${unit}`.trim() },
-    { label: "رقم القطعة", value: formatPlot(p.plot_number, p.plot_letter) || "—" },
+    {
+      label: "رقم القطعة",
+      value: formatPlot(p.plot_number, p.plot_letter) || "—",
+    },
     { label: "الواجهة", value: p.frontage || "—" },
     { label: "النزال", value: p.nazal || "—" },
     { label: "الصفة القانونية", value: p.legal_type || "—" },
@@ -61,7 +68,7 @@ const rows = computed(() => {
         <div class="ps__code money">{{ property.code }}</div>
         <div class="ps__type">{{ property.property_type }}</div>
       </div>
-      <StatusChip :status="property.status" size="small" />
+      <StatusChip :status="property.status" />
       <FavoriteButton :property-id="property.id" />
       <v-btn
         icon="mdi-close"
@@ -79,7 +86,12 @@ const rows = computed(() => {
       <div class="ps__price-label">السعر الإجمالي</div>
       <div class="ps__price-value">
         <span class="money">{{ formatMoney(property.total_price) }}</span> دينار
-        <v-chip v-if="property.is_negotiable" size="x-small" variant="tonal" label>
+        <v-chip
+          v-if="property.is_negotiable"
+          size="x-small"
+          variant="tonal"
+          label
+        >
           قابل للتفاوض
         </v-chip>
       </div>
@@ -133,13 +145,12 @@ const rows = computed(() => {
 
     <!-- الإجراءات الرئيسية بجانب البيانات -->
     <div class="ps__actions">
-      <v-btn color="primary" size="small" block @click="emit('open')">
+      <v-btn color="primary" block @click="emit('open')">
         فتح التفاصيل الكاملة
       </v-btn>
       <div class="ps__actions-row">
         <v-btn
           v-if="can('properties.update')"
-          size="small"
           variant="tonal"
           prepend-icon="mdi-pencil"
           @click="emit('edit')"
@@ -148,7 +159,6 @@ const rows = computed(() => {
         </v-btn>
         <v-btn
           v-if="property.status === 'archived' && can('properties.restore')"
-          size="small"
           variant="text"
           color="success"
           prepend-icon="mdi-archive-arrow-up-outline"
@@ -157,8 +167,9 @@ const rows = computed(() => {
           إرجاع
         </v-btn>
         <v-btn
-          v-else-if="property.status !== 'archived' && can('properties.archive')"
-          size="small"
+          v-else-if="
+            property.status !== 'archived' && can('properties.archive')
+          "
           variant="text"
           prepend-icon="mdi-archive-arrow-down-outline"
           @click="emit('archive')"
@@ -168,7 +179,6 @@ const rows = computed(() => {
         <v-spacer />
         <v-btn
           v-if="can('properties.delete')"
-          size="small"
           variant="text"
           color="error"
           icon="mdi-delete-outline"

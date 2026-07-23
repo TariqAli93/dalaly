@@ -108,7 +108,10 @@ async function uploadPending() {
 
 async function setPrimary(image: PropertyImage) {
   try {
-    images.value = await imagesService.setPrimaryImage(props.propertyId, image.id);
+    images.value = await imagesService.setPrimaryImage(
+      props.propertyId,
+      image.id,
+    );
     notifySuccess("تم تعيين الصورة الرئيسية.");
   } catch (error) {
     notifyError(getErrorMessage(error));
@@ -161,11 +164,20 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
 
 <template>
   <div>
-    <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-2" />
+    <v-progress-linear
+      v-if="loading"
+      indeterminate
+      color="primary"
+      class="mb-2"
+    />
 
     <!-- معرض الصور -->
     <div v-if="primaryImage" class="gallery">
-      <img :src="imageUrl(primaryImage)" class="gallery-primary" alt="صورة العقار" />
+      <img
+        :src="imageUrl(primaryImage)"
+        class="gallery-primary"
+        alt="صورة العقار"
+      />
       <div v-if="images.length" class="thumbs">
         <div
           v-for="(image, index) in images"
@@ -177,7 +189,12 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
           @dragover.prevent
           @drop.prevent="onDropReorder(index)"
         >
-          <img :src="imageUrl(image)" class="thumb" alt="" @click="setPrimary(image)" />
+          <img
+            :src="imageUrl(image)"
+            class="thumb"
+            alt=""
+            @click="setPrimary(image)"
+          />
           <div v-if="canManage" class="thumb-actions">
             <v-btn
               v-if="!image.is_primary"
@@ -188,7 +205,7 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
               title="تعيين رئيسية"
               @click="setPrimary(image)"
             />
-            <v-icon v-else icon="mdi-star" color="warning" size="small" />
+            <v-icon v-else icon="mdi-star" color="warning" />
             <v-btn
               icon="mdi-delete-outline"
               size="x-small"
@@ -236,7 +253,9 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
 
       <!-- معاينة قبل الحفظ -->
       <div v-if="pending.length" class="pending mt-3">
-        <div class="text-subtitle-2 mb-2">معاينة قبل الرفع ({{ pending.length }})</div>
+        <div class="text-subtitle-2 mb-2">
+          معاينة قبل الرفع ({{ pending.length }})
+        </div>
         <div class="thumbs">
           <div v-for="(item, index) in pending" :key="index" class="thumb-wrap">
             <img :src="item.dataUrl" class="thumb" alt="" />
@@ -272,7 +291,7 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
   width: 100%;
   max-height: 360px;
   object-fit: contain;
-  border-radius: 8px;
+  border-radius: 0px;
   background: rgba(var(--v-theme-on-surface), 0.04);
 }
 .thumbs {
@@ -284,7 +303,7 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
 .thumb-wrap {
   position: relative;
   border: 2px solid transparent;
-  border-radius: 8px;
+  border-radius: 0px;
   overflow: hidden;
 }
 .thumb-active {
@@ -309,7 +328,7 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
   width: 100%;
   margin-top: 14px;
   border: 2px dashed rgba(var(--v-theme-on-surface), 0.3);
-  border-radius: 8px;
+  border-radius: 0px;
   padding: 20px;
   text-align: center;
   cursor: pointer;

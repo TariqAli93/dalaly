@@ -46,7 +46,7 @@ defineExpose({ validate, computedTotal });
 
 <template>
   <v-form ref="formRef" @submit.prevent="emit('submit')">
-    <v-card rounded="lg" variant="flat" border>
+    <v-card variant="flat" border>
       <v-card-title>
         {{ editing ? "تعديل عرض عقاري" : "إضافة عرض عقاري" }}
       </v-card-title>

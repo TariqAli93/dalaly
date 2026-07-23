@@ -133,7 +133,6 @@ onMounted(() => {
       <v-btn
         v-if="can('properties.create')"
         color="primary"
-        size="small"
         prepend-icon="mdi-plus"
         @click="router.push('/properties/new')"
       >
@@ -141,7 +140,6 @@ onMounted(() => {
       </v-btn>
       <v-btn
         v-if="can('locations.manage')"
-        size="small"
         variant="text"
         prepend-icon="mdi-map-marker-plus"
         @click="router.push('/locations')"
@@ -150,7 +148,6 @@ onMounted(() => {
       </v-btn>
       <v-btn
         v-if="can('backups.create')"
-        size="small"
         variant="text"
         prepend-icon="mdi-database-export"
         :loading="backupRunning"
@@ -160,7 +157,6 @@ onMounted(() => {
       </v-btn>
       <v-btn
         v-if="can('users.create')"
-        size="small"
         variant="text"
         prepend-icon="mdi-account-plus"
         @click="router.push('/users')"
@@ -173,12 +169,15 @@ onMounted(() => {
          بدل ترك الصفحة فارغة بعد اختفاء الإشعار. -->
     <v-card
       v-if="loadError && !data"
-      rounded="lg"
       variant="flat"
       border
       class="pa-6 text-center"
     >
-      <v-icon icon="mdi-lan-disconnect" size="40" class="text-medium-emphasis" />
+      <v-icon
+        icon="mdi-lan-disconnect"
+        size="40"
+        class="text-medium-emphasis"
+      />
       <div class="text-h6 mt-3">تعذّر تحميل لوحة التحكم</div>
       <div class="text-body-2 text-medium-emphasis mt-1">{{ loadError }}</div>
       <div class="text-body-2 text-medium-emphasis mt-1">
@@ -213,13 +212,12 @@ onMounted(() => {
         v-if="loadError"
         type="warning"
         variant="tonal"
-        rounded="lg"
         class="mb-4"
         role="status"
       >
         تعذّر تحديث البيانات؛ ما يظهر أدناه هو آخر تحميل ناجح.
         <template #append>
-          <v-btn variant="text" size="small" :loading="loading" @click="load">
+          <v-btn variant="text" :loading="loading" @click="load">
             إعادة المحاولة
           </v-btn>
         </template>
@@ -242,7 +240,11 @@ onMounted(() => {
           </div>
         </div>
         <div class="dal-summary__item">
-          <v-icon icon="mdi-cash-multiple" size="18" class="dal-summary__icon" />
+          <v-icon
+            icon="mdi-cash-multiple"
+            size="18"
+            class="dal-summary__icon"
+          />
           <div class="min-w-0">
             <div class="dal-summary__label">القيمة الإجمالية</div>
             <div class="dal-summary__value money">
@@ -303,7 +305,8 @@ onMounted(() => {
                 class="dal-summary__label"
               >
                 (<span class="money">{{ REVIEW_LIMIT }}</span> من
-                <span class="money">{{ data.needs_review.length }}</span>)
+                <span class="money">{{ data.needs_review.length }}</span
+                >)
               </span>
               <v-spacer />
               <v-btn
@@ -414,7 +417,6 @@ onMounted(() => {
                 v-for="g in data.top_governorates"
                 :key="g.name || ''"
                 class="ma-1"
-                size="small"
                 variant="tonal"
                 link
                 @click="openProperty(g.name)"
@@ -440,7 +442,6 @@ onMounted(() => {
                 v-for="d in data.top_districts"
                 :key="d.name || ''"
                 class="ma-1"
-                size="small"
                 variant="tonal"
                 link
                 @click="openProperty(d.name)"

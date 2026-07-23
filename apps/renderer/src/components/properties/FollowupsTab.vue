@@ -85,7 +85,11 @@ async function save() {
         : null,
     };
     if (editingId.value !== null) {
-      await followupsService.updateFollowup(props.propertyId, editingId.value, payload);
+      await followupsService.updateFollowup(
+        props.propertyId,
+        editingId.value,
+        payload,
+      );
     } else {
       await followupsService.createFollowup(props.propertyId, payload);
     }
@@ -122,7 +126,6 @@ onMounted(load);
       <v-spacer />
       <v-btn
         v-if="can('followups.create')"
-        size="small"
         color="primary"
         prepend-icon="mdi-plus"
         @click="openDialog()"
@@ -131,7 +134,12 @@ onMounted(load);
       </v-btn>
     </div>
 
-    <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-2" />
+    <v-progress-linear
+      v-if="loading"
+      indeterminate
+      color="primary"
+      class="mb-2"
+    />
     <v-empty-state
       v-else-if="!followups.length"
       icon="mdi-clipboard-text-clock-outline"
@@ -145,7 +153,7 @@ onMounted(load);
         dot-color="primary"
       >
         <template #icon>
-          <v-icon :icon="ICONS[item.type]" size="small" />
+          <v-icon :icon="ICONS[item.type]" />
         </template>
         <div class="d-flex">
           <div class="flex-grow-1">
@@ -180,8 +188,10 @@ onMounted(load);
     </v-timeline>
 
     <v-dialog v-model="dialog" width="520">
-      <v-card rounded="lg">
-        <v-card-title>{{ editingId ? "تعديل متابعة" : "إضافة متابعة" }}</v-card-title>
+      <v-card>
+        <v-card-title>{{
+          editingId ? "تعديل متابعة" : "إضافة متابعة"
+        }}</v-card-title>
         <v-card-text>
           <v-select v-model="form.type" :items="TYPES" label="النوع" />
           <v-textarea v-model="form.notes" label="الملاحظات" rows="3" />

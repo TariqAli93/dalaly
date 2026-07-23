@@ -27,7 +27,6 @@ async function onLogout() {
   <!-- شريط أوامر مكتبي منخفض (44px)، بلا ظلّ، حدّ سفلي رفيع فقط. -->
   <v-app-bar class="top-navbar" height="44" flat>
     <v-app-bar-nav-icon
-      size="small"
       aria-label="طيّ أو فتح قائمة التنقل"
       @click="emit('toggle-drawer')"
     />
@@ -51,7 +50,6 @@ async function onLogout() {
       variant="solo-filled"
       flat
       density="compact"
-      rounded="lg"
       hide-details
       clearable
       prepend-inner-icon="mdi-magnify"
@@ -63,7 +61,6 @@ async function onLogout() {
     <ThemeToggle />
     <v-btn
       icon="mdi-refresh"
-      size="small"
       variant="text"
       title="تحديث"
       aria-label="تحديث البيانات"
@@ -75,7 +72,6 @@ async function onLogout() {
         <v-btn
           v-bind="props"
           icon
-          size="small"
           variant="text"
           aria-label="قائمة المستخدم"
           title="حساب المستخدم"

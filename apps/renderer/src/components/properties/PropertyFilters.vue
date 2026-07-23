@@ -22,7 +22,9 @@ const {
   neighborhoodsByDistrict,
   loadLocations,
 } = useLocations();
-const districtItems = computed(() => districtsByGovernorate(model.value.governorate_id));
+const districtItems = computed(() =>
+  districtsByGovernorate(model.value.governorate_id),
+);
 const neighborhoodItems = computed(() =>
   neighborhoodsByDistrict(model.value.district_id),
 );
@@ -31,7 +33,7 @@ onMounted(() => void loadLocations());
 </script>
 
 <template>
-  <v-sheet class="filter-panel" rounded="lg" border>
+  <v-sheet class="filter-panel" border>
     <div class="list-toolbar">
       <v-text-field
         v-model="model.q"

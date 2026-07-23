@@ -26,15 +26,10 @@ function generatePin() {
       label="Username"
       :rules="[required]"
     />
-    <v-text-field
-      v-model="model.pin"
-      label="PIN"
-      :rules="[required, pinRule]"
-    >
+    <v-text-field v-model="model.pin" label="PIN" :rules="[required, pinRule]">
       <template #append-inner>
         <v-btn
           variant="text"
-          size="small"
           prepend-icon="mdi-dice-5-outline"
           @click="generatePin"
         >

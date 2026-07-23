@@ -26,7 +26,7 @@ const emit = defineEmits<{ close: [] }>();
 .dal-md {
   display: flex;
   align-items: flex-start;
-  gap: 0;
+  gap: 1rem;
 }
 .dal-md__main {
   flex: 1 1 auto;
