@@ -2,7 +2,6 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AppLayout from "../layouts/AppLayout.vue";
-import StatCard from "../components/shared/StatCard.vue";
 import StatusChip from "../components/shared/StatusChip.vue";
 import EmptyState from "../components/shared/EmptyState.vue";
 import { fetchDashboard } from "../services/dashboard.service";
@@ -62,12 +61,6 @@ const loadedSubtitle = computed(() => {
   });
   return `آخر تحديث ${time}`;
 });
-
-const hasQuickActions = computed(() =>
-  ["properties.create", "locations.manage", "backups.create", "users.create"].some(
-    (permission) => can(permission),
-  ),
-);
 
 const ACTION_LABELS: Record<string, string> = {
   created: "إنشاء",
@@ -134,6 +127,48 @@ onMounted(() => {
 
 <template>
   <AppLayout title="لوحة التحكم" :subtitle="loadedSubtitle">
+    <!-- إجراءات الصفحة في شريط الأوامر (نمط سطح المكتب). نفس الصلاحيات
+         والمعالجات السابقة تماماً؛ زر رئيسي واحد والبقية خفيفة. -->
+    <template #header-actions>
+      <v-btn
+        v-if="can('properties.create')"
+        color="primary"
+        size="small"
+        prepend-icon="mdi-plus"
+        @click="router.push('/properties/new')"
+      >
+        إضافة عرض
+      </v-btn>
+      <v-btn
+        v-if="can('locations.manage')"
+        size="small"
+        variant="text"
+        prepend-icon="mdi-map-marker-plus"
+        @click="router.push('/locations')"
+      >
+        محافظة
+      </v-btn>
+      <v-btn
+        v-if="can('backups.create')"
+        size="small"
+        variant="text"
+        prepend-icon="mdi-database-export"
+        :loading="backupRunning"
+        @click="runBackup"
+      >
+        نسخة احتياطية
+      </v-btn>
+      <v-btn
+        v-if="can('users.create')"
+        size="small"
+        variant="text"
+        prepend-icon="mdi-account-plus"
+        @click="router.push('/users')"
+      >
+        مستخدم
+      </v-btn>
+    </template>
+
     <!-- تعذّر التحميل ولا توجد بيانات سابقة: نشرح ونعرض إعادة المحاولة،
          بدل ترك الصفحة فارغة بعد اختفاء الإشعار. -->
     <v-card
@@ -190,66 +225,53 @@ onMounted(() => {
         </template>
       </v-alert>
 
-      <!-- بطاقات الحالات -->
-      <div class="kpi-grid mb-4">
-        <StatCard
+      <!-- شريط ملخّص مضغوط بفواصل رأسية بدل بطاقات KPI المنفصلة.
+           يضيف القيمة الإجمالية والمتابعات (من بيانات اللوحة الحالية). -->
+      <div class="dal-summary">
+        <div
           v-for="card in statusCards"
           :key="card.key"
-          :label="card.label"
-          :icon="card.icon"
-          :value="formatNumber(data.counts[card.key], 0)"
-        />
+          class="dal-summary__item"
+        >
+          <v-icon :icon="card.icon" size="18" class="dal-summary__icon" />
+          <div class="min-w-0">
+            <div class="dal-summary__label">{{ card.label }}</div>
+            <div class="dal-summary__value money">
+              {{ formatNumber(data.counts[card.key], 0) }}
+            </div>
+          </div>
+        </div>
+        <div class="dal-summary__item">
+          <v-icon icon="mdi-cash-multiple" size="18" class="dal-summary__icon" />
+          <div class="min-w-0">
+            <div class="dal-summary__label">القيمة الإجمالية</div>
+            <div class="dal-summary__value money">
+              {{ formatMoney(data.financial.total_value) }}
+            </div>
+          </div>
+        </div>
+        <div class="dal-summary__item">
+          <v-icon icon="mdi-bell-outline" size="18" class="dal-summary__icon" />
+          <div class="min-w-0">
+            <div class="dal-summary__label">متابعات</div>
+            <div class="dal-summary__value money">
+              {{ formatNumber(data.reminders.length, 0) }}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- إجراءات سريعة: تختفي البطاقة كاملة إن لم يملك المستخدم أي صلاحية،
-           بدل عرض بطاقة بعنوان وجسم فارغ. -->
-      <v-card v-if="hasQuickActions" rounded="lg" variant="flat" border class="mb-4">
-        <v-card-title tag="h2" class="text-h6">إجراءات سريعة</v-card-title>
-        <v-card-text class="d-flex flex-wrap ga-2">
-          <v-btn
-            v-if="can('properties.create')"
-            variant="tonal"
-            prepend-icon="mdi-home-plus"
-            @click="router.push('/properties/new')"
-          >
-            إضافة عرض
-          </v-btn>
-          <v-btn
-            v-if="can('locations.manage')"
-            variant="tonal"
-            prepend-icon="mdi-map-marker-plus"
-            @click="router.push('/locations')"
-          >
-            إضافة محافظة
-          </v-btn>
-          <v-btn
-            v-if="can('backups.create')"
-            variant="tonal"
-            prepend-icon="mdi-database-export"
-            :loading="backupRunning"
-            @click="runBackup"
-          >
-            إنشاء نسخة احتياطية
-          </v-btn>
-          <v-btn
-            v-if="can('users.create')"
-            variant="tonal"
-            prepend-icon="mdi-account-plus"
-            @click="router.push('/users')"
-          >
-            إضافة مستخدم
-          </v-btn>
-        </v-card-text>
-      </v-card>
-
-      <v-row>
+      <v-row dense>
         <!-- تنبيهات المتابعات -->
         <v-col cols="12" md="6">
-          <v-card rounded="lg" variant="flat" border>
-            <v-card-title tag="h2" class="text-h6">تنبيهات المتابعات</v-card-title>
-            <v-card-text>
+          <div class="dal-panel mb-1">
+            <div class="dal-panel__header">
+              <span class="dal-section-title">تنبيهات المتابعات</span>
+            </div>
+            <div class="dal-panel__body">
               <EmptyState
                 v-if="!data.reminders.length"
+                class="dal-empty"
                 icon="mdi-bell-off-outline"
                 title="لا توجد متابعات مجدولة"
                 text="افتح أي عرض وأضف متابعة لتظهر هنا في موعدها."
@@ -267,26 +289,36 @@ onMounted(() => {
                   </template>
                 </v-list-item>
               </v-list>
-            </v-card-text>
-          </v-card>
+            </div>
+          </div>
         </v-col>
 
         <!-- عروض تحتاج مراجعة -->
         <v-col cols="12" md="6">
-          <v-card rounded="lg" variant="flat" border>
-            <v-card-title tag="h2" class="text-h6 d-flex align-center ga-2">
-              عروض تحتاج مراجعة
+          <div class="dal-panel mb-1">
+            <div class="dal-panel__header">
+              <span class="dal-section-title">عروض تحتاج مراجعة</span>
               <span
                 v-if="data.needs_review.length > REVIEW_LIMIT"
-                class="text-body-2 text-medium-emphasis"
+                class="dal-summary__label"
               >
                 (<span class="money">{{ REVIEW_LIMIT }}</span> من
                 <span class="money">{{ data.needs_review.length }}</span>)
               </span>
-            </v-card-title>
-            <v-card-text>
+              <v-spacer />
+              <v-btn
+                v-if="data.needs_review.length > REVIEW_LIMIT"
+                size="x-small"
+                variant="text"
+                @click="router.push('/properties')"
+              >
+                عرض الكل
+              </v-btn>
+            </div>
+            <div class="dal-panel__body">
               <EmptyState
                 v-if="!data.needs_review.length"
+                class="dal-empty"
                 icon="mdi-check-all"
                 title="كل العروض محدّثة"
                 text="لا يوجد عرض مضى على آخر تحديثه أكثر من 30 يوماً."
@@ -301,23 +333,20 @@ onMounted(() => {
                   @click="openProperty(p.code)"
                 />
               </v-list>
-            </v-card-text>
-            <v-card-actions v-if="data.needs_review.length > REVIEW_LIMIT">
-              <v-spacer />
-              <v-btn variant="text" @click="router.push('/properties')">
-                عرض الكل
-              </v-btn>
-            </v-card-actions>
-          </v-card>
+            </div>
+          </div>
         </v-col>
 
         <!-- آخر العروض -->
         <v-col cols="12" md="6">
-          <v-card rounded="lg" variant="flat" border>
-            <v-card-title tag="h2" class="text-h6">آخر العروض</v-card-title>
-            <v-card-text>
+          <div class="dal-panel mb-1">
+            <div class="dal-panel__header">
+              <span class="dal-section-title">آخر العروض</span>
+            </div>
+            <div class="dal-panel__body">
               <EmptyState
                 v-if="!data.latest.length"
+                class="dal-empty"
                 icon="mdi-home-plus-outline"
                 title="لا يوجد عروض بعد"
                 text="أضف أول عرض ليظهر هنا."
@@ -339,17 +368,20 @@ onMounted(() => {
                   </template>
                 </v-list-item>
               </v-list>
-            </v-card-text>
-          </v-card>
+            </div>
+          </div>
         </v-col>
 
         <!-- النشاط الأخير -->
         <v-col cols="12" md="6">
-          <v-card rounded="lg" variant="flat" border>
-            <v-card-title tag="h2" class="text-h6">النشاط الأخير</v-card-title>
-            <v-card-text>
+          <div class="dal-panel mb-1">
+            <div class="dal-panel__header">
+              <span class="dal-section-title">النشاط الأخير</span>
+            </div>
+            <div class="dal-panel__body">
               <EmptyState
                 v-if="!data.recent_activity.length"
+                class="dal-empty"
                 icon="mdi-history"
                 title="لا يوجد نشاط"
                 text="كل إضافة أو تعديل أو تغيير سعر سيظهر هنا."
@@ -366,21 +398,23 @@ onMounted(() => {
                   </template>
                 </v-list-item>
               </v-list>
-            </v-card-text>
-          </v-card>
+            </div>
+          </div>
         </v-col>
 
         <!-- تحليلات المواقع -->
         <v-col cols="12" md="6">
-          <v-card rounded="lg" variant="flat" border>
-            <v-card-title tag="h2" class="text-h6">أكثر المحافظات نشاطاً</v-card-title>
-            <v-card-text>
-              <!-- الشرائح تبدو قابلة للضغط، فجعلناها كذلك فعلاً: تفتح
-                   قائمة العروض مفلترة على اسم المحافظة. -->
+          <div class="dal-panel mb-1">
+            <div class="dal-panel__header">
+              <span class="dal-section-title">أكثر المحافظات نشاطاً</span>
+            </div>
+            <div class="dal-panel__body pa-2">
+              <!-- الشرائح تفتح قائمة العروض مفلترة على اسم المحافظة. -->
               <v-chip
                 v-for="g in data.top_governorates"
                 :key="g.name || ''"
                 class="ma-1"
+                size="small"
                 variant="tonal"
                 link
                 @click="openProperty(g.name)"
@@ -389,20 +423,24 @@ onMounted(() => {
               </v-chip>
               <EmptyState
                 v-if="!data.top_governorates.length"
+                class="dal-empty"
                 icon="mdi-map-marker-off"
                 title="لا توجد بيانات"
               />
-            </v-card-text>
-          </v-card>
+            </div>
+          </div>
         </v-col>
         <v-col cols="12" md="6">
-          <v-card rounded="lg" variant="flat" border>
-            <v-card-title tag="h2" class="text-h6">أكثر المناطق نشاطاً</v-card-title>
-            <v-card-text>
+          <div class="dal-panel mb-1">
+            <div class="dal-panel__header">
+              <span class="dal-section-title">أكثر المناطق نشاطاً</span>
+            </div>
+            <div class="dal-panel__body pa-2">
               <v-chip
                 v-for="d in data.top_districts"
                 :key="d.name || ''"
                 class="ma-1"
+                size="small"
                 variant="tonal"
                 link
                 @click="openProperty(d.name)"
@@ -411,11 +449,12 @@ onMounted(() => {
               </v-chip>
               <EmptyState
                 v-if="!data.top_districts.length"
+                class="dal-empty"
                 icon="mdi-map-marker-off"
                 title="لا توجد بيانات"
               />
-            </v-card-text>
-          </v-card>
+            </div>
+          </div>
         </v-col>
       </v-row>
     </template>

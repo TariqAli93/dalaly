@@ -15,6 +15,7 @@ defineProps<{ status: string; size?: string }>();
     :color="statusColor(status)"
     :size="size ?? 'small'"
     variant="tonal"
+    label
   >
     {{ statusLabel(status) }}
   </v-chip>

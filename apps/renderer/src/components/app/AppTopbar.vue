@@ -4,6 +4,8 @@ import { useProperties } from "../../composables/useProperties";
 import { useAuth } from "../../composables/useAuth";
 import ThemeToggle from "./ThemeToggle.vue";
 
+// title/subtitle للعرض فقط (يمرّرهما AppLayout من عنوان الصفحة الحالي).
+defineProps<{ title?: string; subtitle?: string }>();
 const emit = defineEmits<{ refresh: []; "toggle-drawer": [] }>();
 
 const router = useRouter();
@@ -22,11 +24,26 @@ async function onLogout() {
 </script>
 
 <template>
-  <v-app-bar class="top-navbar" height="56" flat density="comfortable">
+  <!-- شريط أوامر مكتبي منخفض (44px)، بلا ظلّ، حدّ سفلي رفيع فقط. -->
+  <v-app-bar class="top-navbar" height="44" flat>
     <v-app-bar-nav-icon
+      size="small"
       aria-label="طيّ أو فتح قائمة التنقل"
       @click="emit('toggle-drawer')"
     />
+
+    <!-- عنوان القسم الحالي على الحافة الأمامية (يمين في RTL). -->
+    <div class="dal-command-title">
+      <span class="dal-command-title__text">{{ title ?? "دلالي" }}</span>
+      <span v-if="subtitle" class="dal-command-title__sub">{{ subtitle }}</span>
+    </div>
+
+    <v-spacer />
+
+    <!-- إجراءات الصفحة الأساسية (تُمرَّر من الصفحة عبر AppLayout). -->
+    <div class="dal-command-actions">
+      <slot name="actions" />
+    </div>
 
     <v-text-field
       v-model="filters.q"
@@ -38,16 +55,15 @@ async function onLogout() {
       hide-details
       clearable
       prepend-inner-icon="mdi-magnify"
-      placeholder="بحث سريع في العروض…"
+      placeholder="بحث سريع…"
       aria-label="بحث سريع"
       @keyup.enter="runSearch"
     />
 
-    <v-spacer />
-
     <ThemeToggle />
     <v-btn
       icon="mdi-refresh"
+      size="small"
       variant="text"
       title="تحديث"
       aria-label="تحديث البيانات"
@@ -59,6 +75,7 @@ async function onLogout() {
         <v-btn
           v-bind="props"
           icon
+          size="small"
           variant="text"
           aria-label="قائمة المستخدم"
           title="حساب المستخدم"

@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { ref, watch } from "vue";
 import { useDisplay } from "vuetify";
 import AppSidebar from "../components/app/AppSidebar.vue";
 import AppTopbar from "../components/app/AppTopbar.vue";
 import { useRefresh } from "../composables/useRefresh";
 
-const props = defineProps<{ title?: string; subtitle?: string }>();
+defineProps<{ title?: string; subtitle?: string }>();
 
-const route = useRoute();
 const { refresh } = useRefresh();
 const { mdAndUp } = useDisplay();
 
@@ -30,46 +28,27 @@ function toggleNav() {
     drawer.value = !drawer.value;
   }
 }
-
-// مسار تنقّل بسيط: الرئيسية ← الصفحة الحالية. لا يظهر على لوحة البداية.
-const breadcrumbs = computed(() => {
-  if (route.path === "/" || !props.title) return [];
-  return [
-    { title: "الرئيسية", to: "/", disabled: false },
-    { title: props.title, to: route.path, disabled: true },
-  ];
-});
 </script>
 
 <template>
   <AppSidebar v-model="drawer" v-model:rail="rail" />
-  <AppTopbar @refresh="refresh" @toggle-drawer="toggleNav" />
+  <AppTopbar
+    :title="title"
+    :subtitle="subtitle"
+    @refresh="refresh"
+    @toggle-drawer="toggleNav"
+  >
+    <!-- إجراءات الصفحة تُرفَع من المحتوى إلى شريط الأوامر (نمط سطح المكتب).
+         نفس فتحة header-actions السابقة، فلا تتغيّر عقود الصفحات. -->
+    <template v-if="$slots['header-actions']" #actions>
+      <slot name="header-actions" />
+    </template>
+  </AppTopbar>
   <v-main>
-    <!-- v-main يُصيّر عنصر <main> بنفسه، فلا نضيف عنصراً ثانياً. -->
-    <v-container class="py-6" fluid>
-      <section>
-        <v-breadcrumbs
-          v-if="breadcrumbs.length"
-          :items="breadcrumbs"
-          class="dal-breadcrumbs"
-          density="compact"
-        >
-          <template #divider>
-            <v-icon icon="mdi-chevron-left" size="16" />
-          </template>
-        </v-breadcrumbs>
-
-        <div v-if="title" class="page-header">
-          <div>
-            <h1 class="text-h5 font-weight-bold">{{ title }}</h1>
-            <div v-if="subtitle" class="text-body-2 text-medium-emphasis">
-              {{ subtitle }}
-            </div>
-          </div>
-          <slot name="header-actions" />
-        </div>
-        <slot />
-      </section>
-    </v-container>
+    <!-- مساحة عمل واحدة متّصلة: عنوان الصفحة في شريط الأوامر، والمحتوى هنا
+         بحشو مكتبي صغير وبلا بطاقة رئيسية تحيط الصفحة. -->
+    <div class="dal-content">
+      <slot />
+    </div>
   </v-main>
 </template>

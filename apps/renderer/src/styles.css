@@ -107,10 +107,13 @@ body {
   --dal-space-6: 24px;
 }
 
-/* عمق خفيف: كل بطاقة مسطّحة بإطار ترتفع قليلاً عن اللوحة الرمادية. */
+/* تطبيق سطح مكتب: البطاقات المسطّحة بإطار = ألواح بحدّ رفيع بلا ظلّ ولا
+   ارتفاع. الظلّ محجوز للعناصر الطافية (قوائم/حوارات) فقط. هذا يزيل إحساس
+   "بطاقات SaaS تطفو فوق خلفية". */
 .v-application .v-card.v-card--variant-flat.v-card--border {
-  box-shadow: var(--dal-shadow-rest);
+  box-shadow: none;
   border-color: var(--dal-stroke);
+  border-radius: var(--dal-radius-card);
 }
 
 /* أشرطة تمرير رفيعة بأسلوب Windows بدل الافتراضية العريضة. */
@@ -139,51 +142,64 @@ body {
 .dal-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 16px 6px;
-  min-height: 56px;
+  gap: 8px;
+  padding: 8px 12px;
+  min-height: 44px;
 }
 .dal-brand__title {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1.1;
 }
 .dal-brand__sub {
-  font-size: 11px;
-  color: rgba(var(--v-theme-on-surface), 0.6);
+  font-size: 10.5px;
+  color: rgba(var(--v-theme-on-surface), 0.55);
 }
 .dal-nav-subheader {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: rgba(var(--v-theme-on-surface), 0.55);
-  padding: 12px 20px 4px;
+  color: rgba(var(--v-theme-on-surface), 0.5);
+  padding: 8px 14px 2px;
 }
 .dal-nav-drawer .v-list {
-  padding-inline: 8px;
+  padding-inline: 6px;
+  padding-block: 2px;
 }
+/* عناصر تنقّل مكتبية مضغوطة: 34px، حافة 4px، بلا حبّة كبيرة. */
 .dal-nav-drawer .v-list-item {
-  border-radius: 6px;
-  margin-block: 2px;
-  min-height: 40px;
+  border-radius: 4px;
+  margin-block: 1px;
+  min-height: 34px;
+  padding-block: 0;
+}
+.dal-nav-drawer .v-list-item .v-list-item__prepend > .v-icon {
+  font-size: 18px;
+  margin-inline-end: 10px;
+}
+.dal-nav-drawer .v-list-item-title {
+  font-size: 13px;
 }
 .dal-nav-drawer .v-list-item--active {
   background: var(--dal-active);
   color: var(--dal-on-active);
-  font-weight: 700;
+  font-weight: 600;
 }
-/* شريط التحديد على الحافة الأمامية (يمين في RTL). */
+/* شريط تحديد رفيع على الحافة الأمامية (يمين في RTL). */
 .dal-nav-drawer .v-list-item--active::after {
   content: "";
   position: absolute;
-  inset-block: 8px;
-  inset-inline-start: 2px;
+  inset-block: 7px;
+  inset-inline-start: 0;
   width: 3px;
-  border-radius: 2px;
+  border-radius: 0 2px 2px 0;
   background: currentColor;
 }
 .dal-nav-footer {
   border-top: 1px solid var(--dal-stroke);
+}
+.dal-nav-footer .v-list-item {
+  min-height: 34px;
 }
 
 .app-shell {
@@ -208,40 +224,117 @@ body {
   width: min(640px, 100%);
 }
 
-/* شريط الأوامر العلوي: مضغوط، سطح أبيض، حدّ سفلي رفيع. */
+/* شريط الأوامر العلوي: منخفض (44px)، بلا خلفية قوية أو ظلّ، حدّ سفلي رفيع
+   فقط — يفصل الأدوات عن المحتوى دون أن يبدو Navbar موقع. */
 .top-navbar {
-  padding-inline: 8px;
+  padding-inline: 4px 8px;
   background: var(--dal-surface);
   border-bottom: 1px solid var(--dal-stroke);
 }
-
-.nav-actions {
+.dal-command-title {
   display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  padding-inline-start: 4px;
+}
+.dal-command-title__text {
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dal-command-title__sub {
+  font-size: 11.5px;
+  color: rgba(var(--v-theme-on-surface), 0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dal-command-actions {
+  display: flex;
+  align-items: center;
   gap: 6px;
-  margin-inline-start: 18px;
 }
-
 .global-search {
-  max-width: 460px;
+  max-width: 240px;
+  flex: 0 1 240px;
+  margin-inline: 6px;
+}
+
+/* منطقة المحتوى = مساحة عمل واحدة متّصلة: خلفية واحدة، حشو مكتبي صغير،
+   بلا بطاقة رئيسية تحيط الصفحة. */
+.dal-content {
+  padding: 12px 16px 16px;
+}
+
+/* لوح مكتبي: حدّ رفيع، زوايا صغيرة، بلا ظلّ، حشو مضغوط. بديل البطاقة. */
+.dal-panel {
+  border: 1px solid var(--dal-stroke);
+  border-radius: var(--dal-radius-card);
+  background: rgb(var(--v-theme-surface));
+}
+.dal-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--dal-stroke);
+}
+.dal-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(var(--v-theme-on-surface), 0.82);
+}
+.dal-panel__body {
+  padding: 4px 6px;
+}
+
+/* شريط ملخّص KPI: صفّ واحد، عناصر مفصولة بفواصل رأسية، بلا بطاقات. */
+.dal-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  border: 1px solid var(--dal-stroke);
+  border-radius: var(--dal-radius-card);
+  background: rgb(var(--v-theme-surface));
+  padding: 2px 0;
+  margin-bottom: 12px;
+}
+.dal-summary__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-inline-start: 1px solid var(--dal-stroke);
   flex: 1 1 auto;
-  margin-inline: 8px;
+  min-width: 120px;
+}
+.dal-summary__item:first-child {
+  border-inline-start: none;
+}
+.dal-summary__label {
+  font-size: 11.5px;
+  color: rgba(var(--v-theme-on-surface), 0.6);
+  line-height: 1.2;
+}
+.dal-summary__value {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.dal-summary__icon {
+  color: rgba(var(--v-theme-on-surface), 0.45);
 }
 
-.main-content {
-  padding: 24px;
-  background: rgb(var(--v-theme-background));
-  min-height: calc(100vh - 64px);
+/* حالة فارغة مكتبية: صغيرة، داخل منطقة البيانات، بلا فراغ عمودي كبير. */
+.dal-empty .v-empty-state__media {
+  margin-bottom: 4px;
 }
-
-/* مسار التنقّل (Breadcrumbs) فوق عنوان الصفحة. */
-.dal-breadcrumbs {
-  padding: 0 0 2px;
-  margin-bottom: 6px;
-  font-size: 0.8rem;
-  min-height: 24px;
-}
-.dal-breadcrumbs .v-breadcrumbs-item {
-  padding-inline: 0;
+.dal-empty .v-empty-state {
+  padding: 16px;
 }
 
 .page-band {

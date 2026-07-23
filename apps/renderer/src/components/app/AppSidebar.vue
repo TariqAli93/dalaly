@@ -55,11 +55,11 @@ async function onLogout() {
     v-model="drawer"
     class="dal-nav-drawer"
     :rail="isRail"
-    rail-width="64"
+    rail-width="56"
     location="right"
     :permanent="mdAndUp"
     :temporary="!mdAndUp"
-    width="264"
+    width="240"
   >
     <div class="dal-brand">
       <v-icon icon="mdi-home-city" color="primary" size="26" />
@@ -71,7 +71,7 @@ async function onLogout() {
 
     <v-divider />
 
-    <v-list nav density="comfortable">
+    <v-list nav density="compact">
       <template v-for="(group, gi) in groupedNav" :key="gi">
         <div v-if="group.title && !isRail" class="dal-nav-subheader">
           {{ group.title }}
@@ -101,7 +101,7 @@ async function onLogout() {
 
     <template #append>
       <div class="dal-nav-footer">
-        <v-list nav density="comfortable">
+        <v-list nav density="compact">
           <v-tooltip
             :text="currentUser?.username ?? 'مستخدم'"
             :disabled="!isRail"

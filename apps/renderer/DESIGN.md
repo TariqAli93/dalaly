@@ -102,8 +102,9 @@ Dalaly is a program a broker opens on a Windows machine and works inside all day
 The system stays disciplined and calm: one Arabic sans, a scarce teal accent for action and location, neutral everything else, and motion only where it reports a state change. It is Arabic-native, not mirrored — RTL is the ground truth, the navigation pane sits on the right, and the only Latin on screen is data (codes, phone numbers, prices) held in explicit bidi isolation.
 
 **Key Characteristics:**
-- Native Windows 11 shell: right-hand NavigationView, compact command bar, breadcrumbs
-- Layered neutrals (grey canvas → white surfaces → floating flyouts) with subtle Fluent depth
+- One connected workspace: 44px command bar + 240px navigation pane + borderless content — not a page of cards
+- Desktop density: compact rows, small titles, tight spacing; more data visible without scrolling
+- Depth from hairline borders and the neutral canvas, not from card shadows
 - One type family; hierarchy by weight and size, never a second font
 - Scarce teal identity — action, selection, and location only
 - Latin numerals everywhere, bidi-isolated, without exception
@@ -166,15 +167,49 @@ Responsive behavior is structural (rail collapse, grid reflow), never fluid typo
 
 ## Elevation & Depth
 
-**This system now uses subtle Fluent depth** (superseding the earlier flat-only rule). Three planes:
-- **Canvas** — no shadow; the desk.
-- **Surface** (cards, panels, inputs): a hairline `--dal-stroke` plus a very subtle rest shadow `--dal-shadow-rest` (`0 1px 2px rgba(0,0,0,.06)` light). Applied globally to `flat + border` cards, so existing panels inherit it with no per-file change.
-- **Flyout** (menus, dialogs, tooltips): a soft, larger shadow `--dal-shadow-pop`.
-
-Depth is quiet and functional — it separates planes and signals "this floats and will disappear." It is never a decorative drop shadow, and it never stacks (no card-in-card).
+**Depth comes from borders, not shadows.** (Native Desktop Correction, 2026-07: the brief screenshots read as "cards floating on a canvas" — a web tell — so the rest shadow on content surfaces was removed.) Two planes only carry shadow:
+- **Content** (panels, the data grid, inputs, the summary strip): flat, on the canvas, separated by a **1px `--dal-stroke` hairline** — no shadow, no elevation. Panels are bordered regions (`.dal-panel`), not cards.
+- **Flyout** (menus, dialogs, tooltips): the only shadow in the system — `--dal-shadow-pop` — because these genuinely float and will disappear.
 
 ### Named Rules
-**The Three-Plane Rule.** An element belongs to exactly one plane: canvas, surface, or flyout. Shadow intensity is a property of the plane, not of importance.
+**The Borders-Not-Shadows Rule.** Content is separated by hairline strokes and the neutral canvas, never by drop shadows. A shadow on a resting content surface is a web tell — remove it.
+
+**The No-Card-By-Default Rule.** If content can be shown without a card, it is. Reach for a `.dal-panel` (bordered region with a small section header) or a plain bordered container. A `v-card` is only for a genuinely independent, liftable object — and even then it wears no shadow. Never stack surfaces (no card-in-card).
+
+## Native Desktop
+
+Dalaly must read as a Windows 11 desktop program (Explorer / Outlook / VS Code / Access density), not a responsive admin site inside Electron. Adding Fluent colors or Windows corners does not make it native — **layout, density, and the absence of card chrome** do.
+
+### Desktop density (implemented)
+| Element | Metric |
+|---|---|
+| Command bar (topbar) | 44px, flat, hairline bottom stroke, page title + actions inline |
+| Sidebar | 240px, rail 56px; nav item ≈ 40px, 4px radius, thin leading indicator |
+| Data-grid rows | ≈ 36px, compact |
+| Fields (search/filters/forms) | Vuetify `density="compact"` globally (≈ 40px) |
+| Section headers | 13px bold; page title 15px in the command bar (no hero titles) |
+| Content padding | 12–16px (no large gutters) |
+
+### Signature desktop patterns
+- **Command bar** — `AppTopbar`: page title on the leading edge, one primary action + subtle/icon actions (forwarded from the page's `#header-actions`), spacer, compact search, tools, user menu.
+- **Summary strip** — `.dal-summary`: KPIs in one bordered row separated by vertical strokes (label + value + tiny icon). Replaces KPI cards. No card, no shadow, minimal color.
+- **Panel** — `.dal-panel`: hairline-bordered region with a 36px `.dal-panel__header` (`.dal-section-title`) and a compact body. The workspace unit instead of a card.
+- **Data grid** — the table fills the width inside a `.dal-grid` panel, compact rows, header, inline pagination, small icon actions per row — no wrapping card.
+
+### Native heuristics checklist (run per page)
+A page is **not** native until every answer is right:
+- Does it look like a website? → must be **no**.
+- Any unnecessary card / independent background per element? → **no**.
+- Title larger than a desktop app's? → **no**.
+- Spacing larger than a desktop app's? → **no**.
+- Enough data visible without scrolling? → **yes**.
+- Actions near the data they affect / in the command bar? → **yes**.
+- More than one primary action per area? → **no**.
+- Toolbar reads as a command bar (not a navbar)? → **yes**.
+- Grid occupies the workspace? → **yes**.
+- Fast with mouse + keyboard? → **yes**.
+- Works at 1366×768 and at 100% / 125% Windows scaling? → **yes**.
+- RTL is real (icon side, arrows, order), not just flipped? → **yes**.
 
 ## Shapes
 
@@ -193,10 +228,9 @@ Shared presentational components live in `components/shared/` — no business lo
 - **AppLayout** — breadcrumbs + page header + content; owns drawer/rail state.
 
 ### Shared primitives (`components/shared/`)
-- **StatusChip** `:status` → tonal chip via `statusColor`/`statusLabel`. One source for record status everywhere (table, dashboard, details).
-- **EmptyState** `:icon :title :text` + `#actions` slot — teaches the next step, never just "nothing here."
-- **StatCard** `:label :value :icon` — compact KPI tile; value passed pre-formatted, `.money`-isolated.
-- *(Growing per page: FormSection, DetailItem, PageToolbar land with their page redesigns.)*
+- **StatusChip** `:status` → tonal, squared (`label`) chip via `statusColor`/`statusLabel`. One source for record status everywhere.
+- **EmptyState** `:icon :title :text` + `#actions` slot — compact (`.dal-empty`), inside the data area, teaches the next step.
+- *(Removed: StatCard — KPI cards replaced by the `.dal-summary` strip. Growing per page: FormSection, DetailItem, PageToolbar land with their page redesigns.)*
 
 ### Buttons
 4px, 40px height. **Primary**: solid teal, one per view. **Tonal**: the workhorse. **Text**: icon/low-weight actions. Destructive: `base-color="error"`, never a solid red primary. Real `:focus-visible` ring (global, teal) — never suppressed.
@@ -213,8 +247,10 @@ Tonal, 4px, status color from `statusColor`. Reserved/negotiating = ochre, sold/
 ## Do's and Don'ts
 
 ### Do:
-- **Do** build new surfaces as `rounded="lg" variant="flat" border` — they inherit the layered look and subtle depth automatically.
-- **Do** use the shared components (`StatusChip`, `EmptyState`, `StatCard`) instead of re-inlining the pattern.
+- **Do** build content as a `.dal-panel` (bordered region + small section header), not a `v-card`. Reserve cards for genuinely independent objects.
+- **Do** put page actions in the command bar (`#header-actions`), one primary + subtle/icon rest.
+- **Do** keep desktop density — compact fields, ~36px rows, small titles, tight spacing.
+- **Do** use the shared components (`StatusChip`, `EmptyState`) instead of re-inlining the pattern.
 - **Do** route every number through `formatMoney`/`formatNumber`/`pluralizeDays` and wrap Latin data in `.money`.
 - **Do** reuse a named grid region from `styles.css`, or add the new one there.
 - **Do** give every control a real `:focus-visible` state — full keyboard operation is required.
@@ -222,8 +258,10 @@ Tonal, 4px, status color from `statusColor`. Reserved/negotiating = ochre, sold/
 - **Do** test components visually in RTL (icon side, arrow direction, dialog button order, nav position).
 
 ### Don't:
+- **Don't** wrap a page or section in a big card, or give each element its own background. One workspace, borders between regions.
+- **Don't** add a shadow to a resting content surface; shadow is for flyouts (menus/dialogs) only.
+- **Don't** use hero page titles or web-sized spacing — this is a desktop program.
 - **Don't** stack surfaces — no card inside a card. Use the canvas, a divider, or a tile.
-- **Don't** add a heavy or decorative shadow; depth is `--dal-shadow-rest` / `--dal-shadow-pop` only.
 - **Don't** introduce a second typeface or a display font in labels/buttons/data.
 - **Don't** use ochre/`warning` for body text or small labels on light surfaces (3.4:1 — fails AA).
 - **Don't** use `clamp()` for type — fixed-distance desktop.

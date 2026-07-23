@@ -21,15 +21,16 @@ const vuetify = createVuetify({
     messages: { ar },
     rtl: { ar: true }
   },
-  // الحقول المحدّدة بإطار رفيع تتحدث نفس لغة البطاقات (flat + border).
-  // بدون هذا ترجع Vuetify إلى نمط filled المختلف عن كل الأسطح حوله.
+  // كثافة سطح المكتب: حقول محدّدة بإطار ومضغوطة، وأزرار أقصر — لغة برامج
+  // Windows لا لغة الويب. compact يقارب ارتفاع 40px للحقول.
   defaults: {
-    VTextField: { variant: "outlined" },
-    VSelect: { variant: "outlined" },
-    VAutocomplete: { variant: "outlined" },
-    VCombobox: { variant: "outlined" },
-    VTextarea: { variant: "outlined" },
-    VFileInput: { variant: "outlined" }
+    VTextField: { variant: "outlined", density: "compact" },
+    VSelect: { variant: "outlined", density: "compact" },
+    VAutocomplete: { variant: "outlined", density: "compact" },
+    VCombobox: { variant: "outlined", density: "compact" },
+    VTextarea: { variant: "outlined", density: "compact" },
+    VFileInput: { variant: "outlined", density: "compact" },
+    VBtn: { density: "comfortable" }
   },
   theme: {
     defaultTheme: localStorage.getItem("dalaly.theme") ?? "dalalyLight",

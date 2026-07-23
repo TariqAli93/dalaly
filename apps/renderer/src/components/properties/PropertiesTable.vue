@@ -34,10 +34,12 @@ const headers = [
 </script>
 
 <template>
-  <v-card rounded="lg" variant="flat" border>
+  <!-- شبكة بيانات مكتبية: لوح بحدّ رفيع يملأ العرض، لا بطاقة. -->
+  <div class="dal-panel dal-grid">
     <v-skeleton-loader v-if="loading" type="table" />
     <EmptyState
       v-else-if="!properties.length"
+      class="dal-empty"
       icon="mdi-home-search-outline"
       title="لا توجد عقارات مطابقة للبحث"
       text="غيّر كلمات البحث أو الفلاتر، أو أضف عرضاً جديداً."
@@ -83,5 +85,20 @@ const headers = [
         />
       </template>
     </v-data-table>
-  </v-card>
+  </div>
 </template>
+
+<style scoped>
+/* الجدول يملأ اللوح ويحمل زواياه؛ رأس ثابت الخلفية. */
+.dal-grid :deep(.v-table) {
+  border-radius: var(--dal-radius-card);
+}
+.dal-grid :deep(.v-data-table__th) {
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.dal-grid :deep(.v-data-table__td) {
+  font-size: 13px;
+}
+</style>
