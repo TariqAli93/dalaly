@@ -119,6 +119,24 @@ function daysSince(value: string) {
   return Math.max(0, Math.floor((Date.now() - time) / 86400000));
 }
 
+// تمييز المتابعة المتأخرة (موعدها في الماضي) — عرض فقط، لا منطق أعمال.
+function isOverdue(value: string) {
+  const t = new Date(value).getTime();
+  return !Number.isNaN(t) && t < Date.now();
+}
+// ترتيب المتابعات للعرض: الأقرب/الأكثر تأخّراً أولاً (نفس البيانات، ترتيب عرض).
+const sortedReminders = computed(() => {
+  const list = data.value?.reminders ?? [];
+  return [...list].sort((a, b) => {
+    const ta = new Date(a.scheduled_at).getTime();
+    const tb = new Date(b.scheduled_at).getTime();
+    return (Number.isNaN(ta) ? Infinity : ta) - (Number.isNaN(tb) ? Infinity : tb);
+  });
+});
+const overdueCount = computed(
+  () => (data.value?.reminders ?? []).filter((r) => isOverdue(r.scheduled_at)).length,
+);
+
 onMounted(() => {
   setRefreshHandler(load);
   void load();
@@ -223,70 +241,53 @@ onMounted(() => {
         </template>
       </v-alert>
 
-      <!-- شريط ملخّص مضغوط بفواصل رأسية بدل بطاقات KPI المنفصلة.
-           يضيف القيمة الإجمالية والمتابعات (من بيانات اللوحة الحالية). -->
-      <div class="dal-summary">
-        <div
-          v-for="card in statusCards"
-          :key="card.key"
-          class="dal-summary__item"
-        >
-          <v-icon :icon="card.icon" size="18" class="dal-summary__icon" />
-          <div class="min-w-0">
-            <div class="dal-summary__label">{{ card.label }}</div>
-            <div class="dal-summary__value money">
-              {{ formatNumber(data.counts[card.key], 0) }}
-            </div>
-          </div>
-        </div>
-        <div class="dal-summary__item">
-          <v-icon
-            icon="mdi-cash-multiple"
-            size="18"
-            class="dal-summary__icon"
-          />
-          <div class="min-w-0">
-            <div class="dal-summary__label">القيمة الإجمالية</div>
-            <div class="dal-summary__value money">
-              {{ formatMoney(data.financial.total_value) }}
-            </div>
-          </div>
-        </div>
-        <div class="dal-summary__item">
-          <v-icon icon="mdi-bell-outline" size="18" class="dal-summary__icon" />
-          <div class="min-w-0">
-            <div class="dal-summary__label">متابعات</div>
-            <div class="dal-summary__value money">
-              {{ formatNumber(data.reminders.length, 0) }}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <v-row dense>
+      <!-- ١) عمل اليوم أولاً: التنبيهات والمراجعات قبل الأرقام العامة.
+           المتابعات المتأخرة مُبرَزة (لون تحذيري + ترتيب أوّلي). -->
+      <v-row dense class="mb-1">
         <!-- تنبيهات المتابعات -->
         <v-col cols="12" md="6">
-          <div class="dal-panel mb-1">
+          <div class="dal-panel">
             <div class="dal-panel__header">
               <span class="dal-section-title">تنبيهات المتابعات</span>
+              <v-chip
+                v-if="overdueCount"
+                size="x-small"
+                color="error"
+                variant="tonal"
+                label
+                class="ms-2"
+              >
+                <span class="money">{{ overdueCount }}</span> متأخرة
+              </v-chip>
             </div>
             <div class="dal-panel__body">
               <EmptyState
-                v-if="!data.reminders.length"
+                v-if="!sortedReminders.length"
                 class="dal-empty"
-                icon="mdi-bell-off-outline"
-                title="لا توجد متابعات مجدولة"
+                icon="mdi-bell-check-outline"
+                title="لا متابعات مستحقة"
                 text="افتح أي عرض وأضف متابعة لتظهر هنا في موعدها."
               />
               <v-list v-else density="compact">
                 <v-list-item
-                  v-for="r in data.reminders"
+                  v-for="r in sortedReminders"
                   :key="r.id"
                   :title="`${r.property_code} — ${r.notes || 'متابعة'}`"
-                  prepend-icon="mdi-bell-ring-outline"
+                  :prepend-icon="
+                    isOverdue(r.scheduled_at)
+                      ? 'mdi-bell-alert-outline'
+                      : 'mdi-bell-ring-outline'
+                  "
+                  :base-color="isOverdue(r.scheduled_at) ? 'error' : undefined"
                   @click="openProperty(r.property_code)"
                 >
                   <template #subtitle>
+                    <span
+                      v-if="isOverdue(r.scheduled_at)"
+                      class="text-error font-weight-bold"
+                    >
+                      متأخر ·
+                    </span>
                     <span class="money">{{ when(r.scheduled_at) }}</span>
                   </template>
                 </v-list-item>
@@ -297,7 +298,7 @@ onMounted(() => {
 
         <!-- عروض تحتاج مراجعة -->
         <v-col cols="12" md="6">
-          <div class="dal-panel mb-1">
+          <div class="dal-panel">
             <div class="dal-panel__header">
               <span class="dal-section-title">عروض تحتاج مراجعة</span>
               <span
@@ -339,10 +340,13 @@ onMounted(() => {
             </div>
           </div>
         </v-col>
+      </v-row>
 
+      <!-- ٢) وعي تشغيلي: آخر العروض والنشاط -->
+      <v-row dense class="mb-1">
         <!-- آخر العروض -->
         <v-col cols="12" md="6">
-          <div class="dal-panel mb-1">
+          <div class="dal-panel">
             <div class="dal-panel__header">
               <span class="dal-section-title">آخر العروض</span>
             </div>
@@ -377,7 +381,7 @@ onMounted(() => {
 
         <!-- النشاط الأخير -->
         <v-col cols="12" md="6">
-          <div class="dal-panel mb-1">
+          <div class="dal-panel">
             <div class="dal-panel__header">
               <span class="dal-section-title">النشاط الأخير</span>
             </div>
@@ -404,10 +408,42 @@ onMounted(() => {
             </div>
           </div>
         </v-col>
+      </v-row>
 
-        <!-- تحليلات المواقع -->
+      <!-- ٣) ملخّص الأرقام (بعد المهام) -->
+      <div class="dal-summary">
+        <div
+          v-for="card in statusCards"
+          :key="card.key"
+          class="dal-summary__item"
+        >
+          <v-icon :icon="card.icon" size="18" class="dal-summary__icon" />
+          <div class="min-w-0">
+            <div class="dal-summary__label">{{ card.label }}</div>
+            <div class="dal-summary__value money">
+              {{ formatNumber(data.counts[card.key], 0) }}
+            </div>
+          </div>
+        </div>
+        <div class="dal-summary__item">
+          <v-icon
+            icon="mdi-cash-multiple"
+            size="18"
+            class="dal-summary__icon"
+          />
+          <div class="min-w-0">
+            <div class="dal-summary__label">القيمة الإجمالية</div>
+            <div class="dal-summary__value money">
+              {{ formatMoney(data.financial.total_value) }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ٤) أعلى المواقع (سياق، في الأسفل) -->
+      <v-row dense>
         <v-col cols="12" md="6">
-          <div class="dal-panel mb-1">
+          <div class="dal-panel">
             <div class="dal-panel__header">
               <span class="dal-section-title">أكثر المحافظات نشاطاً</span>
             </div>
@@ -417,6 +453,7 @@ onMounted(() => {
                 v-for="g in data.top_governorates"
                 :key="g.name || ''"
                 class="ma-1"
+                size="small"
                 variant="tonal"
                 link
                 @click="openProperty(g.name)"
@@ -433,7 +470,7 @@ onMounted(() => {
           </div>
         </v-col>
         <v-col cols="12" md="6">
-          <div class="dal-panel mb-1">
+          <div class="dal-panel">
             <div class="dal-panel__header">
               <span class="dal-section-title">أكثر المناطق نشاطاً</span>
             </div>
@@ -442,6 +479,7 @@ onMounted(() => {
                 v-for="d in data.top_districts"
                 :key="d.name || ''"
                 class="ma-1"
+                size="small"
                 variant="tonal"
                 link
                 @click="openProperty(d.name)"
