@@ -154,11 +154,15 @@ const sortedReminders = computed(() => {
   return [...list].sort((a, b) => {
     const ta = new Date(a.scheduled_at).getTime();
     const tb = new Date(b.scheduled_at).getTime();
-    return (Number.isNaN(ta) ? Infinity : ta) - (Number.isNaN(tb) ? Infinity : tb);
+    return (
+      (Number.isNaN(ta) ? Infinity : ta) - (Number.isNaN(tb) ? Infinity : tb)
+    );
   });
 });
 const overdueCount = computed(
-  () => (data.value?.reminders ?? []).filter((r) => isOverdue(r.scheduled_at)).length,
+  () =>
+    (data.value?.reminders ?? []).filter((r) => isOverdue(r.scheduled_at))
+      .length,
 );
 
 onMounted(() => {
@@ -266,10 +270,17 @@ onMounted(() => {
       </v-alert>
 
       <!-- ١) مساحة الانتباه: ما يتطلب عملاً الآن (متابعات، المتأخر أولاً). -->
-      <div class="dal-panel dal-attention mb-2" :class="{ 'dal-attention--urgent': overdueCount }">
+      <div
+        class="dal-panel dal-attention mb-2"
+        :class="{ 'dal-attention--urgent': overdueCount }"
+      >
         <div class="dal-panel__header">
           <v-icon
-            :icon="overdueCount ? 'mdi-alert-decagram-outline' : 'mdi-bell-check-outline'"
+            :icon="
+              overdueCount
+                ? 'mdi-alert-decagram-outline'
+                : 'mdi-bell-check-outline'
+            "
             size="18"
             :color="overdueCount ? 'error' : undefined"
           />
@@ -317,7 +328,11 @@ onMounted(() => {
                 <span class="money">{{ when(r.scheduled_at) }}</span>
               </template>
               <template #append>
-                <v-icon icon="mdi-chevron-left" size="18" class="text-medium-emphasis" />
+                <v-icon
+                  icon="mdi-chevron-left"
+                  size="18"
+                  class="text-medium-emphasis"
+                />
               </template>
             </v-list-item>
           </v-list>
@@ -325,7 +340,7 @@ onMounted(() => {
       </div>
 
       <!-- ٢) وصول سريع للعروض: بحث + روابط سريعة (بلا محرك جديد). -->
-      <div class="dal-discover mb-2">
+      <div class="dal-discover bg-surface pa-3 mb-2">
         <v-text-field
           v-model="discoverQuery"
           class="dal-discover__search"
@@ -337,13 +352,25 @@ onMounted(() => {
           aria-label="بحث سريع في العروض"
           @keyup.enter="searchProperties"
         />
-        <v-btn variant="tonal" prepend-icon="mdi-check-circle-outline" @click="goAvailable">
+        <v-btn
+          variant="tonal"
+          prepend-icon="mdi-check-circle-outline"
+          @click="goAvailable"
+        >
           العروض المتاحة
         </v-btn>
-        <v-btn variant="text" prepend-icon="mdi-heart-outline" @click="router.push('/favorites')">
+        <v-btn
+          variant="text"
+          prepend-icon="mdi-heart-outline"
+          @click="router.push('/favorites')"
+        >
           المفضلة
         </v-btn>
-        <v-btn variant="text" prepend-icon="mdi-format-list-bulleted" @click="router.push('/properties')">
+        <v-btn
+          variant="text"
+          prepend-icon="mdi-format-list-bulleted"
+          @click="router.push('/properties')"
+        >
           كل العروض
         </v-btn>
       </div>
@@ -364,7 +391,11 @@ onMounted(() => {
           </div>
         </div>
         <div class="dal-summary__item">
-          <v-icon icon="mdi-cash-multiple" size="18" class="dal-summary__icon" />
+          <v-icon
+            icon="mdi-cash-multiple"
+            size="18"
+            class="dal-summary__icon"
+          />
           <div class="min-w-0">
             <div class="dal-summary__label">القيمة الإجمالية</div>
             <div class="dal-summary__value money">
@@ -382,7 +413,11 @@ onMounted(() => {
             <div class="dal-panel__header">
               <span class="dal-section-title">آخر العروض</span>
               <v-spacer />
-              <v-btn size="x-small" variant="text" @click="router.push('/properties')">
+              <v-btn
+                size="x-small"
+                variant="text"
+                @click="router.push('/properties')"
+              >
                 عرض كل العروض
               </v-btn>
             </div>
@@ -404,7 +439,8 @@ onMounted(() => {
                   <template #subtitle>
                     {{ p.governorate || "" }} {{ p.district || "" }} ·
                     <span class="money">{{ formatMoney(p.total_price) }}</span>
-                    دينار · أضيف {{ pluralizeDays(daysSince(String(p.created_at))) }}
+                    دينار · أضيف
+                    {{ pluralizeDays(daysSince(String(p.created_at))) }}
                   </template>
                   <template #append>
                     <StatusChip :status="p.status" size="x-small" />
