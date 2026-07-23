@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
+import { useRoute } from "vue-router";
 import { useDisplay } from "vuetify";
 import AppSidebar from "../components/app/AppSidebar.vue";
 import AppTopbar from "../components/app/AppTopbar.vue";
 import { useRefresh } from "../composables/useRefresh";
 
-defineProps<{ title?: string; subtitle?: string }>();
+const props = defineProps<{ title?: string; subtitle?: string }>();
 
+const route = useRoute();
 const { refresh } = useRefresh();
 const { mdAndUp } = useDisplay();
 
@@ -28,6 +30,15 @@ function toggleNav() {
     drawer.value = !drawer.value;
   }
 }
+
+// مسار تنقّل بسيط: الرئيسية ← الصفحة الحالية. لا يظهر على لوحة البداية.
+const breadcrumbs = computed(() => {
+  if (route.path === "/" || !props.title) return [];
+  return [
+    { title: "الرئيسية", to: "/", disabled: false },
+    { title: props.title, to: route.path, disabled: true },
+  ];
+});
 </script>
 
 <template>
@@ -37,6 +48,17 @@ function toggleNav() {
     <!-- v-main يُصيّر عنصر <main> بنفسه، فلا نضيف عنصراً ثانياً. -->
     <v-container class="py-6" fluid>
       <section>
+        <v-breadcrumbs
+          v-if="breadcrumbs.length"
+          :items="breadcrumbs"
+          class="dal-breadcrumbs"
+          density="compact"
+        >
+          <template #divider>
+            <v-icon icon="mdi-chevron-left" size="16" />
+          </template>
+        </v-breadcrumbs>
+
         <div v-if="title" class="page-header">
           <div>
             <h1 class="text-h5 font-weight-bold">{{ title }}</h1>
