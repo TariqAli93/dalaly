@@ -16,6 +16,7 @@ import { useRefresh } from "../composables/useRefresh";
 import { useFavorites } from "../composables/useFavorites";
 import { usePermissions } from "../composables/usePermissions";
 import { exportPropertiesToXlsx } from "../utils/excel";
+import { compareByAreaM2 } from "../utils/area";
 import type { PropertyRecord } from "../types";
 
 const router = useRouter();
@@ -35,15 +36,23 @@ const importOpen = ref(false);
 // Details pane (Master–Detail): يعرض ملخّص الصف المحدد من بيانات القائمة نفسها.
 const paneOpen = ref(false);
 
-// فرز على البيانات المُحمّلة فقط (client-side) — لا يغيّر أي طلب أو عقد بحث.
-type SortKey = "newest" | "updated" | "price_asc" | "price_desc" | "area";
+// فرز على البيانات المُحمّلة فقط (client-side) — كل النتائج مُحمّلة والصفحات
+// تُقسَّم داخل الجدول، فلا يسبب الفرز المحلي ترتيباً خاطئاً عبر الصفحات.
+type SortKey =
+  | "newest"
+  | "updated"
+  | "price_asc"
+  | "price_desc"
+  | "area_desc"
+  | "area_asc";
 const sortBy = ref<SortKey>("newest");
 const SORT_OPTIONS = [
   { value: "newest", title: "الأحدث" },
   { value: "updated", title: "آخر تحديث" },
   { value: "price_asc", title: "السعر: الأقل" },
   { value: "price_desc", title: "السعر: الأعلى" },
-  { value: "area", title: "المساحة" },
+  { value: "area_desc", title: "المساحة: الأكبر أولاً" },
+  { value: "area_asc", title: "المساحة: الأصغر أولاً" },
 ];
 const num = (v: unknown) =>
   Number(typeof v === "string" ? v.replace(/,/g, "") : v) || 0;
@@ -60,8 +69,12 @@ function sortList(list: PropertyRecord[]) {
       return arr.sort((a, b) => num(a.total_price) - num(b.total_price));
     case "price_desc":
       return arr.sort((a, b) => num(b.total_price) - num(a.total_price));
-    case "area":
-      return arr.sort((a, b) => num(b.area_value) - num(a.area_value));
+    // المساحة: تُقارَن بالمساحة الحقيقية (م²) عبر المصدر الموحّد، مع NULLS
+    // LAST وفرز ثانوي ثابت — لا بالقيمة الرقمية الخام التي تتجاهل الوحدة.
+    case "area_desc":
+      return arr.sort((a, b) => compareByAreaM2(a, b, "desc"));
+    case "area_asc":
+      return arr.sort((a, b) => compareByAreaM2(a, b, "asc"));
     case "newest":
     default:
       return arr.sort((a, b) => timeOf(b.created_at) - timeOf(a.created_at));
