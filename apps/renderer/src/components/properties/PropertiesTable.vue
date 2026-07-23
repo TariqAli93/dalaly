@@ -6,7 +6,11 @@ import PropertyActions from "./PropertyActions.vue";
 import StatusChip from "../shared/StatusChip.vue";
 import EmptyState from "../shared/EmptyState.vue";
 
-defineProps<{ properties: PropertyRecord[]; loading?: boolean }>();
+const props = defineProps<{
+  properties: PropertyRecord[];
+  loading?: boolean;
+  selectedId?: number | null;
+}>();
 
 const emit = defineEmits<{
   view: [PropertyRecord];
@@ -15,7 +19,20 @@ const emit = defineEmits<{
   restore: [PropertyRecord];
   delete: [PropertyRecord];
   create: [];
+  select: [PropertyRecord];
 }>();
+
+// نقر الصف يحدّده لعرضه في Details pane — سلوك إضافي لا يغيّر أي حدث حالي.
+// نتجاهل النقر على أزرار الإجراءات كي تبقى وظائفها كما هي.
+function onRowClick(event: MouseEvent, ctx: { item: PropertyRecord }) {
+  const target = event.target as HTMLElement | null;
+  if (target?.closest("button, a")) return;
+  emit("select", ctx.item);
+}
+
+function rowProps(ctx: { item: PropertyRecord }) {
+  return ctx.item.id === props.selectedId ? { class: "dal-row--selected" } : {};
+}
 
 const headers = [
   { title: "الكود", key: "code", sortable: true },
@@ -57,6 +74,8 @@ const headers = [
       item-value="id"
       density="compact"
       hover
+      :row-props="rowProps"
+      @click:row="onRowClick"
     >
       <template #item.neighborhood="{ item }">
         {{ neighborhoodOf(item) || "-" }}
@@ -100,5 +119,15 @@ const headers = [
 }
 .dal-grid :deep(.v-data-table__td) {
   font-size: 13px;
+}
+.dal-grid :deep(tbody tr) {
+  cursor: pointer;
+}
+/* الصف المحدد: خلفية خفيفة + شريط على الحافة الأمامية (يمين في RTL). */
+.dal-grid :deep(tr.dal-row--selected > td) {
+  background: var(--dal-active);
+}
+.dal-grid :deep(tr.dal-row--selected > td:first-child) {
+  border-inline-start: 3px solid rgb(var(--v-theme-primary));
 }
 </style>

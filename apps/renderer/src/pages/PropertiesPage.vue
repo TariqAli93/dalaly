@@ -6,6 +6,8 @@ import PropertyFilters from "../components/properties/PropertyFilters.vue";
 import PropertiesTable from "../components/properties/PropertiesTable.vue";
 import PropertyDetailsDialog from "../components/properties/PropertyDetailsDialog.vue";
 import ExcelImportDialog from "../components/properties/ExcelImportDialog.vue";
+import MasterDetailLayout from "../components/shared/MasterDetailLayout.vue";
+import PropertySummary from "../components/shared/PropertySummary.vue";
 import { useProperties } from "../composables/useProperties";
 import { useStats } from "../composables/useStats";
 import { useConfirm } from "../composables/useConfirm";
@@ -30,6 +32,8 @@ const detailsDialog = ref(false);
 const selectedProperty = ref<PropertyRecord | null>(null);
 const favOnly = ref(false);
 const importOpen = ref(false);
+// Details pane (Master–Detail): يعرض ملخّص الصف المحدد من بيانات القائمة نفسها.
+const paneOpen = ref(false);
 
 const displayed = computed(() =>
   favOnly.value ? properties.value.filter((p) => isFavorite(p.id)) : properties.value,
@@ -100,6 +104,28 @@ function exportExcel() {
   notifySuccess("تم تصدير العروض إلى Excel.");
 }
 
+// تحديد صف يفتح الـ Details pane (لا يفتح الحوار). الحوار الكامل يبقى عبر
+// نفس حدث العرض الحالي (زر العين / زر "فتح التفاصيل" داخل الـ pane).
+function selectRow(property: PropertyRecord) {
+  selectedProperty.value = property;
+  paneOpen.value = true;
+}
+function paneOpenDetails() {
+  if (selectedProperty.value) viewDetails(selectedProperty.value);
+}
+function paneEdit() {
+  if (selectedProperty.value) editProperty(selectedProperty.value);
+}
+function paneArchive() {
+  if (selectedProperty.value) askArchive(selectedProperty.value);
+}
+function paneRestore() {
+  if (selectedProperty.value) askRestore(selectedProperty.value);
+}
+function paneDelete() {
+  if (selectedProperty.value) askDelete(selectedProperty.value);
+}
+
 onMounted(() => {
   setRefreshHandler(loadProperties);
   void loadProperties();
@@ -154,16 +180,37 @@ onMounted(() => {
       />
     </div>
 
-    <PropertiesTable
-      :properties="displayed"
-      :loading="loading"
-      @view="viewDetails"
-      @edit="editProperty"
-      @archive="askArchive"
-      @restore="askRestore"
-      @delete="askDelete"
-      @create="router.push('/properties/new')"
-    />
+    <MasterDetailLayout
+      :open="paneOpen && !!selectedProperty"
+      @close="paneOpen = false"
+    >
+      <template #main>
+        <PropertiesTable
+          :properties="displayed"
+          :loading="loading"
+          :selected-id="selectedProperty?.id ?? null"
+          @view="viewDetails"
+          @edit="editProperty"
+          @archive="askArchive"
+          @restore="askRestore"
+          @delete="askDelete"
+          @create="router.push('/properties/new')"
+          @select="selectRow"
+        />
+      </template>
+      <template #detail>
+        <PropertySummary
+          v-if="selectedProperty"
+          :property="selectedProperty"
+          @open="paneOpenDetails"
+          @edit="paneEdit"
+          @archive="paneArchive"
+          @restore="paneRestore"
+          @delete="paneDelete"
+          @close="paneOpen = false"
+        />
+      </template>
+    </MasterDetailLayout>
 
     <PropertyDetailsDialog
       v-model="detailsDialog"
