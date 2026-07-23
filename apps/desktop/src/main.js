@@ -52,7 +52,25 @@ const internalToken = crypto.randomUUID();
 
 let serverProcess = null;
 let mainWindow = null;
+let splashWindow = null;
+let mainReadyToShow = null;
 let scheduleTimer = null;
+
+// مراحل الإقلاع مرتبطة بخطوات التشغيل الفعلية. مصدر واحد للرسائل والنسب.
+const SPLASH_STAGES = {
+  start: { progress: 5, message: "جارِ بدء دلالي…" },
+  config: { progress: 18, message: "جارِ تحميل الإعدادات…" },
+  backend: { progress: 45, message: "جارِ تشغيل الخدمات المحلية…" },
+  database: { progress: 65, message: "جارِ تهيئة قاعدة البيانات…" },
+  ui: { progress: 82, message: "جارِ تجهيز مساحة العمل…" },
+  waiting: { progress: 90, message: "جارِ فتح النافذة الرئيسية…" },
+  ready: { progress: 100, message: "التطبيق جاهز" },
+  error: {
+    progress: 100,
+    message: "تعذّر بدء التطبيق. أعد المحاولة.",
+    isError: true,
+  },
+};
 
 function readAppConfig() {
   try {
@@ -91,12 +109,20 @@ async function createWindow() {
     minHeight: 720,
     title: "دلالي",
     backgroundColor: "#f6f7f5",
+    autoHideMenuBar: true,
+    // تبقى مخفية حتى تكتمل شاشة البدء، لمنع الوميض والظهور خلف الـ Splash.
+    show: false,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
       preload: path.join(__dirname, "preload.js"),
     },
+  });
+
+  // وعد جاهزية العرض لاستخدامه في تسلسل الإقلاع.
+  mainReadyToShow = new Promise((resolve) => {
+    mainWindow.once("ready-to-show", resolve);
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -470,15 +496,109 @@ function stopScheduler() {
   }
 }
 
+// ===== شاشة البدء (Splash) =====
+
+function createSplashWindow() {
+  if (splashWindow) return splashWindow;
+
+  splashWindow = new BrowserWindow({
+    width: 1050,
+    height: 590,
+    frame: false,
+    resizable: false,
+    movable: false,
+    center: true,
+    show: false,
+    // خلفية بترولية لمنع الوميض الأبيض قبل ظهور المحتوى.
+    backgroundColor: "#0f4d4f",
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    maximizable: false,
+    minimizable: false,
+    fullscreenable: false,
+    title: "دلالي",
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+      preload: path.join(__dirname, "splash-preload.js"),
+    },
+  });
+
+  splashWindow.once("ready-to-show", () => splashWindow?.show());
+  splashWindow.on("closed", () => {
+    splashWindow = null;
+  });
+
+  void splashWindow.loadFile(path.join(__dirname, "splash", "splash.html"));
+  return splashWindow;
+}
+
+function sendSplashProgress(stage) {
+  if (!splashWindow || splashWindow.isDestroyed()) return;
+  splashWindow.webContents.send("splash:progress", stage);
+}
+
+function closeSplashWindow() {
+  if (splashWindow && !splashWindow.isDestroyed()) {
+    splashWindow.close();
+  }
+  splashWindow = null;
+}
+
+ipcMain.handle("splash:get-version", () => app.getVersion());
+
 app.whenReady().then(async () => {
-  startLocalApi();
-  await waitForApi();
-  await createWindow();
+  createSplashWindow();
+
+  try {
+    sendSplashProgress(SPLASH_STAGES.start);
+    sendSplashProgress(SPLASH_STAGES.config);
+
+    // نفس خطوات الإقلاع الحالية تماماً — مربوطة بمراحل التقدم فقط.
+    startLocalApi();
+    sendSplashProgress(SPLASH_STAGES.backend);
+
+    await waitForApi();
+    sendSplashProgress(SPLASH_STAGES.database);
+
+    await createWindow(); // النافذة الرئيسية مخفية، والمحتوى مُحمَّل.
+    sendSplashProgress(SPLASH_STAGES.ui);
+
+    // لا نتجاوز 90% قبل جاهزية النافذة فعلياً (مع حدّ أقصى كي لا تعلق).
+    sendSplashProgress(SPLASH_STAGES.waiting);
+    await Promise.race([
+      mainReadyToShow ?? Promise.resolve(),
+      new Promise((resolve) => setTimeout(resolve, 4000)),
+    ]);
+
+    sendSplashProgress(SPLASH_STAGES.ready);
+    // انتظار قصير لإظهار اكتمال الشريط قبل التبديل.
+    await new Promise((resolve) => setTimeout(resolve, 350));
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+    closeSplashWindow();
+  } catch (error) {
+    // خطأ إقلاع فادح: نُسجّل عبر نظام logging الحالي ونعرض رسالة واضحة
+    // دون كشف تفاصيل تقنية، ولا نُبقي الـ Splash معلّقة بلا نهاية.
+    log.error("Startup sequence failed", error);
+    sendSplashProgress(SPLASH_STAGES.error);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      await new Promise((resolve) => setTimeout(resolve, 1400));
+      mainWindow.show();
+      closeSplashWindow();
+    }
+  }
+
   startScheduler();
 
   app.on("activate", async () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       await createWindow();
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
     }
   });
 });
@@ -498,4 +618,5 @@ app.on("window-all-closed", () => {
 app.on("before-quit", () => {
   stopScheduler();
   stopLocalApi();
+  closeSplashWindow();
 });

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- محلي بالكامل: نسمح بالأصول المحلية (self/file) والأنماط المضمّنة،
+         ونمنع أي اتصال شبكي. صياغة آمنة مع بروتوكول file في Electron. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' 'unsafe-inline' data: file:; script-src 'self' file:; connect-src 'none';"
+    />
+    <title>دلالي</title>
+    <link rel="stylesheet" href="splash.css" />
+  </head>
+  <body>
+    <div class="splash">
+      <!-- الزخارف الهندسية: منحنى ذهبي، شبكة خريطة خفيفة، مبانٍ شبه شفافة،
+           نقاط ذهبية، ودبوس موقع/منزل كبير — كلها SVG محلية خفيفة. -->
+      <svg
+        class="deco"
+        viewBox="0 0 1050 590"
+        preserveAspectRatio="xMidYMid slice"
+        aria-hidden="true"
+      >
+        <defs>
+          <clipPath id="panelClip">
+            <path d="M0,0 H360 C300,180 300,410 460,590 H0 Z" />
+          </clipPath>
+          <linearGradient id="tealGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#12585a" />
+            <stop offset="1" stop-color="#0c4143" />
+          </linearGradient>
+        </defs>
+
+        <!-- اللوحة البترولية اليسرى -->
+        <path d="M0,0 H360 C300,180 300,410 460,590 H0 Z" fill="url(#tealGrad)" />
+
+        <!-- شبكة خريطة خفيفة جداً داخل اللوحة -->
+        <g clip-path="url(#panelClip)" stroke="#ffffff" stroke-opacity="0.05">
+          <path d="M60,0 V590 M150,0 V590 M240,0 V590 M330,0 V590" />
+          <path d="M0,90 H460 M0,190 H460 M0,290 H460 M0,390 H460 M0,490 H460" />
+        </g>
+
+        <!-- مبانٍ هندسية شبه شفافة خلف اللوحة -->
+        <g clip-path="url(#panelClip)" fill="none" stroke="#dcc79a" stroke-opacity="0.14">
+          <path d="M70,470 V250 H120 V470 M120,300 H165 V470 M40,470 V330 H70" />
+          <path d="M210,470 V210 H265 V470 M265,270 H305 V470" />
+        </g>
+
+        <!-- نقاط ذهبية زخرفية محدودة -->
+        <g fill="#d8b877" fill-opacity="0.75">
+          <circle cx="196" cy="150" r="3" /><circle cx="216" cy="150" r="3" />
+          <circle cx="236" cy="150" r="3" /><circle cx="256" cy="150" r="3" />
+          <circle cx="196" cy="172" r="3" /><circle cx="216" cy="172" r="3" />
+          <circle cx="236" cy="172" r="3" /><circle cx="256" cy="172" r="3" />
+          <circle cx="196" cy="194" r="3" /><circle cx="216" cy="194" r="3" />
+          <circle cx="236" cy="194" r="3" /><circle cx="256" cy="194" r="3" />
+        </g>
+
+        <!-- دبوس موقع كبير شبه شفاف داخل اللوحة -->
+        <g clip-path="url(#panelClip)" fill="#ffffff" fill-opacity="0.05">
+          <path
+            d="M175,440 c-60,0 -95,-42 -95,-92 c0,-52 42,-94 95,-94 c53,0 95,42 95,94 c0,50 -35,92 -95,92 z"
+            transform="translate(0,20)"
+          />
+        </g>
+        <g clip-path="url(#panelClip)" fill="none" stroke="#dcc79a" stroke-opacity="0.22" stroke-width="3">
+          <path d="M120,470 V405 L175,360 L230,405 V470 Z" />
+          <rect x="158" y="418" width="34" height="34" rx="4" />
+        </g>
+
+        <!-- منحنى ذهبي رفيع يفصل اللوحة عن الوسط -->
+        <path
+          d="M360,0 C300,180 300,410 460,590"
+          fill="none"
+          stroke="#cba867"
+          stroke-width="2.5"
+        />
+
+        <!-- مبانٍ معمارية خفيفة جداً على اليمين (بديل صورة عقار، أصول محلية فقط) -->
+        <g fill="none" stroke="#0f4d4f" stroke-opacity="0.08">
+          <path d="M690,590 V300 H770 V590 M770,360 H840 V590 M840,410 H900 V590" />
+          <path d="M930,590 V250 H1010 V590 M1010,330 H1050" />
+        </g>
+        <g fill="none" stroke="#cba867" stroke-opacity="0.16">
+          <path d="M690,300 H770 M770,360 H840 M840,410 H900" />
+          <path d="M930,250 H1010" />
+        </g>
+      </svg>
+
+      <!-- الهوية المركزية: الشعار الحقيقي + الاسم + الوصف -->
+      <main class="stage">
+        <img
+          class="logo"
+          src="assets/dalaly-logo.ico"
+          width="96"
+          height="96"
+          alt="شعار دلالي"
+        />
+        <h1 class="brand">دلالي</h1>
+        <div class="brand-sep" aria-hidden="true"></div>
+        <p class="tagline">إدارة العقارات بسهولة واحترافية</p>
+        <p class="tagline-en">Dalaly Real Estate Management</p>
+      </main>
+
+      <!-- المنطقة السفلية البترولية: الحالة + شريط التقدم + النسبة + الإصدار -->
+      <footer class="bar">
+        <p class="bar__status" id="status">جارِ بدء دلالي…</p>
+        <div class="bar__progress">
+          <div class="progress__track">
+            <div class="progress__fill" id="fill"></div>
+          </div>
+          <span class="progress__pct" id="pct">0%</span>
+        </div>
+        <div class="bar__meta">
+          <span class="bar__trust">
+            <svg class="shield" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 2 4 5v6c0 5 3.4 8.5 8 11 4.6-2.5 8-6 8-11V5l-8-3z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+              />
+            </svg>
+            آمن · موثوق · مصمم للعاملين في السوق العقاري العراقي
+          </span>
+          <span class="bar__version" id="version">الإصدار —</span>
+        </div>
+      </footer>
+    </div>
+
+    <script src="splash.js"></script>
+  </body>
+</html>
