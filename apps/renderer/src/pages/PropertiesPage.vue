@@ -19,7 +19,7 @@ import { exportPropertiesToXlsx } from "../utils/excel";
 import type { PropertyRecord } from "../types";
 
 const router = useRouter();
-const { properties, loading, filters, filteredCountLabel, loadProperties, clearFilters, service } =
+const { properties, loading, filters, loadProperties, clearFilters, service } =
   useProperties();
 const { loadStats } = useStats();
 const { openConfirm } = useConfirm();
@@ -35,9 +35,88 @@ const importOpen = ref(false);
 // Details pane (Master–Detail): يعرض ملخّص الصف المحدد من بيانات القائمة نفسها.
 const paneOpen = ref(false);
 
-const displayed = computed(() =>
-  favOnly.value ? properties.value.filter((p) => isFavorite(p.id)) : properties.value,
-);
+// فرز على البيانات المُحمّلة فقط (client-side) — لا يغيّر أي طلب أو عقد بحث.
+type SortKey = "newest" | "updated" | "price_asc" | "price_desc" | "area";
+const sortBy = ref<SortKey>("newest");
+const SORT_OPTIONS = [
+  { value: "newest", title: "الأحدث" },
+  { value: "updated", title: "آخر تحديث" },
+  { value: "price_asc", title: "السعر: الأقل" },
+  { value: "price_desc", title: "السعر: الأعلى" },
+  { value: "area", title: "المساحة" },
+];
+const num = (v: unknown) =>
+  Number(typeof v === "string" ? v.replace(/,/g, "") : v) || 0;
+const timeOf = (v: string) => {
+  const t = new Date(v).getTime();
+  return Number.isNaN(t) ? 0 : t;
+};
+function sortList(list: PropertyRecord[]) {
+  const arr = [...list];
+  switch (sortBy.value) {
+    case "updated":
+      return arr.sort((a, b) => timeOf(b.updated_at) - timeOf(a.updated_at));
+    case "price_asc":
+      return arr.sort((a, b) => num(a.total_price) - num(b.total_price));
+    case "price_desc":
+      return arr.sort((a, b) => num(b.total_price) - num(a.total_price));
+    case "area":
+      return arr.sort((a, b) => num(b.area_value) - num(a.area_value));
+    case "newest":
+    default:
+      return arr.sort((a, b) => timeOf(b.created_at) - timeOf(a.created_at));
+  }
+}
+
+const displayed = computed(() => {
+  const base = favOnly.value
+    ? properties.value.filter((p) => isFavorite(p.id))
+    : properties.value;
+  return sortList(base);
+});
+
+// عدّاد النتائج مع سياق البحث (لا عنوان كبير ولا بطاقة).
+const resultsLabel = computed(() => {
+  const n = displayed.value.length;
+  if (filters.value.q) return `${n} نتيجة مطابقة لـ "${filters.value.q}"`;
+  return `${n} ${n === 1 ? "عرض" : "عرض"}`;
+});
+
+// هل توجد فلاتر فعّالة؟ (لتمييز الحالة الفارغة ومسح الكل)
+const hasActiveFilters = computed(() => {
+  const f = filters.value;
+  return (
+    Boolean(
+      f.q ||
+        f.status ||
+        f.property_type ||
+        f.governorate_id ||
+        f.district_id ||
+        f.neighborhood_id ||
+        f.legal_type ||
+        f.area_unit ||
+        f.pricing_method ||
+        f.district ||
+        f.plot_number ||
+        f.plot_letter ||
+        f.area_min ||
+        f.area_max ||
+        f.price_min ||
+        f.price_max,
+    ) || favOnly.value
+  );
+});
+
+// اختيار سريع "المتاحة": نفس قيمة الفلتر الحالية (status=available) ذهاباً وإياباً.
+function toggleAvailable() {
+  filters.value.status =
+    filters.value.status === "available" ? "" : "available";
+}
+// مسح كل شيء بما فيه المفضلة (يعيد نفس clearFilters الحالي).
+function resetAll() {
+  favOnly.value = false;
+  clearFilters();
+}
 
 async function refreshData() {
   await Promise.all([loadProperties(), loadStats()]);
@@ -169,14 +248,44 @@ onMounted(() => {
 
     <PropertyFilters v-model="filters" @apply="loadProperties" @clear="clearFilters" />
 
-    <div class="table-meta">
-      <span>النتيجة: {{ favOnly ? displayed.length + " مفضّل" : filteredCountLabel }}</span>
-      <v-switch
-        v-model="favOnly"
-        color="error"
+    <!-- شريط النتائج: العدد بسياقه، اختيارات سريعة، والفرز -->
+    <div class="dal-resultsbar">
+      <span class="dal-resultsbar__count">{{ resultsLabel }}</span>
+      <div class="dal-quickpicks">
+        <v-btn
+          size="small"
+          :variant="filters.status === 'available' ? 'flat' : 'text'"
+          :color="filters.status === 'available' ? 'primary' : undefined"
+          @click="toggleAvailable"
+        >
+          المتاحة
+        </v-btn>
+        <v-btn
+          size="small"
+          :variant="sortBy === 'newest' ? 'flat' : 'text'"
+          :color="sortBy === 'newest' ? 'primary' : undefined"
+          @click="sortBy = 'newest'"
+        >
+          المضافة حديثاً
+        </v-btn>
+        <v-btn
+          size="small"
+          :variant="favOnly ? 'flat' : 'text'"
+          :color="favOnly ? 'error' : undefined"
+          prepend-icon="mdi-heart-outline"
+          @click="favOnly = !favOnly"
+        >
+          المفضلة
+        </v-btn>
+      </div>
+      <v-spacer />
+      <v-select
+        v-model="sortBy"
+        :items="SORT_OPTIONS"
+        label="ترتيب"
         density="compact"
         hide-details
-        label="المفضلة فقط"
+        class="dal-sort"
       />
     </div>
 
@@ -189,6 +298,7 @@ onMounted(() => {
           :properties="displayed"
           :loading="loading"
           :selected-id="selectedProperty?.id ?? null"
+          :has-filters="hasActiveFilters"
           @view="viewDetails"
           @edit="editProperty"
           @archive="askArchive"
@@ -196,6 +306,7 @@ onMounted(() => {
           @delete="askDelete"
           @create="router.push('/properties/new')"
           @select="selectRow"
+          @clear-filters="resetAll"
         />
       </template>
       <template #detail>
@@ -224,3 +335,27 @@ onMounted(() => {
     <ExcelImportDialog v-model="importOpen" @imported="refreshData" />
   </AppLayout>
 </template>
+
+<style scoped>
+.dal-resultsbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 8px 0 10px;
+}
+.dal-resultsbar__count {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.8);
+}
+.dal-quickpicks {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.dal-sort {
+  max-width: 170px;
+  flex: 0 0 auto;
+}
+</style>

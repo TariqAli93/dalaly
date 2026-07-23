@@ -10,6 +10,7 @@ const props = defineProps<{
   properties: PropertyRecord[];
   loading?: boolean;
   selectedId?: number | null;
+  hasFilters?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -20,6 +21,7 @@ const emit = defineEmits<{
   delete: [PropertyRecord];
   create: [];
   select: [PropertyRecord];
+  clearFilters: [];
 }>();
 
 // نقر الصف يحدّده لعرضه في Details pane — سلوك إضافي لا يغيّر أي حدث حالي.
@@ -54,12 +56,30 @@ const headers = [
   <!-- شبكة بيانات مكتبية: لوح بحدّ رفيع يملأ العرض، لا بطاقة. -->
   <div class="dal-panel dal-grid">
     <v-skeleton-loader v-if="loading" type="table" />
+    <!-- حالة فارغة مع فلاتر فعّالة: سبب واضح + إجراءات تصحيح -->
+    <EmptyState
+      v-else-if="!properties.length && hasFilters"
+      class="dal-empty"
+      icon="mdi-home-search-outline"
+      title="لا توجد عقارات مطابقة للبحث والفلاتر الحالية"
+      text="جرّب توسيع البحث أو إزالة بعض الفلاتر."
+    >
+      <template #actions>
+        <v-btn variant="tonal" prepend-icon="mdi-filter-remove" @click="emit('clearFilters')">
+          مسح الفلاتر
+        </v-btn>
+        <v-btn color="primary" prepend-icon="mdi-plus" @click="emit('create')">
+          إضافة عرض
+        </v-btn>
+      </template>
+    </EmptyState>
+    <!-- لا توجد بيانات أصلاً (بلا فلاتر) -->
     <EmptyState
       v-else-if="!properties.length"
       class="dal-empty"
-      icon="mdi-home-search-outline"
-      title="لا توجد عقارات مطابقة للبحث"
-      text="غيّر كلمات البحث أو الفلاتر، أو أضف عرضاً جديداً."
+      icon="mdi-home-plus-outline"
+      title="لا توجد عروض بعد"
+      text="أضف أول عرض عقاري ليظهر في القائمة."
     >
       <template #actions>
         <v-btn color="primary" prepend-icon="mdi-plus" @click="emit('create')">
