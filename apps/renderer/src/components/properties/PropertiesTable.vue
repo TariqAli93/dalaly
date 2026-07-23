@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { statusColor, statusLabel } from "../../constants/domain";
 import { formatMoney, formatPlot } from "../../utils/format";
 import { neighborhoodOf } from "../../utils/exportProperty";
 import type { PropertyRecord } from "../../types";
 import PropertyActions from "./PropertyActions.vue";
+import StatusChip from "../shared/StatusChip.vue";
+import EmptyState from "../shared/EmptyState.vue";
 
 defineProps<{ properties: PropertyRecord[]; loading?: boolean }>();
 
@@ -35,7 +36,7 @@ const headers = [
 <template>
   <v-card rounded="lg" variant="flat" border>
     <v-skeleton-loader v-if="loading" type="table" />
-    <v-empty-state
+    <EmptyState
       v-else-if="!properties.length"
       icon="mdi-home-search-outline"
       title="لا توجد عقارات مطابقة للبحث"
@@ -46,7 +47,7 @@ const headers = [
           إضافة عرض
         </v-btn>
       </template>
-    </v-empty-state>
+    </EmptyState>
     <v-data-table
       v-else
       :headers="headers"
@@ -69,9 +70,7 @@ const headers = [
         دينار
       </template>
       <template #item.status="{ item }">
-        <v-chip size="small" :color="statusColor(item.status)" variant="tonal">
-          {{ statusLabel(item.status) }}
-        </v-chip>
+        <StatusChip :status="item.status" />
       </template>
       <template #item.actions="{ item }">
         <PropertyActions

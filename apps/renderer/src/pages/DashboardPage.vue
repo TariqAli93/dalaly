@@ -2,6 +2,9 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AppLayout from "../layouts/AppLayout.vue";
+import StatCard from "../components/shared/StatCard.vue";
+import StatusChip from "../components/shared/StatusChip.vue";
+import EmptyState from "../components/shared/EmptyState.vue";
 import { fetchDashboard } from "../services/dashboard.service";
 import { createBackup } from "../services/backup.service";
 import { getErrorMessage } from "../services/api.service";
@@ -9,7 +12,6 @@ import { usePermissions } from "../composables/usePermissions";
 import { useProperties } from "../composables/useProperties";
 import { useSnackbar } from "../composables/useSnackbar";
 import { useRefresh } from "../composables/useRefresh";
-import { statusColor, statusLabel } from "../constants/domain";
 import { formatMoney, formatNumber, pluralizeDays } from "../utils/format";
 import type { DashboardSummary } from "../types";
 
@@ -190,29 +192,13 @@ onMounted(() => {
 
       <!-- بطاقات الحالات -->
       <div class="kpi-grid mb-4">
-        <v-card
+        <StatCard
           v-for="card in statusCards"
           :key="card.key"
-          rounded="lg"
-          variant="flat"
-          border
-        >
-          <v-card-text class="d-flex align-center ga-3">
-            <v-icon
-              :icon="card.icon"
-              size="22"
-              class="text-medium-emphasis flex-shrink-0"
-            />
-            <div class="min-w-0">
-              <div class="text-body-2 text-medium-emphasis">
-                {{ card.label }}
-              </div>
-              <div class="text-h5 font-weight-bold money">
-                {{ formatNumber(data.counts[card.key], 0) }}
-              </div>
-            </div>
-          </v-card-text>
-        </v-card>
+          :label="card.label"
+          :icon="card.icon"
+          :value="formatNumber(data.counts[card.key], 0)"
+        />
       </div>
 
       <!-- إجراءات سريعة: تختفي البطاقة كاملة إن لم يملك المستخدم أي صلاحية،
@@ -262,7 +248,7 @@ onMounted(() => {
           <v-card rounded="lg" variant="flat" border>
             <v-card-title tag="h2" class="text-h6">تنبيهات المتابعات</v-card-title>
             <v-card-text>
-              <v-empty-state
+              <EmptyState
                 v-if="!data.reminders.length"
                 icon="mdi-bell-off-outline"
                 title="لا توجد متابعات مجدولة"
@@ -299,7 +285,7 @@ onMounted(() => {
               </span>
             </v-card-title>
             <v-card-text>
-              <v-empty-state
+              <EmptyState
                 v-if="!data.needs_review.length"
                 icon="mdi-check-all"
                 title="كل العروض محدّثة"
@@ -330,7 +316,7 @@ onMounted(() => {
           <v-card rounded="lg" variant="flat" border>
             <v-card-title tag="h2" class="text-h6">آخر العروض</v-card-title>
             <v-card-text>
-              <v-empty-state
+              <EmptyState
                 v-if="!data.latest.length"
                 icon="mdi-home-plus-outline"
                 title="لا يوجد عروض بعد"
@@ -349,13 +335,7 @@ onMounted(() => {
                     دينار
                   </template>
                   <template #append>
-                    <v-chip
-                      size="x-small"
-                      variant="tonal"
-                      :color="statusColor(p.status)"
-                    >
-                      {{ statusLabel(p.status) }}
-                    </v-chip>
+                    <StatusChip :status="p.status" size="x-small" />
                   </template>
                 </v-list-item>
               </v-list>
@@ -368,7 +348,7 @@ onMounted(() => {
           <v-card rounded="lg" variant="flat" border>
             <v-card-title tag="h2" class="text-h6">النشاط الأخير</v-card-title>
             <v-card-text>
-              <v-empty-state
+              <EmptyState
                 v-if="!data.recent_activity.length"
                 icon="mdi-history"
                 title="لا يوجد نشاط"
@@ -407,7 +387,7 @@ onMounted(() => {
               >
                 {{ g.name }} · <span class="money">{{ g.count }}</span>
               </v-chip>
-              <v-empty-state
+              <EmptyState
                 v-if="!data.top_governorates.length"
                 icon="mdi-map-marker-off"
                 title="لا توجد بيانات"
@@ -429,7 +409,7 @@ onMounted(() => {
               >
                 {{ d.name }} · <span class="money">{{ d.count }}</span>
               </v-chip>
-              <v-empty-state
+              <EmptyState
                 v-if="!data.top_districts.length"
                 icon="mdi-map-marker-off"
                 title="لا توجد بيانات"
