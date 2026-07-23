@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import AppLayout from "../layouts/AppLayout.vue";
 import StatusChip from "../components/shared/StatusChip.vue";
 import EmptyState from "../components/shared/EmptyState.vue";
+import RankedBarList from "../components/shared/RankedBarList.vue";
 import { fetchDashboard } from "../services/dashboard.service";
 import { createBackup } from "../services/backup.service";
 import { getErrorMessage } from "../services/api.service";
@@ -31,6 +32,29 @@ function openProperty(code?: string | null) {
   filters.value.q = code ?? "";
   void router.push("/properties").then(() => loadProperties());
 }
+
+// وصول سريع للعروض من اللوحة — يعيد استخدام نفس مسار البحث والفلاتر الحالي
+// (filters المشتركة + /properties + loadProperties). لا محرك بحث جديد.
+const discoverQuery = ref("");
+function searchProperties() {
+  filters.value.q = discoverQuery.value.trim();
+  void router.push("/properties").then(() => loadProperties());
+}
+function goAvailable() {
+  filters.value.status = "available";
+  filters.value.q = "";
+  void router.push("/properties").then(() => loadProperties());
+}
+
+// تاريخ اليوم لعنوان مساحة العمل (أرقام لاتينية).
+const todayLabel = computed(() =>
+  new Date().toLocaleDateString("ar-IQ", {
+    numberingSystem: "latn",
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  }),
+);
 
 const data = ref<DashboardSummary | null>(null);
 const loading = ref(false);
@@ -241,64 +265,186 @@ onMounted(() => {
         </template>
       </v-alert>
 
-      <!-- ١) عمل اليوم أولاً: التنبيهات والمراجعات قبل الأرقام العامة.
-           المتابعات المتأخرة مُبرَزة (لون تحذيري + ترتيب أوّلي). -->
-      <v-row dense class="mb-1">
-        <!-- تنبيهات المتابعات -->
-        <v-col cols="12" md="6">
-          <div class="dal-panel">
+      <!-- ١) مساحة الانتباه: ما يتطلب عملاً الآن (متابعات، المتأخر أولاً). -->
+      <div class="dal-panel dal-attention mb-2" :class="{ 'dal-attention--urgent': overdueCount }">
+        <div class="dal-panel__header">
+          <v-icon
+            :icon="overdueCount ? 'mdi-alert-decagram-outline' : 'mdi-bell-check-outline'"
+            size="18"
+            :color="overdueCount ? 'error' : undefined"
+          />
+          <span class="dal-section-title">يتطلب انتباهك</span>
+          <v-chip
+            v-if="overdueCount"
+            size="x-small"
+            color="error"
+            variant="tonal"
+            label
+          >
+            <span class="money">{{ overdueCount }}</span> متأخرة
+          </v-chip>
+          <v-spacer />
+          <span class="dal-summary__label">{{ todayLabel }}</span>
+        </div>
+        <div class="dal-panel__body">
+          <EmptyState
+            v-if="!sortedReminders.length"
+            class="dal-empty"
+            icon="mdi-check-circle-outline"
+            title="لا مهام مستحقة اليوم"
+            text="أضف متابعة من صفحة أي عرض لتظهر هنا في موعدها."
+          />
+          <v-list v-else density="compact">
+            <v-list-item
+              v-for="r in sortedReminders"
+              :key="r.id"
+              :title="`${r.property_code} — ${r.notes || 'متابعة'}`"
+              :prepend-icon="
+                isOverdue(r.scheduled_at)
+                  ? 'mdi-bell-alert-outline'
+                  : 'mdi-bell-ring-outline'
+              "
+              :base-color="isOverdue(r.scheduled_at) ? 'error' : undefined"
+              @click="openProperty(r.property_code)"
+            >
+              <template #subtitle>
+                <span
+                  v-if="isOverdue(r.scheduled_at)"
+                  class="text-error font-weight-bold"
+                >
+                  متأخر ·
+                </span>
+                <span class="money">{{ when(r.scheduled_at) }}</span>
+              </template>
+              <template #append>
+                <v-icon icon="mdi-chevron-left" size="18" class="text-medium-emphasis" />
+              </template>
+            </v-list-item>
+          </v-list>
+        </div>
+      </div>
+
+      <!-- ٢) وصول سريع للعروض: بحث + روابط سريعة (بلا محرك جديد). -->
+      <div class="dal-discover mb-2">
+        <v-text-field
+          v-model="discoverQuery"
+          class="dal-discover__search"
+          density="compact"
+          hide-details
+          clearable
+          prepend-inner-icon="mdi-magnify"
+          placeholder="ابحث عن عرض بالمالك، الهاتف، رقم القطعة أو المنطقة…"
+          aria-label="بحث سريع في العروض"
+          @keyup.enter="searchProperties"
+        />
+        <v-btn variant="tonal" prepend-icon="mdi-check-circle-outline" @click="goAvailable">
+          العروض المتاحة
+        </v-btn>
+        <v-btn variant="text" prepend-icon="mdi-heart-outline" @click="router.push('/favorites')">
+          المفضلة
+        </v-btn>
+        <v-btn variant="text" prepend-icon="mdi-format-list-bulleted" @click="router.push('/properties')">
+          كل العروض
+        </v-btn>
+      </div>
+
+      <!-- ٣) شريط الملخّص المضغوط (الأرقام بعد المهام). -->
+      <div class="dal-summary mb-2">
+        <div
+          v-for="card in statusCards"
+          :key="card.key"
+          class="dal-summary__item"
+        >
+          <v-icon :icon="card.icon" size="18" class="dal-summary__icon" />
+          <div class="min-w-0">
+            <div class="dal-summary__label">{{ card.label }}</div>
+            <div class="dal-summary__value money">
+              {{ formatNumber(data.counts[card.key], 0) }}
+            </div>
+          </div>
+        </div>
+        <div class="dal-summary__item">
+          <v-icon icon="mdi-cash-multiple" size="18" class="dal-summary__icon" />
+          <div class="min-w-0">
+            <div class="dal-summary__label">القيمة الإجمالية</div>
+            <div class="dal-summary__value money">
+              {{ formatMoney(data.financial.total_value) }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ٤) تقسيم غير متماثل: الرئيسي (آخر العروض) أعرض، والجانبي أضيق. -->
+      <div class="dal-dash-split">
+        <!-- العمود الرئيسي -->
+        <div class="dal-dash-main">
+          <div class="dal-panel mb-2">
             <div class="dal-panel__header">
-              <span class="dal-section-title">تنبيهات المتابعات</span>
-              <v-chip
-                v-if="overdueCount"
-                size="x-small"
-                color="error"
-                variant="tonal"
-                label
-                class="ms-2"
-              >
-                <span class="money">{{ overdueCount }}</span> متأخرة
-              </v-chip>
+              <span class="dal-section-title">آخر العروض</span>
+              <v-spacer />
+              <v-btn size="x-small" variant="text" @click="router.push('/properties')">
+                عرض كل العروض
+              </v-btn>
             </div>
             <div class="dal-panel__body">
               <EmptyState
-                v-if="!sortedReminders.length"
+                v-if="!data.latest.length"
                 class="dal-empty"
-                icon="mdi-bell-check-outline"
-                title="لا متابعات مستحقة"
-                text="افتح أي عرض وأضف متابعة لتظهر هنا في موعدها."
+                icon="mdi-home-plus-outline"
+                title="لا يوجد عروض بعد"
+                text="أضف أول عرض ليظهر هنا."
               />
               <v-list v-else density="compact">
                 <v-list-item
-                  v-for="r in sortedReminders"
-                  :key="r.id"
-                  :title="`${r.property_code} — ${r.notes || 'متابعة'}`"
-                  :prepend-icon="
-                    isOverdue(r.scheduled_at)
-                      ? 'mdi-bell-alert-outline'
-                      : 'mdi-bell-ring-outline'
-                  "
-                  :base-color="isOverdue(r.scheduled_at) ? 'error' : undefined"
-                  @click="openProperty(r.property_code)"
+                  v-for="p in data.latest"
+                  :key="p.id"
+                  :title="`${p.code} — ${p.property_type}`"
+                  @click="openProperty(p.code)"
                 >
                   <template #subtitle>
-                    <span
-                      v-if="isOverdue(r.scheduled_at)"
-                      class="text-error font-weight-bold"
-                    >
-                      متأخر ·
-                    </span>
-                    <span class="money">{{ when(r.scheduled_at) }}</span>
+                    {{ p.governorate || "" }} {{ p.district || "" }} ·
+                    <span class="money">{{ formatMoney(p.total_price) }}</span>
+                    دينار · أضيف {{ pluralizeDays(daysSince(String(p.created_at))) }}
+                  </template>
+                  <template #append>
+                    <StatusChip :status="p.status" size="x-small" />
                   </template>
                 </v-list-item>
               </v-list>
             </div>
           </div>
-        </v-col>
 
-        <!-- عروض تحتاج مراجعة -->
-        <v-col cols="12" md="6">
           <div class="dal-panel">
+            <div class="dal-panel__header">
+              <span class="dal-section-title">النشاط الأخير</span>
+            </div>
+            <div class="dal-panel__body">
+              <EmptyState
+                v-if="!data.recent_activity.length"
+                class="dal-empty"
+                icon="mdi-history"
+                title="لا يوجد نشاط"
+                text="كل إضافة أو تعديل أو تغيير سعر سيظهر هنا."
+              />
+              <v-list v-else density="compact">
+                <v-list-item
+                  v-for="a in data.recent_activity"
+                  :key="a.id"
+                  :title="`${actionLabel(a.action)} ${a.property_code || ''}`"
+                >
+                  <template #subtitle>
+                    {{ a.user_name || "النظام" }} ·
+                    <span class="money">{{ when(a.created_at) }}</span>
+                  </template>
+                </v-list-item>
+              </v-list>
+            </div>
+          </div>
+        </div>
+
+        <!-- العمود الجانبي -->
+        <div class="dal-dash-side">
+          <div class="dal-panel mb-2">
             <div class="dal-panel__header">
               <span class="dal-section-title">عروض تحتاج مراجعة</span>
               <span
@@ -339,163 +485,46 @@ onMounted(() => {
               </v-list>
             </div>
           </div>
-        </v-col>
-      </v-row>
 
-      <!-- ٢) وعي تشغيلي: آخر العروض والنشاط -->
-      <v-row dense class="mb-1">
-        <!-- آخر العروض -->
-        <v-col cols="12" md="6">
-          <div class="dal-panel">
-            <div class="dal-panel__header">
-              <span class="dal-section-title">آخر العروض</span>
-            </div>
-            <div class="dal-panel__body">
-              <EmptyState
-                v-if="!data.latest.length"
-                class="dal-empty"
-                icon="mdi-home-plus-outline"
-                title="لا يوجد عروض بعد"
-                text="أضف أول عرض ليظهر هنا."
-              />
-              <v-list v-else density="compact">
-                <v-list-item
-                  v-for="p in data.latest"
-                  :key="p.id"
-                  :title="`${p.code} — ${p.property_type}`"
-                  @click="openProperty(p.code)"
-                >
-                  <template #subtitle>
-                    {{ p.governorate || "" }} {{ p.district || "" }} ·
-                    <span class="money">{{ formatMoney(p.total_price) }}</span>
-                    دينار
-                  </template>
-                  <template #append>
-                    <StatusChip :status="p.status" size="x-small" />
-                  </template>
-                </v-list-item>
-              </v-list>
-            </div>
-          </div>
-        </v-col>
-
-        <!-- النشاط الأخير -->
-        <v-col cols="12" md="6">
-          <div class="dal-panel">
-            <div class="dal-panel__header">
-              <span class="dal-section-title">النشاط الأخير</span>
-            </div>
-            <div class="dal-panel__body">
-              <EmptyState
-                v-if="!data.recent_activity.length"
-                class="dal-empty"
-                icon="mdi-history"
-                title="لا يوجد نشاط"
-                text="كل إضافة أو تعديل أو تغيير سعر سيظهر هنا."
-              />
-              <v-list v-else density="compact">
-                <v-list-item
-                  v-for="a in data.recent_activity"
-                  :key="a.id"
-                  :title="`${actionLabel(a.action)} ${a.property_code || ''}`"
-                >
-                  <template #subtitle>
-                    {{ a.user_name || "النظام" }} ·
-                    <span class="money">{{ when(a.created_at) }}</span>
-                  </template>
-                </v-list-item>
-              </v-list>
-            </div>
-          </div>
-        </v-col>
-      </v-row>
-
-      <!-- ٣) ملخّص الأرقام (بعد المهام) -->
-      <div class="dal-summary">
-        <div
-          v-for="card in statusCards"
-          :key="card.key"
-          class="dal-summary__item"
-        >
-          <v-icon :icon="card.icon" size="18" class="dal-summary__icon" />
-          <div class="min-w-0">
-            <div class="dal-summary__label">{{ card.label }}</div>
-            <div class="dal-summary__value money">
-              {{ formatNumber(data.counts[card.key], 0) }}
-            </div>
-          </div>
-        </div>
-        <div class="dal-summary__item">
-          <v-icon
-            icon="mdi-cash-multiple"
-            size="18"
-            class="dal-summary__icon"
-          />
-          <div class="min-w-0">
-            <div class="dal-summary__label">القيمة الإجمالية</div>
-            <div class="dal-summary__value money">
-              {{ formatMoney(data.financial.total_value) }}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ٤) أعلى المواقع (سياق، في الأسفل) -->
-      <v-row dense>
-        <v-col cols="12" md="6">
-          <div class="dal-panel">
+          <div class="dal-panel mb-2">
             <div class="dal-panel__header">
               <span class="dal-section-title">أكثر المحافظات نشاطاً</span>
             </div>
-            <div class="dal-panel__body pa-2">
-              <!-- الشرائح تفتح قائمة العروض مفلترة على اسم المحافظة. -->
-              <v-chip
-                v-for="g in data.top_governorates"
-                :key="g.name || ''"
-                class="ma-1"
-                size="small"
-                variant="tonal"
-                link
-                @click="openProperty(g.name)"
-              >
-                {{ g.name }} · <span class="money">{{ g.count }}</span>
-              </v-chip>
+            <div class="dal-panel__body">
+              <RankedBarList
+                v-if="data.top_governorates.length"
+                :items="data.top_governorates"
+                @select="openProperty"
+              />
               <EmptyState
-                v-if="!data.top_governorates.length"
+                v-else
                 class="dal-empty"
                 icon="mdi-map-marker-off"
                 title="لا توجد بيانات"
               />
             </div>
           </div>
-        </v-col>
-        <v-col cols="12" md="6">
+
           <div class="dal-panel">
             <div class="dal-panel__header">
               <span class="dal-section-title">أكثر المناطق نشاطاً</span>
             </div>
-            <div class="dal-panel__body pa-2">
-              <v-chip
-                v-for="d in data.top_districts"
-                :key="d.name || ''"
-                class="ma-1"
-                size="small"
-                variant="tonal"
-                link
-                @click="openProperty(d.name)"
-              >
-                {{ d.name }} · <span class="money">{{ d.count }}</span>
-              </v-chip>
+            <div class="dal-panel__body">
+              <RankedBarList
+                v-if="data.top_districts.length"
+                :items="data.top_districts"
+                @select="openProperty"
+              />
               <EmptyState
-                v-if="!data.top_districts.length"
+                v-else
                 class="dal-empty"
                 icon="mdi-map-marker-off"
                 title="لا توجد بيانات"
               />
             </div>
           </div>
-        </v-col>
-      </v-row>
+        </div>
+      </div>
     </template>
   </AppLayout>
 </template>
@@ -516,6 +545,41 @@ onMounted(() => {
 @media (max-width: 760px) {
   .kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* مساحة الانتباه: عندما توجد متأخرات نُظهر شريطاً تحذيرياً على الحافة الأمامية. */
+.dal-attention--urgent {
+  border-inline-start: 3px solid rgb(var(--v-theme-error));
+}
+
+/* شريط الوصول السريع للعروض. */
+.dal-discover {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dal-discover__search {
+  flex: 1 1 340px;
+  min-width: 240px;
+  max-width: 560px;
+}
+
+/* تقسيم مكتبي غير متماثل: رئيسي أعرض + جانبي أضيق، يتراصّان عند ضيق النافذة. */
+.dal-dash-split {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+.dal-dash-main,
+.dal-dash-side {
+  min-width: 0;
+}
+@media (max-width: 1100px) {
+  .dal-dash-split {
+    grid-template-columns: 1fr;
   }
 }
 </style>
