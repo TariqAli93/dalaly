@@ -65,6 +65,127 @@ body {
   }
 }
 
+/* ===== نظام سطح المكتب (Fluent 2 / Windows 11) =====
+   طبقات محايدة + عمق خفيف جداً + أشرطة تمرير رفيعة، تُشعِر أن التطبيق
+   برنامج Windows أصيل لا صفحة ويب داخل Electron. القيم مربوطة بالثيم. */
+.v-theme--dalalyLight {
+  --dal-canvas: #f3f3f3;
+  --dal-surface: #ffffff;
+  --dal-nav: #ebebeb;
+  --dal-stroke: rgba(0, 0, 0, 0.08);
+  --dal-hover: rgba(0, 0, 0, 0.045);
+  --dal-active: rgba(17, 100, 102, 0.12);
+  --dal-on-active: #0d5052;
+  --dal-shadow-rest: 0 1px 2px rgba(0, 0, 0, 0.06), 0 0 1px rgba(0, 0, 0, 0.08);
+  --dal-shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.16);
+  --dal-scroll: rgba(0, 0, 0, 0.26);
+  --dal-scroll-hover: rgba(0, 0, 0, 0.42);
+}
+.v-theme--dalalyDark {
+  --dal-canvas: #1c1c1c;
+  --dal-surface: #272727;
+  --dal-nav: #1c1c1c;
+  --dal-stroke: rgba(255, 255, 255, 0.09);
+  --dal-hover: rgba(255, 255, 255, 0.06);
+  --dal-active: rgba(77, 182, 172, 0.18);
+  --dal-on-active: #7fd8ce;
+  --dal-shadow-rest: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --dal-shadow-pop: 0 10px 28px rgba(0, 0, 0, 0.55);
+  --dal-scroll: rgba(255, 255, 255, 0.24);
+  --dal-scroll-hover: rgba(255, 255, 255, 0.4);
+}
+
+/* مقياس الرموز الموحّد (مسافات/زوايا) لاستخدامه في المكوّنات الجديدة. */
+:root {
+  --dal-radius-control: 4px;
+  --dal-radius-card: 8px;
+  --dal-space-1: 4px;
+  --dal-space-2: 8px;
+  --dal-space-3: 12px;
+  --dal-space-4: 16px;
+  --dal-space-5: 20px;
+  --dal-space-6: 24px;
+}
+
+/* عمق خفيف: كل بطاقة مسطّحة بإطار ترتفع قليلاً عن اللوحة الرمادية. */
+.v-application .v-card.v-card--variant-flat.v-card--border {
+  box-shadow: var(--dal-shadow-rest);
+  border-color: var(--dal-stroke);
+}
+
+/* أشرطة تمرير رفيعة بأسلوب Windows بدل الافتراضية العريضة. */
+.v-application ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+.v-application ::-webkit-scrollbar-thumb {
+  background-color: var(--dal-scroll);
+  background-clip: padding-box;
+  border: 3px solid transparent;
+  border-radius: 8px;
+}
+.v-application ::-webkit-scrollbar-thumb:hover {
+  background-color: var(--dal-scroll-hover);
+}
+.v-application ::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ===== لوحة التنقّل الجانبية (NavigationView) ===== */
+.v-navigation-drawer.dal-nav-drawer {
+  background: var(--dal-nav);
+  border-inline-start-color: var(--dal-stroke);
+}
+.dal-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 6px;
+  min-height: 56px;
+}
+.dal-brand__title {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.dal-brand__sub {
+  font-size: 11px;
+  color: rgba(var(--v-theme-on-surface), 0.6);
+}
+.dal-nav-subheader {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(var(--v-theme-on-surface), 0.55);
+  padding: 12px 20px 4px;
+}
+.dal-nav-drawer .v-list {
+  padding-inline: 8px;
+}
+.dal-nav-drawer .v-list-item {
+  border-radius: 6px;
+  margin-block: 2px;
+  min-height: 40px;
+}
+.dal-nav-drawer .v-list-item--active {
+  background: var(--dal-active);
+  color: var(--dal-on-active);
+  font-weight: 700;
+}
+/* شريط التحديد على الحافة الأمامية (يمين في RTL). */
+.dal-nav-drawer .v-list-item--active::after {
+  content: "";
+  position: absolute;
+  inset-block: 8px;
+  inset-inline-start: 2px;
+  width: 3px;
+  border-radius: 2px;
+  background: currentColor;
+}
+.dal-nav-footer {
+  border-top: 1px solid var(--dal-stroke);
+}
+
 .app-shell {
   min-height: 100vh;
 }
@@ -87,8 +208,11 @@ body {
   width: min(640px, 100%);
 }
 
+/* شريط الأوامر العلوي: مضغوط، سطح أبيض، حدّ سفلي رفيع. */
 .top-navbar {
   padding-inline: 8px;
+  background: var(--dal-surface);
+  border-bottom: 1px solid var(--dal-stroke);
 }
 
 .nav-actions {
@@ -98,14 +222,26 @@ body {
 }
 
 .global-search {
-  max-width: 420px;
-  margin-inline: 12px;
+  max-width: 460px;
+  flex: 1 1 auto;
+  margin-inline: 8px;
 }
 
 .main-content {
   padding: 24px;
   background: rgb(var(--v-theme-background));
   min-height: calc(100vh - 64px);
+}
+
+/* مسار التنقّل (Breadcrumbs) فوق عنوان الصفحة. */
+.dal-breadcrumbs {
+  padding: 0 0 2px;
+  margin-bottom: 6px;
+  font-size: 0.8rem;
+  min-height: 24px;
+}
+.dal-breadcrumbs .v-breadcrumbs-item {
+  padding-inline: 0;
 }
 
 .page-band {
@@ -268,8 +404,9 @@ body {
     flex-direction: column;
   }
 
+  /* تطبيق سطح مكتب: نُبقي البحث ظاهراً ونضيّقه بدل إخفائه. */
   .global-search {
-    display: none;
+    max-width: 220px;
   }
 
   .stats-grid,

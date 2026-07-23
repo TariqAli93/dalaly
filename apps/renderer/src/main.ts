@@ -40,8 +40,9 @@ const vuetify = createVuetify({
           primary: "#116466",
           secondary: "#5b6f62",
           accent: "#c27c3a",
+          // لوحة رمادية محايدة (Fluent/Win11) مع أسطح بيضاء ترتفع فوقها.
           surface: "#ffffff",
-          background: "#f6f7f5",
+          background: "#f3f3f3",
           error: "#b3261e",
           // بدون تعريف صريح ترجع Vuetify إلى ألوان Material الافتراضية
           // (كهرماني وأزرق) وهي خارج نظام التصميم. القيم أدناه من عائلة
@@ -57,8 +58,9 @@ const vuetify = createVuetify({
           primary: "#4db6ac",
           secondary: "#9db5a7",
           accent: "#d8a15f",
-          surface: "#17211d",
-          background: "#0f1513",
+          // داكن محايد بطبقتين على نمط Windows 11 (قاعدة/بطاقة).
+          surface: "#272727",
+          background: "#1c1c1c",
           error: "#ffb4ab",
           warning: "#d8a15f",
           success: "#7fc9a3",
