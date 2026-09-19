@@ -50,6 +50,30 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, permission: "properties.update" },
   },
   {
+    path: "/rentals",
+    name: "rentals",
+    component: () => import("../pages/RentalsPage.vue"),
+    meta: { requiresAuth: true, permission: "rentals.read" },
+  },
+  {
+    path: "/rentals/new",
+    name: "rental-new",
+    component: () => import("../pages/RentalFormPage.vue"),
+    meta: { requiresAuth: true, permission: "rentals.create" },
+  },
+  {
+    path: "/rentals/:id/edit",
+    name: "rental-edit",
+    component: () => import("../pages/RentalFormPage.vue"),
+    meta: { requiresAuth: true, permission: "rentals.update" },
+  },
+  {
+    path: "/rental-favorites",
+    name: "rental-favorites",
+    component: () => import("../pages/RentalFavoritesPage.vue"),
+    meta: { requiresAuth: true, permission: "rentals.read" },
+  },
+  {
     path: "/users",
     name: "users",
     component: () => import("../pages/UsersPage.vue"),

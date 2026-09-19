@@ -27,7 +27,7 @@ const isRail = computed(() => rail.value && mdAndUp.value);
 // تجميع بصري فوق NAV_ITEMS دون تغيير مصدرها أو شروط صلاحياتها.
 // كل مجموعة تُبنى من العناصر المسموح بها فقط، وتُخفى إن خلت.
 const NAV_GROUPS: { title: string; paths: string[] }[] = [
-  { title: "", paths: ["/", "/properties", "/properties/new", "/favorites"] },
+  { title: "", paths: ["/", "/properties", "/properties/new", "/favorites", "/rentals", "/rentals/new", "/rental-favorites"] },
   { title: "الإدارة", paths: ["/users", "/roles", "/locations"] },
   { title: "النظام", paths: ["/settings", "/help"] },
 ];

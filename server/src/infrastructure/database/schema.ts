@@ -1,4 +1,4 @@
-import {
+﻿import {
   bigint,
   bigserial,
   boolean,
@@ -174,8 +174,8 @@ export const properties = pgTable(
     ownerNotes: text("owner_notes"),
     status: text("status").notNull().default("available"),
     notes: text("notes"),
-    // حقول عراقية اختيارية إضافية
-    nazal: text("nazal"), // النزال: عمق الأرض (يقترن بالواجهة frontage)
+    // Ø­Ù‚ÙˆÙ„ Ø¹Ø±Ø§Ù‚ÙŠØ© Ø§Ø®ØªÙŠØ§Ø±ÙŠØ© Ø¥Ø¶Ø§ÙÙŠØ©
+    nazal: text("nazal"), // Ø§Ù„Ù†Ø²Ø§Ù„: Ø¹Ù…Ù‚ Ø§Ù„Ø£Ø±Ø¶ (ÙŠÙ‚ØªØ±Ù† Ø¨Ø§Ù„ÙˆØ§Ø¬Ù‡Ø© frontage)
     plotNumber: text("plot_number"),
     plotLetter: text("plot_letter"),
     subdistrictNumber: text("subdistrict_number"),
@@ -228,6 +228,66 @@ export const propertyImages = pgTable(
   (table) => [index("idx_property_images_property").on(table.propertyId)],
 );
 
+export const rentals = pgTable(
+  "rentals",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    code: text("code").notNull().unique(),
+    propertyType: text("property_type").notNull(),
+    rentPrice: numeric("rent_price", { precision: 18, scale: 2 }).notNull(),
+    rentPeriod: text("rent_period").notNull(),
+    areaValue: numeric("area_value", { precision: 14, scale: 2 }).notNull(),
+    areaUnit: text("area_unit").notNull(),
+    floorsCount: integer("floors_count"),
+    roomsCount: integer("rooms_count"),
+    bathroomsCount: integer("bathrooms_count"),
+    amenities: jsonb("amenities").notNull().default({}),
+    otherDetails: text("other_details"),
+    governorateId: bigint("governorate_id", { mode: "number" }).references(() => governorates.id, { onDelete: "set null" }),
+    districtId: bigint("district_id", { mode: "number" }).references(() => districts.id, { onDelete: "set null" }),
+    neighborhoodId: bigint("neighborhood_id", { mode: "number" }).references(() => neighborhoods.id, { onDelete: "set null" }),
+    governorate: text("governorate"),
+    district: text("district"),
+    neighborhood: text("neighborhood"),
+    addressDetails: text("address_details"),
+    ownerName: text("owner_name").notNull(),
+    ownerPhone: text("owner_phone").notNull(),
+    ownerNotes: text("owner_notes"),
+    status: text("status").notNull().default("available"),
+    isNegotiable: boolean("is_negotiable").notNull().default(false),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("idx_rentals_status").on(table.status),
+    index("idx_rentals_property_type").on(table.propertyType),
+    index("idx_rentals_rent_period").on(table.rentPeriod),
+    index("idx_rentals_rent_price").on(table.rentPrice),
+    index("idx_rentals_area").on(table.areaValue),
+    index("idx_rentals_governorate").on(table.governorate),
+    index("idx_rentals_district").on(table.district),
+    index("idx_rentals_neighborhood").on(table.neighborhood),
+    index("idx_rentals_governorate_id").on(table.governorateId),
+    index("idx_rentals_district_id").on(table.districtId),
+    index("idx_rentals_neighborhood_id").on(table.neighborhoodId),
+  ],
+);
+
+export const rentalImages = pgTable(
+  "rental_images",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    rentalId: bigint("rental_id", { mode: "number" }).notNull().references(() => rentals.id, { onDelete: "cascade" }),
+    filePath: text("file_path").notNull(),
+    originalName: text("original_name"),
+    isPrimary: boolean("is_primary").notNull().default(false),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("idx_rental_images_rental").on(table.rentalId)],
+);
 export const auditLogs = pgTable(
   "audit_logs",
   {
@@ -282,6 +342,29 @@ export const favoriteProperties = pgTable(
   (table) => [primaryKey({ columns: [table.userId, table.propertyId] })],
 );
 
+export const rentalFollowups = pgTable(
+  "rental_followups",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    rentalId: bigint("rental_id", { mode: "number" }).notNull().references(() => rentals.id, { onDelete: "cascade" }),
+    userId: bigint("user_id", { mode: "number" }).references(() => users.id, { onDelete: "set null" }),
+    type: text("type").notNull(),
+    notes: text("notes"),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("idx_rental_followups_rental").on(table.rentalId), index("idx_rental_followups_scheduled").on(table.scheduledAt)],
+);
+
+export const favoriteRentals = pgTable(
+  "favorite_rentals",
+  {
+    userId: bigint("user_id", { mode: "number" }).notNull().references(() => users.id, { onDelete: "cascade" }),
+    rentalId: bigint("rental_id", { mode: "number" }).notNull().references(() => rentals.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.rentalId] })],
+);
 export const backupJobs = pgTable("backup_jobs", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
   type: text("type").notNull(),
@@ -331,11 +414,18 @@ export type Neighborhood = typeof neighborhoods.$inferSelect;
 export type NewNeighborhood = typeof neighborhoods.$inferInsert;
 export type PropertyImage = typeof propertyImages.$inferSelect;
 export type NewPropertyImage = typeof propertyImages.$inferInsert;
+export type Rental = typeof rentals.$inferSelect;
+export type NewRental = typeof rentals.$inferInsert;
+export type RentalImage = typeof rentalImages.$inferSelect;
+export type NewRentalImage = typeof rentalImages.$inferInsert;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type NewAuditLog = typeof auditLogs.$inferInsert;
 export type PropertyFollowup = typeof propertyFollowups.$inferSelect;
 export type NewPropertyFollowup = typeof propertyFollowups.$inferInsert;
 export type FavoriteProperty = typeof favoriteProperties.$inferSelect;
+export type RentalFollowup = typeof rentalFollowups.$inferSelect;
+export type NewRentalFollowup = typeof rentalFollowups.$inferInsert;
+export type FavoriteRental = typeof favoriteRentals.$inferSelect;
 export type BackupJob = typeof backupJobs.$inferSelect;
 export type NewBackupJob = typeof backupJobs.$inferInsert;
 export type BackupLog = typeof backupLogs.$inferSelect;

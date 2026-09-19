@@ -34,21 +34,22 @@ function decodeImage(data: string, originalName?: string) {
 }
 
 /** يحفظ صورة على القرص ويعيد المسار النسبي المخزَّن في القاعدة. */
-export function saveImageToDisk(propertyId: number, data: string, originalName?: string) {
+export function saveScopedImageToDisk(scope: string, entityId: number, data: string, originalName?: string) {
   const { buffer, ext } = decodeImage(data, originalName);
-  if (!buffer.length) {
-    throw new Error("ملف الصورة فارغ أو غير صالح.");
-  }
-
-  const dir = path.join(config.imagesDir, String(propertyId));
+  if (!buffer.length) throw new Error("ملف الصورة فارغ أو غير صالح.");
+  const dir = scope ? path.join(config.imagesDir, scope, String(entityId)) : path.join(config.imagesDir, String(entityId));
   fs.mkdirSync(dir, { recursive: true });
-
   const fileName = `${crypto.randomUUID()}${ext}`;
-  const absolutePath = path.join(dir, fileName);
-  fs.writeFileSync(absolutePath, buffer);
+  fs.writeFileSync(path.join(dir, fileName), buffer);
+  return { filePath: scope ? `${scope}/${entityId}/${fileName}` : `${entityId}/${fileName}`, size: buffer.length };
+}
 
-  // مسار نسبي لقابلية النقل والنسخ الاحتياطي: "125/uuid.jpg"
-  return { filePath: `${propertyId}/${fileName}`, size: buffer.length };
+export function saveImageToDisk(propertyId: number, data: string, originalName?: string) {
+  return saveScopedImageToDisk("", propertyId, data, originalName);
+}
+
+export function saveRentalImageToDisk(rentalId: number, data: string, originalName?: string) {
+  return saveScopedImageToDisk("rentals", rentalId, data, originalName);
 }
 
 export function resolveImageAbsolutePath(filePath: string) {

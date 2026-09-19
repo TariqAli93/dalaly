@@ -23,6 +23,8 @@ export const STATUSES = [
   { title: "مؤرشف", value: "archived" },
 ];
 
+export const RENTAL_PROPERTY_TYPES = [{ title: "بيت", value: "house" }, { title: "شقة", value: "apartment" }, { title: "محل", value: "shop" }, { title: "مخزن", value: "warehouse" }, { title: "أخرى", value: "other" }];
+
 export type NavItem = {
   title: string;
   to: string;
@@ -31,6 +33,9 @@ export type NavItem = {
 };
 
 export const NAV_ITEMS: NavItem[] = [
+  { title: "الإيجارات", to: "/rentals", icon: "mdi-key-chain", permission: "rentals.read" },
+  { title: "إضافة إيجار", to: "/rentals/new", icon: "mdi-key-plus", permission: "rentals.create" },
+  { title: "مفضلة الإيجارات", to: "/rental-favorites", icon: "mdi-heart-multiple-outline", permission: "rentals.read" },
   { title: "لوحة البداية", to: "/", icon: "mdi-view-dashboard-outline" },
   {
     title: "العروض العقارية",
