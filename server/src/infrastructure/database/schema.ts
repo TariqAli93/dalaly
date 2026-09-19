@@ -232,6 +232,7 @@ export const rentals = pgTable(
   "rentals",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
+    name: text("name"),
     code: text("code").notNull().unique(),
     propertyType: text("property_type").notNull(),
     rentPrice: numeric("rent_price", { precision: 18, scale: 2 }).notNull(),

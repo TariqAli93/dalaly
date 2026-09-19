@@ -6,6 +6,7 @@ const optionalCount = z.coerce.number().int().nonnegative().optional().nullable(
 const optionalId = z.coerce.number().int().positive().optional().nullable();
 
 export const rentalPayloadSchema = z.object({
+  name: optionalText,
   property_type: z.enum(RENTAL_PROPERTY_TYPES),
   rent_price: z.coerce.number().positive(),
   rent_period: z.enum(RENT_PERIODS),

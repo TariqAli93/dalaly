@@ -8,6 +8,7 @@ export type PropertyStatus =
 
 export type PropertyRecord = {
   id: number;
+  name: string | null;
   code: string;
   property_type: string;
   legal_type: string;
@@ -53,6 +54,7 @@ export type PropertyRecord = {
 };
 
 export type PropertyForm = {
+  name: string;
   property_type: string;
   legal_type: string;
   area_value: string | number;

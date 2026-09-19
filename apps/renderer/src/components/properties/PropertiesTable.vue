@@ -37,6 +37,7 @@ function rowProps(ctx: { item: PropertyRecord }) {
 }
 
 const headers = [
+  { title: "الاسم", key: "name", sortable: true },
   { title: "الكود", key: "code", sortable: true },
   { title: "النوع", key: "property_type" },
   { title: "المنطقة", key: "district" },
@@ -97,6 +98,9 @@ const headers = [
       :row-props="rowProps"
       @click:row="onRowClick"
     >
+      <template #item.name="{ item }">
+        {{ item.name || `properties ${item.code}` }}
+      </template>
       <template #item.neighborhood="{ item }">
         {{ neighborhoodOf(item) || "-" }}
       </template>

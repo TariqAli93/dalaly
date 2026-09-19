@@ -91,6 +91,7 @@ function isUniquePlotViolation(error: unknown): boolean {
 // كل الحقول النصية القابلة للبحث الشامل.
 const SEARCHABLE_TEXT_COLUMNS: AnyPgColumn[] = [
   properties.code,
+  properties.name,
   properties.propertyType,
   properties.legalType,
   properties.pricingMethod,
@@ -229,7 +230,7 @@ export async function listProperties(filters: PropertyFilters) {
   }
 
   const result = await query;
-  return toApiObjects(result);
+  return toApiObjects(result, "properties");
 }
 
 export async function getProperty(id: number) {
@@ -238,7 +239,7 @@ export async function getProperty(id: number) {
     .from(properties)
     .where(eq(properties.id, id))
     .limit(1);
-  return property ? toApiObject(property) : null;
+  return property ? toApiObject(property, "properties") : null;
 }
 
 export async function createProperty(payload: PropertyPayload, userId?: number) {
@@ -268,7 +269,7 @@ export async function createProperty(payload: PropertyPayload, userId?: number) 
     }
   })();
 
-  const result = toApiObject(property);
+  const result = toApiObject(property, "properties");
   await recordAudit({
     entityType: ENTITY,
     entityId: property.id,
@@ -312,7 +313,7 @@ export async function updateProperty(
   })();
 
   if (!property) return null;
-  const after = toApiObject(property);
+  const after = toApiObject(property, "properties");
 
   await recordAudit({
     entityType: ENTITY,
@@ -355,7 +356,7 @@ export async function deleteProperty(id: number, userId?: number) {
     .returning();
   if (!property) return null;
 
-  const result = toApiObject(property);
+  const result = toApiObject(property, "properties");
   await recordAudit({
     entityType: ENTITY,
     entityId: id,
@@ -375,7 +376,7 @@ export async function archiveProperty(id: number, userId?: number) {
     .returning();
   if (!property) return null;
 
-  const result = toApiObject(property);
+  const result = toApiObject(property, "properties");
   await recordAudit({ entityType: ENTITY, entityId: id, action: "archived", userId });
   return result;
 }
@@ -388,7 +389,7 @@ export async function restoreProperty(id: number, userId?: number) {
     .returning();
   if (!property) return null;
 
-  const result = toApiObject(property);
+  const result = toApiObject(property, "properties");
   await recordAudit({ entityType: ENTITY, entityId: id, action: "restored", userId });
   return result;
 }
@@ -428,6 +429,7 @@ async function normalizePayload(
     : payload.neighborhood_text ?? null;
 
   return {
+    name: payload.name ?? null,
     propertyType: payload.property_type,
     legalType: payload.legal_type,
     areaValue: String(payload.area_value),

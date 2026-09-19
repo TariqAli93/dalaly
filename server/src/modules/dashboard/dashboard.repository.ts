@@ -119,11 +119,11 @@ export async function getDashboard() {
   return {
     counts,
     financial,
-    latest: toApiObjects(latestRows),
+    latest: toApiObjects(latestRows, "properties"),
     recent_activity: recentActivity,
     top_governorates: topGovernorates.map((r) => ({ name: r.name, count: Number(r.count) })),
     top_districts: topDistricts.map((r) => ({ name: r.name, count: Number(r.count) })),
-    needs_review: toApiObjects(needsReviewRows),
+    needs_review: toApiObjects(needsReviewRows, "properties"),
     reminders
   };
 }

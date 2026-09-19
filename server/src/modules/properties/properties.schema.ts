@@ -19,6 +19,7 @@ const optionalCount = z.coerce.number().int().nonnegative().optional().nullable(
 
 export const propertyPayloadSchema = z
   .object({
+    name: optionalText,
     property_type: z.enum(PROPERTY_TYPES),
     legal_type: z.enum(LEGAL_TYPES),
     area_value: z.coerce.number().positive(),

@@ -19,6 +19,7 @@ const { notifySuccess, notifyError } = useSnackbar();
 
 function defaultForm(): PropertyFormType {
   return {
+    name: "",
     property_type: "أرض",
     legal_type: "طابو ملك صرف",
     area_value: "",
@@ -57,6 +58,7 @@ function defaultForm(): PropertyFormType {
 
 function propertyToForm(p: PropertyRecord): PropertyFormType {
   return {
+    name: p.name ?? "",
     property_type: p.property_type,
     legal_type: p.legal_type,
     area_value: p.area_value,

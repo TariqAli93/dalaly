@@ -53,6 +53,12 @@ defineExpose({ validate, computedTotal });
 
       <v-card-text>
         <div class="form-grid">
+          <v-text-field
+            v-model="model.name"
+            label="اسم العرض"
+            hint="اختياري؛ سيُستخدم اسم تلقائي عند تركه فارغاً"
+            persistent-hint
+          />
           <v-select
             v-model="model.property_type"
             :items="PROPERTY_TYPES"

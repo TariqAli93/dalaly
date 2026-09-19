@@ -8,7 +8,7 @@ import { type RentalFilters, type RentalPayload } from "./rentals.schema.js";
 
 const ENTITY = "rental";
 const SEARCHABLE_COLUMNS = [
-  rentals.code, rentals.propertyType, rentals.rentPeriod, rentals.areaUnit,
+  rentals.code, rentals.name, rentals.propertyType, rentals.rentPeriod, rentals.areaUnit,
   rentals.governorate, rentals.district, rentals.neighborhood, rentals.addressDetails,
   rentals.ownerName, rentals.ownerPhone, rentals.ownerNotes, rentals.otherDetails, rentals.notes
 ];
@@ -50,12 +50,12 @@ export async function listRentals(filters: RentalFilters) {
   if (search) for (const token of search.split(/\s+/).filter(Boolean)) where.push(searchClause(token));
   let query = db.select().from(rentals).where(and(...where)).orderBy(desc(rentals.createdAt), desc(rentals.id)).$dynamic();
   if (typeof filters.limit === "number") query = query.limit(filters.limit).offset(filters.offset ?? 0);
-  return toApiObjects(await query);
+  return toApiObjects(await query, "rentals");
 }
 
 export async function getRental(id: number) {
   const [rental] = await db.select().from(rentals).where(eq(rentals.id, id)).limit(1);
-  return rental ? toApiObject(rental) : null;
+  return rental ? toApiObject(rental, "rentals") : null;
 }
 
 async function normalizePayload(payload: RentalPayload): Promise<Omit<NewRental, "code">> {
@@ -63,6 +63,7 @@ async function normalizePayload(payload: RentalPayload): Promise<Omit<NewRental,
   const district = payload.district_id ? await getDistrictName(payload.district_id) : payload.district ?? null;
   const neighborhood = payload.neighborhood_id ? await getNeighborhoodName(payload.neighborhood_id) : payload.neighborhood ?? null;
   return {
+    name: payload.name ?? null,
     propertyType: payload.property_type,
     rentPrice: String(payload.rent_price),
     rentPeriod: payload.rent_period,
@@ -95,7 +96,7 @@ async function generateRentalCode() {
 
 export async function createRental(payload: RentalPayload, userId?: number) {
   const [row] = await db.insert(rentals).values({ ...(await normalizePayload(payload)), code: await generateRentalCode() }).returning();
-  const result = toApiObject(row);
+  const result = toApiObject(row, "rentals");
   await recordAudit({ entityType: ENTITY, entityId: row.id, action: "created", newValue: result, userId });
   return result;
 }
@@ -105,7 +106,7 @@ export async function updateRental(id: number, payload: RentalPayload, userId?: 
   if (!before) return null;
   const [row] = await db.update(rentals).set({ ...(await normalizePayload(payload)), updatedAt: new Date() }).where(eq(rentals.id, id)).returning();
   if (!row) return null;
-  const result = toApiObject(row);
+  const result = toApiObject(row, "rentals");
   await recordAudit({ entityType: ENTITY, entityId: id, action: "updated", oldValue: before, newValue: result, userId });
   return result;
 }
@@ -113,7 +114,7 @@ export async function updateRental(id: number, payload: RentalPayload, userId?: 
 export async function deleteRental(id: number, userId?: number) {
   const [row] = await db.delete(rentals).where(eq(rentals.id, id)).returning();
   if (!row) return null;
-  const result = toApiObject(row);
+  const result = toApiObject(row, "rentals");
   await recordAudit({ entityType: ENTITY, entityId: id, action: "deleted", oldValue: result, userId });
   return result;
 }
@@ -122,7 +123,7 @@ export async function archiveRental(id: number, userId?: number) {
   const now = new Date();
   const [row] = await db.update(rentals).set({ status: "archived", archivedAt: now, updatedAt: now }).where(eq(rentals.id, id)).returning();
   if (!row) return null;
-  const result = toApiObject(row);
+  const result = toApiObject(row, "rentals");
   await recordAudit({ entityType: ENTITY, entityId: id, action: "archived", userId });
   return result;
 }
@@ -130,7 +131,7 @@ export async function archiveRental(id: number, userId?: number) {
 export async function restoreRental(id: number, userId?: number) {
   const [row] = await db.update(rentals).set({ status: "available", archivedAt: null, updatedAt: new Date() }).where(eq(rentals.id, id)).returning();
   if (!row) return null;
-  const result = toApiObject(row);
+  const result = toApiObject(row, "rentals");
   await recordAudit({ entityType: ENTITY, entityId: id, action: "restored", userId });
   return result;
 }

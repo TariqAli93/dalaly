@@ -65,8 +65,8 @@ const rows = computed(() => {
     <!-- رأس الـ pane: الكود والنوع والحالة وزر الإغلاق -->
     <div class="ps__head">
       <div class="min-w-0">
-        <div class="ps__code money">{{ property.code }}</div>
-        <div class="ps__type">{{ property.property_type }}</div>
+        <div class="ps__code">{{ property.name || `properties ${property.code}` }}</div>
+        <div class="ps__type money">{{ property.code }} · {{ property.property_type }}</div>
       </div>
       <StatusChip :status="property.status" />
       <FavoriteButton :property-id="property.id" />
