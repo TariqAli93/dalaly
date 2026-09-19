@@ -5,6 +5,7 @@ import type {
   SetupStatus,
   TestPostgresResult,
 } from "../types";
+import { platform } from "../platform";
 import { publicRequest } from "./api.service";
 
 export function fetchSetupStatus() {
@@ -37,13 +38,10 @@ export function createFirstAdmin(username: string, pin: string) {
 }
 
 /**
- * يحفظ DATABASE_URL محلياً عبر Electron IPC (إن توفر).
- * في المتصفح أثناء التطوير يكون window.dalalyConfig غير معرّف، وهذا مقبول
- * لأن الخادم قد أعاد تهيئة الـ pool حيّاً.
+ * يحفظ DATABASE_URL محلياً عبر طبقة المنصّة (Electron IPC).
+ * في المتصفح لا يوجد ملف إعدادات محلي، وهذا مقبول لأن الخادم قد أعاد
+ * تهيئة الـ pool حيّاً.
  */
 export async function persistDatabaseUrl(databaseUrl: string) {
-  const bridge = window.dalalyConfig;
-  if (bridge?.saveDatabaseUrl) {
-    await bridge.saveDatabaseUrl(databaseUrl);
-  }
+  await platform.saveDatabaseUrl(databaseUrl);
 }

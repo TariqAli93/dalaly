@@ -1,6 +1,7 @@
 import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { ZodError } from "zod";
+import { config } from "./infrastructure/config.js";
 import { DuplicatePlotError } from "./shared/errors.js";
 import { getSetupStatus } from "./infrastructure/database/health.js";
 import { registerAuthHook } from "./modules/auth/auth.hooks.js";
@@ -25,7 +26,7 @@ export async function buildServer() {
   const app = Fastify({ logger: true, bodyLimit: 50 * 1024 * 1024 });
 
   await app.register(cors, {
-    origin: ["http://127.0.0.1:5173", "http://localhost:5173"],
+    origin: config.corsOrigins,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import { platform } from "../../platform";
 import { usePermissions } from "../../composables/usePermissions";
 import { useSnackbar } from "../../composables/useSnackbar";
 import type { ScheduledBackupConfig } from "../../types";
@@ -7,7 +8,7 @@ import type { ScheduledBackupConfig } from "../../types";
 const { can } = usePermissions();
 const { notifySuccess, notifyError } = useSnackbar();
 
-const available = ref(Boolean(window.dalalyConfig?.getScheduledBackup));
+const available = ref(platform.supportsScheduledBackup);
 const saving = ref(false);
 const password = ref("");
 
@@ -36,9 +37,9 @@ function fmt(value?: string | null) {
 }
 
 async function load() {
-  if (!window.dalalyConfig?.getScheduledBackup) return;
+  if (!platform.supportsScheduledBackup) return;
   try {
-    const loaded = await window.dalalyConfig.getScheduledBackup();
+    const loaded = await platform.getScheduledBackup();
     if (loaded) config.value = { ...config.value, ...loaded };
   } catch {
     // تجاهل
@@ -46,13 +47,13 @@ async function load() {
 }
 
 async function save() {
-  if (!window.dalalyConfig?.saveScheduledBackup) {
+  if (!platform.supportsScheduledBackup) {
     notifyError("الجدولة متاحة فقط داخل تطبيق سطح المكتب.");
     return;
   }
   saving.value = true;
   try {
-    await window.dalalyConfig.saveScheduledBackup({
+    await platform.saveScheduledBackup({
       ...config.value,
       port: Number(config.value.smtpPort),
       password: password.value || undefined,

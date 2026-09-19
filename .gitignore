@@ -7,3 +7,14 @@ coverage
 apps/renderer/dist
 apps/desktop/release
 server/dist
+
+# وضع web-demo والتصوير
+server/data/web-demo
+test-results
+playwright-report
+
+*.webp
+*.mp4
+*.webm
+source-assets
+tests

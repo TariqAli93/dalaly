@@ -1,4 +1,6 @@
 import { statusLabel } from "../constants/domain";
+import { platform } from "../platform";
+import { downloadBlob } from "../platform/web";
 import { formatMoney, formatPlot } from "./format";
 import type { PropertyRecord } from "../types";
 
@@ -119,9 +121,18 @@ function escapeHtml(value: string) {
     .replace(/>/g, "&gt;");
 }
 
-/** طباعة عبر نافذة منفصلة (تدعم العربية بشكل صحيح). */
+/**
+ * طباعة عبر نافذة منفصلة (تدعم العربية بشكل صحيح) على سطح المكتب.
+ * في المتصفح لا نفتح نافذة منبثقة — ننزّل نفس المستند جاهزاً للطباعة.
+ */
 export function printDocument(title: string, bodyText: string) {
   const html = buildHtmlDocument(title, bodyText);
+
+  if (!platform.isDesktop) {
+    downloadBlob(`${title}.print.html`, html, "text/html;charset=utf-8");
+    return;
+  }
+
   const win = window.open("", "_blank", "width=720,height=900");
   if (!win) return;
   win.document.write(html);
@@ -132,15 +143,16 @@ export function printDocument(title: string, bodyText: string) {
 }
 
 /**
- * تصدير PDF: في Electron عبر IPC (printToPDF) لحفظ ملف فعلي،
- * وإلا يفتح نافذة الطباعة (يمكن للمستخدم اختيار "حفظ كـ PDF").
+ * تصدير PDF عبر طبقة المنصّة:
+ *   سطح المكتب → حوار حفظ Electron (printToPDF) لملف PDF فعلي.
+ *   المتصفح     → تنزيل مستند جاهز للطباعة بدون نافذة نظام.
  */
 export async function exportPdf(filename: string, title: string, bodyText: string) {
   const html = buildHtmlDocument(title, bodyText);
-  const bridge = window.dalalyConfig;
-  if (bridge?.exportPdf) {
-    return bridge.exportPdf({ html, suggestedName: filename });
-  }
-  printDocument(title, bodyText);
-  return { ok: true, fallback: true };
+  return platform.exportPdf({
+    html,
+    suggestedName: filename,
+    title,
+    text: bodyText,
+  });
 }

@@ -2,6 +2,7 @@
 import { onMounted, ref } from "vue";
 import * as backupService from "../../services/backup.service";
 import { getErrorMessage } from "../../services/api.service";
+import { platform } from "../../platform";
 import { usePermissions } from "../../composables/usePermissions";
 import { useSnackbar } from "../../composables/useSnackbar";
 import { useConfirm } from "../../composables/useConfirm";
@@ -16,7 +17,11 @@ const { setRefreshHandler } = useRefresh();
 const history = ref<BackupHistory | null>(null);
 const creating = ref(false);
 const exporting = ref(false);
-const canExport = Boolean(window.dalalyConfig?.chooseExportPath);
+// التصدير إلى مسار على القرص وتغيير مجلد النسخ يحتاجان حوارات نظام،
+// فهما متاحان في تطبيق سطح المكتب فقط. إنشاء النسخة والاسترجاع يعملان
+// في الحالتين (الاسترجاع في المتصفح يستخدم <input type="file">).
+const canExport = platform.isDesktop;
+const canPickFolder = platform.isDesktop;
 const restoreOpen = ref(false);
 const restoreScope = ref<
   "full" | "properties" | "images" | "users" | "settings"
@@ -26,8 +31,6 @@ const restoreData = ref("");
 const restoreFileName = ref("");
 const restoring = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
-
-console.log(window.dalalyConfig);
 
 const SCOPES = [
   { title: "استرجاع كامل", value: "full" },
@@ -56,15 +59,13 @@ async function load() {
   }
 }
 
-const canPickFolder = Boolean(window.dalalyConfig?.pickFolder);
-
 // تصدير يدوي: يفتح حوار حفظ Electron ثم يكتب ZIP في المسار المختار.
 async function exportManualBackup() {
-  if (!window.dalalyConfig?.chooseExportPath) {
-    notifyError("التصدير اليدوي متاح فقط داخل تطبيق سطح المكتب.");
+  if (!platform.isDesktop) {
+    notifyError(platform.unavailableReason("التصدير اليدوي") ?? "");
     return;
   }
-  const selected = await window.dalalyConfig.chooseExportPath();
+  const selected = await platform.chooseBackupExportPath();
   if (selected?.canceled || !selected?.filePath) return;
 
   exporting.value = true;
@@ -80,9 +81,9 @@ async function exportManualBackup() {
 }
 
 async function changeFolder() {
-  if (!window.dalalyConfig?.pickFolder) return;
+  if (!platform.isDesktop) return;
   try {
-    const result = await window.dalalyConfig.pickFolder();
+    const result = await platform.pickFolder();
     if (result?.path) {
       await backupService.setBackupDir(result.path);
       notifySuccess("تم تغيير مجلد النسخ.");
@@ -116,14 +117,15 @@ function openRestore() {
 
 async function pickFile() {
   // في تطبيق Electron نستخدم حوار النظام لاختيار الملف بالمسار.
-  if (window.dalalyConfig?.pickBackupFile) {
-    const result = await window.dalalyConfig.pickBackupFile();
+  if (platform.isDesktop) {
+    const result = await platform.pickBackupFile();
     if (result?.path) {
       restoreFilePath.value = result.path;
       restoreFileName.value = result.path;
     }
     return;
   }
+  // في المتصفح: منتقي ملفات عادي، والمحتوى يُرسل كـ data URL.
   fileInput.value?.click();
 }
 

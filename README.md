@@ -67,6 +67,36 @@ pnpm package:installer # Windows NSIS installer
 pnpm release          # full release build into apps/desktop/release
 ```
 
+## Web Demo Mode (capture only)
+
+A separate, isolated mode that serves the same Vue app in a plain browser. It exists
+to record screenshots and videos for the Codel website. It does **not** affect the
+Electron app, the production build, or the development database.
+
+```bash
+pnpm demo:reset   # rebuild the isolated dalaly_demo database + demo images
+pnpm dev:web      # API on 127.0.0.1:45699 + web UI on 127.0.0.1:5199
+```
+
+Isolation: separate env file (`.env.web-demo`), separate database (`dalaly_demo`),
+separate API port (45699), separate web port (5199), separate data directory
+(`server/data/web-demo`). Capture account: `demo.admin` / `246810` (local only).
+
+Electron-only capabilities (native save/open dialogs, scheduled email backup) fall
+back to browser equivalents through `apps/renderer/src/platform/`.
+
+### Capturing
+
+```bash
+pnpm capture:list      # list every feature capture
+pnpm capture:all       # run all captures (screenshots + one video per feature)
+pnpm capture:process   # FFmpeg: optimized webm + mp4 + poster + webp screenshots
+pnpm capture:report    # open the Playwright HTML report
+```
+
+Requires FFmpeg on `PATH` (not installed by these scripts).
+See `docs/CAPTURE-SHOT-LIST.md` and `docs/CAPTURE-REPORT.md`.
+
 ## Remote Access
 
 Remote access is optional. Place `cloudflared.exe` at:

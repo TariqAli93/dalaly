@@ -1,0 +1,1288 @@
+[
+  {
+    "id": "admin/01-users",
+    "title": "إدارة المستخدمين وأدوارهم",
+    "route": "/#/users",
+    "raw": "source-assets/captures/dalaly/admin/01-users",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/admin/01-users/screenshot.png",
+        "output": "public/images/products/dalaly/admin/01-users/desktop.webp",
+        "bytes": 34578
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-11-admin-دلالي-—-ال-cb6ce-والصلاحيات-قائمة-المستخدمين-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/admin/01-users/desktop.webm",
+      "mp4": "public/videos/dalaly/admin/01-users/desktop.mp4",
+      "originalSeconds": 4.2,
+      "seconds": 3.04,
+      "webmBytes": 92187,
+      "mp4Bytes": 98284
+    },
+    "poster": {
+      "output": "public/posters/dalaly/admin/01-users.webp",
+      "bytes": 35000
+    }
+  },
+  {
+    "id": "admin/02-add-user",
+    "title": "إضافة مستخدم جديد وربطه بدور",
+    "route": "/#/users",
+    "raw": "source-assets/captures/dalaly/admin/02-add-user",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/admin/02-add-user/screenshot-dialog.png",
+        "output": "public/images/products/dalaly/admin/02-add-user/screenshot-dialog.webp",
+        "bytes": 28494
+      },
+      {
+        "source": "source-assets/captures/dalaly/admin/02-add-user/screenshot.png",
+        "output": "public/images/products/dalaly/admin/02-add-user/desktop.webp",
+        "bytes": 30304
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-11-admin-دلالي-—-المستخدمون-والصلاحيات-إضافة-مستخدم-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/admin/02-add-user/desktop.webm",
+      "mp4": "public/videos/dalaly/admin/02-add-user/desktop.mp4",
+      "originalSeconds": 12.2,
+      "seconds": 11.2,
+      "webmBytes": 323261,
+      "mp4Bytes": 346307
+    },
+    "poster": {
+      "output": "public/posters/dalaly/admin/02-add-user.webp",
+      "bytes": 32602
+    }
+  },
+  {
+    "id": "admin/03-roles",
+    "title": "الأدوار والصلاحيات",
+    "route": "/#/roles",
+    "raw": "source-assets/captures/dalaly/admin/03-roles",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/admin/03-roles/screenshot.png",
+        "output": "public/images/products/dalaly/admin/03-roles/desktop.webp",
+        "bytes": 49924
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-11-admin-دلالي-—-ال-586ee-لصلاحيات-الأدوار-والصلاحيات-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/admin/03-roles/desktop.webm",
+      "mp4": "public/videos/dalaly/admin/03-roles/desktop.mp4",
+      "originalSeconds": 5.76,
+      "seconds": 4.4,
+      "webmBytes": 177022,
+      "mp4Bytes": 185721
+    },
+    "poster": {
+      "output": "public/posters/dalaly/admin/03-roles.webp",
+      "bytes": 49764
+    }
+  },
+  {
+    "id": "admin/04-role-permissions",
+    "title": "تعديل صلاحيات دور",
+    "route": "/#/roles",
+    "raw": "source-assets/captures/dalaly/admin/04-role-permissions",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/admin/04-role-permissions/screenshot-dialog.png",
+        "output": "public/images/products/dalaly/admin/04-role-permissions/screenshot-dialog.webp",
+        "bytes": 55194
+      },
+      {
+        "source": "source-assets/captures/dalaly/admin/04-role-permissions/screenshot.png",
+        "output": "public/images/products/dalaly/admin/04-role-permissions/desktop.webp",
+        "bytes": 28548
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-11-admin-دلالي-—-ال-66fec-الصلاحيات-تعديل-صلاحيات-دور-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/admin/04-role-permissions/desktop.webm",
+      "mp4": "public/videos/dalaly/admin/04-role-permissions/desktop.mp4",
+      "originalSeconds": 9.96,
+      "seconds": 8.48,
+      "webmBytes": 524453,
+      "mp4Bytes": 524677
+    },
+    "poster": {
+      "output": "public/posters/dalaly/admin/04-role-permissions.webp",
+      "bytes": 30546
+    }
+  },
+  {
+    "id": "audit/01-property-log",
+    "title": "سجل تغييرات العقار",
+    "route": "/#/properties → تفاصيل → السجل",
+    "raw": "source-assets/captures/dalaly/audit/01-property-log",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/audit/01-property-log/screenshot.png",
+        "output": "public/images/products/dalaly/audit/01-property-log/desktop.webp",
+        "bytes": 37132
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-06-followups-دلالي--9fc37-لتغييرات-سجل-تغييرات-العقار-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/audit/01-property-log/desktop.webm",
+      "mp4": "public/videos/dalaly/audit/01-property-log/desktop.mp4",
+      "originalSeconds": 7.16,
+      "seconds": 5.96,
+      "webmBytes": 627621,
+      "mp4Bytes": 547320
+    },
+    "poster": {
+      "output": "public/posters/dalaly/audit/01-property-log.webp",
+      "bytes": 48020
+    }
+  },
+  {
+    "id": "auth/01-login-screen",
+    "title": "شاشة تسجيل الدخول",
+    "route": "/#/login",
+    "raw": "source-assets/captures/dalaly/auth/01-login-screen",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/auth/01-login-screen/screenshot.png",
+        "output": "public/images/products/dalaly/auth/01-login-screen/desktop.webp",
+        "bytes": 13856
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-01-auth-دلالي-—-المصادقة-شاشة-تسجيل-الدخول-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/auth/01-login-screen/desktop.webm",
+      "mp4": "public/videos/dalaly/auth/01-login-screen/desktop.mp4",
+      "originalSeconds": 5.96,
+      "seconds": 5.4,
+      "webmBytes": 61488,
+      "mp4Bytes": 80551
+    },
+    "poster": {
+      "output": "public/posters/dalaly/auth/01-login-screen.webp",
+      "bytes": 14136
+    }
+  },
+  {
+    "id": "auth/02-login-success",
+    "title": "تسجيل الدخول الناجح والانتقال إلى لوحة التحكم",
+    "route": "/#/login → /#/",
+    "raw": "source-assets/captures/dalaly/auth/02-login-success",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/auth/02-login-success/screenshot.png",
+        "output": "public/images/products/dalaly/auth/02-login-success/desktop.webp",
+        "bytes": 66170
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-01-auth-دلالي-—-المصادقة-تسجيل-دخول-ناجح-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/auth/02-login-success/desktop.webm",
+      "mp4": "public/videos/dalaly/auth/02-login-success/desktop.mp4",
+      "originalSeconds": 8.6,
+      "seconds": 7.4,
+      "webmBytes": 179586,
+      "mp4Bytes": 180543
+    },
+    "poster": {
+      "output": "public/posters/dalaly/auth/02-login-success.webp",
+      "bytes": 68456
+    }
+  },
+  {
+    "id": "backup/01-create",
+    "title": "إنشاء نسخة احتياطية وظهورها في السجل",
+    "route": "/#/settings",
+    "raw": "source-assets/captures/dalaly/backup/01-create",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/backup/01-create/screenshot-before.png",
+        "output": "public/images/products/dalaly/backup/01-create/screenshot-before.webp",
+        "bytes": 32668
+      },
+      {
+        "source": "source-assets/captures/dalaly/backup/01-create/screenshot.png",
+        "output": "public/images/products/dalaly/backup/01-create/desktop.webp",
+        "bytes": 36702
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-12-settings-دلالي-—-c43b8-احتياطي-إنشاء-نسخة-احتياطية-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/backup/01-create/desktop.webm",
+      "mp4": "public/videos/dalaly/backup/01-create/desktop.mp4",
+      "originalSeconds": 6.64,
+      "seconds": 5.72,
+      "webmBytes": 131314,
+      "mp4Bytes": 92224
+    },
+    "poster": {
+      "output": "public/posters/dalaly/backup/01-create.webp",
+      "bytes": 36726
+    }
+  },
+  {
+    "id": "backup/02-restore",
+    "title": "حوار استرجاع نسخة احتياطية (اختيار النطاق والملف)",
+    "route": "/#/settings",
+    "raw": "source-assets/captures/dalaly/backup/02-restore",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/backup/02-restore/screenshot.png",
+        "output": "public/images/products/dalaly/backup/02-restore/desktop.webp",
+        "bytes": 36418
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-12-settings-دلالي-—-72d0d--حوار-استرجاع-نسخة-احتياطية-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/backup/02-restore/desktop.webm",
+      "mp4": "public/videos/dalaly/backup/02-restore/desktop.mp4",
+      "originalSeconds": 6.76,
+      "seconds": 5.76,
+      "webmBytes": 237057,
+      "mp4Bytes": 230041
+    },
+    "poster": {
+      "output": "public/posters/dalaly/backup/02-restore.webp",
+      "bytes": 38274
+    }
+  },
+  {
+    "id": "dashboard/01-overview",
+    "title": "لوحة التحكم",
+    "route": "/#/",
+    "raw": "source-assets/captures/dalaly/dashboard/01-overview",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/dashboard/01-overview/screenshot.png",
+        "output": "public/images/products/dalaly/dashboard/01-overview/desktop.webp",
+        "bytes": 73404
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-02-dashboard-دلالي-—-لوحة-التحكم-لوحة-التحكم-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/dashboard/01-overview/desktop.webm",
+      "mp4": "public/videos/dalaly/dashboard/01-overview/desktop.mp4",
+      "originalSeconds": 6.96,
+      "seconds": 6.08,
+      "webmBytes": 677608,
+      "mp4Bytes": 601151
+    },
+    "poster": {
+      "output": "public/posters/dalaly/dashboard/01-overview.webp",
+      "bytes": 78818
+    }
+  },
+  {
+    "id": "dashboard/02-reminders",
+    "title": "تذكيرات المتابعة (يتطلب انتباهك)",
+    "route": "/#/",
+    "raw": "source-assets/captures/dalaly/dashboard/02-reminders",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/dashboard/02-reminders/screenshot.png",
+        "output": "public/images/products/dalaly/dashboard/02-reminders/desktop.webp",
+        "bytes": 73404
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-02-dashboard-دلالي--642f5-تذكيرات-المتابعة-على-اللوحة-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/dashboard/02-reminders/desktop.webm",
+      "mp4": "public/videos/dalaly/dashboard/02-reminders/desktop.mp4",
+      "originalSeconds": 6.4,
+      "seconds": 5.56,
+      "webmBytes": 566844,
+      "mp4Bytes": 477362
+    },
+    "poster": {
+      "output": "public/posters/dalaly/dashboard/02-reminders.webp",
+      "bytes": 32236
+    }
+  },
+  {
+    "id": "dashboard/03-quick-search",
+    "title": "الوصول السريع والبحث من لوحة التحكم",
+    "route": "/#/",
+    "raw": "source-assets/captures/dalaly/dashboard/03-quick-search",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/dashboard/03-quick-search/screenshot.png",
+        "output": "public/images/products/dalaly/dashboard/03-quick-search/desktop.webp",
+        "bytes": 73404
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-02-dashboard-دلالي--27ce5-تحكم-البحث-السريع-من-اللوحة-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/dashboard/03-quick-search/desktop.webm",
+      "mp4": "public/videos/dalaly/dashboard/03-quick-search/desktop.mp4",
+      "originalSeconds": 6.8,
+      "seconds": 5.92,
+      "webmBytes": 602829,
+      "mp4Bytes": 539359
+    },
+    "poster": {
+      "output": "public/posters/dalaly/dashboard/03-quick-search.webp",
+      "bytes": 31730
+    }
+  },
+  {
+    "id": "export/01-menu",
+    "title": "قائمة تصدير العرض (طباعة، PDF، TXT، واتساب، إعلان)",
+    "route": "/#/properties → تفاصيل → تصدير",
+    "raw": "source-assets/captures/dalaly/export/01-menu",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/export/01-menu/screenshot.png",
+        "output": "public/images/products/dalaly/export/01-menu/desktop.webp",
+        "bytes": 50456
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-08-export-دلالي-—-التصدير-والمشاركة-قائمة-التصدير-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/export/01-menu/desktop.webm",
+      "mp4": "public/videos/dalaly/export/01-menu/desktop.mp4",
+      "originalSeconds": 7,
+      "seconds": 5.8,
+      "webmBytes": 627343,
+      "mp4Bytes": 525341
+    },
+    "poster": {
+      "output": "public/posters/dalaly/export/01-menu.webp",
+      "bytes": 59996
+    }
+  },
+  {
+    "id": "export/02-pdf",
+    "title": "تصدير تفاصيل العرض إلى ملف قابل للطباعة (PDF)",
+    "route": "/#/properties → تفاصيل → تصدير → PDF",
+    "raw": "source-assets/captures/dalaly/export/02-pdf",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/export/02-pdf/screenshot.png",
+        "output": "public/images/products/dalaly/export/02-pdf/desktop.webp",
+        "bytes": 49790
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-08-export-دلالي-—-التصدير-والمشاركة-تصدير-PDF-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/export/02-pdf/desktop.webm",
+      "mp4": "public/videos/dalaly/export/02-pdf/desktop.mp4",
+      "originalSeconds": 8.56,
+      "seconds": 6.72,
+      "webmBytes": 619523,
+      "mp4Bytes": 536141
+    },
+    "poster": {
+      "output": "public/posters/dalaly/export/02-pdf.webp",
+      "bytes": 57656
+    }
+  },
+  {
+    "id": "export/03-txt",
+    "title": "تصدير تفاصيل العرض إلى ملف TXT",
+    "route": "/#/properties → تفاصيل → تصدير → TXT",
+    "raw": "source-assets/captures/dalaly/export/03-txt",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/export/03-txt/screenshot.png",
+        "output": "public/images/products/dalaly/export/03-txt/desktop.webp",
+        "bytes": 49774
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-08-export-دلالي-—-التصدير-والمشاركة-تصدير-TXT-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/export/03-txt/desktop.webm",
+      "mp4": "public/videos/dalaly/export/03-txt/desktop.mp4",
+      "originalSeconds": 8.6,
+      "seconds": 6.8,
+      "webmBytes": 636497,
+      "mp4Bytes": 555180
+    },
+    "poster": {
+      "output": "public/posters/dalaly/export/03-txt.webp",
+      "bytes": 58188
+    }
+  },
+  {
+    "id": "export/04-whatsapp",
+    "title": "نسخ نص العرض الجاهز للواتساب",
+    "route": "/#/properties → تفاصيل → تصدير → واتساب",
+    "raw": "source-assets/captures/dalaly/export/04-whatsapp",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/export/04-whatsapp/screenshot.png",
+        "output": "public/images/products/dalaly/export/04-whatsapp/desktop.webp",
+        "bytes": 49914
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-08-export-دلالي-—-التصدير-والمشاركة-نسخ-نص-الواتساب-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/export/04-whatsapp/desktop.webm",
+      "mp4": "public/videos/dalaly/export/04-whatsapp/desktop.mp4",
+      "originalSeconds": 8.64,
+      "seconds": 6.76,
+      "webmBytes": 634796,
+      "mp4Bytes": 537841
+    },
+    "poster": {
+      "output": "public/posters/dalaly/export/04-whatsapp.webp",
+      "bytes": 57694
+    }
+  },
+  {
+    "id": "export/05-excel",
+    "title": "تصدير قائمة العروض إلى Excel",
+    "route": "/#/properties → تصدير Excel",
+    "raw": "source-assets/captures/dalaly/export/05-excel",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/export/05-excel/screenshot.png",
+        "output": "public/images/products/dalaly/export/05-excel/desktop.webp",
+        "bytes": 68194
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-08-export-دلالي-—-ا-6a081-صدير-قائمة-العروض-إلى-Excel-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/export/05-excel/desktop.webm",
+      "mp4": "public/videos/dalaly/export/05-excel/desktop.mp4",
+      "originalSeconds": 5.6,
+      "seconds": 3.72,
+      "webmBytes": 129545,
+      "mp4Bytes": 122622
+    },
+    "poster": {
+      "output": "public/posters/dalaly/export/05-excel.webp",
+      "bytes": 71154
+    }
+  },
+  {
+    "id": "favorites/01-add",
+    "title": "إضافة عرض إلى المفضلة",
+    "route": "/#/properties",
+    "raw": "source-assets/captures/dalaly/favorites/01-add",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/favorites/01-add/screenshot-before.png",
+        "output": "public/images/products/dalaly/favorites/01-add/screenshot-before.webp",
+        "bytes": 67078
+      },
+      {
+        "source": "source-assets/captures/dalaly/favorites/01-add/screenshot.png",
+        "output": "public/images/products/dalaly/favorites/01-add/desktop.webp",
+        "bytes": 29902
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-07-favorites-دلالي-—-المفضلة-إضافة-عرض-إلى-المفضلة-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/favorites/01-add/desktop.webm",
+      "mp4": "public/videos/dalaly/favorites/01-add/desktop.mp4",
+      "originalSeconds": 7.72,
+      "seconds": 6.44,
+      "webmBytes": 221649,
+      "mp4Bytes": 188583
+    },
+    "poster": {
+      "output": "public/posters/dalaly/favorites/01-add.webp",
+      "bytes": 32278
+    }
+  },
+  {
+    "id": "favorites/02-page",
+    "title": "صفحة العروض المفضلة",
+    "route": "/#/favorites",
+    "raw": "source-assets/captures/dalaly/favorites/02-page",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/favorites/02-page/screenshot.png",
+        "output": "public/images/products/dalaly/favorites/02-page/desktop.webp",
+        "bytes": 40998
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-07-favorites-دلالي-—-المفضلة-صفحة-العروض-المفضلة-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/favorites/02-page/desktop.webm",
+      "mp4": "public/videos/dalaly/favorites/02-page/desktop.mp4",
+      "originalSeconds": 4.52,
+      "seconds": 3,
+      "webmBytes": 136974,
+      "mp4Bytes": 139033
+    },
+    "poster": {
+      "output": "public/posters/dalaly/favorites/02-page.webp",
+      "bytes": 40616
+    }
+  },
+  {
+    "id": "followups/01-timeline",
+    "title": "سجل متابعات العقار",
+    "route": "/#/properties → تفاصيل → المتابعات",
+    "raw": "source-assets/captures/dalaly/followups/01-timeline",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/followups/01-timeline/screenshot.png",
+        "output": "public/images/products/dalaly/followups/01-timeline/desktop.webp",
+        "bytes": 41772
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-06-followups-دلالي--3642f-سجل-التغييرات-سجل-المتابعات-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/followups/01-timeline/desktop.webm",
+      "mp4": "public/videos/dalaly/followups/01-timeline/desktop.mp4",
+      "originalSeconds": 7.32,
+      "seconds": 6.12,
+      "webmBytes": 685659,
+      "mp4Bytes": 608270
+    },
+    "poster": {
+      "output": "public/posters/dalaly/followups/01-timeline.webp",
+      "bytes": 53312
+    }
+  },
+  {
+    "id": "followups/02-create",
+    "title": "إضافة متابعة جديدة للعقار",
+    "route": "/#/properties → تفاصيل → المتابعات",
+    "raw": "source-assets/captures/dalaly/followups/02-create",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/followups/02-create/screenshot-form.png",
+        "output": "public/images/products/dalaly/followups/02-create/screenshot-form.webp",
+        "bytes": 40110
+      },
+      {
+        "source": "source-assets/captures/dalaly/followups/02-create/screenshot.png",
+        "output": "public/images/products/dalaly/followups/02-create/desktop.webp",
+        "bytes": 43150
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-06-followups-دلالي--e81d9-لتغييرات-إضافة-متابعة-جديدة-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/followups/02-create/desktop.webm",
+      "mp4": "public/videos/dalaly/followups/02-create/desktop.mp4",
+      "originalSeconds": 12.8,
+      "seconds": 11.12,
+      "webmBytes": 983993,
+      "mp4Bytes": 967773
+    },
+    "poster": {
+      "output": "public/posters/dalaly/followups/02-create.webp",
+      "bytes": 50462
+    }
+  },
+  {
+    "id": "help/01-faq",
+    "title": "دليل الاستخدام السريع",
+    "route": "/#/help",
+    "raw": "source-assets/captures/dalaly/help/01-faq",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/help/01-faq/screenshot.png",
+        "output": "public/images/products/dalaly/help/01-faq/desktop.webp",
+        "bytes": 37280
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-12-settings-دلالي-—-8e0a7-نسخ-الاحتياطي-صفحة-المساعدة-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/help/01-faq/desktop.webm",
+      "mp4": "public/videos/dalaly/help/01-faq/desktop.mp4",
+      "originalSeconds": 5.72,
+      "seconds": 4.16,
+      "webmBytes": 156598,
+      "mp4Bytes": 146727
+    },
+    "poster": {
+      "output": "public/posters/dalaly/help/01-faq.webp",
+      "bytes": 37612
+    }
+  },
+  {
+    "id": "images/01-gallery",
+    "title": "معرض صور العقار",
+    "route": "/#/properties → تفاصيل → الصور",
+    "raw": "source-assets/captures/dalaly/images/01-gallery",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/images/01-gallery/screenshot.png",
+        "output": "public/images/products/dalaly/images/01-gallery/desktop.webp",
+        "bytes": 58290
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-03-properties-دلالي-—-العروض-العقارية-معرض-صور-العقار-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/images/01-gallery/desktop.webm",
+      "mp4": "public/videos/dalaly/images/01-gallery/desktop.mp4",
+      "originalSeconds": 6.68,
+      "seconds": 5.44,
+      "webmBytes": 705661,
+      "mp4Bytes": 612238
+    },
+    "poster": {
+      "output": "public/posters/dalaly/images/01-gallery.webp",
+      "bytes": 63808
+    }
+  },
+  {
+    "id": "images/02-primary",
+    "title": "تعيين الصورة الرئيسية للعقار",
+    "route": "/#/properties → تفاصيل → الصور",
+    "raw": "source-assets/captures/dalaly/images/02-primary",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/images/02-primary/screenshot-before.png",
+        "output": "public/images/products/dalaly/images/02-primary/screenshot-before.webp",
+        "bytes": 58290
+      },
+      {
+        "source": "source-assets/captures/dalaly/images/02-primary/screenshot.png",
+        "output": "public/images/products/dalaly/images/02-primary/desktop.webp",
+        "bytes": 58968
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-05-images-دلالي-—-صور-العقار-تعيين-الصورة-الرئيسية-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/images/02-primary/desktop.webm",
+      "mp4": "public/videos/dalaly/images/02-primary/desktop.mp4",
+      "originalSeconds": 9.48,
+      "seconds": 7.6,
+      "webmBytes": 772964,
+      "mp4Bytes": 706784
+    },
+    "poster": {
+      "output": "public/posters/dalaly/images/02-primary.webp",
+      "bytes": 70304
+    }
+  },
+  {
+    "id": "images/03-reorder",
+    "title": "إعادة ترتيب صور المعرض بالسحب والإفلات",
+    "route": "/#/properties → تفاصيل → الصور",
+    "raw": "source-assets/captures/dalaly/images/03-reorder",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/images/03-reorder/screenshot-before.png",
+        "output": "public/images/products/dalaly/images/03-reorder/screenshot-before.webp",
+        "bytes": 58290
+      },
+      {
+        "source": "source-assets/captures/dalaly/images/03-reorder/screenshot.png",
+        "output": "public/images/products/dalaly/images/03-reorder/desktop.webp",
+        "bytes": 58280
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-05-images-دلالي-—-صور-العقار-ترتيب-صور-المعرض-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/images/03-reorder/desktop.webm",
+      "mp4": "public/videos/dalaly/images/03-reorder/desktop.mp4",
+      "originalSeconds": 8.88,
+      "seconds": 5.84,
+      "webmBytes": 770891,
+      "mp4Bytes": 626908
+    },
+    "poster": {
+      "output": "public/posters/dalaly/images/03-reorder.webp",
+      "bytes": 65638
+    }
+  },
+  {
+    "id": "images/04-upload",
+    "title": "رفع صورة جديدة للعقار",
+    "route": "/#/properties → تفاصيل → الصور",
+    "raw": "source-assets/captures/dalaly/images/04-upload",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/images/04-upload/screenshot-preview.png",
+        "output": "public/images/products/dalaly/images/04-upload/screenshot-preview.webp",
+        "bytes": 59414
+      },
+      {
+        "source": "source-assets/captures/dalaly/images/04-upload/screenshot.png",
+        "output": "public/images/products/dalaly/images/04-upload/desktop.webp",
+        "bytes": 59790
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-05-images-دلالي-—-صور-العقار-رفع-صورة-جديدة-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/images/04-upload/desktop.webm",
+      "mp4": "public/videos/dalaly/images/04-upload/desktop.mp4",
+      "originalSeconds": 10.16,
+      "seconds": 8.28,
+      "webmBytes": 759971,
+      "mp4Bytes": 708826
+    },
+    "poster": {
+      "output": "public/posters/dalaly/images/04-upload.webp",
+      "bytes": 68694
+    }
+  },
+  {
+    "id": "import/01-excel",
+    "title": "استيراد عروض من ملف Excel (اختيار → ربط الأعمدة → تحقق → استيراد)",
+    "route": "/#/properties → استيراد Excel",
+    "raw": "source-assets/captures/dalaly/import/01-excel",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/import/01-excel/screenshot-step-1.png",
+        "output": "public/images/products/dalaly/import/01-excel/screenshot-step-1.webp",
+        "bytes": 59578
+      },
+      {
+        "source": "source-assets/captures/dalaly/import/01-excel/screenshot-step-2-mapping.png",
+        "output": "public/images/products/dalaly/import/01-excel/screenshot-step-2-mapping.webp",
+        "bytes": 67942
+      },
+      {
+        "source": "source-assets/captures/dalaly/import/01-excel/screenshot-step-3-validation.png",
+        "output": "public/images/products/dalaly/import/01-excel/screenshot-step-3-validation.webp",
+        "bytes": 60828
+      },
+      {
+        "source": "source-assets/captures/dalaly/import/01-excel/screenshot.png",
+        "output": "public/images/products/dalaly/import/01-excel/desktop.webp",
+        "bytes": 61270
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-09-import-دلالي-—-ا-00932-l-استيراد-عروض-من-ملف-Excel-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/import/01-excel/desktop.webm",
+      "mp4": "public/videos/dalaly/import/01-excel/desktop.mp4",
+      "originalSeconds": 13.84,
+      "seconds": 12.56,
+      "webmBytes": 871415,
+      "mp4Bytes": 853577
+    },
+    "poster": {
+      "output": "public/posters/dalaly/import/01-excel.webp",
+      "bytes": 73238
+    }
+  },
+  {
+    "id": "locations/01-tree",
+    "title": "المحافظات ← المناطق ← الأحياء",
+    "route": "/#/locations",
+    "raw": "source-assets/captures/dalaly/locations/01-tree",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/locations/01-tree/screenshot.png",
+        "output": "public/images/products/dalaly/locations/01-tree/desktop.webp",
+        "bytes": 33796
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-10-locations-دلالي--05f28-مناطق-والأحياء-شجرة-المواقع-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/locations/01-tree/desktop.webm",
+      "mp4": "public/videos/dalaly/locations/01-tree/desktop.mp4",
+      "originalSeconds": 6.24,
+      "seconds": 5.56,
+      "webmBytes": 185147,
+      "mp4Bytes": 168567
+    },
+    "poster": {
+      "output": "public/posters/dalaly/locations/01-tree.webp",
+      "bytes": 33730
+    }
+  },
+  {
+    "id": "locations/02-add-neighborhood",
+    "title": "إضافة حي جديد داخل منطقة",
+    "route": "/#/locations",
+    "raw": "source-assets/captures/dalaly/locations/02-add-neighborhood",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/locations/02-add-neighborhood/screenshot-dialog.png",
+        "output": "public/images/products/dalaly/locations/02-add-neighborhood/screenshot-dialog.webp",
+        "bytes": 25298
+      },
+      {
+        "source": "source-assets/captures/dalaly/locations/02-add-neighborhood/screenshot.png",
+        "output": "public/images/products/dalaly/locations/02-add-neighborhood/desktop.webp",
+        "bytes": 26768
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-10-locations-دلالي--bfe14-ناطق-والأحياء-إضافة-حي-جديد-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/locations/02-add-neighborhood/desktop.webm",
+      "mp4": "public/videos/dalaly/locations/02-add-neighborhood/desktop.mp4",
+      "originalSeconds": 10.6,
+      "seconds": 9.08,
+      "webmBytes": 213111,
+      "mp4Bytes": 218641
+    },
+    "poster": {
+      "output": "public/posters/dalaly/locations/02-add-neighborhood.webp",
+      "bytes": 27632
+    }
+  },
+  {
+    "id": "properties/01-list",
+    "title": "قائمة العروض العقارية",
+    "route": "/#/properties",
+    "raw": "source-assets/captures/dalaly/properties/01-list",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/properties/01-list/screenshot-detail-pane.png",
+        "output": "public/images/products/dalaly/properties/01-list/screenshot-detail-pane.webp",
+        "bytes": 88298
+      },
+      {
+        "source": "source-assets/captures/dalaly/properties/01-list/screenshot.png",
+        "output": "public/images/products/dalaly/properties/01-list/desktop.webp",
+        "bytes": 75562
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-03-properties-دلالي-0d13d-قارية-قائمة-العروض-العقارية-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/properties/01-list/desktop.webm",
+      "mp4": "public/videos/dalaly/properties/01-list/desktop.mp4",
+      "originalSeconds": 7.12,
+      "seconds": 5.76,
+      "webmBytes": 667727,
+      "mp4Bytes": 511245
+    },
+    "poster": {
+      "output": "public/posters/dalaly/properties/01-list.webp",
+      "bytes": 93778
+    }
+  },
+  {
+    "id": "properties/02-details",
+    "title": "عرض تفاصيل العقار",
+    "route": "/#/properties",
+    "raw": "source-assets/captures/dalaly/properties/02-details",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/properties/02-details/screenshot.png",
+        "output": "public/images/products/dalaly/properties/02-details/desktop.webp",
+        "bytes": 64404
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-03-properties-دلالي-c7f1c--العقارية-عرض-تفاصيل-العقار-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/properties/02-details/desktop.webm",
+      "mp4": "public/videos/dalaly/properties/02-details/desktop.mp4",
+      "originalSeconds": 6.12,
+      "seconds": 4.92,
+      "webmBytes": 530303,
+      "mp4Bytes": 508506
+    },
+    "poster": {
+      "output": "public/posters/dalaly/properties/02-details.webp",
+      "bytes": 50598
+    }
+  },
+  {
+    "id": "properties/03-create",
+    "title": "إضافة عرض عقاري كامل",
+    "route": "/#/properties/new",
+    "raw": "source-assets/captures/dalaly/properties/03-create",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/properties/03-create/screenshot-empty-form.png",
+        "output": "public/images/products/dalaly/properties/03-create/screenshot-empty-form.webp",
+        "bytes": 31496
+      },
+      {
+        "source": "source-assets/captures/dalaly/properties/03-create/screenshot-filled-form.png",
+        "output": "public/images/products/dalaly/properties/03-create/screenshot-filled-form.webp",
+        "bytes": 29860
+      },
+      {
+        "source": "source-assets/captures/dalaly/properties/03-create/screenshot.png",
+        "output": "public/images/products/dalaly/properties/03-create/desktop.webp",
+        "bytes": 68538
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-03-properties-دلالي-—-العروض-العقارية-إضافة-عرض-عقاري-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/properties/03-create/desktop.webm",
+      "mp4": "public/videos/dalaly/properties/03-create/desktop.mp4",
+      "originalSeconds": 17.84,
+      "seconds": 16.12,
+      "webmBytes": 692335,
+      "mp4Bytes": 517550
+    },
+    "poster": {
+      "output": "public/posters/dalaly/properties/03-create.webp",
+      "bytes": 73002
+    }
+  },
+  {
+    "id": "properties/04-edit",
+    "title": "تعديل عرض عقاري",
+    "route": "/#/properties/:id/edit",
+    "raw": "source-assets/captures/dalaly/properties/04-edit",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/properties/04-edit/screenshot.png",
+        "output": "public/images/products/dalaly/properties/04-edit/desktop.webp",
+        "bytes": 33958
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-03-properties-دلالي-—-العروض-العقارية-تعديل-عرض-عقاري-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/properties/04-edit/desktop.webm",
+      "mp4": "public/videos/dalaly/properties/04-edit/desktop.mp4",
+      "originalSeconds": 10.04,
+      "seconds": 8.84,
+      "webmBytes": 457186,
+      "mp4Bytes": 385051
+    },
+    "poster": {
+      "output": "public/posters/dalaly/properties/04-edit.webp",
+      "bytes": 69542
+    }
+  },
+  {
+    "id": "properties/05-duplicate-guard",
+    "title": "منع تكرار العقار (نفس رقم القطعة في نفس الحي)",
+    "route": "/#/properties/new",
+    "raw": "source-assets/captures/dalaly/properties/05-duplicate-guard",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/properties/05-duplicate-guard/screenshot-before-save.png",
+        "output": "public/images/products/dalaly/properties/05-duplicate-guard/screenshot-before-save.webp",
+        "bytes": 36254
+      },
+      {
+        "source": "source-assets/captures/dalaly/properties/05-duplicate-guard/screenshot.png",
+        "output": "public/images/products/dalaly/properties/05-duplicate-guard/desktop.webp",
+        "bytes": 31192
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-03-properties-دلالي-196e8-ض-العقارية-منع-تكرار-القطعة-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/properties/05-duplicate-guard/desktop.webm",
+      "mp4": "public/videos/dalaly/properties/05-duplicate-guard/desktop.mp4",
+      "originalSeconds": 12.28,
+      "seconds": 11,
+      "webmBytes": 367849,
+      "mp4Bytes": 306631
+    },
+    "poster": {
+      "output": "public/posters/dalaly/properties/05-duplicate-guard.webp",
+      "bytes": 33188
+    }
+  },
+  {
+    "id": "properties/06-archive-restore",
+    "title": "أرشفة عرض ثم إرجاعه",
+    "route": "/#/properties",
+    "raw": "source-assets/captures/dalaly/properties/06-archive-restore",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/properties/06-archive-restore/screenshot.png",
+        "output": "public/images/products/dalaly/properties/06-archive-restore/desktop.webp",
+        "bytes": 61050
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-03-properties-دلالي-10133--العقارية-أرشفة-عرض-وإرجاعه-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/properties/06-archive-restore/desktop.webm",
+      "mp4": "public/videos/dalaly/properties/06-archive-restore/desktop.mp4",
+      "originalSeconds": 9.92,
+      "seconds": 8.76,
+      "webmBytes": 852843,
+      "mp4Bytes": 732775
+    },
+    "poster": {
+      "output": "public/posters/dalaly/properties/06-archive-restore.webp",
+      "bytes": 78458
+    }
+  },
+  {
+    "id": "search/01-global",
+    "title": "البحث العام داخل العروض",
+    "route": "/#/properties",
+    "raw": "source-assets/captures/dalaly/search/01-global",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/search/01-global/screenshot-before.png",
+        "output": "public/images/products/dalaly/search/01-global/screenshot-before.webp",
+        "bytes": 67078
+      },
+      {
+        "source": "source-assets/captures/dalaly/search/01-global/screenshot.png",
+        "output": "public/images/products/dalaly/search/01-global/desktop.webp",
+        "bytes": 33576
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-04-search-دلالي-—-البحث-والفلاتر-البحث-العام-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/search/01-global/desktop.webm",
+      "mp4": "public/videos/dalaly/search/01-global/desktop.mp4",
+      "originalSeconds": 6.92,
+      "seconds": 5.76,
+      "webmBytes": 221278,
+      "mp4Bytes": 188982
+    },
+    "poster": {
+      "output": "public/posters/dalaly/search/01-global.webp",
+      "bytes": 36514
+    }
+  },
+  {
+    "id": "search/02-owner-name",
+    "title": "البحث باسم المالك",
+    "route": "/#/properties",
+    "raw": "source-assets/captures/dalaly/search/02-owner-name",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/search/02-owner-name/screenshot.png",
+        "output": "public/images/products/dalaly/search/02-owner-name/desktop.webp",
+        "bytes": 30362
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-04-search-دلالي-—-البحث-والفلاتر-البحث-باسم-المالك-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/search/02-owner-name/desktop.webm",
+      "mp4": "public/videos/dalaly/search/02-owner-name/desktop.mp4",
+      "originalSeconds": 7.72,
+      "seconds": 5.8,
+      "webmBytes": 211390,
+      "mp4Bytes": 178897
+    },
+    "poster": {
+      "output": "public/posters/dalaly/search/02-owner-name.webp",
+      "bytes": 33446
+    }
+  },
+  {
+    "id": "search/03-owner-phone",
+    "title": "البحث برقم هاتف المالك",
+    "route": "/#/properties",
+    "raw": "source-assets/captures/dalaly/search/03-owner-phone",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/search/03-owner-phone/screenshot.png",
+        "output": "public/images/products/dalaly/search/03-owner-phone/desktop.webp",
+        "bytes": 31616
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-04-search-دلالي-—-البحث-والفلاتر-البحث-برقم-الهاتف-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/search/03-owner-phone/desktop.webm",
+      "mp4": "public/videos/dalaly/search/03-owner-phone/desktop.mp4",
+      "originalSeconds": 7.32,
+      "seconds": 5.96,
+      "webmBytes": 223974,
+      "mp4Bytes": 186457
+    },
+    "poster": {
+      "output": "public/posters/dalaly/search/03-owner-phone.webp",
+      "bytes": 35174
+    }
+  },
+  {
+    "id": "search/04-district-neighborhood",
+    "title": "البحث بالمحافظة والمنطقة والحي",
+    "route": "/#/properties",
+    "raw": "source-assets/captures/dalaly/search/04-district-neighborhood",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/search/04-district-neighborhood/screenshot.png",
+        "output": "public/images/products/dalaly/search/04-district-neighborhood/desktop.webp",
+        "bytes": 32754
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-04-search-دلالي-—-البحث-والفلاتر-البحث-بالمنطقة-والحي-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/search/04-district-neighborhood/desktop.webm",
+      "mp4": "public/videos/dalaly/search/04-district-neighborhood/desktop.mp4",
+      "originalSeconds": 9.36,
+      "seconds": 7.6,
+      "webmBytes": 336658,
+      "mp4Bytes": 278370
+    },
+    "poster": {
+      "output": "public/posters/dalaly/search/04-district-neighborhood.webp",
+      "bytes": 35120
+    }
+  },
+  {
+    "id": "search/05-plot-number",
+    "title": "البحث برقم القطعة وحرف القطعة",
+    "route": "/#/properties → فلاتر إضافية",
+    "raw": "source-assets/captures/dalaly/search/05-plot-number",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/search/05-plot-number/screenshot-filters-drawer.png",
+        "output": "public/images/products/dalaly/search/05-plot-number/screenshot-filters-drawer.webp",
+        "bytes": 33030
+      },
+      {
+        "source": "source-assets/captures/dalaly/search/05-plot-number/screenshot.png",
+        "output": "public/images/products/dalaly/search/05-plot-number/desktop.webp",
+        "bytes": 30846
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-04-search-دلالي-—-ا-c5974-تر-البحث-برقم-القطعة-وحرفها-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/search/05-plot-number/desktop.webm",
+      "mp4": "public/videos/dalaly/search/05-plot-number/desktop.mp4",
+      "originalSeconds": 11.08,
+      "seconds": 9.96,
+      "webmBytes": 563862,
+      "mp4Bytes": 438533
+    },
+    "poster": {
+      "output": "public/posters/dalaly/search/05-plot-number.webp",
+      "bytes": 33002
+    }
+  },
+  {
+    "id": "search/06-filters",
+    "title": "فلاتر النوع والحالة والشرائح القابلة للإزالة",
+    "route": "/#/properties",
+    "raw": "source-assets/captures/dalaly/search/06-filters",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/search/06-filters/screenshot.png",
+        "output": "public/images/products/dalaly/search/06-filters/desktop.webp",
+        "bytes": 35840
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-04-search-دلالي-—-البحث-والفلاتر-الفلاتر-السريعة-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/search/06-filters/desktop.webm",
+      "mp4": "public/videos/dalaly/search/06-filters/desktop.mp4",
+      "originalSeconds": 9,
+      "seconds": 8.04,
+      "webmBytes": 326002,
+      "mp4Bytes": 282398
+    },
+    "poster": {
+      "output": "public/posters/dalaly/search/06-filters.webp",
+      "bytes": 54090
+    }
+  },
+  {
+    "id": "search/07-sort-area",
+    "title": "ترتيب العروض حسب المساحة",
+    "route": "/#/properties",
+    "raw": "source-assets/captures/dalaly/search/07-sort-area",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/search/07-sort-area/screenshot.png",
+        "output": "public/images/products/dalaly/search/07-sort-area/desktop.webp",
+        "bytes": 68292
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-04-search-دلالي-—-البحث-والفلاتر-الترتيب-حسب-المساحة-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/search/07-sort-area/desktop.webm",
+      "mp4": "public/videos/dalaly/search/07-sort-area/desktop.mp4",
+      "originalSeconds": 6.32,
+      "seconds": 5.28,
+      "webmBytes": 318317,
+      "mp4Bytes": 241171
+    },
+    "poster": {
+      "output": "public/posters/dalaly/search/07-sort-area.webp",
+      "bytes": 70912
+    }
+  },
+  {
+    "id": "search/08-sort-price",
+    "title": "ترتيب العروض حسب السعر",
+    "route": "/#/properties",
+    "raw": "source-assets/captures/dalaly/search/08-sort-price",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/search/08-sort-price/screenshot.png",
+        "output": "public/images/products/dalaly/search/08-sort-price/desktop.webp",
+        "bytes": 68068
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-04-search-دلالي-—-البحث-والفلاتر-الترتيب-حسب-السعر-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/search/08-sort-price/desktop.webm",
+      "mp4": "public/videos/dalaly/search/08-sort-price/desktop.mp4",
+      "originalSeconds": 6.4,
+      "seconds": 5.2,
+      "webmBytes": 321482,
+      "mp4Bytes": 212380
+    },
+    "poster": {
+      "output": "public/posters/dalaly/search/08-sort-price.webp",
+      "bytes": 70182
+    }
+  },
+  {
+    "id": "settings/01-overview",
+    "title": "صفحة الإعدادات (المظهر، الأمان، النظام، النسخ الاحتياطي)",
+    "route": "/#/settings",
+    "raw": "source-assets/captures/dalaly/settings/01-overview",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/settings/01-overview/screenshot.png",
+        "output": "public/images/products/dalaly/settings/01-overview/desktop.webp",
+        "bytes": 40920
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-12-settings-دلالي-—-b3517-سخ-الاحتياطي-صفحة-الإعدادات-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/settings/01-overview/desktop.webm",
+      "mp4": "public/videos/dalaly/settings/01-overview/desktop.mp4",
+      "originalSeconds": 4.28,
+      "seconds": 3,
+      "webmBytes": 176006,
+      "mp4Bytes": 179073
+    },
+    "poster": {
+      "output": "public/posters/dalaly/settings/01-overview.webp",
+      "bytes": 44432
+    }
+  },
+  {
+    "id": "settings/02-change-pin",
+    "title": "حوار تغيير رمز الدخول PIN",
+    "route": "/#/settings",
+    "raw": "source-assets/captures/dalaly/settings/02-change-pin",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/settings/02-change-pin/screenshot.png",
+        "output": "public/images/products/dalaly/settings/02-change-pin/desktop.webp",
+        "bytes": 31208
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-12-settings-دلالي-—-67fe7-نسخ-الاحتياطي-تغيير-رمز-PIN-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/settings/02-change-pin/desktop.webm",
+      "mp4": "public/videos/dalaly/settings/02-change-pin/desktop.mp4",
+      "originalSeconds": 5.24,
+      "seconds": 4.12,
+      "webmBytes": 139889,
+      "mp4Bytes": 156733
+    },
+    "poster": {
+      "output": "public/posters/dalaly/settings/02-change-pin.webp",
+      "bytes": 34668
+    }
+  },
+  {
+    "id": "settings/03-dark-mode",
+    "title": "تبديل الوضع الفاتح/الداكن",
+    "route": "/#/settings",
+    "raw": "source-assets/captures/dalaly/settings/03-dark-mode",
+    "screenshots": [
+      {
+        "source": "source-assets/captures/dalaly/settings/03-dark-mode/screenshot.png",
+        "output": "public/images/products/dalaly/settings/03-dark-mode/desktop.webp",
+        "bytes": 76310
+      }
+    ],
+    "video": {
+      "source": "test-results/dalaly-12-settings-دلالي-—-5728b-لنسخ-الاحتياطي-الوضع-الداكن-desktop-chromium/video.webm",
+      "webm": "public/videos/dalaly/settings/03-dark-mode/desktop.webm",
+      "mp4": "public/videos/dalaly/settings/03-dark-mode/desktop.mp4",
+      "originalSeconds": 6.48,
+      "seconds": 5.52,
+      "webmBytes": 854100,
+      "mp4Bytes": 606320
+    },
+    "poster": {
+      "output": "public/posters/dalaly/settings/03-dark-mode.webp",
+      "bytes": 85588
+    }
+  }
+]

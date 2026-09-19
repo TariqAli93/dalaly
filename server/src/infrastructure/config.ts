@@ -2,6 +2,16 @@ import dotenv from "dotenv";
 import path from "node:path";
 import type { PoolConfig } from "pg";
 
+/**
+ * ملف بيئة إضافي اختياري يُمرَّر عبر ENV_FILE (مسار مطلق أو نسبي لجذر المشروع).
+ * يُحمَّل أولاً فيفوز على .env الافتراضي (dotenv لا يعيد كتابة متغير موجود).
+ * يُستخدم في وضع web-demo فقط؛ في التشغيل العادي لا يوجد ENV_FILE فلا يتغير شيء.
+ */
+const envFile = process.env.ENV_FILE?.trim();
+if (envFile) {
+  dotenv.config({ path: path.isAbsolute(envFile) ? envFile : path.resolve(process.cwd(), envFile) });
+}
+
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 dotenv.config({ path: path.resolve(process.cwd(), "..", ".env") });
 
@@ -24,10 +34,22 @@ const connectionTimeoutMillis = Number(
 const appDataDir =
   process.env.APP_DATA_DIR?.trim() || path.resolve(process.cwd(), "data");
 
+/** أصول CORS المسموح بها. الافتراضي هو منفذ Vite في التطوير (نسخة Electron). */
+const corsOrigins = (
+  process.env.CORS_ORIGINS?.trim() ||
+  "http://127.0.0.1:5173,http://localhost:5173"
+)
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 export const config = {
   appVersion: process.env.APP_VERSION ?? "0.1.0",
   apiHost: process.env.API_HOST ?? "127.0.0.1",
   apiPort: Number(process.env.API_PORT ?? 45678),
+  /** وضع عرض الويب للتصوير فقط — لا يُفعَّل في نسخة سطح المكتب ولا الإنتاج. */
+  webDemoMode: process.env.WEB_DEMO_MODE === "true",
+  corsOrigins,
   databaseUrl,
   dbConfigured: hasExplicitDbEnv,
   // مجلد بيانات التطبيق (userData في الإنتاج) لتخزين الصور والنسخ الاحتياطية.

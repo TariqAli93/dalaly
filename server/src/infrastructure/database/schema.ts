@@ -9,7 +9,7 @@ import {
   pgTable,
   primaryKey,
   text,
-  timestamp
+  timestamp,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -18,8 +18,12 @@ export const users = pgTable("users", {
   pinHash: text("pin_hash").notNull(),
   displayName: text("display_name").notNull(),
   isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const roles = pgTable("roles", {
@@ -27,8 +31,12 @@ export const roles = pgTable("roles", {
   name: text("name").notNull().unique(),
   description: text("description"),
   isSystem: boolean("is_system").notNull().default(false),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const permissions = pgTable("permissions", {
@@ -37,8 +45,12 @@ export const permissions = pgTable("permissions", {
   name: text("name").notNull(),
   description: text("description"),
   module: text("module").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const userRoles = pgTable(
@@ -49,9 +61,9 @@ export const userRoles = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     roleId: bigint("role_id", { mode: "number" })
       .notNull()
-      .references(() => roles.id, { onDelete: "cascade" })
+      .references(() => roles.id, { onDelete: "cascade" }),
   },
-  (table) => [primaryKey({ columns: [table.userId, table.roleId] })]
+  (table) => [primaryKey({ columns: [table.userId, table.roleId] })],
 );
 
 export const rolePermissions = pgTable(
@@ -62,9 +74,9 @@ export const rolePermissions = pgTable(
       .references(() => roles.id, { onDelete: "cascade" }),
     permissionId: bigint("permission_id", { mode: "number" })
       .notNull()
-      .references(() => permissions.id, { onDelete: "cascade" })
+      .references(() => permissions.id, { onDelete: "cascade" }),
   },
-  (table) => [primaryKey({ columns: [table.roleId, table.permissionId] })]
+  (table) => [primaryKey({ columns: [table.roleId, table.permissionId] })],
 );
 
 export const sessions = pgTable(
@@ -75,18 +87,24 @@ export const sessions = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     tokenHash: text("token_hash").notNull().unique(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull()
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   },
-  (table) => [index("idx_sessions_token_hash").on(table.tokenHash)]
+  (table) => [index("idx_sessions_token_hash").on(table.tokenHash)],
 );
 
 export const governorates = pgTable("governorates", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
   name: text("name").notNull().unique(),
   isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const districts = pgTable(
@@ -98,10 +116,14 @@ export const districts = pgTable(
       .references(() => governorates.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     isActive: boolean("is_active").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
-  (table) => [index("idx_districts_governorate").on(table.governorateId)]
+  (table) => [index("idx_districts_governorate").on(table.governorateId)],
 );
 
 export const neighborhoods = pgTable(
@@ -113,16 +135,21 @@ export const neighborhoods = pgTable(
       .references(() => districts.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     isActive: boolean("is_active").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
-  (table) => [index("idx_neighborhoods_district").on(table.districtId)]
+  (table) => [index("idx_neighborhoods_district").on(table.districtId)],
 );
 
 export const properties = pgTable(
   "properties",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
+    name: text("name"),
     code: text("code").notNull().unique(),
     propertyType: text("property_type").notNull(),
     legalType: text("legal_type").notNull(),
@@ -162,9 +189,13 @@ export const properties = pgTable(
     roomsCount: integer("rooms_count"),
     bathroomsCount: integer("bathrooms_count"),
     isNegotiable: boolean("is_negotiable").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-    archivedAt: timestamp("archived_at", { withTimezone: true })
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
   (table) => [
     index("idx_properties_status").on(table.status),
@@ -175,8 +206,8 @@ export const properties = pgTable(
     index("idx_properties_district").on(table.district),
     index("idx_properties_governorate_id").on(table.governorateId),
     index("idx_properties_district_id").on(table.districtId),
-    index("idx_properties_neighborhood_id").on(table.neighborhoodId)
-  ]
+    index("idx_properties_neighborhood_id").on(table.neighborhoodId),
+  ],
 );
 
 export const propertyImages = pgTable(
@@ -190,9 +221,11 @@ export const propertyImages = pgTable(
     originalName: text("original_name"),
     isPrimary: boolean("is_primary").notNull().default(false),
     sortOrder: integer("sort_order").notNull().default(0),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
-  (table) => [index("idx_property_images_property").on(table.propertyId)]
+  (table) => [index("idx_property_images_property").on(table.propertyId)],
 );
 
 export const auditLogs = pgTable(
@@ -205,9 +238,11 @@ export const auditLogs = pgTable(
     oldValue: jsonb("old_value"),
     newValue: jsonb("new_value"),
     userId: bigint("user_id", { mode: "number" }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
-  (table) => [index("idx_audit_entity").on(table.entityType, table.entityId)]
+  (table) => [index("idx_audit_entity").on(table.entityType, table.entityId)],
 );
 
 export const propertyFollowups = pgTable(
@@ -221,12 +256,14 @@ export const propertyFollowups = pgTable(
     type: text("type").notNull(),
     notes: text("notes"),
     scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index("idx_followups_property").on(table.propertyId),
-    index("idx_followups_scheduled").on(table.scheduledAt)
-  ]
+    index("idx_followups_scheduled").on(table.scheduledAt),
+  ],
 );
 
 export const favoriteProperties = pgTable(
@@ -238,9 +275,11 @@ export const favoriteProperties = pgTable(
     propertyId: bigint("property_id", { mode: "number" })
       .notNull()
       .references(() => properties.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
-  (table) => [primaryKey({ columns: [table.userId, table.propertyId] })]
+  (table) => [primaryKey({ columns: [table.userId, table.propertyId] })],
 );
 
 export const backupJobs = pgTable("backup_jobs", {
@@ -252,7 +291,9 @@ export const backupJobs = pgTable("backup_jobs", {
   durationMs: integer("duration_ms"),
   error: text("error"),
   userId: bigint("user_id", { mode: "number" }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const backupLogs = pgTable("backup_logs", {
@@ -260,13 +301,17 @@ export const backupLogs = pgTable("backup_logs", {
   jobId: bigint("job_id", { mode: "number" }),
   level: text("level").notNull().default("info"),
   message: text("message").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const appSettings = pgTable("app_settings", {
   key: text("key").primaryKey(),
   value: jsonb("value"),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export type User = typeof users.$inferSelect;
