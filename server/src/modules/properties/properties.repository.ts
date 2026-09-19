@@ -475,7 +475,8 @@ async function normalizePayload(
     frontage: payload.frontage,
     roomsCount: payload.rooms_count ?? null,
     bathroomsCount: payload.bathrooms_count ?? null,
-    isNegotiable: payload.is_negotiable ?? false
+    isNegotiable: payload.is_negotiable ?? false,
+    amenities: payload.amenities
   };
 }
 

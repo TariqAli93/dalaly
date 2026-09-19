@@ -4,6 +4,7 @@ import { formatMoney } from "../../utils/format";
 import { usePermissions } from "../../composables/usePermissions";
 import StatusChip from "../shared/StatusChip.vue";
 import type { RentalRecord } from "../../types";
+import { amenitiesText } from "../../utils/amenities";
 
 const props = defineProps<{ rental: RentalRecord; favorite?: boolean }>();
 const emit = defineEmits<{
@@ -94,6 +95,7 @@ const location = computed(() =>
       <div class="ps__cell"><div class="ps__label">الغرف</div><div>{{ rental.rooms_count ?? "—" }}</div></div>
       <div class="ps__cell"><div class="ps__label">الحمامات</div><div>{{ rental.bathrooms_count ?? "—" }}</div></div>
       <div class="ps__cell"><div class="ps__label">الطوابق</div><div>{{ rental.floors_count ?? "—" }}</div></div>
+      <div class="ps__cell"><div class="ps__label">المميزات</div><div>{{ amenitiesText(rental.amenities) || "—" }}</div></div>
     </div>
 
     <v-divider />

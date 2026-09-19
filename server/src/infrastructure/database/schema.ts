@@ -189,6 +189,7 @@ export const properties = pgTable(
     roomsCount: integer("rooms_count"),
     bathroomsCount: integer("bathrooms_count"),
     isNegotiable: boolean("is_negotiable").notNull().default(false),
+    amenities: jsonb("amenities").notNull().default({}),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

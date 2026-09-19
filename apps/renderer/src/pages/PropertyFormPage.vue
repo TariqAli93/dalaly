@@ -53,6 +53,7 @@ function defaultForm(): PropertyFormType {
     rooms_count: null,
     bathrooms_count: null,
     is_negotiable: false,
+    amenities: {},
   };
 }
 
@@ -92,6 +93,7 @@ function propertyToForm(p: PropertyRecord): PropertyFormType {
     rooms_count: p.rooms_count ?? null,
     bathrooms_count: p.bathrooms_count ?? null,
     is_negotiable: p.is_negotiable ?? false,
+    amenities: p.amenities ?? {},
   };
 }
 

@@ -4,6 +4,7 @@ import type { RentalRecord } from "../../types";
 import StatusChip from "../shared/StatusChip.vue";
 import EmptyState from "../shared/EmptyState.vue";
 import { usePermissions } from "../../composables/usePermissions";
+import { amenitiesText } from "../../utils/amenities";
 
 const props = defineProps<{
   rentals: RentalRecord[];
@@ -59,6 +60,7 @@ const headers = [
   { title: "المنطقة", key: "district" },
   { title: "الحي", key: "neighborhood" },
   { title: "المساحة", key: "area" },
+  { title: "المميزات", key: "amenities" },
   { title: "الغرف", key: "rooms_count" },
   { title: "الحمامات", key: "bathrooms_count" },
   { title: "المالك", key: "owner_name" },
@@ -129,6 +131,9 @@ const headers = [
       </template>
       <template #item.area="{ item }">
         {{ item.area_value }} {{ item.area_unit }}
+      </template>
+      <template #item.amenities="{ item }">
+        {{ amenitiesText(item.amenities) || "-" }}
       </template>
       <template #item.rooms_count="{ item }">
         {{ item.rooms_count ?? "-" }}

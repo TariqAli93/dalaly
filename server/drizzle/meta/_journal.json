@@ -85,6 +85,13 @@
       "when": 1781092800000,
       "tag": "0011_rental_name",
       "breakpoints": false
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1781179200000,
+      "tag": "0012_property_amenities",
+      "breakpoints": false
     }
   ]
 }

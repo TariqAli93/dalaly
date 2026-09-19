@@ -48,6 +48,7 @@ export type PropertyRecord = {
   rooms_count: number | null;
   bathrooms_count: number | null;
   is_negotiable: boolean;
+  amenities: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   archived_at: string | null;
@@ -88,6 +89,7 @@ export type PropertyForm = {
   rooms_count: number | null;
   bathrooms_count: number | null;
   is_negotiable: boolean;
+  amenities: Record<string, unknown>;
 };
 
 export type PropertyFilters = {

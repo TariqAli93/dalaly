@@ -12,6 +12,7 @@ import { formatMoney, toNumber } from "../../utils/format";
 import type { PropertyForm } from "../../types";
 import LocationSelects from "./LocationSelects.vue";
 import NumberField from "../app/NumberField.vue";
+import { AMENITY_OPTIONS } from "../../utils/amenities";
 
 const model = defineModel<PropertyForm>({ required: true });
 
@@ -22,6 +23,17 @@ const formRef = ref<{ validate: () => Promise<{ valid: boolean }> } | null>(
   null,
 );
 const extraOpen = ref(false);
+const amenities = computed({
+  get: () =>
+    AMENITY_OPTIONS.filter((item) => model.value.amenities[item.key] === true).map(
+      (item) => item.key,
+    ),
+  set: (keys: string[]) => {
+    const next: Record<string, unknown> = {};
+    for (const key of keys) next[key] = true;
+    model.value.amenities = next;
+  },
+});
 
 const required = (value: unknown) => Boolean(value) || "هذا الحقل مطلوب";
 const positive = (value: unknown) =>
@@ -140,6 +152,20 @@ defineExpose({ validate, computedTotal });
             hide-details
           />
         </div>
+
+        <v-divider class="my-4" />
+        <div class="text-subtitle-2 mb-2">الملحقات / المميزات</div>
+        <v-chip-group v-model="amenities" column multiple>
+          <v-chip
+            v-for="item in AMENITY_OPTIONS"
+            :key="item.key"
+            :value="item.key"
+            filter
+            variant="outlined"
+          >
+            {{ item.title }}
+          </v-chip>
+        </v-chip-group>
 
         <v-divider class="my-4" />
         <div class="text-subtitle-2 mb-2">أبعاد الأرض</div>

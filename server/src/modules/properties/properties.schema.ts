@@ -56,7 +56,8 @@ export const propertyPayloadSchema = z
     frontage: optionalText,
     rooms_count: optionalCount,
     bathrooms_count: optionalCount,
-    is_negotiable: z.coerce.boolean().optional().default(false)
+    is_negotiable: z.coerce.boolean().optional().default(false),
+    amenities: z.record(z.string(), z.unknown()).default({})
   })
   .superRefine((value, ctx) => {
     if (

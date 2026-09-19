@@ -11,6 +11,7 @@ import { usePermissions } from "../../composables/usePermissions";
 import StatusChip from "./StatusChip.vue";
 import FavoriteButton from "../properties/FavoriteButton.vue";
 import type { PropertyRecord } from "../../types";
+import { amenitiesText } from "../../utils/amenities";
 
 const props = defineProps<{ property: PropertyRecord }>();
 const emit = defineEmits<{
@@ -49,6 +50,7 @@ const rows = computed(() => {
     },
     { label: "الواجهة", value: p.frontage || "—" },
     { label: "النزال", value: p.nazal || "—" },
+    { label: "المميزات", value: amenitiesText(p.amenities) || "—" },
     { label: "الصفة القانونية", value: p.legal_type || "—" },
     {
       label: "سعر الوحدة",

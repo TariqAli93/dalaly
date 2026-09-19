@@ -5,6 +5,7 @@ import type { RentalForm as RentalFormType } from "../../types";
 import LocationSelects from "../properties/LocationSelects.vue";
 import NumberField from "../app/NumberField.vue";
 import RentalImages from "./RentalImages.vue";
+import { AMENITY_OPTIONS } from "../../utils/amenities";
 const model = defineModel<RentalFormType>({ required: true });
 const props = defineProps<{
   editing?: boolean;
@@ -37,14 +38,7 @@ const statuses = [
   { title: "مؤجر", value: "rented" },
   { title: "مؤرشف", value: "archived" },
 ];
-const amenityOptions = [
-  { title: "موقف سيارة", key: "parking" },
-  { title: "مصعد", key: "elevator" },
-  { title: "مفروش", key: "furnished" },
-  { title: "مولدة", key: "generator" },
-  { title: "ماء", key: "water" },
-  { title: "حراسة", key: "security" },
-];
+const amenityOptions = AMENITY_OPTIONS;
 const amenities = computed({
   get: () =>
     amenityOptions

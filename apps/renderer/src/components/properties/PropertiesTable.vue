@@ -5,6 +5,7 @@ import type { PropertyRecord } from "../../types";
 import PropertyActions from "./PropertyActions.vue";
 import StatusChip from "../shared/StatusChip.vue";
 import EmptyState from "../shared/EmptyState.vue";
+import { amenitiesText } from "../../utils/amenities";
 
 const props = defineProps<{
   properties: PropertyRecord[];
@@ -66,7 +67,11 @@ const headers = [
       text="جرّب توسيع البحث أو إزالة بعض الفلاتر."
     >
       <template #actions>
-        <v-btn variant="tonal" prepend-icon="mdi-filter-remove" @click="emit('clearFilters')">
+        <v-btn
+          variant="tonal"
+          prepend-icon="mdi-filter-remove"
+          @click="emit('clearFilters')"
+        >
           مسح الفلاتر
         </v-btn>
         <v-btn color="primary" prepend-icon="mdi-plus" @click="emit('create')">
@@ -109,6 +114,9 @@ const headers = [
       </template>
       <template #item.area="{ item }">
         {{ item.area_value }} {{ item.area_unit }}
+      </template>
+      <template #item.amenities="{ item }">
+        {{ amenitiesText(item.amenities) || "-" }}
       </template>
       <template #item.total_price="{ item }">
         <span class="money">{{ formatMoney(item.total_price) }}</span>
