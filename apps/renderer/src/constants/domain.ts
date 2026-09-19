@@ -12,7 +12,11 @@ export const LEGAL_TYPES = [
 
 export const AREA_UNITS = ["متر", "دونم"];
 
-export const PRICING_METHODS = ["سعر على المتر", "سعر على الدونم", DIRECT_PRICE];
+export const PRICING_METHODS = [
+  "سعر على المتر",
+  "سعر على الدونم",
+  DIRECT_PRICE,
+];
 
 export const STATUSES = [
   { title: "متاح", value: "available" },
@@ -23,7 +27,13 @@ export const STATUSES = [
   { title: "مؤرشف", value: "archived" },
 ];
 
-export const RENTAL_PROPERTY_TYPES = [{ title: "بيت", value: "house" }, { title: "شقة", value: "apartment" }, { title: "محل", value: "shop" }, { title: "مخزن", value: "warehouse" }, { title: "أخرى", value: "other" }];
+export const RENTAL_PROPERTY_TYPES = [
+  { title: "بيت", value: "house" },
+  { title: "شقة", value: "apartment" },
+  { title: "محل", value: "shop" },
+  { title: "مخزن", value: "warehouse" },
+  { title: "أخرى", value: "other" },
+];
 
 export type NavItem = {
   title: string;
@@ -33,10 +43,25 @@ export type NavItem = {
 };
 
 export const NAV_ITEMS: NavItem[] = [
-  { title: "الإيجارات", to: "/rentals", icon: "mdi-key-chain", permission: "rentals.read" },
-  { title: "إضافة إيجار", to: "/rentals/new", icon: "mdi-key-plus", permission: "rentals.create" },
-  { title: "مفضلة الإيجارات", to: "/rental-favorites", icon: "mdi-heart-multiple-outline", permission: "rentals.read" },
   { title: "لوحة البداية", to: "/", icon: "mdi-view-dashboard-outline" },
+  {
+    title: "الإيجارات",
+    to: "/rentals",
+    icon: "mdi-key-chain",
+    permission: "rentals.read",
+  },
+  {
+    title: "إضافة إيجار",
+    to: "/rentals/new",
+    icon: "mdi-key-plus",
+    permission: "rentals.create",
+  },
+  {
+    title: "مفضلة الإيجارات",
+    to: "/rental-favorites",
+    icon: "mdi-heart-multiple-outline",
+    permission: "rentals.read",
+  },
   {
     title: "العروض العقارية",
     to: "/properties",
