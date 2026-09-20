@@ -14,7 +14,11 @@ import { usePermissions } from "../composables/usePermissions";
 import { useSnackbar } from "../composables/useSnackbar";
 import { useConfirm } from "../composables/useConfirm";
 import { useRefresh } from "../composables/useRefresh";
-import type { RentalFilters as RentalFiltersType, RentalRecord } from "../types";
+import { exportRentalFolder } from "../utils/listingExport";
+import type {
+  RentalFilters as RentalFiltersType,
+  RentalRecord,
+} from "../types";
 
 const router = useRouter();
 const { loadLocations } = useLocations();
@@ -51,7 +55,13 @@ const detailsDialog = ref(false);
 const paneOpen = ref(false);
 const favOnly = ref(false);
 
-type SortKey = "newest" | "updated" | "price_asc" | "price_desc" | "area_desc" | "area_asc";
+type SortKey =
+  | "newest"
+  | "updated"
+  | "price_asc"
+  | "price_desc"
+  | "area_desc"
+  | "area_asc";
 const sortBy = ref<SortKey>("newest");
 const SORT_OPTIONS = [
   { value: "newest", title: "الأحدث" },
@@ -62,7 +72,8 @@ const SORT_OPTIONS = [
   { value: "area_asc", title: "المساحة: الأصغر أولاً" },
 ];
 
-const num = (value: unknown) => Number(typeof value === "string" ? value.replace(/,/g, "") : value) || 0;
+const num = (value: unknown) =>
+  Number(typeof value === "string" ? value.replace(/,/g, "") : value) || 0;
 const timeOf = (value: string) => {
   const time = new Date(value).getTime();
   return Number.isNaN(time) ? 0 : time;
@@ -71,29 +82,49 @@ const timeOf = (value: string) => {
 function sortList(list: RentalRecord[]) {
   const result = [...list];
   switch (sortBy.value) {
-    case "updated": return result.sort((a, b) => timeOf(b.updated_at) - timeOf(a.updated_at));
-    case "price_asc": return result.sort((a, b) => num(a.rent_price) - num(b.rent_price));
-    case "price_desc": return result.sort((a, b) => num(b.rent_price) - num(a.rent_price));
-    case "area_desc": return result.sort((a, b) => num(b.area_value) - num(a.area_value));
-    case "area_asc": return result.sort((a, b) => num(a.area_value) - num(b.area_value));
+    case "updated":
+      return result.sort((a, b) => timeOf(b.updated_at) - timeOf(a.updated_at));
+    case "price_asc":
+      return result.sort((a, b) => num(a.rent_price) - num(b.rent_price));
+    case "price_desc":
+      return result.sort((a, b) => num(b.rent_price) - num(a.rent_price));
+    case "area_desc":
+      return result.sort((a, b) => num(b.area_value) - num(a.area_value));
+    case "area_asc":
+      return result.sort((a, b) => num(a.area_value) - num(b.area_value));
     case "newest":
-    default: return result.sort((a, b) => timeOf(b.created_at) - timeOf(a.created_at));
+    default:
+      return result.sort((a, b) => timeOf(b.created_at) - timeOf(a.created_at));
   }
 }
 
 const displayed = computed(() => {
-  const base = favOnly.value ? items.value.filter((item) => favoriteIds.value.has(item.id)) : items.value;
+  const base = favOnly.value
+    ? items.value.filter((item) => favoriteIds.value.has(item.id))
+    : items.value;
   return sortList(base);
 });
 const resultsLabel = computed(() => `${displayed.value.length} عرض إيجاري`);
 const hasActiveFilters = computed(() => {
   const filter = filters.value;
   return Boolean(
-    filter.q || filter.property_type || filter.rent_period || filter.status ||
-      filter.governorate_id || filter.district_id || filter.neighborhood_id ||
-      filter.rent_price_min || filter.rent_price_max || filter.area_min || filter.area_max ||
-      filter.rooms_count || filter.bathrooms_count || filter.floors_count || filter.negotiable ||
-      filter.amenities || favOnly.value,
+    filter.q ||
+    filter.property_type ||
+    filter.rent_period ||
+    filter.status ||
+    filter.governorate_id ||
+    filter.district_id ||
+    filter.neighborhood_id ||
+    filter.rent_price_min ||
+    filter.rent_price_max ||
+    filter.area_min ||
+    filter.area_max ||
+    filter.rooms_count ||
+    filter.bathrooms_count ||
+    filter.floors_count ||
+    filter.negotiable ||
+    filter.amenities ||
+    favOnly.value,
   );
 });
 
@@ -106,6 +137,8 @@ async function load() {
     ]);
     items.value = result;
     favoriteIds.value = new Set(favorites.ids);
+
+    console.log(result);
   } catch (error) {
     notifyError(getErrorMessage(error));
   } finally {
@@ -122,7 +155,8 @@ function resetAll() {
   clear();
 }
 function toggleAvailable() {
-  filters.value.status = filters.value.status === "available" ? "" : "available";
+  filters.value.status =
+    filters.value.status === "available" ? "" : "available";
 }
 function view(item: RentalRecord) {
   selected.value = item;
@@ -138,12 +172,17 @@ function edit(item: RentalRecord) {
 }
 function favorite(item: RentalRecord) {
   const isFavorite = favoriteIds.value.has(item.id);
-  const request = isFavorite ? rentals.removeRentalFavorite(item.id) : rentals.addRentalFavorite(item.id);
-  void request.then(() => {
-    const next = new Set(favoriteIds.value);
-    if (isFavorite) next.delete(item.id); else next.add(item.id);
-    favoriteIds.value = next;
-  }).catch((error) => notifyError(getErrorMessage(error)));
+  const request = isFavorite
+    ? rentals.removeRentalFavorite(item.id)
+    : rentals.addRentalFavorite(item.id);
+  void request
+    .then(() => {
+      const next = new Set(favoriteIds.value);
+      if (isFavorite) next.delete(item.id);
+      else next.add(item.id);
+      favoriteIds.value = next;
+    })
+    .catch((error) => notifyError(getErrorMessage(error)));
 }
 function archive(item: RentalRecord) {
   openConfirm({
@@ -152,8 +191,14 @@ function archive(item: RentalRecord) {
     confirmText: "أرشفة",
     color: "warning",
     onConfirm: async () => {
-      try { await rentals.archiveRental(item.id); detailsDialog.value = false; await load(); notifySuccess("تمت أرشفة الإيجار بنجاح."); }
-      catch (error) { notifyError(getErrorMessage(error)); }
+      try {
+        await rentals.archiveRental(item.id);
+        detailsDialog.value = false;
+        await load();
+        notifySuccess("تمت أرشفة الإيجار بنجاح.");
+      } catch (error) {
+        notifyError(getErrorMessage(error));
+      }
     },
   });
 }
@@ -164,8 +209,14 @@ function restore(item: RentalRecord) {
     confirmText: "إرجاع",
     color: "success",
     onConfirm: async () => {
-      try { await rentals.restoreRental(item.id); detailsDialog.value = false; await load(); notifySuccess("تم إرجاع الإيجار بنجاح."); }
-      catch (error) { notifyError(getErrorMessage(error)); }
+      try {
+        await rentals.restoreRental(item.id);
+        detailsDialog.value = false;
+        await load();
+        notifySuccess("تم إرجاع الإيجار بنجاح.");
+      } catch (error) {
+        notifyError(getErrorMessage(error));
+      }
     },
   });
 }
@@ -176,10 +227,34 @@ function remove(item: RentalRecord) {
     confirmText: "حذف",
     color: "error",
     onConfirm: async () => {
-      try { await rentals.deleteRental(item.id); detailsDialog.value = false; selected.value = null; await load(); notifySuccess("تم حذف الإيجار بنجاح."); }
-      catch (error) { notifyError(getErrorMessage(error)); }
+      try {
+        await rentals.deleteRental(item.id);
+        detailsDialog.value = false;
+        selected.value = null;
+        await load();
+        notifySuccess("تم حذف الإيجار بنجاح.");
+      } catch (error) {
+        notifyError(getErrorMessage(error));
+      }
     },
   });
+}
+
+async function exportSelected() {
+  try {
+    if (!selected.value) {
+      notifyError("اختر إيجاراً أولاً لتصديره.");
+      return;
+    }
+    const result = await exportRentalFolder(selected.value);
+    if (result.canceled) return;
+    if (!result.ok) throw new Error(result.message ?? "تعذر تصدير الإيجارات.");
+    notifySuccess(
+      `تم تصدير الإيجار مع صوره إلى: ${result.path ?? "المجلد المحدد"}`,
+    );
+  } catch (error) {
+    notifyError(getErrorMessage(error));
+  }
 }
 
 onMounted(async () => {
@@ -190,13 +265,35 @@ onMounted(async () => {
 </script>
 
 <template>
-  <AppLayout title="الإيجارات" subtitle="إدارة محلية وسريعة للعروض الإيجارية داخل المكتب.">
+  <AppLayout
+    title="الإيجارات"
+    subtitle="إدارة محلية وسريعة للعروض الإيجارية داخل المكتب."
+  >
     <template #header-actions>
       <div class="d-flex flex-wrap ga-2">
-        <v-btn v-if="can('rentals.read')" variant="tonal" prepend-icon="mdi-heart-outline" @click="router.push('/rental-favorites')">
+        <v-btn
+          v-if="can('rentals.read')"
+          variant="tonal"
+          prepend-icon="mdi-folder-multiple-outline"
+          :disabled="!selected"
+          @click="exportSelected"
+        >
+          تصدير TXT والصور
+        </v-btn>
+        <v-btn
+          v-if="can('rentals.read')"
+          variant="tonal"
+          prepend-icon="mdi-heart-outline"
+          @click="router.push('/rental-favorites')"
+        >
           مفضلة الإيجارات
         </v-btn>
-        <v-btn v-if="can('rentals.create')" color="primary" prepend-icon="mdi-plus" @click="router.push('/rentals/new')">
+        <v-btn
+          v-if="can('rentals.create')"
+          color="primary"
+          prepend-icon="mdi-plus"
+          @click="router.push('/rentals/new')"
+        >
           إضافة إيجار
         </v-btn>
       </div>
@@ -207,15 +304,44 @@ onMounted(async () => {
     <div class="dal-resultsbar bg-surface pa-3 border">
       <span class="dal-resultsbar__count">{{ resultsLabel }}</span>
       <div class="dal-quickpicks">
-        <v-btn size="small" :variant="filters.status === 'available' ? 'flat' : 'text'" :color="filters.status === 'available' ? 'primary' : undefined" @click="toggleAvailable">المتاحة</v-btn>
-        <v-btn size="small" :variant="sortBy === 'newest' ? 'flat' : 'text'" :color="sortBy === 'newest' ? 'primary' : undefined" @click="sortBy = 'newest'">المضافة حديثاً</v-btn>
-        <v-btn size="small" :variant="favOnly ? 'flat' : 'text'" :color="favOnly ? 'error' : undefined" prepend-icon="mdi-heart-outline" @click="favOnly = !favOnly">المفضلة</v-btn>
+        <v-btn
+          size="small"
+          :variant="filters.status === 'available' ? 'flat' : 'text'"
+          :color="filters.status === 'available' ? 'primary' : undefined"
+          @click="toggleAvailable"
+          >المتاحة</v-btn
+        >
+        <v-btn
+          size="small"
+          :variant="sortBy === 'newest' ? 'flat' : 'text'"
+          :color="sortBy === 'newest' ? 'primary' : undefined"
+          @click="sortBy = 'newest'"
+          >المضافة حديثاً</v-btn
+        >
+        <v-btn
+          size="small"
+          :variant="favOnly ? 'flat' : 'text'"
+          :color="favOnly ? 'error' : undefined"
+          prepend-icon="mdi-heart-outline"
+          @click="favOnly = !favOnly"
+          >المفضلة</v-btn
+        >
       </div>
       <v-spacer />
-      <v-select v-model="sortBy" :items="SORT_OPTIONS" label="ترتيب" density="compact" hide-details class="dal-sort" />
+      <v-select
+        v-model="sortBy"
+        :items="SORT_OPTIONS"
+        label="ترتيب"
+        density="compact"
+        hide-details
+        class="dal-sort"
+      />
     </div>
 
-    <MasterDetailLayout :open="paneOpen && !!selected" @close="paneOpen = false">
+    <MasterDetailLayout
+      :open="paneOpen && !!selected"
+      @close="paneOpen = false"
+    >
       <template #main>
         <RentalTable
           :rentals="displayed"
@@ -265,8 +391,25 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.dal-resultsbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0 10px; }
-.dal-resultsbar__count { font-size: 13px; font-weight: 600; color: rgba(var(--v-theme-on-surface), 0.8); }
-.dal-quickpicks { display: flex; align-items: center; gap: 4px; }
-.dal-sort { max-width: 170px; flex: 0 0 auto; }
+.dal-resultsbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 8px 0 10px;
+}
+.dal-resultsbar__count {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.8);
+}
+.dal-quickpicks {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.dal-sort {
+  max-width: 170px;
+  flex: 0 0 auto;
+}
 </style>

@@ -315,6 +315,76 @@ ipcMain.handle("export:save-pdf", async (_event, input) => {
   }
 });
 
+ipcMain.handle("export:save-file", async (_event, input) => {
+  const data = input?.data;
+  const suggestedName = typeof input?.suggestedName === "string" && input.suggestedName
+    ? input.suggestedName
+    : "Dalaly_Export.xlsx";
+  if (!(data instanceof Uint8Array)) {
+    return { ok: false, message: "محتوى الملف غير صالح." };
+  }
+
+  const saveResult = await dialog.showSaveDialog(mainWindow ?? undefined, {
+    title: input?.title || "حفظ التصدير",
+    defaultPath: suggestedName,
+    filters: Array.isArray(input?.filters) && input.filters.length
+      ? input.filters
+      : [{ name: "Excel Workbook", extensions: ["xlsx"] }],
+  });
+  if (saveResult.canceled || !saveResult.filePath) {
+    return { ok: false, canceled: true };
+  }
+
+  try {
+    fs.writeFileSync(saveResult.filePath, Buffer.from(data));
+    return { ok: true, path: saveResult.filePath };
+  } catch (error) {
+    log.error("File export failed", error);
+    return { ok: false, message: "تعذر حفظ ملف التصدير." };
+  }
+});
+
+function safeExportName(value, fallback) {
+  const sanitized = String(value ?? "")
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, "-")
+    .replace(/[. ]+$/g, "")
+    .trim();
+  return sanitized || fallback;
+}
+
+ipcMain.handle("export:save-folder", async (_event, input) => {
+  const files = Array.isArray(input?.files) ? input.files : [];
+  if (!files.length) {
+    return { ok: false, message: "لا توجد ملفات لتصديرها." };
+  }
+
+  const folderResult = await dialog.showOpenDialog(mainWindow ?? undefined, {
+    title: input?.title || "اختيار مجلد التصدير",
+    properties: ["openDirectory", "createDirectory"],
+  });
+  if (folderResult.canceled || !folderResult.filePaths[0]) {
+    return { ok: false, canceled: true };
+  }
+
+  const folderName = safeExportName(input?.suggestedFolderName, "Dalaly_Export");
+  const targetFolder = path.join(folderResult.filePaths[0], folderName);
+
+  try {
+    fs.mkdirSync(targetFolder, { recursive: true });
+    for (const file of files) {
+      if (!(file?.data instanceof Uint8Array)) {
+        return { ok: false, message: "محتوى إحدى الصور غير صالح." };
+      }
+      const fileName = safeExportName(path.basename(String(file.name ?? "")), "file.bin");
+      fs.writeFileSync(path.join(targetFolder, fileName), Buffer.from(file.data));
+    }
+    return { ok: true, path: targetFolder };
+  } catch (error) {
+    log.error("Folder export failed", error);
+    return { ok: false, message: "تعذر إنشاء مجلد التصدير." };
+  }
+});
+
 ipcMain.handle("config:get-database-status", async () => {
   const config = readAppConfig();
 

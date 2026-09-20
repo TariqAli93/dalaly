@@ -28,6 +28,17 @@ interface DalalyConfigBridge {
     canceled?: boolean;
     fallback?: boolean;
   }>;
+  saveFile?: (input: {
+    data: Uint8Array;
+    suggestedName: string;
+    title: string;
+    filters: Array<{ name: string; extensions: string[] }>;
+  }) => Promise<{ ok: boolean; path?: string; canceled?: boolean; message?: string }>;
+  exportFolder?: (input: {
+    files: Array<{ name: string; data: Uint8Array }>;
+    suggestedFolderName: string;
+    title: string;
+  }) => Promise<{ ok: boolean; path?: string; canceled?: boolean; message?: string }>;
   chooseExportPath?: () => Promise<{ canceled?: boolean; filePath?: string }>;
   pickBackupFile?: () => Promise<{ path?: string; canceled?: boolean }>;
   pickFolder?: () => Promise<{ path?: string; canceled?: boolean }>;

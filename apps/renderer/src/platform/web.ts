@@ -78,6 +78,20 @@ export const webPlatform: PlatformAdapter = {
     return { ok: true, fallback: true };
   },
 
+  async saveFile({ data, suggestedName }): Promise<SaveResult> {
+    const buffer = new ArrayBuffer(data.byteLength);
+    new Uint8Array(buffer).set(data);
+    downloadBlob(suggestedName, buffer, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    return { ok: true, fallback: true };
+  },
+
+  async exportFolder(): Promise<SaveResult> {
+    return {
+      ok: false,
+      message: "تصدير المجلدات متاح داخل تطبيق سطح المكتب فقط.",
+    };
+  },
+
   async chooseBackupExportPath() {
     return { canceled: true };
   },

@@ -15,8 +15,9 @@ import { useSnackbar } from "../composables/useSnackbar";
 import { useRefresh } from "../composables/useRefresh";
 import { useFavorites } from "../composables/useFavorites";
 import { usePermissions } from "../composables/usePermissions";
-import { exportPropertiesToXlsx } from "../utils/excel";
+import { exportPropertyFolder } from "../utils/listingExport";
 import { compareByAreaM2 } from "../utils/area";
+import { getErrorMessage } from "../services/api.service";
 import type { PropertyRecord } from "../types";
 
 const router = useRouter();
@@ -24,7 +25,7 @@ const { properties, loading, filters, loadProperties, clearFilters, service } =
   useProperties();
 const { loadStats } = useStats();
 const { openConfirm } = useConfirm();
-const { notifySuccess } = useSnackbar();
+const { notifyError, notifySuccess } = useSnackbar();
 const { setRefreshHandler } = useRefresh();
 const { isFavorite, loadFavoriteIds } = useFavorites();
 const { can } = usePermissions();
@@ -192,9 +193,21 @@ function askDelete(property: PropertyRecord) {
   });
 }
 
-function exportExcel() {
-  exportPropertiesToXlsx(displayed.value);
-  notifySuccess("تم تصدير العروض إلى Excel.");
+async function exportSelected() {
+  try {
+    if (!selectedProperty.value) {
+      notifyError("اختر عقاراً أولاً لتصديره.");
+      return;
+    }
+    const result = await exportPropertyFolder(selectedProperty.value);
+    if (result.canceled) return;
+    if (!result.ok) throw new Error(result.message ?? "تعذر تصدير العروض.");
+    notifySuccess(
+      `تم تصدير العقار مع صوره إلى: ${result.path ?? "المجلد المحدد"}`,
+    );
+  } catch (error) {
+    notifyError(getErrorMessage(error));
+  }
 }
 
 // تحديد صف يفتح الـ Details pane (لا يفتح الحوار). الحوار الكامل يبقى عبر
@@ -236,10 +249,11 @@ onMounted(() => {
         <v-btn
           v-if="can('properties.export')"
           variant="tonal"
-          prepend-icon="mdi-microsoft-excel"
-          @click="exportExcel"
+          prepend-icon="mdi-folder-multiple-outline"
+          :disabled="!selectedProperty"
+          @click="exportSelected"
         >
-          تصدير Excel
+          تصدير TXT والصور
         </v-btn>
         <v-btn
           v-if="can('properties.create')"

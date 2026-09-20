@@ -6,7 +6,11 @@ import { useSnackbar } from "../../composables/useSnackbar";
 import { useConfirm } from "../../composables/useConfirm";
 import type { PropertyImage } from "../../types";
 
-const props = defineProps<{ propertyId: number; canManage?: boolean }>();
+const props = defineProps<{
+  propertyId: number;
+  canManage?: boolean;
+  primaryOnly?: boolean;
+}>();
 
 const { notifySuccess, notifyError } = useSnackbar();
 const { openConfirm } = useConfirm();
@@ -174,11 +178,12 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
     <!-- معرض الصور -->
     <div v-if="primaryImage" class="gallery">
       <img
+        v-if="!primaryOnly"
         :src="imageUrl(primaryImage)"
         class="gallery-primary"
         alt="صورة العقار"
       />
-      <div v-if="images.length" class="thumbs">
+      <div v-if="images.length && !primaryOnly" class="thumbs">
         <div
           v-for="(image, index) in images"
           :key="image.id"
@@ -217,13 +222,48 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
           </div>
         </div>
       </div>
+
+      <div v-else-if="images.length && primaryOnly">
+        <div
+          v-for="(image, index) in primaryImage ? [primaryImage] : []"
+          :key="image.id"
+          class="thumb-wrap"
+          :class="{ 'thumb-active': image.is_primary }"
+          :draggable="canManage"
+          @dragstart="onDragStart(index)"
+          @dragover.prevent
+          @drop.prevent="onDropReorder(index)"
+        >
+          <img
+            :src="imageUrl(image)"
+            class="thumb small"
+            alt=""
+            @click="setPrimary(image)"
+          />
+          <div v-if="canManage" class="thumb-actions">
+            <v-btn
+              v-if="!image.is_primary"
+              icon="mdi-star-outline"
+              size="x-small"
+              variant="flat"
+              color="warning"
+              title="تعيين رئيسية"
+              @click="setPrimary(image)"
+            />
+            <v-icon v-else icon="mdi-star" color="warning" />
+            <v-btn
+              icon="mdi-delete-outline"
+              size="x-small"
+              variant="flat"
+              color="error"
+              title="حذف"
+              @click="askDelete(image)"
+            />
+          </div>
+        </div>
+      </div>
     </div>
-    <v-empty-state
-      v-else-if="!loading"
-      icon="mdi-image-multiple-outline"
-      title="لا توجد صور"
-      text="أضف صوراً للعقار."
-    />
+    <v-empty-state v-else-if="!loading" icon="mdi-image-multiple-outline" />
 
     <!-- منطقة الرفع -->
     <template v-if="canManage">
@@ -305,6 +345,8 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
   border: 2px solid transparent;
   border-radius: 0px;
   overflow: hidden;
+  max-width: 120px;
+  max-height: 100px;
 }
 .thumb-active {
   border-color: rgb(var(--v-theme-primary));
@@ -316,6 +358,11 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
   cursor: pointer;
   display: block;
 }
+
+.thumb.small {
+  width: 100%;
+}
+
 .thumb-actions {
   position: absolute;
   inset-block-start: 2px;

@@ -25,6 +25,18 @@ export const electronPlatform: PlatformAdapter = {
     return api.exportPdf({ html, suggestedName });
   },
 
+  async saveFile({ data, suggestedName, title, filters }): Promise<SaveResult> {
+    const api = bridge();
+    if (!api?.saveFile) return { ok: false, canceled: true };
+    return api.saveFile({ data, suggestedName, title, filters });
+  },
+
+  async exportFolder({ files, suggestedFolderName, title }): Promise<SaveResult> {
+    const api = bridge();
+    if (!api?.exportFolder) return { ok: false, canceled: true };
+    return api.exportFolder({ files, suggestedFolderName, title });
+  },
+
   async chooseBackupExportPath() {
     const api = bridge();
     if (!api?.chooseExportPath) return { canceled: true };

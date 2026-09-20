@@ -6,6 +6,7 @@ import PropertyActions from "./PropertyActions.vue";
 import StatusChip from "../shared/StatusChip.vue";
 import EmptyState from "../shared/EmptyState.vue";
 import { amenitiesText } from "../../utils/amenities";
+import PropertyImages from "./PropertyImages.vue";
 
 const props = defineProps<{
   properties: PropertyRecord[];
@@ -38,6 +39,7 @@ function rowProps(ctx: { item: PropertyRecord }) {
 }
 
 const headers = [
+  { title: "الصورة", key: "image", sortable: false },
   { title: "الاسم", key: "name", sortable: true },
   { title: "الكود", key: "code", sortable: true },
   { title: "النوع", key: "property_type" },
@@ -103,6 +105,9 @@ const headers = [
       :row-props="rowProps"
       @click:row="onRowClick"
     >
+      <template #item.image="{ item }">
+        <PropertyImages primary-only :property-id="item.id" />
+      </template>
       <template #item.name="{ item }">
         {{ item.name || `properties ${item.code}` }}
       </template>

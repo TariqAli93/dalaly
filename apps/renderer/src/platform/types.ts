@@ -7,6 +7,7 @@ export type SaveResult = {
   /** المسار على القرص — متاح في Electron فقط. */
   path?: string;
   canceled?: boolean;
+  message?: string;
   /** true عندما نُفّذت العملية ببديل ويب (تنزيل/طباعة) لا بحوار نظام. */
   fallback?: boolean;
 };
@@ -27,6 +28,8 @@ export type PickedFolder = {
 };
 
 export type ScheduledBackupConfig = Record<string, unknown>;
+export type SaveFileFilter = { name: string; extensions: string[] };
+export type FolderExportFile = { name: string; data: Uint8Array };
 
 export interface PlatformAdapter {
   /** اسم المنصّة — للعرض والتشخيص فقط. */
@@ -41,6 +44,19 @@ export interface PlatformAdapter {
     suggestedName: string;
     title: string;
     text: string;
+  }): Promise<SaveResult>;
+
+  saveFile(input: {
+    data: Uint8Array;
+    suggestedName: string;
+    title: string;
+    filters: SaveFileFilter[];
+  }): Promise<SaveResult>;
+
+  exportFolder(input: {
+    files: FolderExportFile[];
+    suggestedFolderName: string;
+    title: string;
   }): Promise<SaveResult>;
 
   /** اختيار مسار حفظ نسخة احتياطية. غير مدعوم في المتصفح. */

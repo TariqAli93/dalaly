@@ -5,6 +5,7 @@ import StatusChip from "../shared/StatusChip.vue";
 import EmptyState from "../shared/EmptyState.vue";
 import { usePermissions } from "../../composables/usePermissions";
 import { amenitiesText } from "../../utils/amenities";
+import RentalImages from "./RentalImages.vue";
 
 const props = defineProps<{
   rentals: RentalRecord[];
@@ -52,6 +53,7 @@ function rowProps(ctx: { item: RentalRecord }) {
 }
 
 const headers = [
+  { title: "الصورة", key: "image", sortable: false },
   { title: "الاسم", key: "name", sortable: true },
   { title: "الكود", key: "code", sortable: true },
   { title: "النوع", key: "property_type" },
@@ -80,7 +82,11 @@ const headers = [
       text="جرّب توسيع البحث أو إزالة بعض الفلاتر."
     >
       <template #actions>
-        <v-btn variant="tonal" prepend-icon="mdi-filter-remove" @click="emit('clearFilters')">
+        <v-btn
+          variant="tonal"
+          prepend-icon="mdi-filter-remove"
+          @click="emit('clearFilters')"
+        >
           مسح الفلاتر
         </v-btn>
         <v-btn color="primary" prepend-icon="mdi-plus" @click="emit('create')">
@@ -111,6 +117,9 @@ const headers = [
       :row-props="rowProps"
       @click:row="onRowClick"
     >
+      <template #item.image="{ item }">
+        <RentalImages primary-only :rental-id="item.id" />
+      </template>
       <template #item.name="{ item }">
         {{ item.name || `rentals ${item.code}` }}
       </template>
@@ -147,13 +156,20 @@ const headers = [
       <template #item.actions="{ item }">
         <div class="d-flex ga-1 justify-end">
           <v-btn
-            :icon="favoriteIds?.has(item.id) ? 'mdi-heart' : 'mdi-heart-outline'"
+            :icon="
+              favoriteIds?.has(item.id) ? 'mdi-heart' : 'mdi-heart-outline'
+            "
             :color="favoriteIds?.has(item.id) ? 'error' : undefined"
             variant="text"
             title="المفضلة"
             @click="emit('favorite', item)"
           />
-          <v-btn icon="mdi-eye" variant="text" title="عرض" @click="emit('view', item)" />
+          <v-btn
+            icon="mdi-eye"
+            variant="text"
+            title="عرض"
+            @click="emit('view', item)"
+          />
           <v-btn
             v-if="can('rentals.update')"
             icon="mdi-pencil"

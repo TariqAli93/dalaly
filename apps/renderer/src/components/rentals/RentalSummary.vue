@@ -5,6 +5,7 @@ import { usePermissions } from "../../composables/usePermissions";
 import StatusChip from "../shared/StatusChip.vue";
 import type { RentalRecord } from "../../types";
 import { amenitiesText } from "../../utils/amenities";
+import RentalExportMenu from "./RentalExportMenu.vue";
 
 const props = defineProps<{ rental: RentalRecord; favorite?: boolean }>();
 const emit = defineEmits<{
@@ -102,6 +103,7 @@ const location = computed(() =>
 
     <div class="ps__actions">
       <v-btn color="primary" block @click="emit('open')">فتح التفاصيل الكاملة</v-btn>
+      <RentalExportMenu :rental="rental" />
       <div class="ps__actions-row">
         <v-btn v-if="can('rentals.update')" variant="tonal" prepend-icon="mdi-pencil" @click="emit('edit')">تعديل</v-btn>
         <v-btn v-if="rental.status === 'archived' && can('rentals.restore')" variant="text" color="success" prepend-icon="mdi-archive-arrow-up-outline" @click="emit('restore')">إرجاع</v-btn>

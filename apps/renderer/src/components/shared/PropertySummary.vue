@@ -12,6 +12,7 @@ import StatusChip from "./StatusChip.vue";
 import FavoriteButton from "../properties/FavoriteButton.vue";
 import type { PropertyRecord } from "../../types";
 import { amenitiesText } from "../../utils/amenities";
+import PropertyExportMenu from "../properties/PropertyExportMenu.vue";
 
 const props = defineProps<{ property: PropertyRecord }>();
 const emit = defineEmits<{
@@ -150,7 +151,8 @@ const rows = computed(() => {
       <v-btn color="primary" block @click="emit('open')">
         فتح التفاصيل الكاملة
       </v-btn>
-      <div class="ps__actions-row">
+    <PropertyExportMenu v-if="can('properties.export')" :property="property" />
+    <div class="ps__actions-row">
         <v-btn
           v-if="can('properties.update')"
           variant="tonal"

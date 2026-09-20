@@ -2,11 +2,30 @@ import * as XLSX from "xlsx";
 import { statusLabel } from "../constants/domain";
 import { formatMoney, formatPlot } from "./format";
 import { neighborhoodOf } from "./exportProperty";
-import type { PropertyRecord } from "../types";
+import { amenitiesText } from "./amenities";
+import { platform } from "../platform";
+import type { PropertyRecord, RentalRecord } from "../types";
+import type { SaveResult } from "../platform/types";
+
+async function saveWorkbook(
+  workbook: XLSX.WorkBook,
+  suggestedName: string,
+  title: string,
+): Promise<SaveResult> {
+  const data = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+  return platform.saveFile({
+    data: new Uint8Array(data),
+    suggestedName,
+    title,
+    filters: [{ name: "Excel Workbook", extensions: ["xlsx"] }],
+  });
+}
 
 /** تصدير قائمة العروض إلى ملف Excel وتنزيله. */
-export function exportPropertiesToXlsx(properties: PropertyRecord[]) {
+export async function exportPropertiesToXlsx(properties: PropertyRecord[]) {
   const rows = properties.map((p) => ({
+    "الاسم": p.name ?? `properties ${p.code}`,
+    "المميزات": amenitiesText(p.amenities),
     الكود: p.code,
     النوع: p.property_type,
     "الصفة القانونية": p.legal_type,
@@ -32,7 +51,51 @@ export function exportPropertiesToXlsx(properties: PropertyRecord[]) {
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "العروض");
   const date = new Date().toISOString().slice(0, 10);
-  XLSX.writeFile(workbook, `Dalaly_Properties_${date}.xlsx`);
+  return saveWorkbook(workbook, `Dalaly_Properties_${date}.xlsx`, "تصدير العقارات");
+}
+
+export async function exportRentalsToXlsx(rentals: RentalRecord[]) {
+  const propertyTypeLabels: Record<string, string> = {
+    house: "بيت",
+    apartment: "شقة",
+    shop: "محل",
+    warehouse: "مخزن",
+    other: "أخرى",
+  };
+  const rentPeriodLabels: Record<string, string> = {
+    monthly: "شهري",
+    semi_annual: "نصف سنوي",
+    annual: "سنوي",
+  };
+
+  const rows = rentals.map((rental) => ({
+    "الاسم": rental.name ?? `rentals ${rental.code}`,
+    "الكود": rental.code,
+    "نوع العقار": propertyTypeLabels[rental.property_type] ?? rental.property_type,
+    "سعر الإيجار": rental.rent_price,
+    "نوع الإيجار": rentPeriodLabels[rental.rent_period] ?? rental.rent_period,
+    "المساحة": rental.area_value,
+    "وحدة المساحة": rental.area_unit,
+    "الطوابق": rental.floors_count ?? "",
+    "الغرف": rental.rooms_count ?? "",
+    "الحمامات": rental.bathrooms_count ?? "",
+    "المحافظة": rental.governorate ?? "",
+    "المنطقة": rental.district ?? "",
+    "الحي": rental.neighborhood ?? "",
+    "تفاصيل العنوان": rental.address_details ?? "",
+    "المميزات": amenitiesText(rental.amenities),
+    "اسم المالك": rental.owner_name,
+    "هاتف المالك": rental.owner_phone,
+    "الحالة": rental.status,
+    "قابل للتفاوض": rental.is_negotiable ? "نعم" : "لا",
+    "الملاحظات": rental.notes ?? "",
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "الإيجارات");
+  const date = new Date().toISOString().slice(0, 10);
+  return saveWorkbook(workbook, `Dalaly_Rentals_${date}.xlsx`, "تصدير الإيجارات");
 }
 
 export type ParsedSheet = {
