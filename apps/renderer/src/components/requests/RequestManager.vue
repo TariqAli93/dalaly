@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import LocationSelects from "../properties/LocationSelects.vue";
 import StatusChip from "../shared/StatusChip.vue";
 import AppLayout from "../../layouts/AppLayout.vue";
@@ -18,6 +18,7 @@ import type {
 } from "../../types";
 
 const props = defineProps<{ mode: "rental" | "purchase" }>();
+const route = useRoute();
 const router = useRouter();
 const { can } = usePermissions();
 const { notifyError, notifySuccess } = useSnackbar();
@@ -77,6 +78,21 @@ const headers = computed(() => [
   { title: "الحالة", key: "status" },
 ]);
 const isRental = computed(() => props.mode === "rental");
+
+function requestPropertyTypeLabel(value: string) {
+  if (!isRental.value) return value;
+  return RENTAL_PROPERTY_TYPES.find((item) => item.value === value)?.title ?? value;
+}
+
+function requestRentPeriodLabel(item: RentalRequestRecord | PurchaseRequestRecord) {
+  if (!("rent_period" in item)) return "-";
+  return {
+    monthly: "شهري",
+    semi_annual: "نصف سنوي",
+    annual: "سنوي",
+  }[item.rent_period ?? ""] ?? item.rent_period ?? "-";
+}
+
 function handleRowClick(
   _event: Event,
   context: { item: RentalRequestRecord | PurchaseRequestRecord },
@@ -226,7 +242,13 @@ function openMatch(match: MatchResult) {
     props.mode === "rental" ? `/rentals/${id}/edit` : `/properties/${id}/edit`,
   );
 }
-onMounted(load);
+onMounted(async () => {
+  await load();
+  const requestedId = Number(route.query.open);
+  if (!requestedId) return;
+  const item = rows.value.find((row) => row.id === requestedId);
+  if (item) openEdit(item);
+});
 </script>
 <template>
   <AppLayout
@@ -263,6 +285,12 @@ onMounted(load);
       >
         <template #item.customer_name="{ item }">{{
           item.customer_name || item.customer_code || "-"
+        }}</template
+        ><template #item.property_type="{ item }">{{
+          requestPropertyTypeLabel(item.property_type)
+        }}</template
+        ><template #item.rent_period="{ item }">{{
+          requestRentPeriodLabel(item)
         }}</template
         ><template #item.budget_max="{ item }">{{
           item.budget_max ?? "بدون حد"

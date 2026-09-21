@@ -1,8 +1,20 @@
-﻿import type { RentalFilters, RentalForm, RentalImage, RentalRecord } from "../types";
+import type { AuditLogRecord, RentalFilters, RentalForm, RentalImage, RentalRecord } from "../types";
 import { API_BASE, getToken, request } from "./api.service";
-function query(filters: Partial<RentalFilters>) { const params = new URLSearchParams(); Object.entries(filters).forEach(([key, value]) => { if (value !== "" && value !== undefined && value !== null) params.set(key, String(value)); }); const text = params.toString(); return text ? `?${text}` : ""; }
-export function listRentals(filters: Partial<RentalFilters> = {}) { return request<RentalRecord[]>(`/rentals${query(filters)}`); }
+
+function query(filters: Partial<RentalFilters>) {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== "" && value !== undefined && value !== null) params.set(key, String(value));
+  });
+  const text = params.toString();
+  return text ? `?${text}` : "";
+}
+
+export function listRentals(filters: Partial<RentalFilters> = {}) {
+  return request<RentalRecord[]>(`/rentals${query(filters)}`);
+}
 export function getRental(id: number) { return request<RentalRecord>(`/rentals/${id}`); }
+export function getRentalAudit(id: number) { return request<AuditLogRecord[]>(`/rentals/${id}/audit`); }
 export function createRental(payload: Partial<RentalForm>) { return request<RentalRecord>("/rentals", { method: "POST", body: JSON.stringify(payload) }); }
 export function updateRental(id: number, payload: Partial<RentalForm>) { return request<RentalRecord>(`/rentals/${id}`, { method: "PUT", body: JSON.stringify(payload) }); }
 export function deleteRental(id: number) { return request<{ deleted: boolean; rental: RentalRecord }>(`/rentals/${id}`, { method: "DELETE" }); }

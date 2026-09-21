@@ -379,9 +379,6 @@ onMounted(async () => {
     <RentalDetailsDialog
       v-model="detailsDialog"
       :rental="selected"
-      :favorite="selected ? favoriteIds.has(selected.id) : false"
-      :can-manage="can('rentals.update')"
-      @favorite="favorite"
       @edit="edit"
       @archive="archive"
       @restore="restore"

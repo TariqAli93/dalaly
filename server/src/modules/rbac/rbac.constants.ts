@@ -15,6 +15,7 @@ export const SYSTEM_PERMISSIONS = [
   { key: "rentals.archive", name: "أرشفة الإيجارات", module: "rentals" },
   { key: "rentals.restore", name: "إرجاع إيجارات مؤرشفة", module: "rentals" },
   { key: "rentals.delete", name: "حذف إيجارات", module: "rentals" },
+  { key: "rentals.export", name: "تصدير وطباعة الإيجارات", module: "rentals" },
   { key: "rentals.images.manage", name: "إدارة صور الإيجارات", module: "rentals" },
   { key: "rentals.followups.read", name: "عرض متابعات الإيجارات", module: "rentals" },
   { key: "rentals.followups.create", name: "إضافة متابعة إيجار", module: "rentals" },

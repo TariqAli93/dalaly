@@ -11,7 +11,8 @@ import { useSnackbar } from "../composables/useSnackbar";
 import * as requests from "../services/requests.service";
 import * as customersService from "../services/customers.service";
 import { toNumber } from "../utils/format";
-import type { CustomerRecord, PropertyForm as PropertyFormType, PropertyRecord } from "../types";
+import MatchingResultsDialog from "../components/requests/MatchingResultsDialog.vue";
+import type { CustomerRecord, MatchResult, PropertyForm as PropertyFormType, PropertyRecord } from "../types";
 
 const route = useRoute();
 const router = useRouter();
@@ -106,6 +107,9 @@ const editingId = ref<number | null>(null);
 const form = ref<PropertyFormType>(defaultForm());
 const saving = ref(false);
 const formRef = ref<{ validate: () => Promise<boolean> } | null>(null);
+const matchDialog = ref(false);
+const matches = ref<MatchResult[]>([]);
+const pendingRedirect = ref<string | null>(null);
 
 const isEditing = computed(() => editingId.value !== null);
 
@@ -140,6 +144,8 @@ async function save() {
   }
 
   saving.value = true;
+  matches.value = [];
+  pendingRedirect.value = null;
   const isDirect = form.value.pricing_method === DIRECT_PRICE;
   const payload = {
     ...form.value,
@@ -161,18 +167,40 @@ async function save() {
     if (savedId !== null) {
       try {
         const result = await requests.purchaseRequestMatches(savedId);
-        if (result.count) notifySuccess(`Found ${result.count} matching purchase requests.`);
+        matches.value = result.matches;
+        if (result.count) {
+          notifySuccess(`تم العثور على ${result.count} طلبات شراء مطابقة.`);
+          pendingRedirect.value = "/properties";
+        }
       } catch {
         // Matching is advisory and must not block saving an offer.
       }
     }
     await Promise.all([loadProperties(), loadStats()]);
-    await router.push("/properties");
+    if (matches.value.length) matchDialog.value = true;
+    else await router.push("/properties");
   } catch (error) {
     notifyError(getErrorMessage(error));
   } finally {
     saving.value = false;
   }
+}
+
+function closeMatches(value: boolean) {
+  matchDialog.value = value;
+  if (!value && pendingRedirect.value) {
+    const path = pendingRedirect.value;
+    pendingRedirect.value = null;
+    void router.push(path);
+  }
+}
+
+function openMatch(match: MatchResult) {
+  const id = Number((match.record as { id?: number }).id);
+  if (!id) return;
+  matchDialog.value = false;
+  pendingRedirect.value = null;
+  void router.push({ path: "/purchase-requests", query: { open: String(id) } });
 }
 
 onMounted(async () => {
@@ -202,6 +230,13 @@ onMounted(async () => {
       :saving="saving"
       @submit="save"
       @cancel="router.push('/properties')"
+    />
+    <MatchingResultsDialog
+      :model-value="matchDialog"
+      :matches="matches"
+      title="طلبات الشراء المطابقة"
+      @update:model-value="closeMatches"
+      @open="openMatch"
     />
   </AppLayout>
 </template>

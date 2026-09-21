@@ -44,8 +44,9 @@ const location = computed(() =>
     <div class="ps__head">
       <div class="min-w-0">
         <div class="ps__code">{{ rental.name || `rentals ${rental.code}` }}</div>
-        <div class="ps__type money">{{ rental.code }}</div>
-        <div class="ps__type">{{ typeLabel[rental.property_type] ?? rental.property_type }}</div>
+        <div class="ps__type money">
+          {{ rental.code }} · {{ typeLabel[rental.property_type] ?? rental.property_type }}
+        </div>
       </div>
       <StatusChip :status="rental.status" />
       <v-btn
@@ -103,7 +104,7 @@ const location = computed(() =>
 
     <div class="ps__actions">
       <v-btn color="primary" block @click="emit('open')">فتح التفاصيل الكاملة</v-btn>
-      <RentalExportMenu :rental="rental" />
+      <RentalExportMenu v-if="can('rentals.export')" :rental="rental" />
       <div class="ps__actions-row">
         <v-btn v-if="can('rentals.update')" variant="tonal" prepend-icon="mdi-pencil" @click="emit('edit')">تعديل</v-btn>
         <v-btn v-if="rental.status === 'archived' && can('rentals.restore')" variant="text" color="success" prepend-icon="mdi-archive-arrow-up-outline" @click="emit('restore')">إرجاع</v-btn>
