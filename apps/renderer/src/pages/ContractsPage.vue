@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import AppLayout from "../layouts/AppLayout.vue";
+import NumberField from "../components/app/NumberField.vue";
 import * as contracts from "../services/contracts.service";
 import * as customersService from "../services/customers.service";
 import * as propertiesService from "../services/properties.service";
@@ -10,6 +11,7 @@ import { platform } from "../platform";
 import { getErrorMessage, getToken } from "../services/api.service";
 import { usePermissions } from "../composables/usePermissions";
 import { useSnackbar } from "../composables/useSnackbar";
+import { formatMoney } from "../utils/format";
 import type {
   ContractBundle,
   ContractRecord,
@@ -41,7 +43,7 @@ const form = ref({
   contract_date: new Date().toISOString().slice(0, 10),
   start_date: "",
   end_date: "",
-  amount: null as number | null,
+  amount: null as string | number | null,
   notes: "",
 });
 const parties = ref<Array<{ customer_id: number; role: string }>>([]);
@@ -181,6 +183,10 @@ async function save() {
         ? new Date(form.value.start_date)
         : null,
       end_date: form.value.end_date ? new Date(form.value.end_date) : null,
+      amount:
+        form.value.amount === null || form.value.amount === ""
+          ? null
+          : Number(String(form.value.amount).replace(/,/g, "")),
       property_id:
         form.value.contract_type === "rental" ||
         form.value.contract_type === "lease"
@@ -290,7 +296,11 @@ onMounted(load);
         ><template #item.contract_type="{ item }">{{
           typeLabel(item.contract_type)
         }}</template
-        ><template #item.amount="{ item }">{{ item.amount ?? "-" }}</template
+        ><template #item.amount="{ item }">{{
+          item.amount === null || item.amount === undefined
+            ? "-"
+            : formatMoney(item.amount)
+        }}</template
         ><template #item.actions="{ item }"
           ><v-btn
             icon="mdi-eye"
@@ -354,9 +364,9 @@ onMounted(load);
               v-model="form.end_date"
               type="date"
               label="تاريخ الانتهاء"
-            /><v-text-field
+            /><NumberField
               v-model="form.amount"
-              type="number"
+              :decimals="false"
               label="المبلغ"
             /><v-select
               v-model="form.status"

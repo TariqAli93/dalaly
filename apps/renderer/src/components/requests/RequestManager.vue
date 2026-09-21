@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import LocationSelects from "../properties/LocationSelects.vue";
 import StatusChip from "../shared/StatusChip.vue";
+import NumberField from "../app/NumberField.vue";
 import AppLayout from "../../layouts/AppLayout.vue";
 import { PROPERTY_TYPES, RENTAL_PROPERTY_TYPES } from "../../constants/domain";
 import * as customersService from "../../services/customers.service";
@@ -10,6 +11,7 @@ import * as requests from "../../services/requests.service";
 import { getErrorMessage } from "../../services/api.service";
 import { usePermissions } from "../../composables/usePermissions";
 import { useSnackbar } from "../../composables/useSnackbar";
+import { formatMoney } from "../../utils/format";
 import type {
   CustomerRecord,
   MatchResult,
@@ -107,9 +109,9 @@ function matchTitle(match: MatchResult) {
   return String(record.name || record.code || "offer");
 }
 function numberOrNull(value: unknown) {
-  return value === "" || value === null || value === undefined
-    ? null
-    : Number(value);
+  if (value === "" || value === null || value === undefined) return null;
+  const parsed = Number(String(value).replace(/,/g, ""));
+  return Number.isFinite(parsed) ? parsed : null;
 }
 async function load() {
   loading.value = true;
@@ -293,7 +295,9 @@ onMounted(async () => {
           requestRentPeriodLabel(item)
         }}</template
         ><template #item.budget_max="{ item }">{{
-          item.budget_max ?? "بدون حد"
+          item.budget_max === null || item.budget_max === undefined
+            ? "بدون حد"
+            : formatMoney(item.budget_max)
         }}</template
         ><template #item.district="{ item }">{{
           [item.governorate, item.district, item.neighborhood]
@@ -331,13 +335,12 @@ onMounted(async () => {
                 { title: 'سنوي', value: 'annual' },
               ]"
               label="نوع الإيجار"
-            /><v-text-field
+            /><NumberField
               v-model="form.budget_min"
-              type="number"
               label="الميزانية من"
-            /><v-text-field
+              :decimals="false"
+            /><NumberField
               v-model="form.budget_max"
-              type="number"
               label="الميزانية إلى"
             /><v-text-field
               v-model="form.area_min"
