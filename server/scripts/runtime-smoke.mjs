@@ -222,7 +222,109 @@ async function main() {
     const del = await req("DELETE", `/properties/${propId}`, { token });
     check("delete property ok", del.status === 200 && del.body?.deleted === true, del);
 
-    console.log("== Step 8: users + roles + permissions ==");
+    console.log("== Step 8: CRM modules + rental matching ==");
+    const customer = await req("POST", "/customers", {
+      token,
+      body: { full_name: "CRM Test Customer", phone_primary: "07700000001", customer_type: "individual" },
+    });
+    check("create customer 201", customer.status === 201 && typeof customer.body?.id === "number", customer);
+    const customerId = customer.body?.id;
+
+    const rental = await req("POST", "/rentals", {
+      token,
+      body: {
+        property_type: "apartment",
+        rent_price: 750,
+        rent_period: "monthly",
+        area_value: 120,
+        area_unit: "متر",
+        owner_customer_id: customerId,
+        owner_name: "CRM Test Customer",
+        owner_phone: "07700000001",
+        status: "available",
+      },
+    });
+    check("create rental 201", rental.status === 201 && typeof rental.body?.id === "number", rental);
+    const rentalId = rental.body?.id;
+
+    const rentalRequest = await req("POST", "/rental-requests", {
+      token,
+      body: {
+        customer_id: customerId,
+        property_type: "apartment",
+        rent_period: "monthly",
+        budget_max: 1000,
+        area_min: 80,
+        rooms_count: 2,
+        status: "open",
+      },
+    });
+    check("create rental request 201", rentalRequest.status === 201 && typeof rentalRequest.body?.id === "number", rentalRequest);
+    const rentalRequestId = rentalRequest.body?.id;
+    const rentalMatches = await req("GET", `/matching/rental-requests/${rentalRequestId}/offers`, { token });
+    check("rental matching finds offer", rentalMatches.status === 200 && rentalMatches.body?.count >= 1, rentalMatches);
+
+    const sale = await req("POST", "/properties", {
+      token,
+      body: {
+        property_type: "أرض",
+        legal_type: "طابو ملك صرف",
+        area_value: 200,
+        area_unit: "متر",
+        pricing_method: "سعر إجمالي مباشر",
+        total_price: 100000,
+        owner_name: "CRM Test Customer",
+        owner_phone: "07700000001",
+        status: "available",
+      },
+    });
+    check("create sale offer 201", sale.status === 201 && typeof sale.body?.id === "number", sale);
+    const purchaseRequest = await req("POST", "/purchase-requests", {
+      token,
+      body: { customer_id: customerId, property_type: "أرض", budget_max: 150000, status: "open" },
+    });
+    check("create purchase request 201", purchaseRequest.status === 201 && typeof purchaseRequest.body?.id === "number", purchaseRequest);
+    const purchaseMatches = await req("GET", `/matching/purchase-requests/${purchaseRequest.body?.id}/offers`, { token });
+    check("purchase matching finds offer", purchaseMatches.status === 200 && purchaseMatches.body?.count >= 1, purchaseMatches);
+
+    const documentTypes = await req("GET", "/documents/types", { token });
+    check("document types available", documentTypes.status === 200 && documentTypes.body?.length >= 1, documentTypes);
+    const nationalIdType = documentTypes.body?.find((item) => item.key === "national_id")?.id;
+    const document = await req("POST", "/documents", {
+      token,
+      body: {
+        customer_id: customerId,
+        document_type_id: nationalIdType,
+        document_name: "CRM test document",
+        original_name: "test.txt",
+        file_type: "text/plain",
+        data: "data:text/plain;base64,SGVsbG8=",
+      },
+    });
+    check("upload customer document 201", document.status === 201 && typeof document.body?.id === "number", document);
+    const documentFile = await req("GET", `/documents/${document.body?.id}/file`, { token });
+    check("read customer document file", documentFile.status === 200 && documentFile.body === "Hello", documentFile);
+    const companySettings = await req("GET", "/company-settings", { token });
+    check("company settings available", companySettings.status === 200 && companySettings.body?.id === 1, companySettings);
+    const templates = await req("GET", "/contracts/templates", { token });
+    check("contract templates available", templates.status === 200 && templates.body?.length >= 4, templates);
+
+    const contract = await req("POST", "/contracts", {
+      token,
+      body: {
+        contract_type: "rental",
+        customer_id: customerId,
+        rental_id: rentalId,
+        status: "draft",
+        parties: [{ customer_id: customerId, role: "tenant" }],
+      },
+    });
+    check("create rental contract 201", contract.status === 201 && typeof contract.body?.contract?.id === "number", contract);
+    const contractId = contract.body?.contract?.id;
+    const docx = await req("GET", `/contracts/${contractId}/docx`, { token });
+    check("generate contract docx", docx.status === 200 && typeof docx.body?.data === "string", docx);
+
+    console.log("== Step 9: users + roles + permissions ==");
     const roles = await req("GET", "/roles", { token });
     check("roles includes Super Admin", Array.isArray(roles.body) && roles.body.some((r) => r.name === "Super Admin"), roles.body);
 
@@ -238,7 +340,7 @@ async function main() {
     const users = await req("GET", "/users", { token });
     check("users list has 2", Array.isArray(users.body) && users.body.length === 2, users.body?.length);
 
-    console.log("== Step 9: idempotency of initialize ==");
+    console.log("== Step 10: idempotency of initialize ==");
     const init2 = await req("POST", "/setup/initialize", {
       body: {
         host: "127.0.0.1",

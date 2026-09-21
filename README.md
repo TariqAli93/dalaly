@@ -40,7 +40,7 @@ pnpm db:migrate
    pnpm dev
 ````
 
-The Electron app starts the Fastify API on `127.0.0.1:45678` and loads the Vue/Vuetify renderer from Vite. On first startup the app validates PostgreSQL connectivity and shows a setup/login screen.
+The Electron app starts the Fastify API on `127.0.0.1:34567` and loads the Vue/Vuetify renderer from Vite. On first startup the app validates PostgreSQL connectivity and shows a setup/login screen.
 
 Default first-install administrator values come from `.env`:
 

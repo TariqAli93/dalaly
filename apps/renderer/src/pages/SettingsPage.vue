@@ -15,6 +15,7 @@ import { useIdleLock } from "../composables/useIdleLock";
 import ChangePinDialog from "../components/auth/ChangePinDialog.vue";
 import BackupSettings from "../components/setup/BackupSettings.vue";
 import ScheduledBackupSettings from "../components/setup/ScheduledBackupSettings.vue";
+import * as companyService from "../services/company-settings.service";
 
 const router = useRouter();
 const { isDark, toggle } = useThemeMode();
@@ -33,6 +34,9 @@ const idleOptions = [
   { title: "30 دقيقة", value: 30 },
   { title: "60 دقيقة", value: 60 },
 ];
+const company = ref({ company_name: "", phone_primary: "", phone_secondary: "", email: "", address: "", additional_contact: "" });
+const companySaving = ref(false);
+const companyLogo = ref<File | null>(null);
 
 async function lockNow() {
   await logout();
@@ -74,15 +78,48 @@ async function disableRemote() {
   }
 }
 
+async function loadCompany() {
+  try {
+    const value = await companyService.getCompanySettings();
+    company.value = { company_name: value.company_name, phone_primary: value.phone_primary ?? "", phone_secondary: value.phone_secondary ?? "", email: value.email ?? "", address: value.address ?? "", additional_contact: value.additional_contact ?? "" };
+  } catch (error) { notifyError(getErrorMessage(error)); }
+}
+async function saveCompany() {
+  companySaving.value = true;
+  try { await companyService.updateCompanySettings(company.value); notifySuccess("تم حفظ بيانات الشركة."); } catch (error) { notifyError(getErrorMessage(error)); } finally { companySaving.value = false; }
+}
+function readFile(file: File) { return new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(file); }); }
+async function uploadCompanyLogo() {
+  if (!companyLogo.value) return;
+  try { await companyService.uploadLogo({ data: await readFile(companyLogo.value), original_name: companyLogo.value.name, file_type: companyLogo.value.type || "image/png" }); notifySuccess("تم تحديث شعار الشركة."); } catch (error) { notifyError(getErrorMessage(error)); }
+}
+
 onMounted(() => {
   setRefreshHandler(loadRemote);
   if (can("settings.read")) void loadRemote();
+  if (can("settings.read")) void loadCompany();
 });
 </script>
 
 <template>
   <AppLayout title="الإعدادات">
     <div class="settings-grid">
+      <v-card variant="flat" border>
+        <v-card-title>معلومات الشركة</v-card-title>
+        <v-card-text>
+          <div class="settings-grid settings-grid--company">
+            <v-text-field v-model="company.company_name" label="اسم الشركة" />
+            <v-text-field v-model="company.phone_primary" label="الهاتف الأساسي" />
+            <v-text-field v-model="company.phone_secondary" label="هاتف إضافي" />
+            <v-text-field v-model="company.email" label="البريد الإلكتروني" />
+            <v-text-field v-model="company.address" label="العنوان" />
+            <v-text-field v-model="company.additional_contact" label="معلومات اتصال إضافية" />
+          </div>
+          <v-file-input v-model="companyLogo" label="شعار الشركة" accept="image/*" class="mt-3" />
+        </v-card-text>
+        <v-card-actions><v-spacer /><v-btn v-if="can('settings.update')" variant="tonal" @click="uploadCompanyLogo">رفع الشعار</v-btn><v-btn v-if="can('settings.update')" color="primary" :loading="companySaving" @click="saveCompany">حفظ المعلومات</v-btn></v-card-actions>
+      </v-card>
+
       <v-card variant="flat" border>
         <v-card-title>المظهر</v-card-title>
         <v-card-text>

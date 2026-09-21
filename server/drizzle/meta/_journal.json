@@ -92,6 +92,13 @@
       "when": 1781179200000,
       "tag": "0012_property_amenities",
       "breakpoints": false
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1781265600000,
+      "tag": "0013_crm_modules",
+      "breakpoints": false
     }
   ]
 }

@@ -37,6 +37,7 @@ export const propertyPayloadSchema = z
     district_text: optionalText,
     neighborhood_text: optionalText,
     address_details: optionalText,
+    owner_customer_id: optionalId,
     owner_name: z.string().trim().min(1),
     owner_phone: z.string().trim().min(1),
     owner_notes: optionalText,

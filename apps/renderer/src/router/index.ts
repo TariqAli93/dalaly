@@ -74,6 +74,42 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, permission: "rentals.read" },
   },
   {
+    path: "/customers",
+    name: "customers",
+    component: () => import("../pages/CustomersPage.vue"),
+    meta: { requiresAuth: true, permission: "customers.read" },
+  },
+  {
+    path: "/rental-requests",
+    name: "rental-requests",
+    component: () => import("../pages/RentalRequestsPage.vue"),
+    meta: { requiresAuth: true, permission: "requests.read" },
+  },
+  {
+    path: "/purchase-requests",
+    name: "purchase-requests",
+    component: () => import("../pages/PurchaseRequestsPage.vue"),
+    meta: { requiresAuth: true, permission: "requests.read" },
+  },
+  {
+    path: "/documents",
+    name: "documents",
+    component: () => import("../pages/DocumentsPage.vue"),
+    meta: { requiresAuth: true, permission: "documents.read" },
+  },
+  {
+    path: "/contracts",
+    name: "contracts",
+    component: () => import("../pages/ContractsPage.vue"),
+    meta: { requiresAuth: true, permission: "contracts.read" },
+  },
+  {
+    path: "/contract-templates",
+    name: "contract-templates",
+    component: () => import("../pages/ContractTemplatesPage.vue"),
+    meta: { requiresAuth: true, permission: "contract_templates.manage" },
+  },
+  {
     path: "/users",
     name: "users",
     component: () => import("../pages/UsersPage.vue"),

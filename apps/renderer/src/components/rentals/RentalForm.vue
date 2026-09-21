@@ -1,7 +1,7 @@
 ﻿<script setup lang="ts">
 import { computed, ref } from "vue";
 import { AREA_UNITS } from "../../constants/domain";
-import type { RentalForm as RentalFormType } from "../../types";
+import type { CustomerRecord, RentalForm as RentalFormType } from "../../types";
 import LocationSelects from "../properties/LocationSelects.vue";
 import NumberField from "../app/NumberField.vue";
 import RentalImages from "./RentalImages.vue";
@@ -11,6 +11,7 @@ const props = defineProps<{
   editing?: boolean;
   saving?: boolean;
   rentalId?: number | null;
+  customers?: CustomerRecord[];
 }>();
 const emit = defineEmits<{ submit: []; cancel: [] }>();
 const formRef = ref<{ validate: () => Promise<{ valid: boolean }> } | null>(
@@ -73,9 +74,10 @@ defineExpose({ validate });
             :items="propertyTypes"
             :rules="[required]"
             label="نوع العقار"
-          /><NumberField
+          />
+          <NumberField
             v-model="model.rent_price"
-            :rules="[required, positive]"
+            :rules="[required]"
             label="سعر الإيجار"
           /><v-select
             v-model="model.rent_period"
@@ -151,6 +153,13 @@ defineExpose({ validate });
             v-model="model.owner_name"
             :rules="[required]"
             label="اسم المالك"
+          /><v-autocomplete
+            v-model="model.owner_customer_id"
+            :items="props.customers ?? []"
+            item-title="full_name"
+            item-value="id"
+            clearable
+            label="ربط المالك بعميل"
           /><v-text-field
             v-model="model.owner_phone"
             :rules="[required]"
@@ -169,7 +178,7 @@ defineExpose({ validate });
         <template v-if="rentalId"
           ><v-divider class="my-4" />
           <div class="text-subtitle-2 mb-2">صور الإيجار</div>
-          <RentalImages :rental-id="rentalId" can-manage /></template
+          <RentalImages :rental-id="rentalId" can-manage /> </template
         ><v-alert v-else type="info" variant="tonal" class="mt-3"
           >احفظ العرض أولاً ثم أضف صوره من شاشة التعديل.</v-alert
         > </v-card-text

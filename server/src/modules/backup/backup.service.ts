@@ -10,13 +10,27 @@ import {
   auditLogs,
   backupJobs,
   backupLogs,
+  companySettings,
+  contractParties,
+  contractTemplates,
+  contracts,
+  customers,
   districts,
+  documentTypes,
+  documents,
   favoriteProperties,
+  favoriteRentals,
   governorates,
+  neighborhoods,
   permissions,
   properties,
   propertyFollowups,
   propertyImages,
+  purchaseRequests,
+  rentalFollowups,
+  rentalImages,
+  rentalRequests,
+  rentals,
   rolePermissions,
   roles,
   userRoles,
@@ -30,15 +44,29 @@ const BACKUP_VERSION = 1;
 const TABLE_SPECS = [
   { name: "governorates", table: governorates, dates: ["createdAt", "updatedAt"] },
   { name: "districts", table: districts, dates: ["createdAt", "updatedAt"] },
+  { name: "neighborhoods", table: neighborhoods, dates: ["createdAt", "updatedAt"] },
   { name: "users", table: users, dates: ["createdAt", "updatedAt"] },
   { name: "roles", table: roles, dates: ["createdAt", "updatedAt"] },
   { name: "permissions", table: permissions, dates: ["createdAt", "updatedAt"] },
   { name: "role_permissions", table: rolePermissions, dates: [] },
   { name: "user_roles", table: userRoles, dates: [] },
+  { name: "customers", table: customers, dates: ["createdAt", "updatedAt"] },
   { name: "properties", table: properties, dates: ["createdAt", "updatedAt", "archivedAt"] },
+  { name: "rentals", table: rentals, dates: ["createdAt", "updatedAt", "archivedAt"] },
   { name: "property_images", table: propertyImages, dates: ["createdAt"] },
   { name: "property_followups", table: propertyFollowups, dates: ["scheduledAt", "createdAt"] },
   { name: "favorite_properties", table: favoriteProperties, dates: ["createdAt"] },
+  { name: "rental_images", table: rentalImages, dates: ["createdAt"] },
+  { name: "rental_followups", table: rentalFollowups, dates: ["scheduledAt", "createdAt"] },
+  { name: "favorite_rentals", table: favoriteRentals, dates: ["createdAt"] },
+  { name: "rental_requests", table: rentalRequests, dates: ["createdAt", "updatedAt"] },
+  { name: "purchase_requests", table: purchaseRequests, dates: ["createdAt", "updatedAt"] },
+  { name: "document_types", table: documentTypes, dates: ["createdAt", "updatedAt"] },
+  { name: "documents", table: documents, dates: ["uploadedAt", "updatedAt", "expiresAt", "createdAt"] },
+  { name: "company_settings", table: companySettings, dates: ["createdAt", "updatedAt"] },
+  { name: "contract_templates", table: contractTemplates, dates: ["createdAt", "updatedAt"] },
+  { name: "contracts", table: contracts, dates: ["contractDate", "startDate", "endDate", "createdAt", "updatedAt", "generatedAt"] },
+  { name: "contract_parties", table: contractParties, dates: ["createdAt"] },
   { name: "audit_logs", table: auditLogs, dates: ["createdAt"] },
   { name: "app_settings", table: appSettings, dates: ["updatedAt"] }
 ] as const;
@@ -50,24 +78,38 @@ const SCOPE_TABLES: Record<string, TableName[]> = {
   properties: [
     "governorates",
     "districts",
+    "neighborhoods",
     "properties",
     "property_images",
     "property_followups"
   ],
   images: ["property_images"],
   users: ["users", "roles", "permissions", "role_permissions", "user_roles"],
-  settings: ["app_settings"]
+  settings: ["app_settings", "company_settings", "document_types", "contract_templates"],
+  rentals: ["governorates", "districts", "neighborhoods", "rentals", "rental_images", "rental_followups", "favorite_rentals"],
+  crm: ["customers", "rental_requests", "purchase_requests", "document_types", "documents", "company_settings", "contract_templates", "contracts", "contract_parties"]
 };
 
 const SERIAL_TABLES = new Set<TableName>([
   "governorates",
   "districts",
+  "neighborhoods",
   "users",
   "roles",
   "permissions",
+  "customers",
   "properties",
+  "rentals",
   "property_images",
   "property_followups",
+  "rental_images",
+  "rental_followups",
+  "rental_requests",
+  "purchase_requests",
+  "document_types",
+  "documents",
+  "contract_templates",
+  "contracts",
   "audit_logs"
 ]);
 
@@ -91,6 +133,9 @@ async function exportDatabase() {
 function addImagesToZip(zip: AdmZip) {
   if (fs.existsSync(config.imagesDir)) {
     zip.addLocalFolder(config.imagesDir, "images/properties");
+  }
+  if (fs.existsSync(config.documentsDir)) {
+    zip.addLocalFolder(config.documentsDir, "documents");
   }
 }
 
@@ -291,7 +336,20 @@ function extractImagesFromZip(zip: AdmZip) {
   return entries.length;
 }
 
-export type RestoreScope = "full" | "properties" | "images" | "users" | "settings";
+function extractDocumentsFromZip(zip: AdmZip) {
+  const entries = zip.getEntries().filter((e) => e.entryName.startsWith("documents/") && !e.isDirectory);
+  if (!entries.length) return 0;
+  fs.mkdirSync(config.documentsDir, { recursive: true });
+  for (const entry of entries) {
+    const relative = entry.entryName.replace(/^documents\//, "");
+    const target = path.join(config.documentsDir, relative);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, entry.getData());
+  }
+  return entries.length;
+}
+
+export type RestoreScope = "full" | "properties" | "images" | "users" | "settings" | "rentals" | "crm";
 
 /** يسترجع نسخة احتياطية من محتوى ZIP حسب النطاق المحدد. */
 export async function restoreBackup(zipBuffer: Buffer, scope: RestoreScope, userId?: number) {
@@ -329,8 +387,12 @@ export async function restoreBackup(zipBuffer: Buffer, scope: RestoreScope, user
     }
 
     let imagesRestored = 0;
+    let documentsRestored = 0;
     if (scope === "full" || scope === "images" || scope === "properties") {
       imagesRestored = extractImagesFromZip(zip);
+    }
+    if (scope === "full" || scope === "crm") {
+      documentsRestored = extractDocumentsFromZip(zip);
     }
 
     const durationMs = Date.now() - startedAt;
@@ -344,7 +406,7 @@ export async function restoreBackup(zipBuffer: Buffer, scope: RestoreScope, user
       `تم الاسترجاع (${scope}). الجداول: ${tablesToRestore.join(", ")}. صور: ${imagesRestored}`
     );
 
-    return { ok: true, scope, tables: tablesToRestore, images_restored: imagesRestored };
+    return { ok: true, scope, tables: tablesToRestore, images_restored: imagesRestored, documents_restored: documentsRestored };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const [job] = await db

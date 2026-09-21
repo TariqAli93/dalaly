@@ -8,14 +8,17 @@ import { getErrorMessage } from "../services/api.service";
 import { useProperties } from "../composables/useProperties";
 import { useStats } from "../composables/useStats";
 import { useSnackbar } from "../composables/useSnackbar";
+import * as requests from "../services/requests.service";
+import * as customersService from "../services/customers.service";
 import { toNumber } from "../utils/format";
-import type { PropertyForm as PropertyFormType, PropertyRecord } from "../types";
+import type { CustomerRecord, PropertyForm as PropertyFormType, PropertyRecord } from "../types";
 
 const route = useRoute();
 const router = useRouter();
 const { service, loadProperties } = useProperties();
 const { loadStats } = useStats();
 const { notifySuccess, notifyError } = useSnackbar();
+const customers = ref<CustomerRecord[]>([]);
 
 function defaultForm(): PropertyFormType {
   return {
@@ -34,6 +37,7 @@ function defaultForm(): PropertyFormType {
     district_text: "",
     neighborhood_text: "",
     address_details: "",
+    owner_customer_id: null,
     owner_name: "",
     owner_phone: "",
     owner_notes: "",
@@ -74,6 +78,7 @@ function propertyToForm(p: PropertyRecord): PropertyFormType {
     district_text: p.district_text ?? "",
     neighborhood_text: p.neighborhood_text ?? "",
     address_details: p.address_details ?? "",
+    owner_customer_id: p.owner_customer_id ?? null,
     owner_name: p.owner_name,
     owner_phone: p.owner_phone,
     owner_notes: p.owner_notes ?? "",
@@ -144,12 +149,22 @@ async function save() {
   };
 
   try {
+    let savedId = editingId.value;
     if (editingId.value !== null) {
       await service.updateProperty(editingId.value, payload);
       notifySuccess("تم تحديث العرض بنجاح.");
     } else {
-      await service.createProperty(payload);
+      const created = await service.createProperty(payload);
+      savedId = created.id;
       notifySuccess("تمت إضافة العرض بنجاح.");
+    }
+    if (savedId !== null) {
+      try {
+        const result = await requests.purchaseRequestMatches(savedId);
+        if (result.count) notifySuccess(`Found ${result.count} matching purchase requests.`);
+      } catch {
+        // Matching is advisory and must not block saving an offer.
+      }
     }
     await Promise.all([loadProperties(), loadStats()]);
     await router.push("/properties");
@@ -161,6 +176,7 @@ async function save() {
 }
 
 onMounted(async () => {
+  customers.value = await customersService.listCustomers().catch(() => []);
   const idParam = route.params.id;
   if (idParam) {
     const id = Number(idParam);
@@ -181,6 +197,7 @@ onMounted(async () => {
     <PropertyForm
       ref="formRef"
       v-model="form"
+      :customers="customers"
       :editing="isEditing"
       :saving="saving"
       @submit="save"

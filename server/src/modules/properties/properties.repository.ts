@@ -457,6 +457,7 @@ async function normalizePayload(
       ? null
       : payload.neighborhood_text ?? null,
     addressDetails: payload.address_details,
+    ownerCustomerId: payload.owner_customer_id ?? null,
     ownerName: payload.owner_name,
     ownerPhone: payload.owner_phone,
     ownerNotes: payload.owner_notes,

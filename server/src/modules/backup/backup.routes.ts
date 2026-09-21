@@ -17,7 +17,7 @@ import {
 } from "./backup.service.js";
 
 const restoreSchema = z.object({
-  scope: z.enum(["full", "properties", "images", "users", "settings"]).default("full"),
+  scope: z.enum(["full", "properties", "images", "users", "settings", "rentals", "crm"]).default("full"),
   file_path: z.string().optional(),
   data: z.string().optional()
 });

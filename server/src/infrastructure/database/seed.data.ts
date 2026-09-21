@@ -19,6 +19,23 @@ export const SEED_ROLES = [
       "properties.restore",
       "properties.images.manage",
       "properties.export",
+      "rentals.read",
+      "rentals.create",
+      "rentals.update",
+      "rentals.archive",
+      "rentals.restore",
+      "rentals.images.manage",
+      "customers.read",
+      "customers.create",
+      "customers.update",
+      "requests.read",
+      "requests.create",
+      "requests.update",
+      "documents.read",
+      "documents.manage",
+      "contracts.read",
+      "contracts.manage",
+      "contract_templates.manage",
       "users.read",
       "roles.read",
       "settings.read",
@@ -42,6 +59,11 @@ export const SEED_ROLES = [
       "properties.update",
       "properties.images.manage",
       "properties.export",
+      "rentals.read",
+      "customers.read",
+      "requests.read",
+      "documents.read",
+      "contracts.read",
       "security.change_pin",
       "followups.read",
       "followups.create",
@@ -425,3 +447,258 @@ export const SEED_PROPERTIES: SeedProperty[] = [
     }
   }
 ];
+
+export type SeedCustomer = {
+  code: string;
+  fullName: string;
+  phonePrimary: string;
+  phoneSecondary?: string;
+  email?: string;
+  address?: string;
+  nationalId?: string;
+  customerType: "individual" | "company" | "other";
+  status: "active" | "inactive" | "archived";
+  notes?: string;
+};
+
+export const SEED_CUSTOMERS: SeedCustomer[] = [
+  {
+    code: "C-9001",
+    fullName: "أحمد عبد الرزاق",
+    phonePrimary: "07701234567",
+    email: "ahmad.demo@example.com",
+    address: "بغداد - المنصور",
+    nationalId: "DEMO-1001",
+    customerType: "individual",
+    status: "active",
+    notes: "مالك عروض سكنية وعميل بيع.",
+  },
+  {
+    code: "C-9002",
+    fullName: "سارة محمد",
+    phonePrimary: "07801112233",
+    email: "sara.demo@example.com",
+    address: "بغداد - اليرموك",
+    nationalId: "DEMO-1002",
+    customerType: "individual",
+    status: "active",
+    notes: "عميلة تبحث عن شقة للإيجار.",
+  },
+  {
+    code: "C-9003",
+    fullName: "شركة النخبة العقارية",
+    phonePrimary: "07709998811",
+    phoneSecondary: "07809998811",
+    email: "elite.demo@example.com",
+    address: "بغداد - الكرادة",
+    customerType: "company",
+    status: "active",
+    notes: "شركة مالكة لعروض تجارية.",
+  },
+  {
+    code: "C-9004",
+    fullName: "محمد كاظم",
+    phonePrimary: "07512223344",
+    email: "mohammed.demo@example.com",
+    address: "البصرة - الزبير",
+    nationalId: "DEMO-1004",
+    customerType: "individual",
+    status: "active",
+    notes: "عميل شراء يبحث عن أرض.",
+  },
+];
+
+export type SeedRental = {
+  code: string;
+  location: SeedLocation;
+  customerCode: string;
+  propertyType: "house" | "apartment" | "shop" | "warehouse" | "other";
+  rentPrice: number;
+  rentPeriod: "monthly" | "semi_annual" | "annual";
+  areaValue: number;
+  areaUnit: string;
+  floorsCount?: number;
+  roomsCount?: number;
+  bathroomsCount?: number;
+  amenities: Record<string, unknown>;
+  otherDetails?: string;
+  addressDetails?: string;
+  status: "available" | "reserved" | "negotiating" | "rented" | "archived";
+  isNegotiable: boolean;
+  notes?: string;
+  followups?: { type: string; notes: string; inDays?: number }[];
+};
+
+export const SEED_RENTALS: SeedRental[] = [
+  {
+    code: "R-9001",
+    location: BAGHDAD_MANSOUR,
+    customerCode: "C-9001",
+    propertyType: "apartment",
+    rentPrice: 850_000,
+    rentPeriod: "monthly",
+    areaValue: 145,
+    areaUnit: "متر",
+    floorsCount: 3,
+    roomsCount: 3,
+    bathroomsCount: 2,
+    amenities: { parking: true, elevator: true, kitchen: true },
+    otherDetails: "شقة مضيئة قريبة من الخدمات.",
+    addressDetails: "شارع الجامعة، بناية 12",
+    status: "available",
+    isNegotiable: true,
+    notes: "مناسبة لعائلة صغيرة.",
+    followups: [{ type: "visit", notes: "معاينة مع عميلة مهتمة.", inDays: 2 }],
+  },
+  {
+    code: "R-9002",
+    location: BAGHDAD_KARRADA,
+    customerCode: "C-9003",
+    propertyType: "shop",
+    rentPrice: 1_500_000,
+    rentPeriod: "annual",
+    areaValue: 80,
+    areaUnit: "متر",
+    floorsCount: 1,
+    amenities: { parking: false, electricity: true, water: true },
+    otherDetails: "واجهة تجارية على شارع رئيسي.",
+    addressDetails: "شارع 62، قرب السوق",
+    status: "negotiating",
+    isNegotiable: true,
+    notes: "مناسب لمكتب أو محل خدمات.",
+    followups: [{ type: "phone_call", notes: "انتظار رد المستأجر.", inDays: -1 }],
+  },
+  {
+    code: "R-9003",
+    location: BASRA_ZUBAIR,
+    customerCode: "C-9003",
+    propertyType: "warehouse",
+    rentPrice: 2_400_000,
+    rentPeriod: "semi_annual",
+    areaValue: 600,
+    areaUnit: "متر",
+    floorsCount: 1,
+    amenities: { parking: true, electricity: true, water: true },
+    otherDetails: "مخزن واسع بمدخل شاحنات.",
+    addressDetails: "المنطقة الصناعية",
+    status: "available",
+    isNegotiable: false,
+    notes: "متاح للتسليم الفوري.",
+  },
+];
+
+export type SeedRequest = {
+  code: string;
+  customerCode: string;
+  location: SeedLocation;
+  propertyType: string;
+  rentPeriod?: string;
+  budgetMin?: number;
+  budgetMax?: number;
+  areaUnit?: string;
+  areaMin?: number;
+  areaMax?: number;
+  roomsCount?: number;
+  bathroomsCount?: number;
+  amenities: Record<string, unknown>;
+  otherRequirements?: string;
+  status: "open" | "matched" | "closed" | "archived";
+  notes?: string;
+};
+
+export const SEED_RENTAL_REQUESTS: SeedRequest[] = [
+  {
+    code: "RR-9001",
+    customerCode: "C-9002",
+    location: BAGHDAD_MANSOUR,
+    propertyType: "apartment",
+    rentPeriod: "monthly",
+    budgetMin: 600_000,
+    budgetMax: 1_100_000,
+    areaUnit: "متر",
+    areaMin: 100,
+    areaMax: 180,
+    roomsCount: 2,
+    bathroomsCount: 1,
+    amenities: { parking: true, elevator: true },
+    otherRequirements: "قريبة من المدارس ويفضل وجود مصعد.",
+    status: "open",
+    notes: "طلب نشط قابل للمطابقة.",
+  },
+  {
+    code: "RR-9002",
+    customerCode: "C-9004",
+    location: BAGHDAD_KARRADA,
+    propertyType: "shop",
+    rentPeriod: "annual",
+    budgetMax: 2_000_000,
+    areaUnit: "متر",
+    areaMin: 50,
+    areaMax: 120,
+    amenities: { electricity: true },
+    otherRequirements: "واجهة واضحة على شارع تجاري.",
+    status: "open",
+  },
+];
+
+export const SEED_PURCHASE_REQUESTS: SeedRequest[] = [
+  {
+    code: "PR-9001",
+    customerCode: "C-9004",
+    location: BASRA_ZUBAIR,
+    propertyType: "أرض",
+    budgetMin: 100_000_000,
+    budgetMax: 400_000_000,
+    areaUnit: "دونم",
+    areaMin: 5,
+    areaMax: 20,
+    amenities: { water: true },
+    otherRequirements: "يفضل قرب الطريق العام.",
+    status: "open",
+    notes: "طلب شراء تجريبي.",
+  },
+  {
+    code: "PR-9002",
+    customerCode: "C-9002",
+    location: BAGHDAD_MANSOUR,
+    propertyType: "بيت",
+    budgetMax: 500_000_000,
+    areaUnit: "متر",
+    areaMin: 180,
+    areaMax: 350,
+    roomsCount: 3,
+    bathroomsCount: 2,
+    amenities: { parking: true },
+    otherRequirements: "بيت جاهز للسكن.",
+    status: "open",
+  },
+];
+
+export const SEED_DOCUMENTS = [
+  { code: "DOC-9001", customerCode: "C-9001", typeKey: "national_id", name: "هوية أحمد التجريبية", originalName: "demo-ahmad-id.txt", expiresAt: "2030-12-31", notes: "ملف تجريبي." },
+  { code: "DOC-9002", customerCode: "C-9002", typeKey: "national_id", name: "هوية سارة التجريبية", originalName: "demo-sara-id.txt", expiresAt: "2030-12-31", notes: "ملف تجريبي." },
+] as const;
+
+export const SEED_COMPANY_SETTINGS = {
+  companyName: "دلالي للعقارات",
+  phonePrimary: "07701230000",
+  phoneSecondary: "07801230000",
+  email: "office.demo@example.com",
+  address: "بغداد - الكرادة - شارع 62",
+  additionalContact: "الدوام: السبت - الخميس، 9 صباحاً - 5 مساءً",
+};
+
+export const SEED_CONTRACTS = [
+  {
+    code: "CTR-9001",
+    contractType: "rental",
+    customerCode: "C-9002",
+    rentalCode: "R-9001",
+    status: "active",
+    startDate: "2026-01-01",
+    endDate: "2026-12-31",
+    amount: 10_200_000,
+    notes: "عقد إيجار تجريبي قابل للمعاينة.",
+    parties: [{ customerCode: "C-9001", role: "landlord" }, { customerCode: "C-9002", role: "tenant" }],
+  },
+] as const;

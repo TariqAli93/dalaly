@@ -14,8 +14,8 @@ pnpm dev:web      # يشغّل API + واجهة الويب في وضع web-demo
 
 `pnpm dev:web` يشغّل عمليتين:
 
-* **API**: `tsx` للخادم مع `ENV_FILE=.env.web-demo` على المنفذ 45699 وقاعدة `dalaly_demo`.
-* **الواجهة**: Vite بوضع `--mode web-demo` على المنفذ 5199، مع `VITE_API_BASE_URL` يشير إلى API العرض.
+- **API**: `tsx` للخادم مع `ENV_FILE=.env.web-demo` على المنفذ 45699 وقاعدة `dalaly_demo`.
+- **الواجهة**: Vite بوضع `--mode web-demo` على المنفذ 5199، مع `VITE_API_BASE_URL` يشير إلى API العرض.
 
 ## 2. الرابط المحلي
 
@@ -33,6 +33,7 @@ PIN:      246810
 ```
 
 مدير بكل الصلاحيات (دور Super Admin). يُنشأ آلياً في كل `pnpm demo:reset`، محلي فقط، وغير موجود في أي قاعدة إنتاج.
+
 > ملاحظة: النظام يستخدم **PIN** (4–12 خانة) لا كلمة مرور، فاستُخدم PIN من ست خانات بدل `DemoCaptureOnly123!` الوارد في التعليمات.
 
 ## 4. عدد Routes المكتشفة
@@ -53,15 +54,15 @@ PIN:      246810
 
 ## 8. الميزات التي تعذّر تصويرها
 
-| الميزة | الحالة | السبب |
-| ------ | ------ | ----- |
-| First Run Wizard | Blocked | لا يظهر إلا وقاعدة البيانات غير مهيأة؛ تصويره يتطلب هدم قاعدة العرض أثناء الجلسة |
-| التصدير اليدوي للنسخة الاحتياطية إلى مسار على القرص | Blocked | يحتاج حوار حفظ من نظام التشغيل (Electron) |
-| تغيير مجلد النسخ الاحتياطي | Blocked | يحتاج حوار اختيار مجلد من نظام التشغيل |
-| جدولة النسخ الاحتياطي بالبريد | Blocked | Electron safeStorage + SMTP، والمكوّن معطَّل أصلاً في صفحة الإعدادات |
-| تنفيذ الاستعادة فعلياً | Skipped | يستبدل بيانات العرض ويُفسد بقية اللقطات؛ صُوِّر الحوار ونطاقاته فقط |
-| تنفيذ تغيير رمز PIN فعلياً | Skipped | يُبطل حساب التصوير لبقية الجلسة؛ صُوِّر الحوار فقط |
-| تشغيل الاتصال الخارجي (cloudflared) | Skipped | يشغّل عملية نظام خارجية؛ صُوِّرت شاشته ضمن الإعدادات بلا تفعيل |
+| الميزة                                              | الحالة  | السبب                                                                            |
+| --------------------------------------------------- | ------- | -------------------------------------------------------------------------------- |
+| First Run Wizard                                    | Blocked | لا يظهر إلا وقاعدة البيانات غير مهيأة؛ تصويره يتطلب هدم قاعدة العرض أثناء الجلسة |
+| التصدير اليدوي للنسخة الاحتياطية إلى مسار على القرص | Blocked | يحتاج حوار حفظ من نظام التشغيل (Electron)                                        |
+| تغيير مجلد النسخ الاحتياطي                          | Blocked | يحتاج حوار اختيار مجلد من نظام التشغيل                                           |
+| جدولة النسخ الاحتياطي بالبريد                       | Blocked | Electron safeStorage + SMTP، والمكوّن معطَّل أصلاً في صفحة الإعدادات             |
+| تنفيذ الاستعادة فعلياً                              | Skipped | يستبدل بيانات العرض ويُفسد بقية اللقطات؛ صُوِّر الحوار ونطاقاته فقط              |
+| تنفيذ تغيير رمز PIN فعلياً                          | Skipped | يُبطل حساب التصوير لبقية الجلسة؛ صُوِّر الحوار فقط                               |
+| تشغيل الاتصال الخارجي (cloudflared)                 | Skipped | يشغّل عملية نظام خارجية؛ صُوِّرت شاشته ضمن الإعدادات بلا تفعيل                   |
 
 ## 9. سبب تعذّر كل ميزة
 
@@ -71,14 +72,14 @@ PIN:      246810
 
 من جرد جسر `window.dalalyConfig` (preload):
 
-| القدرة | الاستخدام في الواجهة | البديل في وضع web-demo |
-| ------ | ------------------- | ---------------------- |
-| `exportPdf` | `utils/exportProperty.ts` | تنزيل مستند HTML جاهز للطباعة |
-| `chooseExportPath` | `BackupSettings.vue` | معطَّل (الزر مخفي) + رسالة تجريبية |
-| `pickFolder` | `BackupSettings.vue` | معطَّل (الزر مخفي) |
-| `pickBackupFile` | `BackupSettings.vue` | `<input type="file">` كـ data URL |
-| `getScheduledBackup` / `saveScheduledBackup` | `ScheduledBackupSettings.vue` | معطَّل + تنبيه واضح |
-| `saveDatabaseUrl` | `setup.service.ts` | لا عملية (الخادم يهيّئ الـ pool حيّاً) |
+| القدرة                                       | الاستخدام في الواجهة          | البديل في وضع web-demo                 |
+| -------------------------------------------- | ----------------------------- | -------------------------------------- |
+| `exportPdf`                                  | `utils/exportProperty.ts`     | تنزيل مستند HTML جاهز للطباعة          |
+| `chooseExportPath`                           | `BackupSettings.vue`          | معطَّل (الزر مخفي) + رسالة تجريبية     |
+| `pickFolder`                                 | `BackupSettings.vue`          | معطَّل (الزر مخفي)                     |
+| `pickBackupFile`                             | `BackupSettings.vue`          | `<input type="file">` كـ data URL      |
+| `getScheduledBackup` / `saveScheduledBackup` | `ScheduledBackupSettings.vue` | معطَّل + تنبيه واضح                    |
+| `saveDatabaseUrl`                            | `setup.service.ts`            | لا عملية (الخادم يهيّئ الـ pool حيّاً) |
 
 كلها تمرّ الآن عبر طبقة `apps/renderer/src/platform/` (تنفيذان: `electron.ts` و`web.ts`). في نسخة سطح المكتب يُختار تنفيذ Electron دائماً لوجود الجسر.
 
@@ -112,10 +113,10 @@ docs/capture-manifest.json                           (بيان يربط كل م�
 
 الأحجام الدقيقة لكل ميزة في `docs/capture-manifest.json`. المدى النموذجي:
 
-* WebM: 64 KB – 800 KB (الوسيط حوالي 400 KB).
-* MP4: 84 KB – 870 KB.
-* Poster (WebP): 14 KB – 91 KB.
-* لقطة ثابتة (WebP): عشرات إلى مئات الكيلوبايت.
+- WebM: 64 KB – 800 KB (الوسيط حوالي 400 KB).
+- MP4: 84 KB – 870 KB.
+- Poster (WebP): 14 KB – 91 KB.
+- لقطة ثابتة (WebP): عشرات إلى مئات الكيلوبايت.
 
 ## 14. نتيجة Type Check
 
@@ -140,21 +141,21 @@ pnpm capture:all → 47/47 اختبار ناجح (46 ميزة + فحص جاهز�
 
 كلها إضافية ومعزولة، ولا تغيّر أي سلوك افتراضي (التفاصيل في `docs/WEB-CAPTURE-AUDIT.md §7`):
 
-* **خادم**: `config.ts` (دعم `ENV_FILE` + `corsOrigins` + `webDemoMode`)، `server.ts` (CORS من الإعداد).
-* **واجهة**: طبقة `src/platform/` جديدة، وتحويل `exportProperty.ts` و`setup.service.ts` و`BackupSettings.vue` و`ScheduledBackupSettings.vue` إليها، وحذف `console.log` تنقيح، و`vite.config.ts` (استبعاد DevTools في وضع web-demo)، و`env.d.ts` (أنواع).
-* **جذر**: أوامر `dev:web`, `demo:reset`, `demo:images`, `capture:*`, `typecheck` في `package.json`، وملفّا `.env.web-demo`، و`playwright.config.ts`، و`tsconfig.captures.json`، وتحديث `.gitignore` و`README.md`.
-* **سكربتات جديدة**: `scripts/{web-demo-env,dev-web,demo-reset,seed-demo-images,generate-demo-images,generate-demo-xlsx,process-captures}.mjs`.
-* **اختبارات**: `tests/captures/` (13 ملف spec + مساعدات).
-* **وثائق**: `docs/{WEB-CAPTURE-AUDIT,CAPTURE-SHOT-LIST,CAPTURE-REPORT}.md` + `capture-manifest.json`.
+- **خادم**: `config.ts` (دعم `ENV_FILE` + `corsOrigins` + `webDemoMode`)، `server.ts` (CORS من الإعداد).
+- **واجهة**: طبقة `src/platform/` جديدة، وتحويل `exportProperty.ts` و`setup.service.ts` و`BackupSettings.vue` و`ScheduledBackupSettings.vue` إليها، وحذف `console.log` تنقيح، و`vite.config.ts` (استبعاد DevTools في وضع web-demo)، و`env.d.ts` (أنواع).
+- **جذر**: أوامر `dev:web`, `demo:reset`, `demo:images`, `capture:*`, `typecheck` في `package.json`، وملفّا `.env.web-demo`، و`playwright.config.ts`، و`tsconfig.captures.json`، وتحديث `.gitignore` و`README.md`.
+- **سكربتات جديدة**: `scripts/{web-demo-env,dev-web,demo-reset,seed-demo-images,generate-demo-images,generate-demo-xlsx,process-captures}.mjs`.
+- **اختبارات**: `tests/captures/` (13 ملف spec + مساعدات).
+- **وثائق**: `docs/{WEB-CAPTURE-AUDIT,CAPTURE-SHOT-LIST,CAPTURE-REPORT}.md` + `capture-manifest.json`.
 
 لم تُحذف أي وظيفة Electron، ولم يتغيّر منطق أعمال، ولم تُنشأ ميزات وهمية.
 
 ## 18. تأكيد أن نسخة Electron لم تتأثر
 
-* `pnpm build` نجح كما هو.
-* `pnpm start` (Electron على البناء) أقلع، شغّل الـ API على 45678، ونجح فحص الصحة، وحمّل الواجهة — أي أن مسار سطح المكتب سليم.
-* منطق اختيار المنصّة يعتمد على وجود جسر `preload`؛ داخل Electron يوجد الجسر دائماً فيُختار تنفيذ Electron، ولا يدخل بديل الويب حيّز التنفيذ.
-* وضع web-demo معزول بالكامل: ملف بيئة، قاعدة بيانات، منفذ API، منفذ ويب، ومجلد بيانات — كلها مختلفة عن نسخة التطوير/الإنتاج.
+- `pnpm build` نجح كما هو.
+- `pnpm start` (Electron على البناء) أقلع، شغّل الـ API على 34567، ونجح فحص الصحة، وحمّل الواجهة — أي أن مسار سطح المكتب سليم.
+- منطق اختيار المنصّة يعتمد على وجود جسر `preload`؛ داخل Electron يوجد الجسر دائماً فيُختار تنفيذ Electron، ولا يدخل بديل الويب حيّز التنفيذ.
+- وضع web-demo معزول بالكامل: ملف بيئة، قاعدة بيانات، منفذ API، منفذ ويب، ومجلد بيانات — كلها مختلفة عن نسخة التطوير/الإنتاج.
 
 ---
 

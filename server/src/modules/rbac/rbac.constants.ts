@@ -41,4 +41,15 @@ export const SYSTEM_PERMISSIONS = [
   { key: "followups.create", name: "إضافة متابعة", module: "followups" },
   { key: "followups.update", name: "تعديل متابعة", module: "followups" },
   { key: "followups.delete", name: "حذف متابعة", module: "followups" }
+,  { key: "customers.read", name: "قراءة العملاء", module: "customers" },
+  { key: "customers.create", name: "إضافة العملاء", module: "customers" },
+  { key: "customers.update", name: "تعديل العملاء", module: "customers" },
+  { key: "requests.read", name: "قراءة طلبات العملاء", module: "requests" },
+  { key: "requests.create", name: "إضافة طلبات العملاء", module: "requests" },
+  { key: "requests.update", name: "تعديل طلبات العملاء", module: "requests" },
+  { key: "documents.read", name: "قراءة مستندات العملاء", module: "documents" },
+  { key: "documents.manage", name: "إدارة مستندات العملاء", module: "documents" },
+  { key: "contracts.read", name: "قراءة العقود", module: "contracts" },
+  { key: "contracts.manage", name: "إدارة العقود", module: "contracts" },
+  { key: "contract_templates.manage", name: "إدارة قوالب العقود", module: "contracts" },
 ] as const;

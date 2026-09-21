@@ -7,7 +7,7 @@ const configuredApiBase = import.meta.env.VITE_API_BASE_URL as
  * fallback بين ports أثناء PATCH/PUT/POST/DELETE يسبب مشاكل CORS و 400/500.
  */
 export const API_BASE =
-  configuredApiBase?.replace(/\/$/, "") || "http://127.0.0.1:45678/api";
+  configuredApiBase?.replace(/\/$/, "") || "http://127.0.0.1:34567/api";
 
 const SESSION_KEY = "dalaly.session";
 

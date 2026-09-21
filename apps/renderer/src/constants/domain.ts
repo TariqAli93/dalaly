@@ -25,6 +25,9 @@ export const STATUSES = [
   { title: "مباع", value: "sold" },
   { title: "مؤجر", value: "rented" },
   { title: "مؤرشف", value: "archived" },
+  { title: "مفتوح", value: "open" },
+  { title: "مغلق", value: "closed" },
+  { title: "تمت المطابقة", value: "matched" },
 ];
 
 export const RENTAL_PROPERTY_TYPES = [
@@ -109,6 +112,45 @@ export const NAV_ITEMS: NavItem[] = [
     to: "/help",
     icon: "mdi-help-circle-outline",
   },
+];
+
+export const CRM_NAV_ITEMS: NavItem[] = [
+  {
+    title: "العملاء",
+    to: "/customers",
+    icon: "mdi-account-group-outline",
+    permission: "customers.read",
+  },
+  {
+    title: "طلبات الإيجار",
+    to: "/rental-requests",
+    icon: "mdi-home-search-outline",
+    permission: "requests.read",
+  },
+  {
+    title: "طلبات الشراء",
+    to: "/purchase-requests",
+    icon: "mdi-home-search-outline",
+    permission: "requests.read",
+  },
+  // {
+  //   title: "المستندات",
+  //   to: "/documents",
+  //   icon: "mdi-file-document-multiple-outline",
+  //   permission: "documents.read",
+  // },
+  // {
+  //   title: "العقود",
+  //   to: "/contracts",
+  //   icon: "mdi-file-sign",
+  //   permission: "contracts.read",
+  // },
+  // {
+  //   title: "قوالب العقود",
+  //   to: "/contract-templates",
+  //   icon: "mdi-file-edit-outline",
+  //   permission: "contract_templates.manage",
+  // },
 ];
 
 export function statusLabel(status: string) {

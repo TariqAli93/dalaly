@@ -9,14 +9,18 @@ import {
   STATUSES,
 } from "../../constants/domain";
 import { formatMoney, toNumber } from "../../utils/format";
-import type { PropertyForm } from "../../types";
+import type { CustomerRecord, PropertyForm } from "../../types";
 import LocationSelects from "./LocationSelects.vue";
 import NumberField from "../app/NumberField.vue";
 import { AMENITY_OPTIONS } from "../../utils/amenities";
 
 const model = defineModel<PropertyForm>({ required: true });
 
-defineProps<{ editing?: boolean; saving?: boolean }>();
+const props = defineProps<{
+  editing?: boolean;
+  saving?: boolean;
+  customers?: CustomerRecord[];
+}>();
 const emit = defineEmits<{ submit: []; cancel: [] }>();
 
 const formRef = ref<{ validate: () => Promise<{ valid: boolean }> } | null>(
@@ -25,9 +29,9 @@ const formRef = ref<{ validate: () => Promise<{ valid: boolean }> } | null>(
 const extraOpen = ref(false);
 const amenities = computed({
   get: () =>
-    AMENITY_OPTIONS.filter((item) => model.value.amenities[item.key] === true).map(
-      (item) => item.key,
-    ),
+    AMENITY_OPTIONS.filter(
+      (item) => model.value.amenities[item.key] === true,
+    ).map((item) => item.key),
   set: (keys: string[]) => {
     const next: Record<string, unknown> = {};
     for (const key of keys) next[key] = true;
