@@ -62,7 +62,10 @@ export function buildWhatsappText(p: PropertyRecord) {
   text += line("المساحة", `${p.area_value} ${p.area_unit}`);
   text += line("رقم القطعة", formatPlot(p.plot_number, p.plot_letter));
   if (p.frontage || p.nazal)
-    text += line("الواجهة × النزال", `${p.frontage || "?"} × ${p.nazal || "?"} م`);
+    text += line(
+      "الواجهة × النزال",
+      `${p.frontage || "?"} × ${p.nazal || "?"} م`,
+    );
   text += line("السعر", `${formatMoney(p.total_price)} دينار`);
   if (p.is_negotiable) text += "💬 السعر قابل للتفاوض\n";
   if (p.notes) text += line("ملاحظات", p.notes);
@@ -147,7 +150,11 @@ export function printDocument(title: string, bodyText: string) {
  *   سطح المكتب → حوار حفظ Electron (printToPDF) لملف PDF فعلي.
  *   المتصفح     → تنزيل مستند جاهز للطباعة بدون نافذة نظام.
  */
-export async function exportPdf(filename: string, title: string, bodyText: string) {
+export async function exportPdf(
+  filename: string,
+  title: string,
+  bodyText: string,
+) {
   const html = buildHtmlDocument(title, bodyText);
   return platform.exportPdf({
     html,

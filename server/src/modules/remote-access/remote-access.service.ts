@@ -19,7 +19,7 @@ export function getRemoteStatus(): RemoteStatus {
     enabled: config.remoteAccessEnabled,
     running: Boolean(processRef && !processRef.killed),
     url: publicUrl,
-    message: lastMessage
+    message: lastMessage,
   };
 }
 
@@ -31,8 +31,7 @@ export function enableRemoteAccess(): RemoteStatus {
   const executablePath = resolveCloudflaredPath();
 
   if (!fs.existsSync(executablePath)) {
-    lastMessage =
-      "cloudflared.exe غير موجود. الاتصال الخارجي غير متاح.";
+    lastMessage = "cloudflared.exe غير موجود. الاتصال الخارجي غير متاح.";
     return getRemoteStatus();
   }
 
@@ -41,11 +40,15 @@ export function enableRemoteAccess(): RemoteStatus {
   processRef = spawn(executablePath, [
     "tunnel",
     "--url",
-    `http://${config.apiHost}:${config.apiPort}`
+    `http://${config.apiHost}:${config.apiPort}`,
   ]);
 
-  processRef.stdout.on("data", (chunk) => parseCloudflaredOutput(String(chunk)));
-  processRef.stderr.on("data", (chunk) => parseCloudflaredOutput(String(chunk)));
+  processRef.stdout.on("data", (chunk) =>
+    parseCloudflaredOutput(String(chunk)),
+  );
+  processRef.stderr.on("data", (chunk) =>
+    parseCloudflaredOutput(String(chunk)),
+  );
   processRef.on("exit", () => {
     processRef = null;
     lastMessage = "تم إيقاف الاتصال الخارجي.";

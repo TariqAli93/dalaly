@@ -15,12 +15,15 @@ const publicPaths = new Set([
   "/api/backup/internal-run",
   "/api/auth/setup-status",
   "/api/auth/setup-admin",
-  "/api/auth/login"
+  "/api/auth/login",
 ]);
 
 export function registerAuthHook(app: FastifyInstance) {
   app.addHook("preHandler", async (request, reply) => {
-    if (request.method === "OPTIONS" || publicPaths.has(request.url.split("?")[0])) {
+    if (
+      request.method === "OPTIONS" ||
+      publicPaths.has(request.url.split("?")[0])
+    ) {
       return;
     }
 
@@ -29,7 +32,7 @@ export function registerAuthHook(app: FastifyInstance) {
     // السماح بالتوكن عبر query لطلبات الصور (<img> لا يرسل ترويسة Authorization).
     const queryToken =
       typeof (request.query as { token?: string })?.token === "string"
-        ? (request.query as { token?: string }).token ?? ""
+        ? ((request.query as { token?: string }).token ?? "")
         : "";
     const token = headerToken || queryToken;
 
@@ -39,7 +42,9 @@ export function registerAuthHook(app: FastifyInstance) {
 
     const user = await resolveSession(token);
     if (!user) {
-      return reply.code(401).send({ message: "انتهت الجلسة. سجل الدخول مرة أخرى." });
+      return reply
+        .code(401)
+        .send({ message: "انتهت الجلسة. سجل الدخول مرة أخرى." });
     }
 
     request.user = user;
@@ -49,11 +54,15 @@ export function registerAuthHook(app: FastifyInstance) {
 export function requirePermission(permission: string) {
   return async function permissionGuard(
     request: import("fastify").FastifyRequest,
-    reply: import("fastify").FastifyReply
+    reply: import("fastify").FastifyReply,
   ) {
-    const hasPermission = request.user?.permissions.some((item) => item.key === permission);
+    const hasPermission = request.user?.permissions.some(
+      (item) => item.key === permission,
+    );
     if (!hasPermission) {
-      return reply.code(403).send({ message: "ليست لديك صلاحية تنفيذ هذه العملية." });
+      return reply
+        .code(403)
+        .send({ message: "ليست لديك صلاحية تنفيذ هذه العملية." });
     }
   };
 }

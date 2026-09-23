@@ -83,16 +83,24 @@ const isRental = computed(() => props.mode === "rental");
 
 function requestPropertyTypeLabel(value: string) {
   if (!isRental.value) return value;
-  return RENTAL_PROPERTY_TYPES.find((item) => item.value === value)?.title ?? value;
+  return (
+    RENTAL_PROPERTY_TYPES.find((item) => item.value === value)?.title ?? value
+  );
 }
 
-function requestRentPeriodLabel(item: RentalRequestRecord | PurchaseRequestRecord) {
+function requestRentPeriodLabel(
+  item: RentalRequestRecord | PurchaseRequestRecord,
+) {
   if (!("rent_period" in item)) return "-";
-  return {
-    monthly: "شهري",
-    semi_annual: "نصف سنوي",
-    annual: "سنوي",
-  }[item.rent_period ?? ""] ?? item.rent_period ?? "-";
+  return (
+    {
+      monthly: "شهري",
+      semi_annual: "نصف سنوي",
+      annual: "سنوي",
+    }[item.rent_period ?? ""] ??
+    item.rent_period ??
+    "-"
+  );
 }
 
 function handleRowClick(

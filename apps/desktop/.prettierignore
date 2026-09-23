@@ -1,0 +1,12 @@
+# Ignore build and release outputs
+dist/
+release/
+
+# It is also highly recommended to ignore these if you haven't already
+node_modules/
+.next/
+build/
+migrations/
+drizzle/
+source-assets/
+scripts/

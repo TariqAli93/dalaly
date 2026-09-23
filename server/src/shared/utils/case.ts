@@ -1,6 +1,9 @@
-export function toApiObject<T extends Record<string, unknown>>(value: T, tableName?: string) {
+export function toApiObject<T extends Record<string, unknown>>(
+  value: T,
+  tableName?: string,
+) {
   const result = Object.fromEntries(
-    Object.entries(value).map(([key, item]) => [toSnakeCase(key), item])
+    Object.entries(value).map(([key, item]) => [toSnakeCase(key), item]),
   );
   if (tableName && typeof value.code === "string" && value.name == null) {
     result.name = `${tableName} ${value.code}`;
@@ -8,7 +11,10 @@ export function toApiObject<T extends Record<string, unknown>>(value: T, tableNa
   return result;
 }
 
-export function toApiObjects<T extends Record<string, unknown>>(values: T[], tableName?: string) {
+export function toApiObjects<T extends Record<string, unknown>>(
+  values: T[],
+  tableName?: string,
+) {
   return values.map((value) => toApiObject(value, tableName));
 }
 

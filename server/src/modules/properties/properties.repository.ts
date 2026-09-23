@@ -9,16 +9,19 @@ import {
   ne,
   or,
   sql,
-  type SQL
+  type SQL,
 } from "drizzle-orm";
 import { type AnyPgColumn } from "drizzle-orm/pg-core";
 import { db } from "../../infrastructure/database/db.js";
-import { properties, type NewProperty } from "../../infrastructure/database/schema.js";
+import {
+  properties,
+  type NewProperty,
+} from "../../infrastructure/database/schema.js";
 import {
   PROPERTY_TYPE_PREFIX,
   STATUS_LABELS,
   STATUSES,
-  type PropertyType
+  type PropertyType,
 } from "../../shared/constants/domain.js";
 import { calculateTotalPrice } from "../../shared/utils/pricing.js";
 import { toApiObject, toApiObjects } from "../../shared/utils/case.js";
@@ -26,12 +29,12 @@ import { DuplicatePlotError } from "../../shared/errors.js";
 import {
   getDistrictName,
   getGovernorateName,
-  getNeighborhoodName
+  getNeighborhoodName,
 } from "../locations/locations.repository.js";
 import { listEntityAudit, recordAudit } from "../audit/audit.service.js";
 import {
   type PropertyFilters,
-  type PropertyPayload
+  type PropertyPayload,
 } from "./properties.schema.js";
 
 const ENTITY = "property";
@@ -52,7 +55,7 @@ async function findDuplicatePlotOwner(
     NewProperty,
     "governorate" | "district" | "neighborhood" | "plotNumber" | "plotLetter"
   >,
-  excludeId?: number
+  excludeId?: number,
 ): Promise<string | null> {
   const plotNumber = normalizeKeyPart(values.plotNumber);
   if (!plotNumber) return null;
@@ -65,7 +68,7 @@ async function findDuplicatePlotOwner(
     sql`${norm(properties.district)} = ${normalizeKeyPart(values.district)}`,
     sql`${norm(properties.neighborhood)} = ${normalizeKeyPart(values.neighborhood)}`,
     sql`${norm(properties.plotNumber)} = ${plotNumber}`,
-    sql`${norm(properties.plotLetter)} = ${normalizeKeyPart(values.plotLetter)}`
+    sql`${norm(properties.plotLetter)} = ${normalizeKeyPart(values.plotLetter)}`,
   ];
   if (excludeId !== undefined) {
     conditions.push(ne(properties.id, excludeId));
@@ -117,7 +120,7 @@ const SEARCHABLE_TEXT_COLUMNS: AnyPgColumn[] = [
   properties.houseNumber,
   properties.nearestLandmark,
   properties.frontage,
-  properties.streetWidth
+  properties.streetWidth,
 ];
 
 /**
@@ -126,7 +129,9 @@ const SEARCHABLE_TEXT_COLUMNS: AnyPgColumn[] = [
  */
 function buildSearchClause(term: string): SQL | undefined {
   const like = `%${term}%`;
-  const parts: SQL[] = SEARCHABLE_TEXT_COLUMNS.map((column) => ilike(column, like));
+  const parts: SQL[] = SEARCHABLE_TEXT_COLUMNS.map((column) =>
+    ilike(column, like),
+  );
 
   // الحقول الرقمية كنص (المساحة، سعر الوحدة، السعر الكلي).
   parts.push(sql`cast(${properties.areaValue} as text) ilike ${like}`);
@@ -137,7 +142,7 @@ function buildSearchClause(term: string): SQL | undefined {
   const digits = term.replace(/\D/g, "");
   if (digits) {
     parts.push(
-      sql`regexp_replace(coalesce(${properties.ownerPhone}, ''), '[^0-9]', '', 'g') ilike ${`%${digits}%`}`
+      sql`regexp_replace(coalesce(${properties.ownerPhone}, ''), '[^0-9]', '', 'g') ilike ${`%${digits}%`}`,
     );
   }
 
@@ -242,7 +247,10 @@ export async function getProperty(id: number) {
   return property ? toApiObject(property, "properties") : null;
 }
 
-export async function createProperty(payload: PropertyPayload, userId?: number) {
+export async function createProperty(
+  payload: PropertyPayload,
+  userId?: number,
+) {
   const values = await normalizePayload(payload);
 
   const duplicateOwner = await findDuplicatePlotOwner(values);
@@ -275,7 +283,7 @@ export async function createProperty(payload: PropertyPayload, userId?: number) 
     entityId: property.id,
     action: "created",
     newValue: result,
-    userId
+    userId,
   });
   return result;
 }
@@ -283,7 +291,7 @@ export async function createProperty(payload: PropertyPayload, userId?: number) 
 export async function updateProperty(
   id: number,
   payload: PropertyPayload,
-  userId?: number
+  userId?: number,
 ) {
   const before = await getProperty(id);
   if (!before) return null;
@@ -321,7 +329,7 @@ export async function updateProperty(
     action: "updated",
     oldValue: before,
     newValue: after,
-    userId
+    userId,
   });
 
   if (String(before.total_price) !== String(after.total_price)) {
@@ -331,7 +339,7 @@ export async function updateProperty(
       action: "price_changed",
       oldValue: { total_price: before.total_price },
       newValue: { total_price: after.total_price },
-      userId
+      userId,
     });
   }
 
@@ -342,7 +350,7 @@ export async function updateProperty(
       action: "status_changed",
       oldValue: { status: before.status },
       newValue: { status: after.status },
-      userId
+      userId,
     });
   }
 
@@ -362,7 +370,7 @@ export async function deleteProperty(id: number, userId?: number) {
     entityId: id,
     action: "deleted",
     oldValue: result,
-    userId
+    userId,
   });
   return result;
 }
@@ -377,7 +385,12 @@ export async function archiveProperty(id: number, userId?: number) {
   if (!property) return null;
 
   const result = toApiObject(property, "properties");
-  await recordAudit({ entityType: ENTITY, entityId: id, action: "archived", userId });
+  await recordAudit({
+    entityType: ENTITY,
+    entityId: id,
+    action: "archived",
+    userId,
+  });
   return result;
 }
 
@@ -390,7 +403,12 @@ export async function restoreProperty(id: number, userId?: number) {
   if (!property) return null;
 
   const result = toApiObject(property, "properties");
-  await recordAudit({ entityType: ENTITY, entityId: id, action: "restored", userId });
+  await recordAudit({
+    entityType: ENTITY,
+    entityId: id,
+    action: "restored",
+    userId,
+  });
   return result;
 }
 
@@ -413,20 +431,20 @@ async function generatePropertyCode(propertyType: PropertyType) {
 }
 
 async function normalizePayload(
-  payload: PropertyPayload
+  payload: PropertyPayload,
 ): Promise<Omit<NewProperty, "code">> {
   const total_price = calculateTotalPrice(payload);
 
   // حلّ اسم المحافظة/المنطقة/الحي: من القائمة (id) أو نص يدوي.
   const governorateName = payload.governorate_id
     ? await getGovernorateName(payload.governorate_id)
-    : payload.governorate_text ?? payload.governorate ?? null;
+    : (payload.governorate_text ?? payload.governorate ?? null);
   const districtName = payload.district_id
     ? await getDistrictName(payload.district_id)
-    : payload.district_text ?? payload.district ?? null;
+    : (payload.district_text ?? payload.district ?? null);
   const neighborhoodName = payload.neighborhood_id
     ? await getNeighborhoodName(payload.neighborhood_id)
-    : payload.neighborhood_text ?? null;
+    : (payload.neighborhood_text ?? null);
 
   return {
     name: payload.name ?? null,
@@ -449,13 +467,13 @@ async function normalizePayload(
     neighborhoodId: payload.neighborhood_id ?? null,
     governorateText: payload.governorate_id
       ? null
-      : payload.governorate_text ?? payload.governorate ?? null,
+      : (payload.governorate_text ?? payload.governorate ?? null),
     districtText: payload.district_id
       ? null
-      : payload.district_text ?? payload.district ?? null,
+      : (payload.district_text ?? payload.district ?? null),
     neighborhoodText: payload.neighborhood_id
       ? null
-      : payload.neighborhood_text ?? null,
+      : (payload.neighborhood_text ?? null),
     addressDetails: payload.address_details,
     ownerCustomerId: payload.owner_customer_id ?? null,
     ownerName: payload.owner_name,
@@ -477,14 +495,14 @@ async function normalizePayload(
     roomsCount: payload.rooms_count ?? null,
     bathroomsCount: payload.bathrooms_count ?? null,
     isNegotiable: payload.is_negotiable ?? false,
-    amenities: payload.amenities
+    amenities: payload.amenities,
   };
 }
 
 function addEqualFilter(
   where: ReturnType<typeof eq>[],
   column: Parameters<typeof eq>[0],
-  value?: string
+  value?: string,
 ) {
   if (!value) {
     return;

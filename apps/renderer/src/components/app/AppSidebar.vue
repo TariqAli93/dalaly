@@ -18,7 +18,9 @@ const { currentUser, logout } = useAuth();
 
 // تحترم RBAC: تُخفى العناصر التي لا يملك المستخدم صلاحيتها. (نفس المنطق السابق)
 const navItems = computed(() =>
-  [...NAV_ITEMS, ...CRM_NAV_ITEMS].filter((item) => !item.permission || can(item.permission)),
+  [...NAV_ITEMS, ...CRM_NAV_ITEMS].filter(
+    (item) => !item.permission || can(item.permission),
+  ),
 );
 
 // وضع الأيقونات فقط: يُفعّل تلميحات Tooltip ويخفي عناوين المجموعات.
@@ -27,12 +29,30 @@ const isRail = computed(() => rail.value && mdAndUp.value);
 // تجميع بصري فوق NAV_ITEMS دون تغيير مصدرها أو شروط صلاحياتها.
 // كل مجموعة تُبنى من العناصر المسموح بها فقط، وتُخفى إن خلت.
 const NAV_GROUPS: { title: string; paths: string[] }[] = [
-  { title: "", paths: ["/", "/properties", "/properties/new", "/favorites", "/rentals", "/rentals/new", "/rental-favorites"] },
+  {
+    title: "",
+    paths: [
+      "/",
+      "/properties",
+      "/properties/new",
+      "/favorites",
+      "/rentals",
+      "/rentals/new",
+      "/rental-favorites",
+    ],
+  },
   { title: "الإدارة", paths: ["/users", "/roles", "/locations"] },
   { title: "النظام", paths: ["/settings", "/help"] },
 ];
 
-NAV_GROUPS[1].paths.push("/customers", "/rental-requests", "/purchase-requests", "/documents", "/contracts", "/contract-templates");
+NAV_GROUPS[1].paths.push(
+  "/customers",
+  "/rental-requests",
+  "/purchase-requests",
+  "/documents",
+  "/contracts",
+  "/contract-templates",
+);
 
 const groupedNav = computed(() =>
   NAV_GROUPS.map((group) => ({
@@ -53,8 +73,16 @@ async function onLogout() {
 </script>
 
 <template>
-  <v-navigation-drawer v-model="drawer" class="dal-nav-drawer" :rail="isRail" rail-width="56" location="right"
-    :permanent="mdAndUp" :temporary="!mdAndUp" width="240">
+  <v-navigation-drawer
+    v-model="drawer"
+    class="dal-nav-drawer"
+    :rail="isRail"
+    rail-width="56"
+    location="right"
+    :permanent="mdAndUp"
+    :temporary="!mdAndUp"
+    width="240"
+  >
     <div class="dal-brand">
       <v-icon icon="mdi-home-city" color="primary" size="26" />
       <div v-if="!isRail">
@@ -72,10 +100,22 @@ async function onLogout() {
         </div>
         <v-divider v-else-if="group.title && isRail" class="my-2" />
 
-        <v-tooltip v-for="item in group.items" :key="item.to" :text="item.title" :disabled="!isRail" location="start">
+        <v-tooltip
+          v-for="item in group.items"
+          :key="item.to"
+          :text="item.title"
+          :disabled="!isRail"
+          location="start"
+        >
           <template #activator="{ props }">
-            <v-list-item v-bind="props" :active="$route.path === item.to" :prepend-icon="item.icon" :title="item.title"
-              color="primary" @click="go(item.to)" />
+            <v-list-item
+              v-bind="props"
+              :active="$route.path === item.to"
+              :prepend-icon="item.icon"
+              :title="item.title"
+              color="primary"
+              @click="go(item.to)"
+            />
           </template>
         </v-tooltip>
       </template>
@@ -84,16 +124,29 @@ async function onLogout() {
     <template #append>
       <div class="dal-nav-footer">
         <v-list nav density="compact">
-          <v-tooltip :text="currentUser?.username ?? 'مستخدم'" :disabled="!isRail" location="start">
+          <v-tooltip
+            :text="currentUser?.username ?? 'مستخدم'"
+            :disabled="!isRail"
+            location="start"
+          >
             <template #activator="{ props }">
-              <v-list-item v-bind="props" :title="currentUser?.username ?? 'مستخدم'" subtitle="جلسة محلية"
-                prepend-icon="mdi-account-circle-outline" />
+              <v-list-item
+                v-bind="props"
+                :title="currentUser?.username ?? 'مستخدم'"
+                subtitle="جلسة محلية"
+                prepend-icon="mdi-account-circle-outline"
+              />
             </template>
           </v-tooltip>
           <v-tooltip text="تسجيل الخروج" :disabled="!isRail" location="start">
             <template #activator="{ props }">
-              <v-list-item v-bind="props" title="تسجيل الخروج" prepend-icon="mdi-logout" base-color="error"
-                @click="onLogout" />
+              <v-list-item
+                v-bind="props"
+                title="تسجيل الخروج"
+                prepend-icon="mdi-logout"
+                base-color="error"
+                @click="onLogout"
+              />
             </template>
           </v-tooltip>
         </v-list>

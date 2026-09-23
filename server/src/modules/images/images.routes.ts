@@ -11,13 +11,13 @@ import {
   getImage,
   listImages,
   reorderImages,
-  setPrimaryImage
+  setPrimaryImage,
 } from "./images.repository.js";
 import {
   contentTypeFor,
   deleteImageFromDisk,
   resolveImageAbsolutePath,
-  saveImageToDisk
+  saveImageToDisk,
 } from "./images.service.js";
 
 function parseId(value: string) {
@@ -30,14 +30,14 @@ const uploadSchema = z.object({
     .array(
       z.object({
         data: z.string().min(1),
-        original_name: z.string().optional().nullable()
-      })
+        original_name: z.string().optional().nullable(),
+      }),
     )
-    .min(1)
+    .min(1),
 });
 
 const orderSchema = z.object({
-  ids: z.array(z.coerce.number().int().positive()).default([])
+  ids: z.array(z.coerce.number().int().positive()).default([]),
 });
 
 export const imagesRoutes: FastifyPluginAsync = async (app) => {
@@ -46,9 +46,10 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
     { preHandler: requirePermission("properties.read") },
     async (request, reply) => {
       const propertyId = parseId((request.params as { id: string }).id);
-      if (!propertyId) return reply.code(400).send({ message: "معرف العقار غير صحيح." });
+      if (!propertyId)
+        return reply.code(400).send({ message: "معرف العقار غير صحيح." });
       return listImages(propertyId);
-    }
+    },
   );
 
   app.get(
@@ -57,10 +58,12 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
     async (request, reply) => {
       const params = request.params as { id: string; imageId: string };
       const imageId = parseId(params.imageId);
-      if (!imageId) return reply.code(400).send({ message: "معرف الصورة غير صحيح." });
+      if (!imageId)
+        return reply.code(400).send({ message: "معرف الصورة غير صحيح." });
 
       const image = await getImage(imageId);
-      if (!image) return reply.code(404).send({ message: "الصورة غير موجودة." });
+      if (!image)
+        return reply.code(404).send({ message: "الصورة غير موجودة." });
 
       const absolute = resolveImageAbsolutePath(image.filePath);
       if (!fs.existsSync(absolute)) {
@@ -70,7 +73,7 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
       reply.header("Cache-Control", "private, max-age=86400");
       reply.type(contentTypeFor(image.filePath));
       return reply.send(fs.createReadStream(absolute));
-    }
+    },
   );
 
   app.post(
@@ -78,7 +81,8 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
     { preHandler: requirePermission("properties.images.manage") },
     async (request, reply) => {
       const propertyId = parseId((request.params as { id: string }).id);
-      if (!propertyId) return reply.code(400).send({ message: "معرف العقار غير صحيح." });
+      if (!propertyId)
+        return reply.code(400).send({ message: "معرف العقار غير صحيح." });
 
       const payload = uploadSchema.parse(request.body);
       const existing = await countImages(propertyId);
@@ -86,13 +90,17 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
 
       for (let i = 0; i < payload.images.length; i += 1) {
         const item = payload.images[i];
-        const { filePath } = saveImageToDisk(propertyId, item.data, item.original_name ?? undefined);
+        const { filePath } = saveImageToDisk(
+          propertyId,
+          item.data,
+          item.original_name ?? undefined,
+        );
         const isPrimary = existing === 0 && i === 0;
         const row = await addImage({
           propertyId,
           filePath,
           originalName: item.original_name ?? null,
-          isPrimary
+          isPrimary,
         });
         created.push(row);
       }
@@ -102,11 +110,11 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
         entityId: propertyId,
         action: "image_added",
         newValue: { count: created.length },
-        userId: request.user?.id
+        userId: request.user?.id,
       });
 
       return reply.code(201).send(created);
-    }
+    },
   );
 
   app.patch(
@@ -116,10 +124,11 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
       const params = request.params as { id: string; imageId: string };
       const propertyId = parseId(params.id);
       const imageId = parseId(params.imageId);
-      if (!propertyId || !imageId) return reply.code(400).send({ message: "معرف غير صحيح." });
+      if (!propertyId || !imageId)
+        return reply.code(400).send({ message: "معرف غير صحيح." });
       await setPrimaryImage(propertyId, imageId);
       return listImages(propertyId);
-    }
+    },
   );
 
   app.put(
@@ -127,11 +136,12 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
     { preHandler: requirePermission("properties.images.manage") },
     async (request, reply) => {
       const propertyId = parseId((request.params as { id: string }).id);
-      if (!propertyId) return reply.code(400).send({ message: "معرف العقار غير صحيح." });
+      if (!propertyId)
+        return reply.code(400).send({ message: "معرف العقار غير صحيح." });
       const payload = orderSchema.parse(request.body);
       await reorderImages(propertyId, payload.ids);
       return listImages(propertyId);
-    }
+    },
   );
 
   app.delete(
@@ -141,7 +151,8 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
       const params = request.params as { id: string; imageId: string };
       const propertyId = parseId(params.id);
       const imageId = parseId(params.imageId);
-      if (!propertyId || !imageId) return reply.code(400).send({ message: "معرف غير صحيح." });
+      if (!propertyId || !imageId)
+        return reply.code(400).send({ message: "معرف غير صحيح." });
 
       const row = await deleteImageRow(imageId);
       if (!row) return reply.code(404).send({ message: "الصورة غير موجودة." });
@@ -154,10 +165,10 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
         entityId: propertyId,
         action: "image_removed",
         oldValue: { file_path: row.filePath },
-        userId: request.user?.id
+        userId: request.user?.id,
       });
 
       return { deleted: true };
-    }
+    },
   );
 };

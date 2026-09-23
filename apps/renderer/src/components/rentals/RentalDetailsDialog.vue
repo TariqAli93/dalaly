@@ -69,7 +69,10 @@ watch(
   <v-dialog v-model="open" width="980" scrollable>
     <v-card v-if="rental">
       <v-card-title class="d-flex align-center ga-2">
-        <span>{{ rental.name || `rentals ${rental.code}` }} · {{ rental.code }}</span>
+        <span
+          >{{ rental.name || `rentals ${rental.code}` }} ·
+          {{ rental.code }}</span
+        >
         <v-chip :color="statusColor(rental.status)" variant="tonal">
           {{ statusLabel(rental.status) }}
         </v-chip>
@@ -83,7 +86,9 @@ watch(
       <v-tabs v-model="tab" color="primary">
         <v-tab value="details">التفاصيل</v-tab>
         <v-tab value="images">الصور</v-tab>
-        <v-tab v-if="can('rentals.followups.read')" value="followups">المتابعات</v-tab>
+        <v-tab v-if="can('rentals.followups.read')" value="followups"
+          >المتابعات</v-tab
+        >
         <v-tab v-if="can('audit.read')" value="audit">السجل</v-tab>
       </v-tabs>
 
@@ -93,23 +98,37 @@ watch(
             <div class="detail-grid">
               <div class="detail-item">
                 <div class="detail-label">نوع العقار</div>
-                <div class="detail-value">{{ typeLabel[rental.property_type] ?? rental.property_type }}</div>
+                <div class="detail-value">
+                  {{ typeLabel[rental.property_type] ?? rental.property_type }}
+                </div>
               </div>
               <div class="detail-item">
                 <div class="detail-label">نوع الإيجار</div>
-                <div class="detail-value">{{ periodLabel[rental.rent_period] ?? rental.rent_period }}</div>
+                <div class="detail-value">
+                  {{ periodLabel[rental.rent_period] ?? rental.rent_period }}
+                </div>
               </div>
               <div class="detail-item">
                 <div class="detail-label">سعر الإيجار</div>
-                <div class="detail-value"><span class="money">{{ formatMoney(rental.rent_price) }}</span> دينار</div>
+                <div class="detail-value">
+                  <span class="money">{{
+                    formatMoney(rental.rent_price)
+                  }}</span>
+                  دينار
+                </div>
               </div>
               <div class="detail-item">
                 <div class="detail-label">المساحة</div>
-                <div class="detail-value">{{ rental.area_value }} {{ rental.area_unit }}</div>
+                <div class="detail-value">
+                  {{ rental.area_value }} {{ rental.area_unit }}
+                </div>
               </div>
               <div class="detail-item">
                 <div class="detail-label">الغرف / الحمامات</div>
-                <div class="detail-value">{{ rental.rooms_count ?? "-" }} / {{ rental.bathrooms_count ?? "-" }}</div>
+                <div class="detail-value">
+                  {{ rental.rooms_count ?? "-" }} /
+                  {{ rental.bathrooms_count ?? "-" }}
+                </div>
               </div>
               <div class="detail-item">
                 <div class="detail-label">الطوابق</div>
@@ -137,25 +156,36 @@ watch(
               </div>
               <div class="detail-item">
                 <div class="detail-label">آخر تحديث</div>
-                <div class="detail-value">{{ formatDate(rental.updated_at) }}</div>
+                <div class="detail-value">
+                  {{ formatDate(rental.updated_at) }}
+                </div>
               </div>
               <div class="detail-item">
                 <div class="detail-label">العنوان التفصيلي</div>
-                <div class="detail-value">{{ rental.address_details || "-" }}</div>
+                <div class="detail-value">
+                  {{ rental.address_details || "-" }}
+                </div>
               </div>
               <div class="detail-item">
                 <div class="detail-label">المميزات</div>
-                <div class="detail-value">{{ amenitiesText(rental.amenities) || "-" }}</div>
+                <div class="detail-value">
+                  {{ amenitiesText(rental.amenities) || "-" }}
+                </div>
               </div>
               <div class="detail-item">
                 <div class="detail-label">ملاحظات الإيجار</div>
-                <div class="detail-value">{{ rental.notes || rental.other_details || "-" }}</div>
+                <div class="detail-value">
+                  {{ rental.notes || rental.other_details || "-" }}
+                </div>
               </div>
             </div>
           </v-window-item>
 
           <v-window-item value="images">
-            <RentalImages :rental-id="rental.id" :can-manage="can('rentals.images.manage')" />
+            <RentalImages
+              :rental-id="rental.id"
+              :can-manage="can('rentals.images.manage')"
+            />
           </v-window-item>
 
           <v-window-item v-if="can('rentals.followups.read')" value="followups">
@@ -171,16 +201,39 @@ watch(
       <v-card-actions>
         <RentalExportMenu v-if="can('rentals.export')" :rental="rental" />
         <v-spacer />
-        <v-btn v-if="can('rentals.update')" variant="tonal" prepend-icon="mdi-pencil" @click="emit('edit', rental)">
+        <v-btn
+          v-if="can('rentals.update')"
+          variant="tonal"
+          prepend-icon="mdi-pencil"
+          @click="emit('edit', rental)"
+        >
           تعديل
         </v-btn>
-        <v-btn v-if="rental.status === 'archived' && can('rentals.restore')" color="success" variant="tonal" prepend-icon="mdi-archive-arrow-up-outline" @click="emit('restore', rental)">
+        <v-btn
+          v-if="rental.status === 'archived' && can('rentals.restore')"
+          color="success"
+          variant="tonal"
+          prepend-icon="mdi-archive-arrow-up-outline"
+          @click="emit('restore', rental)"
+        >
           إرجاع من الأرشيف
         </v-btn>
-        <v-btn v-else-if="rental.status !== 'archived' && can('rentals.archive')" color="warning" variant="tonal" prepend-icon="mdi-archive-arrow-down-outline" @click="emit('archive', rental)">
+        <v-btn
+          v-else-if="rental.status !== 'archived' && can('rentals.archive')"
+          color="warning"
+          variant="tonal"
+          prepend-icon="mdi-archive-arrow-down-outline"
+          @click="emit('archive', rental)"
+        >
           أرشفة
         </v-btn>
-        <v-btn v-if="can('rentals.delete')" color="error" variant="text" prepend-icon="mdi-delete-outline" @click="emit('delete', rental)">
+        <v-btn
+          v-if="can('rentals.delete')"
+          color="error"
+          variant="text"
+          prepend-icon="mdi-delete-outline"
+          @click="emit('delete', rental)"
+        >
           حذف
         </v-btn>
       </v-card-actions>

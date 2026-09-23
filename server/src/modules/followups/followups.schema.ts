@@ -5,7 +5,7 @@ export const FOLLOWUP_TYPES = [
   "meeting",
   "visit",
   "negotiation",
-  "other"
+  "other",
 ] as const;
 
 export const followupPayloadSchema = z.object({
@@ -16,7 +16,7 @@ export const followupPayloadSchema = z.object({
     .datetime({ offset: true })
     .optional()
     .nullable()
-    .or(z.literal(""))
+    .or(z.literal("")),
 });
 
 export type FollowupPayload = z.infer<typeof followupPayloadSchema>;

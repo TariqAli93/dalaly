@@ -41,16 +41,16 @@ API, DB, fields, indexes, external services, maps, or AI. Frontend/UX only.
 
 ## Scenarios & clicks (target)
 
-| Scenario | Steps | Clicks |
-|---|---|---|
-| By owner name | type part of name | 1 (type) |
-| By phone | type digits | 1 |
-| By plot number | type `321 أ` | 1 |
-| By location | governorate → district → neighborhood | ≤3 |
-| By budget + location | location + price from/to (extra) | ≤3 + 2 fields |
-| By type | pick property type | 1 |
-| Available only | quick pick المتاحة | 1 |
-| Typical compound | location + type + price | ≤3 |
+| Scenario             | Steps                                 | Clicks        |
+| -------------------- | ------------------------------------- | ------------- |
+| By owner name        | type part of name                     | 1 (type)      |
+| By phone             | type digits                           | 1             |
+| By plot number       | type `321 أ`                          | 1             |
+| By location          | governorate → district → neighborhood | ≤3            |
+| By budget + location | location + price from/to (extra)      | ≤3 + 2 fields |
+| By type              | pick property type                    | 1             |
+| Available only       | quick pick المتاحة                    | 1             |
+| Typical compound     | location + type + price               | ≤3            |
 
 No routine scenario needs more than 3 filters or a filter dialog.
 

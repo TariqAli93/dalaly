@@ -30,9 +30,7 @@ const loading = ref(false);
 const filters = ref<PropertyFilters>(emptyFilters());
 
 const filteredCountLabel = computed(() =>
-  properties.value.length === 1
-    ? "عرض واحد"
-    : `${properties.value.length} عرض`,
+  properties.value.length === 1 ? "عرض واحد" : `${properties.value.length} عرض`,
 );
 
 const topDistricts = computed(() => {

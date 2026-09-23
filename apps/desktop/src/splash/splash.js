@@ -54,9 +54,12 @@
       });
 
     // أزرار شاشة الخطأ.
-    if (retryBtn) retryBtn.addEventListener("click", () => window.splashAPI.retry());
-    if (logsBtn) logsBtn.addEventListener("click", () => window.splashAPI.openLogs());
-    if (quitBtn) quitBtn.addEventListener("click", () => window.splashAPI.quit());
+    if (retryBtn)
+      retryBtn.addEventListener("click", () => window.splashAPI.retry());
+    if (logsBtn)
+      logsBtn.addEventListener("click", () => window.splashAPI.openLogs());
+    if (quitBtn)
+      quitBtn.addEventListener("click", () => window.splashAPI.quit());
   }
 
   // إزالة المستمع عند إغلاق الصفحة لمنع تسرّب الذاكرة.

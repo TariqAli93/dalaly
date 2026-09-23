@@ -102,7 +102,10 @@ async function runInitialize() {
         firstAdminUsername: adminForm.value.username,
         firstAdminPin: adminForm.value.pin,
       });
-      resultData.value = { username: result.admin.username, pin: result.admin.pin };
+      resultData.value = {
+        username: result.admin.username,
+        pin: result.admin.pin,
+      };
     }
     markStagesDone();
     await fetchStatus().catch(() => undefined);
@@ -149,7 +152,11 @@ async function goToLogin() {
             :text="`إصدار التطبيق: ${status.app_version}`"
           />
           <div class="d-flex justify-end">
-            <v-btn color="primary" append-icon="mdi-arrow-left" @click="step = 2">
+            <v-btn
+              color="primary"
+              append-icon="mdi-arrow-left"
+              @click="step = 2"
+            >
               التالي
             </v-btn>
           </div>
@@ -173,7 +180,11 @@ async function goToLogin() {
           />
           <div class="d-flex justify-space-between mt-4">
             <v-btn variant="text" @click="step = 1">السابق</v-btn>
-            <v-btn color="primary" append-icon="mdi-arrow-left" @click="step = 3">
+            <v-btn
+              color="primary"
+              append-icon="mdi-arrow-left"
+              @click="step = 3"
+            >
               التالي
             </v-btn>
           </div>
@@ -189,7 +200,11 @@ async function goToLogin() {
               السابق
             </v-btn>
             <v-spacer v-else />
-            <v-btn color="primary" append-icon="mdi-arrow-left" @click="step = 4">
+            <v-btn
+              color="primary"
+              append-icon="mdi-arrow-left"
+              @click="step = 4"
+            >
               التالي
             </v-btn>
           </div>
@@ -208,11 +223,7 @@ async function goToLogin() {
             >
               <template #prepend>
                 <v-icon
-                  :icon="
-                    stage.done
-                      ? 'mdi-check-circle'
-                      : 'mdi-circle-outline'
-                  "
+                  :icon="stage.done ? 'mdi-check-circle' : 'mdi-circle-outline'"
                   :color="stage.done ? 'success' : undefined"
                 />
               </template>

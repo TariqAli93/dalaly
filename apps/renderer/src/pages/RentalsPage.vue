@@ -56,12 +56,7 @@ const paneOpen = ref(false);
 const favOnly = ref(false);
 
 type SortKey =
-  | "newest"
-  | "updated"
-  | "price_asc"
-  | "price_desc"
-  | "area_desc"
-  | "area_asc";
+  "newest" | "updated" | "price_asc" | "price_desc" | "area_desc" | "area_asc";
 const sortBy = ref<SortKey>("newest");
 const SORT_OPTIONS = [
   { value: "newest", title: "الأحدث" },

@@ -74,7 +74,9 @@ export interface PlatformAdapter {
   saveScheduledBackup(config: ScheduledBackupConfig): Promise<{ ok: boolean }>;
 
   /** حفظ DATABASE_URL محلياً بعد First Run Wizard — Electron فقط. */
-  saveDatabaseUrl(databaseUrl: string): Promise<{ ok: boolean; message?: string }>;
+  saveDatabaseUrl(
+    databaseUrl: string,
+  ): Promise<{ ok: boolean; message?: string }>;
 
   /**
    * رسالة تُعرض للمستخدم عندما تكون الوظيفة غير متاحة على هذه المنصّة.

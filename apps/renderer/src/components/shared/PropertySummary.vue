@@ -68,8 +68,12 @@ const rows = computed(() => {
     <!-- رأس الـ pane: الكود والنوع والحالة وزر الإغلاق -->
     <div class="ps__head">
       <div class="min-w-0">
-        <div class="ps__code">{{ property.name || `properties ${property.code}` }}</div>
-        <div class="ps__type money">{{ property.code }} · {{ property.property_type }}</div>
+        <div class="ps__code">
+          {{ property.name || `properties ${property.code}` }}
+        </div>
+        <div class="ps__type money">
+          {{ property.code }} · {{ property.property_type }}
+        </div>
       </div>
       <StatusChip :status="property.status" />
       <FavoriteButton :property-id="property.id" />
@@ -151,8 +155,11 @@ const rows = computed(() => {
       <v-btn color="primary" block @click="emit('open')">
         فتح التفاصيل الكاملة
       </v-btn>
-    <PropertyExportMenu v-if="can('properties.export')" :property="property" />
-    <div class="ps__actions-row">
+      <PropertyExportMenu
+        v-if="can('properties.export')"
+        :property="property"
+      />
+      <div class="ps__actions-row">
         <v-btn
           v-if="can('properties.update')"
           variant="tonal"

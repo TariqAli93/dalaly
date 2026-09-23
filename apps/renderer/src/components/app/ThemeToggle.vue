@@ -9,7 +9,9 @@ const { isDark, toggle } = useThemeMode();
     :icon="isDark ? 'mdi-weather-sunny' : 'mdi-weather-night'"
     variant="text"
     title="تبديل الثيم"
-    :aria-label="isDark ? 'التبديل إلى الوضع الفاتح' : 'التبديل إلى الوضع الداكن'"
+    :aria-label="
+      isDark ? 'التبديل إلى الوضع الفاتح' : 'التبديل إلى الوضع الداكن'
+    "
     :aria-pressed="isDark"
     @click="toggle"
   />

@@ -14,7 +14,8 @@ const { notifySuccess, notifyError } = useSnackbar();
 const { openConfirm } = useConfirm();
 const images = ref<RentalImage[]>([]);
 const primaryImage = computed(
-  () => images.value.find((image) => image.is_primary) ?? images.value[0] ?? null,
+  () =>
+    images.value.find((image) => image.is_primary) ?? images.value[0] ?? null,
 );
 const loading = ref(false);
 const uploading = ref(false);

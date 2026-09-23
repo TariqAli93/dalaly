@@ -31,7 +31,11 @@ export const electronPlatform: PlatformAdapter = {
     return api.saveFile({ data, suggestedName, title, filters });
   },
 
-  async exportFolder({ files, suggestedFolderName, title }): Promise<SaveResult> {
+  async exportFolder({
+    files,
+    suggestedFolderName,
+    title,
+  }): Promise<SaveResult> {
     const api = bridge();
     if (!api?.exportFolder) return { ok: false, canceled: true };
     return api.exportFolder({ files, suggestedFolderName, title });
@@ -47,7 +51,11 @@ export const electronPlatform: PlatformAdapter = {
     const api = bridge();
     if (!api?.pickBackupFile) return { canceled: true };
     const result = await api.pickBackupFile();
-    return { path: result?.path, name: result?.path, canceled: result?.canceled };
+    return {
+      path: result?.path,
+      name: result?.path,
+      canceled: result?.canceled,
+    };
   },
 
   async pickFolder(): Promise<PickedFolder> {

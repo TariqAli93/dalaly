@@ -33,7 +33,7 @@ export async function recordAudit(input: RecordAuditInput) {
       action: input.action,
       oldValue: input.oldValue ?? null,
       newValue: input.newValue ?? null,
-      userId: input.userId ?? null
+      userId: input.userId ?? null,
     });
   } catch {
     // تجاهل أخطاء التدقيق بهدوء.
@@ -51,11 +51,16 @@ export async function listEntityAudit(entityType: string, entityId: number) {
       new_value: auditLogs.newValue,
       user_id: auditLogs.userId,
       user_name: users.username,
-      created_at: auditLogs.createdAt
+      created_at: auditLogs.createdAt,
     })
     .from(auditLogs)
     .leftJoin(users, eq(auditLogs.userId, users.id))
-    .where(and(eq(auditLogs.entityType, entityType), eq(auditLogs.entityId, entityId)))
+    .where(
+      and(
+        eq(auditLogs.entityType, entityType),
+        eq(auditLogs.entityId, entityId),
+      ),
+    )
     .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id));
 
   return rows;

@@ -11,8 +11,10 @@ export default defineConfig({
   clean: true,
   sourcemap: false,
   banner: {
-    js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);"
+    js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);",
   },
-  noExternal: [/^(@fastify\/cors|fastify|pg|drizzle-orm|zod|dotenv|adm-zip)(\/.*)?$/],
-  external: ["pg-native"]
+  noExternal: [
+    /^(@fastify\/cors|fastify|pg|drizzle-orm|zod|dotenv|adm-zip)(\/.*)?$/,
+  ],
+  external: ["pg-native"],
 });

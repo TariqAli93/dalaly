@@ -47,7 +47,7 @@ export async function addImage(input: {
       filePath: input.filePath,
       originalName: input.originalName ?? null,
       isPrimary: input.isPrimary,
-      sortOrder: (currentMax ?? 0) + 1
+      sortOrder: (currentMax ?? 0) + 1,
     })
     .returning();
   return toApiObject(row);
@@ -62,7 +62,12 @@ export async function setPrimaryImage(propertyId: number, imageId: number) {
     await tx
       .update(propertyImages)
       .set({ isPrimary: true })
-      .where(and(eq(propertyImages.id, imageId), eq(propertyImages.propertyId, propertyId)));
+      .where(
+        and(
+          eq(propertyImages.id, imageId),
+          eq(propertyImages.propertyId, propertyId),
+        ),
+      );
   });
 }
 
@@ -73,7 +78,10 @@ export async function reorderImages(propertyId: number, orderedIds: number[]) {
         .update(propertyImages)
         .set({ sortOrder: index + 1 })
         .where(
-          and(eq(propertyImages.id, orderedIds[index]), eq(propertyImages.propertyId, propertyId))
+          and(
+            eq(propertyImages.id, orderedIds[index]),
+            eq(propertyImages.propertyId, propertyId),
+          ),
         );
     }
   });

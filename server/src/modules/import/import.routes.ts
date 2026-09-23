@@ -4,7 +4,7 @@ import { requirePermission } from "../auth/auth.hooks.js";
 import { commitImport, validateImport } from "./import.service.js";
 
 const rowsSchema = z.object({
-  rows: z.array(z.record(z.string(), z.unknown())).default([])
+  rows: z.array(z.record(z.string(), z.unknown())).default([]),
 });
 
 export const importRoutes: FastifyPluginAsync = async (app) => {
@@ -14,7 +14,7 @@ export const importRoutes: FastifyPluginAsync = async (app) => {
     async (request) => {
       const payload = rowsSchema.parse(request.body);
       return validateImport(payload.rows);
-    }
+    },
   );
 
   app.post(
@@ -23,6 +23,6 @@ export const importRoutes: FastifyPluginAsync = async (app) => {
     async (request) => {
       const payload = rowsSchema.parse(request.body);
       return commitImport(payload.rows, request.user?.id);
-    }
+    },
   );
 };

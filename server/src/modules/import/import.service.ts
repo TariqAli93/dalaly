@@ -6,7 +6,9 @@ import { propertyPayloadSchema } from "../properties/properties.schema.js";
 type RawRow = Record<string, unknown>;
 
 async function existingPhones() {
-  const rows = await db.select({ phone: properties.ownerPhone }).from(properties);
+  const rows = await db
+    .select({ phone: properties.ownerPhone })
+    .from(properties);
   return new Set(rows.map((r) => (r.phone ?? "").trim()).filter(Boolean));
 }
 
@@ -19,7 +21,9 @@ type ValidationResult = {
   duplicates: Array<{ row: number; reason: string }>;
 };
 
-export async function validateImport(rows: RawRow[]): Promise<ValidationResult> {
+export async function validateImport(
+  rows: RawRow[],
+): Promise<ValidationResult> {
   const phones = await existingPhones();
   const seenPhones = new Set<string>();
   const result: ValidationResult = {
@@ -28,7 +32,7 @@ export async function validateImport(rows: RawRow[]): Promise<ValidationResult> 
     duplicate_count: 0,
     error_count: 0,
     errors: [],
-    duplicates: []
+    duplicates: [],
   };
 
   rows.forEach((row, index) => {
@@ -38,7 +42,9 @@ export async function validateImport(rows: RawRow[]): Promise<ValidationResult> 
       result.error_count += 1;
       result.errors.push({
         row: rowNumber,
-        message: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("، ")
+        message: parsed.error.issues
+          .map((i) => `${i.path.join(".")}: ${i.message}`)
+          .join("، "),
       });
       return;
     }
@@ -46,7 +52,10 @@ export async function validateImport(rows: RawRow[]): Promise<ValidationResult> 
     const phone = parsed.data.owner_phone.trim();
     if (phones.has(phone) || seenPhones.has(phone)) {
       result.duplicate_count += 1;
-      result.duplicates.push({ row: rowNumber, reason: `رقم هاتف مكرر: ${phone}` });
+      result.duplicates.push({
+        row: rowNumber,
+        reason: `رقم هاتف مكرر: ${phone}`,
+      });
       return;
     }
 
@@ -71,7 +80,7 @@ export async function commitImport(rows: RawRow[], userId?: number) {
       skipped += 1;
       errors.push({
         row: rowNumber,
-        message: parsed.error.issues.map((i) => i.message).join("، ")
+        message: parsed.error.issues.map((i) => i.message).join("، "),
       });
       continue;
     }
@@ -90,7 +99,7 @@ export async function commitImport(rows: RawRow[], userId?: number) {
       skipped += 1;
       errors.push({
         row: rowNumber,
-        message: error instanceof Error ? error.message : "تعذر الإدراج."
+        message: error instanceof Error ? error.message : "تعذر الإدراج.",
       });
     }
   }

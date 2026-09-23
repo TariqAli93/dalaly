@@ -31,8 +31,11 @@ body {
   position: relative;
   width: 100vw;
   height: 100vh;
-  background:
-    radial-gradient(120% 90% at 70% 20%, #f7f1e6 0%, var(--ivory) 60%);
+  background: radial-gradient(
+    120% 90% at 70% 20%,
+    #f7f1e6 0%,
+    var(--ivory) 60%
+  );
   overflow: hidden;
 }
 
@@ -76,10 +79,17 @@ body {
   width: 190px;
   height: 10px;
   margin: 6px 0 2px;
-  background:
-    linear-gradient(90deg, transparent, var(--gold) 20%, var(--gold) 80%, transparent);
-  -webkit-mask: radial-gradient(circle at center, #000 2px, transparent 2.5px) center/12px 100%;
-  mask: radial-gradient(circle at center, #000 2px, transparent 2.5px) center/12px 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--gold) 20%,
+    var(--gold) 80%,
+    transparent
+  );
+  -webkit-mask: radial-gradient(circle at center, #000 2px, transparent 2.5px)
+    center/12px 100%;
+  mask: radial-gradient(circle at center, #000 2px, transparent 2.5px)
+    center/12px 100%;
   opacity: 0.9;
 }
 

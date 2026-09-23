@@ -46,7 +46,10 @@ import { bootstrapDefaultAdmin } from "../../modules/auth/auth.service.js";
 import { seedSystemRbac } from "../../modules/rbac/rbac.service.js";
 import { createProperty } from "../../modules/properties/properties.repository.js";
 import { propertyPayloadSchema } from "../../modules/properties/properties.schema.js";
-import { saveImageToDisk, saveRentalImageToDisk } from "../../modules/images/images.service.js";
+import {
+  saveImageToDisk,
+  saveRentalImageToDisk,
+} from "../../modules/images/images.service.js";
 import { saveManagedFile } from "../../modules/documents/documents.storage.js";
 import { generateContract } from "../../modules/contracts/contracts.service.js";
 import { DATABASE_NAME_PATTERN } from "../../modules/setup/setup.schema.js";
@@ -66,8 +69,10 @@ import {
 } from "./seed.data.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const DEMO_IMAGE_DATA = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
-const DEMO_DOCUMENT_DATA = "data:text/plain;base64,RGVtbyBEYWxhbHkgZG9jdW1lbnQ=";
+const DEMO_IMAGE_DATA =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+const DEMO_DOCUMENT_DATA =
+  "data:text/plain;base64,RGVtbyBEYWxhbHkgZG9jdW1lbnQ=";
 
 type Counters = Record<string, number>;
 
@@ -92,8 +97,12 @@ async function resetSeedData() {
   const seededContractCodes = SEED_CONTRACTS.map((contract) => contract.code);
   const seededDocumentCodes = SEED_DOCUMENTS.map((document) => document.code);
   const seededRentalCodes = SEED_RENTALS.map((rental) => rental.code);
-  const seededRentalRequestCodes = SEED_RENTAL_REQUESTS.map((request) => request.code);
-  const seededPurchaseRequestCodes = SEED_PURCHASE_REQUESTS.map((request) => request.code);
+  const seededRentalRequestCodes = SEED_RENTAL_REQUESTS.map(
+    (request) => request.code,
+  );
+  const seededPurchaseRequestCodes = SEED_PURCHASE_REQUESTS.map(
+    (request) => request.code,
+  );
   const seededCustomerCodes = SEED_CUSTOMERS.map((customer) => customer.code);
 
   const seededContracts = await db
@@ -101,14 +110,29 @@ async function resetSeedData() {
     .from(contracts)
     .where(inArray(contracts.code, seededContractCodes));
   if (seededContracts.length) {
-    await db.delete(contractParties).where(inArray(contractParties.contractId, seededContracts.map((row) => row.id)));
+    await db.delete(contractParties).where(
+      inArray(
+        contractParties.contractId,
+        seededContracts.map((row) => row.id),
+      ),
+    );
   }
-  await db.delete(contracts).where(inArray(contracts.code, seededContractCodes));
-  await db.delete(documents).where(inArray(documents.code, seededDocumentCodes));
-  await db.delete(rentalRequests).where(inArray(rentalRequests.code, seededRentalRequestCodes));
-  await db.delete(purchaseRequests).where(inArray(purchaseRequests.code, seededPurchaseRequestCodes));
+  await db
+    .delete(contracts)
+    .where(inArray(contracts.code, seededContractCodes));
+  await db
+    .delete(documents)
+    .where(inArray(documents.code, seededDocumentCodes));
+  await db
+    .delete(rentalRequests)
+    .where(inArray(rentalRequests.code, seededRentalRequestCodes));
+  await db
+    .delete(purchaseRequests)
+    .where(inArray(purchaseRequests.code, seededPurchaseRequestCodes));
   await db.delete(rentals).where(inArray(rentals.code, seededRentalCodes));
-  await db.delete(customers).where(inArray(customers.code, seededCustomerCodes));
+  await db
+    .delete(customers)
+    .where(inArray(customers.code, seededCustomerCodes));
 
   // الحذف بالترتيب الآمن — بقية الجداول مرتبطة بـ ON DELETE CASCADE.
   await db.delete(favoriteProperties);
@@ -397,7 +421,8 @@ async function seedProperties(
       district_id: location.districtId,
       neighborhood_id: location.neighborhoodId,
       owner_customer_id:
-        seed.payload.owner_customer_id ?? customerIndex.byPhone.get(String(seed.payload.owner_phone)),
+        seed.payload.owner_customer_id ??
+        customerIndex.byPhone.get(String(seed.payload.owner_phone)),
     });
 
     const userId = authorIds[position % Math.max(authorIds.length, 1)];
@@ -467,7 +492,11 @@ async function seedPropertyImages(propertyIds: number[]) {
       continue;
     }
 
-    const stored = saveImageToDisk(propertyId, DEMO_IMAGE_DATA, "demo-property.png");
+    const stored = saveImageToDisk(
+      propertyId,
+      DEMO_IMAGE_DATA,
+      "demo-property.png",
+    );
     await db.insert(propertyImages).values({
       propertyId,
       filePath: stored.filePath,
@@ -499,7 +528,11 @@ async function seedRentals(
       bump(skipped, "rentals");
     } else {
       const location = locationIndex.get(
-        locationKey(seed.location.governorate, seed.location.district, seed.location.neighborhood),
+        locationKey(
+          seed.location.governorate,
+          seed.location.district,
+          seed.location.neighborhood,
+        ),
       );
       const customerId = customerIndex.byCode.get(seed.customerCode);
       if (!location || !customerId) continue;
@@ -526,8 +559,14 @@ async function seedRentals(
           district: seed.location.district,
           neighborhood: seed.location.neighborhood,
           addressDetails: seed.addressDetails ?? null,
-          ownerName: SEED_CUSTOMERS.find((customer) => customer.code === seed.customerCode)?.fullName ?? "مالك تجريبي",
-          ownerPhone: SEED_CUSTOMERS.find((customer) => customer.code === seed.customerCode)?.phonePrimary ?? "07700000000",
+          ownerName:
+            SEED_CUSTOMERS.find(
+              (customer) => customer.code === seed.customerCode,
+            )?.fullName ?? "مالك تجريبي",
+          ownerPhone:
+            SEED_CUSTOMERS.find(
+              (customer) => customer.code === seed.customerCode,
+            )?.phonePrimary ?? "07700000000",
           ownerCustomerId: customerId,
           status: seed.status,
           isNegotiable: seed.isNegotiable,
@@ -546,7 +585,11 @@ async function seedRentals(
       .where(eq(rentalImages.rentalId, rentalId))
       .limit(1);
     if (!image) {
-      const stored = saveRentalImageToDisk(rentalId, DEMO_IMAGE_DATA, "demo-rental.png");
+      const stored = saveRentalImageToDisk(
+        rentalId,
+        DEMO_IMAGE_DATA,
+        "demo-rental.png",
+      );
       await db.insert(rentalImages).values({
         rentalId,
         filePath: stored.filePath,
@@ -563,7 +606,12 @@ async function seedRentals(
       const [existingFollowup] = await db
         .select({ id: rentalFollowups.id })
         .from(rentalFollowups)
-        .where(and(eq(rentalFollowups.rentalId, rentalId), eq(rentalFollowups.notes, followup.notes)))
+        .where(
+          and(
+            eq(rentalFollowups.rentalId, rentalId),
+            eq(rentalFollowups.notes, followup.notes),
+          ),
+        )
         .limit(1);
       if (existingFollowup) {
         bump(skipped, "rental_followups");
@@ -574,7 +622,10 @@ async function seedRentals(
         userId: fallbackUserId ?? null,
         type: followup.type,
         notes: followup.notes,
-        scheduledAt: followup.inDays === undefined ? null : new Date(Date.now() + followup.inDays * DAY_MS),
+        scheduledAt:
+          followup.inDays === undefined
+            ? null
+            : new Date(Date.now() + followup.inDays * DAY_MS),
       });
       bump(created, "rental_followups");
     }
@@ -602,7 +653,10 @@ async function seedFavorites(
   }
 }
 
-async function seedRentalFavorites(userIdByUsername: Map<string, number>, rentalIds: number[]) {
+async function seedRentalFavorites(
+  userIdByUsername: Map<string, number>,
+  rentalIds: number[],
+) {
   const userIds = [...userIdByUsername.values()];
   for (const [position, userId] of userIds.entries()) {
     for (const rentalId of rentalIds.slice(position, position + 2)) {
@@ -615,11 +669,19 @@ async function seedRentalFavorites(userIdByUsername: Map<string, number>, rental
   }
 }
 
-function getLocation(locationIndex: LocationIndex, location: { governorate: string; district: string; neighborhood: string }) {
-  return locationIndex.get(locationKey(location.governorate, location.district, location.neighborhood));
+function getLocation(
+  locationIndex: LocationIndex,
+  location: { governorate: string; district: string; neighborhood: string },
+) {
+  return locationIndex.get(
+    locationKey(location.governorate, location.district, location.neighborhood),
+  );
 }
 
-async function seedRentalRequests(locationIndex: LocationIndex, customerIndex: CustomerIndex) {
+async function seedRentalRequests(
+  locationIndex: LocationIndex,
+  customerIndex: CustomerIndex,
+) {
   for (const seed of SEED_RENTAL_REQUESTS) {
     const [existing] = await db
       .select({ id: rentalRequests.id })
@@ -663,7 +725,10 @@ async function seedRentalRequests(locationIndex: LocationIndex, customerIndex: C
   }
 }
 
-async function seedPurchaseRequests(locationIndex: LocationIndex, customerIndex: CustomerIndex) {
+async function seedPurchaseRequests(
+  locationIndex: LocationIndex,
+  customerIndex: CustomerIndex,
+) {
   for (const seed of SEED_PURCHASE_REQUESTS) {
     const [existing] = await db
       .select({ id: purchaseRequests.id })
@@ -707,7 +772,9 @@ async function seedPurchaseRequests(locationIndex: LocationIndex, customerIndex:
 }
 
 async function seedDocuments(customerIndex: CustomerIndex) {
-  const typeRows = await db.select({ id: documentTypes.id, key: documentTypes.key }).from(documentTypes);
+  const typeRows = await db
+    .select({ id: documentTypes.id, key: documentTypes.key })
+    .from(documentTypes);
   const typeIds = new Map(typeRows.map((row) => [row.key, row.id]));
 
   for (const seed of SEED_DOCUMENTS) {
@@ -755,7 +822,9 @@ async function seedCompanySettings() {
     .limit(1);
 
   if (!existing) {
-    await db.insert(companySettings).values({ id: 1, ...SEED_COMPANY_SETTINGS });
+    await db
+      .insert(companySettings)
+      .values({ id: 1, ...SEED_COMPANY_SETTINGS });
     bump(created, "company_settings");
     return;
   }
@@ -773,9 +842,14 @@ async function seedCompanySettings() {
 
 async function seedContracts(customerIndex: CustomerIndex) {
   const templates = await db
-    .select({ id: contractTemplates.id, contractType: contractTemplates.contractType })
+    .select({
+      id: contractTemplates.id,
+      contractType: contractTemplates.contractType,
+    })
     .from(contractTemplates);
-  const templateIds = new Map(templates.map((template) => [template.contractType, template.id]));
+  const templateIds = new Map(
+    templates.map((template) => [template.contractType, template.id]),
+  );
 
   for (const seed of SEED_CONTRACTS) {
     const [existing] = await db
@@ -792,7 +866,8 @@ async function seedContracts(customerIndex: CustomerIndex) {
     const partyRows: Array<{ customerId: number; role: string }> = [];
     for (const party of seed.parties) {
       const customerId = customerIndex.byCode.get(party.customerCode);
-      if (customerId !== undefined) partyRows.push({ customerId, role: party.role });
+      if (customerId !== undefined)
+        partyRows.push({ customerId, role: party.role });
     }
     const [rental] = await db
       .select({ id: rentals.id })
@@ -800,7 +875,8 @@ async function seedContracts(customerIndex: CustomerIndex) {
       .where(eq(rentals.code, seed.rentalCode))
       .limit(1);
     const templateId = templateIds.get(seed.contractType);
-    if (!primaryCustomerId || !rental || !templateId || !partyRows.length) continue;
+    if (!primaryCustomerId || !rental || !templateId || !partyRows.length)
+      continue;
 
     const [contract] = await db
       .insert(contracts)
@@ -820,9 +896,15 @@ async function seedContracts(customerIndex: CustomerIndex) {
       })
       .returning({ id: contracts.id });
 
-    await db.insert(contractParties).values(
-      partyRows.map((party) => ({ contractId: contract.id, customerId: party.customerId, role: party.role })),
-    );
+    await db
+      .insert(contractParties)
+      .values(
+        partyRows.map((party) => ({
+          contractId: contract.id,
+          customerId: party.customerId,
+          role: party.role,
+        })),
+      );
     await generateContract(contract.id);
     bump(created, "contracts");
     bump(created, "contract_parties");
@@ -930,12 +1012,20 @@ async function main() {
   const locationIndex = await seedLocations();
 
   console.log("→ بذر العروض والصور والمتابعات…");
-  const propertyIds = await seedProperties(locationIndex, userIdByUsername, customerIndex);
+  const propertyIds = await seedProperties(
+    locationIndex,
+    userIdByUsername,
+    customerIndex,
+  );
   await seedPropertyImages(propertyIds);
   await seedFavorites(userIdByUsername, propertyIds);
 
   console.log("→ بذر عروض الإيجار والصور والمتابعات…");
-  const rentalIds = await seedRentals(locationIndex, customerIndex, userIdByUsername);
+  const rentalIds = await seedRentals(
+    locationIndex,
+    customerIndex,
+    userIdByUsername,
+  );
   await seedRentalFavorites(userIdByUsername, rentalIds);
 
   console.log("→ بذر طلبات الإيجار والشراء…");

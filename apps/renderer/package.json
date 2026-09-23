@@ -8,7 +8,9 @@
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 5173",
     "lint": "vue-tsc --noEmit",
-    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\""
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "format": "npx prettier --write .",
+    "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",

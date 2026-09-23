@@ -76,7 +76,9 @@ export async function buildServer() {
   await app.register(rentalsRoutes, { prefix: "/api/rentals" });
   await app.register(rentalImagesRoutes, { prefix: "/api/rentals" });
   await app.register(rentalFollowupsRoutes, { prefix: "/api/rentals" });
-  await app.register(rentalFavoritesRoutes, { prefix: "/api/rental-favorites" });
+  await app.register(rentalFavoritesRoutes, {
+    prefix: "/api/rental-favorites",
+  });
   await app.register(imagesRoutes, { prefix: "/api/properties" });
   await app.register(followupsRoutes, { prefix: "/api/properties" });
   await app.register(usersRoutes, { prefix: "/api/users" });
@@ -86,10 +88,14 @@ export async function buildServer() {
   await app.register(dashboardRoutes, { prefix: "/api/dashboard" });
   await app.register(customersRoutes, { prefix: "/api/customers" });
   await app.register(rentalRequestsRoutes, { prefix: "/api/rental-requests" });
-  await app.register(purchaseRequestsRoutes, { prefix: "/api/purchase-requests" });
+  await app.register(purchaseRequestsRoutes, {
+    prefix: "/api/purchase-requests",
+  });
   await app.register(matchingRoutes, { prefix: "/api/matching" });
   await app.register(documentsRoutes, { prefix: "/api/documents" });
-  await app.register(companySettingsRoutes, { prefix: "/api/company-settings" });
+  await app.register(companySettingsRoutes, {
+    prefix: "/api/company-settings",
+  });
   await app.register(contractsRoutes, { prefix: "/api/contracts" });
   await app.register(locationsRoutes, { prefix: "/api/locations" });
   await app.register(favoritesRoutes, { prefix: "/api/favorites" });

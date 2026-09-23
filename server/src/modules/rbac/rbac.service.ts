@@ -5,11 +5,16 @@ import {
   rolePermissions,
   roles,
   users,
-  userRoles
+  userRoles,
 } from "../../infrastructure/database/schema.js";
 import { SUPER_ADMIN_ROLE, SYSTEM_PERMISSIONS } from "./rbac.constants.js";
 
-export type AuthRole = { id: number; name: string; description: string | null; is_system: boolean };
+export type AuthRole = {
+  id: number;
+  name: string;
+  description: string | null;
+  is_system: boolean;
+};
 export type AuthPermission = {
   id: number;
   key: string;
@@ -26,15 +31,15 @@ export async function seedSystemRbac() {
         key: permission.key,
         name: permission.name,
         module: permission.module,
-        description: null
+        description: null,
       })
       .onConflictDoUpdate({
         target: permissions.key,
         set: {
           name: permission.name,
           module: permission.module,
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       });
   }
 
@@ -43,14 +48,14 @@ export async function seedSystemRbac() {
     .values({
       name: SUPER_ADMIN_ROLE,
       description: "يمتلك كل صلاحيات النظام.",
-      isSystem: true
+      isSystem: true,
     })
     .onConflictDoUpdate({
       target: roles.name,
       set: {
         isSystem: true,
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     })
     .returning();
 
@@ -59,7 +64,9 @@ export async function seedSystemRbac() {
 }
 
 export async function grantAllPermissionsToRole(roleId: number) {
-  const allPermissions = await db.select({ id: permissions.id }).from(permissions);
+  const allPermissions = await db
+    .select({ id: permissions.id })
+    .from(permissions);
   for (const permission of allPermissions) {
     await db
       .insert(rolePermissions)
@@ -95,7 +102,7 @@ export async function getUserRolesAndPermissions(userId: number) {
       id: roles.id,
       name: roles.name,
       description: roles.description,
-      is_system: roles.isSystem
+      is_system: roles.isSystem,
     })
     .from(userRoles)
     .innerJoin(roles, eq(userRoles.roleId, roles.id))
@@ -107,18 +114,20 @@ export async function getUserRolesAndPermissions(userId: number) {
       key: permissions.key,
       name: permissions.name,
       description: permissions.description,
-      module: permissions.module
+      module: permissions.module,
     })
     .from(userRoles)
     .innerJoin(rolePermissions, eq(userRoles.roleId, rolePermissions.roleId))
     .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
     .where(eq(userRoles.userId, userId));
 
-  const permissionMap = new Map(permissionRows.map((permission) => [permission.key, permission]));
+  const permissionMap = new Map(
+    permissionRows.map((permission) => [permission.key, permission]),
+  );
 
   return {
     roles: roleRows,
-    permissions: [...permissionMap.values()]
+    permissions: [...permissionMap.values()],
   };
 }
 
@@ -128,7 +137,9 @@ export async function userHasPermission(userId: number, permissionKey: string) {
     .from(userRoles)
     .innerJoin(rolePermissions, eq(userRoles.roleId, rolePermissions.roleId))
     .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(and(eq(userRoles.userId, userId), eq(permissions.key, permissionKey)));
+    .where(
+      and(eq(userRoles.userId, userId), eq(permissions.key, permissionKey)),
+    );
 
   return Number(row?.count ?? 0) > 0;
 }
@@ -145,7 +156,10 @@ export async function setUserRoleIds(userId: number, roleIds: number[]) {
   });
 }
 
-export async function setRolePermissionIds(roleId: number, permissionIds: number[]) {
+export async function setRolePermissionIds(
+  roleId: number,
+  permissionIds: number[],
+) {
   await db.transaction(async (tx) => {
     await tx.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId));
     if (permissionIds.length) {
@@ -177,10 +191,7 @@ export async function countActiveSuperAdmins(exceptUserId?: number) {
   const superAdmin = await getSuperAdminRole();
   if (!superAdmin) return 0;
 
-  const where = [
-    eq(userRoles.roleId, superAdmin.id),
-    eq(users.isActive, true)
-  ];
+  const where = [eq(userRoles.roleId, superAdmin.id), eq(users.isActive, true)];
   if (exceptUserId) {
     where.push(ne(users.id, exceptUserId));
   }
@@ -201,6 +212,8 @@ export async function userIsSuperAdmin(userId: number) {
   const [row] = await db
     .select({ count: count() })
     .from(userRoles)
-    .where(and(eq(userRoles.userId, userId), eq(userRoles.roleId, superAdmin.id)));
+    .where(
+      and(eq(userRoles.userId, userId), eq(userRoles.roleId, superAdmin.id)),
+    );
   return Number(row?.count ?? 0) > 0;
 }

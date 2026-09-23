@@ -14,16 +14,23 @@ const AMENITY_LABELS = Object.fromEntries(
   AMENITY_OPTIONS.map((item) => [item.key, item.title]),
 );
 
-export function formatAmenities(value: Record<string, unknown> | null | undefined) {
+export function formatAmenities(
+  value: Record<string, unknown> | null | undefined,
+) {
   if (!value || typeof value !== "object") return [];
   return Object.entries(value)
-    .filter(([, enabled]) => enabled === true || (typeof enabled === "string" && enabled.trim()))
+    .filter(
+      ([, enabled]) =>
+        enabled === true || (typeof enabled === "string" && enabled.trim()),
+    )
     .map(([key, enabled]) => {
       const label = AMENITY_LABELS[key] ?? key.replace(/[_-]/g, " ");
       return enabled === true ? label : `${label}: ${String(enabled)}`;
     });
 }
 
-export function amenitiesText(value: Record<string, unknown> | null | undefined) {
+export function amenitiesText(
+  value: Record<string, unknown> | null | undefined,
+) {
   return formatAmenities(value).join("، ");
 }

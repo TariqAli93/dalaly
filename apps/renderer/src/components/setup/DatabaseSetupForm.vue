@@ -8,8 +8,7 @@ const emit = defineEmits<{ test: [] }>();
 
 const required = (value: unknown) => Boolean(value) || "هذا الحقل مطلوب";
 const dbNameRule = (value: string) =>
-  /^[a-zA-Z0-9_]+$/.test(value) ||
-  "اسم القاعدة: حروف وأرقام وشرطة سفلية فقط.";
+  /^[a-zA-Z0-9_]+$/.test(value) || "اسم القاعدة: حروف وأرقام وشرطة سفلية فقط.";
 </script>
 
 <template>

@@ -52,8 +52,8 @@ export const SEED_ROLES = [
       "followups.read",
       "followups.create",
       "followups.update",
-      "followups.delete"
-    ]
+      "followups.delete",
+    ],
   },
   {
     name: "موظف مبيعات",
@@ -76,9 +76,9 @@ export const SEED_ROLES = [
       "security.change_pin",
       "followups.read",
       "followups.create",
-      "followups.update"
-    ]
-  }
+      "followups.update",
+    ],
+  },
 ] as const;
 
 export const SEED_USERS = [
@@ -86,20 +86,20 @@ export const SEED_USERS = [
     username: "manager",
     displayName: "أبو أحمد — مدير المكتب",
     pin: "2222",
-    roles: ["مدير المكتب"]
+    roles: ["مدير المكتب"],
   },
   {
     username: "agent",
     displayName: "سيف — موظف مبيعات",
     pin: "3333",
-    roles: ["موظف مبيعات"]
+    roles: ["موظف مبيعات"],
   },
   {
     username: "agent2",
     displayName: "نور — موظفة مبيعات",
     pin: "4444",
-    roles: ["موظف مبيعات"]
-  }
+    roles: ["موظف مبيعات"],
+  },
 ] as const;
 
 /** المحافظات ← المناطق ← الأحياء. */
@@ -109,23 +109,23 @@ export const SEED_LOCATIONS = [
     districts: [
       { name: "المنصور", neighborhoods: ["حي الجامعة", "اليرموك", "الداودي"] },
       { name: "الكرادة", neighborhoods: ["كرادة داخل", "الجادرية", "زيونة"] },
-      { name: "الدورة", neighborhoods: ["الميكانيك", "حي العسكري"] }
-    ]
+      { name: "الدورة", neighborhoods: ["الميكانيك", "حي العسكري"] },
+    ],
   },
   {
     name: "البصرة",
     districts: [
       { name: "شط العرب", neighborhoods: ["الأندلس", "حي الحسين"] },
-      { name: "الزبير", neighborhoods: ["حي الرافدين", "البرجسية"] }
-    ]
+      { name: "الزبير", neighborhoods: ["حي الرافدين", "البرجسية"] },
+    ],
   },
   {
     name: "أربيل",
     districts: [
       { name: "عينكاوا", neighborhoods: ["حي المسيحيين", "الشلالات"] },
-      { name: "شقلاوة", neighborhoods: ["حي الجبل"] }
-    ]
-  }
+      { name: "شقلاوة", neighborhoods: ["حي الجبل"] },
+    ],
+  },
 ] as const;
 
 type SeedLocation = {
@@ -145,47 +145,47 @@ export type SeedProperty = {
 const BAGHDAD_MANSOUR = {
   governorate: "بغداد",
   district: "المنصور",
-  neighborhood: "حي الجامعة"
+  neighborhood: "حي الجامعة",
 };
 const BAGHDAD_YARMOUK = {
   governorate: "بغداد",
   district: "المنصور",
-  neighborhood: "اليرموك"
+  neighborhood: "اليرموك",
 };
 const BAGHDAD_KARRADA = {
   governorate: "بغداد",
   district: "الكرادة",
-  neighborhood: "كرادة داخل"
+  neighborhood: "كرادة داخل",
 };
 const BAGHDAD_ZAYOUNA = {
   governorate: "بغداد",
   district: "الكرادة",
-  neighborhood: "زيونة"
+  neighborhood: "زيونة",
 };
 const BAGHDAD_DORA = {
   governorate: "بغداد",
   district: "الدورة",
-  neighborhood: "الميكانيك"
+  neighborhood: "الميكانيك",
 };
 const BASRA_SHATT = {
   governorate: "البصرة",
   district: "شط العرب",
-  neighborhood: "الأندلس"
+  neighborhood: "الأندلس",
 };
 const BASRA_ZUBAIR = {
   governorate: "البصرة",
   district: "الزبير",
-  neighborhood: "البرجسية"
+  neighborhood: "البرجسية",
 };
 const ERBIL_ANKAWA = {
   governorate: "أربيل",
   district: "عينكاوا",
-  neighborhood: "الشلالات"
+  neighborhood: "الشلالات",
 };
 const ERBIL_SHAQLAWA = {
   governorate: "أربيل",
   district: "شقلاوة",
-  neighborhood: "حي الجبل"
+  neighborhood: "حي الجبل",
 };
 
 export const SEED_PROPERTIES: SeedProperty[] = [
@@ -213,12 +213,12 @@ export const SEED_PROPERTIES: SeedProperty[] = [
       bathrooms_count: 3,
       is_negotiable: true,
       nearest_landmark: "قرب جامع أم الطبول",
-      notes: "بيت طابقين، تشطيب جيد، مؤجر سابقاً."
+      notes: "بيت طابقين، تشطيب جيد، مؤجر سابقاً.",
     },
     followups: [
       { type: "phone_call", notes: "المالك يريد بيعاً سريعاً.", inDays: -6 },
-      { type: "visit", notes: "معاينة مع زبون مهتم.", inDays: 3 }
-    ]
+      { type: "visit", notes: "معاينة مع زبون مهتم.", inDays: 3 },
+    ],
   },
   {
     location: BAGHDAD_YARMOUK,
@@ -242,11 +242,11 @@ export const SEED_PROPERTIES: SeedProperty[] = [
       bathrooms_count: 4,
       is_negotiable: true,
       nearest_landmark: "خلف مول اليرموك",
-      notes: "فيلا مع مسبح وحديقة أمامية."
+      notes: "فيلا مع مسبح وحديقة أمامية.",
     },
     followups: [
-      { type: "negotiation", notes: "الزبون عرض 1.9 مليون للمتر.", inDays: -2 }
-    ]
+      { type: "negotiation", notes: "الزبون عرض 1.9 مليون للمتر.", inDays: -2 },
+    ],
   },
   {
     location: BAGHDAD_KARRADA,
@@ -267,9 +267,11 @@ export const SEED_PROPERTIES: SeedProperty[] = [
       rooms_count: 3,
       bathrooms_count: 2,
       nearest_landmark: "قرب شارع 62",
-      notes: "محجوز بعربون حتى نهاية الشهر."
+      notes: "محجوز بعربون حتى نهاية الشهر.",
     },
-    followups: [{ type: "meeting", notes: "توقيع العربون في المكتب.", inDays: -1 }]
+    followups: [
+      { type: "meeting", notes: "توقيع العربون في المكتب.", inDays: -1 },
+    ],
   },
   {
     location: BAGHDAD_ZAYOUNA,
@@ -292,8 +294,8 @@ export const SEED_PROPERTIES: SeedProperty[] = [
       rooms_count: 3,
       bathrooms_count: 2,
       is_negotiable: false,
-      notes: "يحتاج صيانة داخلية."
-    }
+      notes: "يحتاج صيانة داخلية.",
+    },
   },
   {
     location: BAGHDAD_DORA,
@@ -311,8 +313,8 @@ export const SEED_PROPERTIES: SeedProperty[] = [
       mahalla: "836",
       rooms_count: 2,
       bathrooms_count: 1,
-      notes: "تم البيع الشهر الماضي — محفوظ للسجل."
-    }
+      notes: "تم البيع الشهر الماضي — محفوظ للسجل.",
+    },
   },
   {
     location: BAGHDAD_DORA,
@@ -331,8 +333,8 @@ export const SEED_PROPERTIES: SeedProperty[] = [
       mahalla: "836",
       rooms_count: 3,
       bathrooms_count: 2,
-      notes: "مؤجر بعقد سنوي."
-    }
+      notes: "مؤجر بعقد سنوي.",
+    },
   },
   {
     location: BASRA_SHATT,
@@ -351,11 +353,11 @@ export const SEED_PROPERTIES: SeedProperty[] = [
       subdistrict_name: "مقاطعة شط العرب",
       is_negotiable: true,
       nearest_landmark: "على طريق كورنيش شط العرب",
-      notes: "أرض بواجهة نهرية."
+      notes: "أرض بواجهة نهرية.",
     },
     followups: [
-      { type: "phone_call", notes: "متابعة سعر السوق للدونم.", inDays: 7 }
-    ]
+      { type: "phone_call", notes: "متابعة سعر السوق للدونم.", inDays: 7 },
+    ],
   },
   {
     location: BASRA_ZUBAIR,
@@ -373,8 +375,8 @@ export const SEED_PROPERTIES: SeedProperty[] = [
       subdistrict_number: "12",
       subdistrict_name: "مقاطعة البرجسية",
       is_negotiable: true,
-      notes: "بئر ارتوازي ومنظومة ري بالتنقيط."
-    }
+      notes: "بئر ارتوازي ومنظومة ري بالتنقيط.",
+    },
   },
   {
     location: BASRA_ZUBAIR,
@@ -391,8 +393,8 @@ export const SEED_PROPERTIES: SeedProperty[] = [
       plot_number: "9",
       plot_letter: "د",
       subdistrict_number: "12",
-      notes: "بحاجة إلى تدقيق سند الملكية."
-    }
+      notes: "بحاجة إلى تدقيق سند الملكية.",
+    },
   },
   {
     location: ERBIL_ANKAWA,
@@ -413,9 +415,11 @@ export const SEED_PROPERTIES: SeedProperty[] = [
       bathrooms_count: 4,
       is_negotiable: false,
       nearest_landmark: "داخل مجمع سكني مغلق",
-      notes: "ضمن مجمع بخدمات وحراسة."
+      notes: "ضمن مجمع بخدمات وحراسة.",
     },
-    followups: [{ type: "other", notes: "طلب صور إضافية من المالك.", inDays: 2 }]
+    followups: [
+      { type: "other", notes: "طلب صور إضافية من المالك.", inDays: 2 },
+    ],
   },
   {
     location: ERBIL_SHAQLAWA,
@@ -435,8 +439,8 @@ export const SEED_PROPERTIES: SeedProperty[] = [
       nazal: "32 م",
       is_negotiable: true,
       nearest_landmark: "إطلالة على جبل سفين",
-      notes: "صالحة لبناء استراحة صيفية."
-    }
+      notes: "صالحة لبناء استراحة صيفية.",
+    },
   },
   {
     location: BAGHDAD_MANSOUR,
@@ -452,9 +456,9 @@ export const SEED_PROPERTIES: SeedProperty[] = [
       status: "archived",
       plot_number: "1290",
       mahalla: "605",
-      notes: "سُحب العرض مؤقتاً بطلب الورثة."
-    }
-  }
+      notes: "سُحب العرض مؤقتاً بطلب الورثة.",
+    },
+  },
 ];
 
 export type SeedCustomer = {
@@ -575,7 +579,9 @@ export const SEED_RENTALS: SeedRental[] = [
     status: "negotiating",
     isNegotiable: true,
     notes: "مناسب لمكتب أو محل خدمات.",
-    followups: [{ type: "phone_call", notes: "انتظار رد المستأجر.", inDays: -1 }],
+    followups: [
+      { type: "phone_call", notes: "انتظار رد المستأجر.", inDays: -1 },
+    ],
   },
   {
     code: "R-9003",
@@ -684,8 +690,24 @@ export const SEED_PURCHASE_REQUESTS: SeedRequest[] = [
 ];
 
 export const SEED_DOCUMENTS = [
-  { code: "DOC-9001", customerCode: "C-9001", typeKey: "national_id", name: "هوية أحمد التجريبية", originalName: "demo-ahmad-id.txt", expiresAt: "2030-12-31", notes: "ملف تجريبي." },
-  { code: "DOC-9002", customerCode: "C-9002", typeKey: "national_id", name: "هوية سارة التجريبية", originalName: "demo-sara-id.txt", expiresAt: "2030-12-31", notes: "ملف تجريبي." },
+  {
+    code: "DOC-9001",
+    customerCode: "C-9001",
+    typeKey: "national_id",
+    name: "هوية أحمد التجريبية",
+    originalName: "demo-ahmad-id.txt",
+    expiresAt: "2030-12-31",
+    notes: "ملف تجريبي.",
+  },
+  {
+    code: "DOC-9002",
+    customerCode: "C-9002",
+    typeKey: "national_id",
+    name: "هوية سارة التجريبية",
+    originalName: "demo-sara-id.txt",
+    expiresAt: "2030-12-31",
+    notes: "ملف تجريبي.",
+  },
 ] as const;
 
 export const SEED_COMPANY_SETTINGS = {
@@ -708,6 +730,9 @@ export const SEED_CONTRACTS = [
     endDate: "2026-12-31",
     amount: 10_200_000,
     notes: "عقد إيجار تجريبي قابل للمعاينة.",
-    parties: [{ customerCode: "C-9001", role: "landlord" }, { customerCode: "C-9002", role: "tenant" }],
+    parties: [
+      { customerCode: "C-9001", role: "landlord" },
+      { customerCode: "C-9002", role: "tenant" },
+    ],
   },
 ] as const;

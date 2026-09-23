@@ -10,7 +10,7 @@ type DatabaseStartupState = {
 const startupState: DatabaseStartupState = {
   migrationsOk: false,
   migrationsFolder: null,
-  lastMigrationError: null
+  lastMigrationError: null,
 };
 
 export async function validateDatabaseConnection() {
@@ -31,7 +31,7 @@ export async function tableExists(tableName: string) {
       and table_name = $1
     ) as exists
     `,
-    [tableName]
+    [tableName],
   );
 
   return Boolean(result.rows[0]?.exists);
@@ -43,10 +43,14 @@ export function markMigrationsSucceeded(migrationsFolder: string) {
   startupState.lastMigrationError = null;
 }
 
-export function markMigrationsFailed(error: unknown, migrationsFolder: string | null) {
+export function markMigrationsFailed(
+  error: unknown,
+  migrationsFolder: string | null,
+) {
   startupState.migrationsOk = false;
   startupState.migrationsFolder = migrationsFolder;
-  startupState.lastMigrationError = error instanceof Error ? error.message : String(error);
+  startupState.lastMigrationError =
+    error instanceof Error ? error.message : String(error);
 }
 
 export function getDatabaseStartupState() {

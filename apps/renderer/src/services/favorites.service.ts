@@ -10,7 +10,9 @@ export function listFavoriteIds() {
 }
 
 export function addFavorite(propertyId: number) {
-  return request<{ ok: boolean }>(`/favorites/${propertyId}`, { method: "POST" });
+  return request<{ ok: boolean }>(`/favorites/${propertyId}`, {
+    method: "POST",
+  });
 }
 
 export function removeFavorite(propertyId: number) {

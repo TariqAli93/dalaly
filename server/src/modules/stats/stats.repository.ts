@@ -3,15 +3,32 @@ import { db } from "../../infrastructure/database/db.js";
 import { properties } from "../../infrastructure/database/schema.js";
 
 export async function getSummaryStats() {
-  const [total, available, sold, archived, byType, byLegalType, byPricingMethod] = await Promise.all([
+  const [
+    total,
+    available,
+    sold,
+    archived,
+    byType,
+    byLegalType,
+    byPricingMethod,
+  ] = await Promise.all([
     db.select({ count: count() }).from(properties),
-    db.select({ count: count() }).from(properties).where(eq(properties.status, "available")),
-    db.select({ count: count() }).from(properties).where(eq(properties.status, "sold")),
-    db.select({ count: count() }).from(properties).where(eq(properties.status, "archived")),
+    db
+      .select({ count: count() })
+      .from(properties)
+      .where(eq(properties.status, "available")),
+    db
+      .select({ count: count() })
+      .from(properties)
+      .where(eq(properties.status, "sold")),
+    db
+      .select({ count: count() })
+      .from(properties)
+      .where(eq(properties.status, "archived")),
     db
       .select({
         name: properties.propertyType,
-        count: count()
+        count: count(),
       })
       .from(properties)
       .groupBy(properties.propertyType)
@@ -19,7 +36,7 @@ export async function getSummaryStats() {
     db
       .select({
         name: properties.legalType,
-        count: count()
+        count: count(),
       })
       .from(properties)
       .groupBy(properties.legalType)
@@ -27,11 +44,11 @@ export async function getSummaryStats() {
     db
       .select({
         name: properties.pricingMethod,
-        count: count()
+        count: count(),
       })
       .from(properties)
       .groupBy(properties.pricingMethod)
-      .orderBy(properties.pricingMethod)
+      .orderBy(properties.pricingMethod),
   ]);
 
   return {
@@ -41,6 +58,6 @@ export async function getSummaryStats() {
     archived: archived[0]?.count ?? 0,
     by_type: byType,
     by_legal_type: byLegalType,
-    by_pricing_method: byPricingMethod
+    by_pricing_method: byPricingMethod,
   };
 }

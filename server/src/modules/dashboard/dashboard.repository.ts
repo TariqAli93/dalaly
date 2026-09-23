@@ -7,13 +7,13 @@ import {
   lt,
   ne,
   notInArray,
-  sql
+  sql,
 } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import {
   auditLogs,
   properties,
-  users
+  users,
 } from "../../infrastructure/database/schema.js";
 import { toApiObjects } from "../../shared/utils/case.js";
 import { listUpcomingReminders } from "../followups/followups.repository.js";
@@ -33,7 +33,7 @@ export async function getDashboard() {
     negotiating: 0,
     sold: 0,
     rented: 0,
-    archived: 0
+    archived: 0,
   };
   for (const row of statusRows) {
     const value = Number(row.count);
@@ -48,7 +48,7 @@ export async function getDashboard() {
       total_value: sql<string>`coalesce(sum(${properties.totalPrice}), 0)`,
       avg_price: sql<string>`coalesce(avg(${properties.totalPrice}), 0)`,
       max_price: sql<string>`coalesce(max(${properties.totalPrice}), 0)`,
-      min_price: sql<string>`coalesce(min(${properties.totalPrice}), 0)`
+      min_price: sql<string>`coalesce(min(${properties.totalPrice}), 0)`,
     })
     .from(properties)
     .where(ne(properties.status, "archived"));
@@ -57,7 +57,7 @@ export async function getDashboard() {
     total_value: Number(financialRow?.total_value ?? 0),
     avg_price: Math.round(Number(financialRow?.avg_price ?? 0)),
     max_price: Number(financialRow?.max_price ?? 0),
-    min_price: Number(financialRow?.min_price ?? 0)
+    min_price: Number(financialRow?.min_price ?? 0),
   };
 
   const latestRows = await db
@@ -73,7 +73,7 @@ export async function getDashboard() {
       entity_id: auditLogs.entityId,
       property_code: properties.code,
       user_name: users.username,
-      created_at: auditLogs.createdAt
+      created_at: auditLogs.createdAt,
     })
     .from(auditLogs)
     .leftJoin(users, eq(auditLogs.userId, users.id))
@@ -85,7 +85,9 @@ export async function getDashboard() {
   const topGovernorates = await db
     .select({ name: properties.governorate, count: sql<number>`count(*)::int` })
     .from(properties)
-    .where(and(ne(properties.status, "archived"), isNotNull(properties.governorate)))
+    .where(
+      and(ne(properties.status, "archived"), isNotNull(properties.governorate)),
+    )
     .groupBy(properties.governorate)
     .orderBy(desc(sql`count(*)`))
     .limit(6);
@@ -93,7 +95,9 @@ export async function getDashboard() {
   const topDistricts = await db
     .select({ name: properties.district, count: sql<number>`count(*)::int` })
     .from(properties)
-    .where(and(ne(properties.status, "archived"), isNotNull(properties.district)))
+    .where(
+      and(ne(properties.status, "archived"), isNotNull(properties.district)),
+    )
     .groupBy(properties.district)
     .orderBy(desc(sql`count(*)`))
     .limit(6);
@@ -105,15 +109,15 @@ export async function getDashboard() {
     .where(
       and(
         notInArray(properties.status, ["archived", "sold", "rented"]),
-        lt(properties.updatedAt, cutoff)
-      )
+        lt(properties.updatedAt, cutoff),
+      ),
     )
     .orderBy(asc(properties.updatedAt))
     .limit(15);
 
   const reminders = await listUpcomingReminders(
     new Date(Date.now() - 24 * 60 * 60 * 1000),
-    20
+    20,
   );
 
   return {
@@ -121,9 +125,15 @@ export async function getDashboard() {
     financial,
     latest: toApiObjects(latestRows, "properties"),
     recent_activity: recentActivity,
-    top_governorates: topGovernorates.map((r) => ({ name: r.name, count: Number(r.count) })),
-    top_districts: topDistricts.map((r) => ({ name: r.name, count: Number(r.count) })),
+    top_governorates: topGovernorates.map((r) => ({
+      name: r.name,
+      count: Number(r.count),
+    })),
+    top_districts: topDistricts.map((r) => ({
+      name: r.name,
+      count: Number(r.count),
+    })),
     needs_review: toApiObjects(needsReviewRows, "properties"),
-    reminders
+    reminders,
   };
 }

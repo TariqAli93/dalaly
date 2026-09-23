@@ -34,7 +34,7 @@ import {
   rolePermissions,
   roles,
   userRoles,
-  users
+  users,
 } from "../../infrastructure/database/schema.js";
 import { getSetting, setSetting } from "../settings/settings.repository.js";
 
@@ -42,33 +42,100 @@ const BACKUP_VERSION = 1;
 
 // ترتيب الجداول (الأب قبل الابن) + أعمدة التواريخ لإعادة التحويل عند الاسترجاع.
 const TABLE_SPECS = [
-  { name: "governorates", table: governorates, dates: ["createdAt", "updatedAt"] },
+  {
+    name: "governorates",
+    table: governorates,
+    dates: ["createdAt", "updatedAt"],
+  },
   { name: "districts", table: districts, dates: ["createdAt", "updatedAt"] },
-  { name: "neighborhoods", table: neighborhoods, dates: ["createdAt", "updatedAt"] },
+  {
+    name: "neighborhoods",
+    table: neighborhoods,
+    dates: ["createdAt", "updatedAt"],
+  },
   { name: "users", table: users, dates: ["createdAt", "updatedAt"] },
   { name: "roles", table: roles, dates: ["createdAt", "updatedAt"] },
-  { name: "permissions", table: permissions, dates: ["createdAt", "updatedAt"] },
+  {
+    name: "permissions",
+    table: permissions,
+    dates: ["createdAt", "updatedAt"],
+  },
   { name: "role_permissions", table: rolePermissions, dates: [] },
   { name: "user_roles", table: userRoles, dates: [] },
   { name: "customers", table: customers, dates: ["createdAt", "updatedAt"] },
-  { name: "properties", table: properties, dates: ["createdAt", "updatedAt", "archivedAt"] },
-  { name: "rentals", table: rentals, dates: ["createdAt", "updatedAt", "archivedAt"] },
+  {
+    name: "properties",
+    table: properties,
+    dates: ["createdAt", "updatedAt", "archivedAt"],
+  },
+  {
+    name: "rentals",
+    table: rentals,
+    dates: ["createdAt", "updatedAt", "archivedAt"],
+  },
   { name: "property_images", table: propertyImages, dates: ["createdAt"] },
-  { name: "property_followups", table: propertyFollowups, dates: ["scheduledAt", "createdAt"] },
-  { name: "favorite_properties", table: favoriteProperties, dates: ["createdAt"] },
+  {
+    name: "property_followups",
+    table: propertyFollowups,
+    dates: ["scheduledAt", "createdAt"],
+  },
+  {
+    name: "favorite_properties",
+    table: favoriteProperties,
+    dates: ["createdAt"],
+  },
   { name: "rental_images", table: rentalImages, dates: ["createdAt"] },
-  { name: "rental_followups", table: rentalFollowups, dates: ["scheduledAt", "createdAt"] },
+  {
+    name: "rental_followups",
+    table: rentalFollowups,
+    dates: ["scheduledAt", "createdAt"],
+  },
   { name: "favorite_rentals", table: favoriteRentals, dates: ["createdAt"] },
-  { name: "rental_requests", table: rentalRequests, dates: ["createdAt", "updatedAt"] },
-  { name: "purchase_requests", table: purchaseRequests, dates: ["createdAt", "updatedAt"] },
-  { name: "document_types", table: documentTypes, dates: ["createdAt", "updatedAt"] },
-  { name: "documents", table: documents, dates: ["uploadedAt", "updatedAt", "expiresAt", "createdAt"] },
-  { name: "company_settings", table: companySettings, dates: ["createdAt", "updatedAt"] },
-  { name: "contract_templates", table: contractTemplates, dates: ["createdAt", "updatedAt"] },
-  { name: "contracts", table: contracts, dates: ["contractDate", "startDate", "endDate", "createdAt", "updatedAt", "generatedAt"] },
+  {
+    name: "rental_requests",
+    table: rentalRequests,
+    dates: ["createdAt", "updatedAt"],
+  },
+  {
+    name: "purchase_requests",
+    table: purchaseRequests,
+    dates: ["createdAt", "updatedAt"],
+  },
+  {
+    name: "document_types",
+    table: documentTypes,
+    dates: ["createdAt", "updatedAt"],
+  },
+  {
+    name: "documents",
+    table: documents,
+    dates: ["uploadedAt", "updatedAt", "expiresAt", "createdAt"],
+  },
+  {
+    name: "company_settings",
+    table: companySettings,
+    dates: ["createdAt", "updatedAt"],
+  },
+  {
+    name: "contract_templates",
+    table: contractTemplates,
+    dates: ["createdAt", "updatedAt"],
+  },
+  {
+    name: "contracts",
+    table: contracts,
+    dates: [
+      "contractDate",
+      "startDate",
+      "endDate",
+      "createdAt",
+      "updatedAt",
+      "generatedAt",
+    ],
+  },
   { name: "contract_parties", table: contractParties, dates: ["createdAt"] },
   { name: "audit_logs", table: auditLogs, dates: ["createdAt"] },
-  { name: "app_settings", table: appSettings, dates: ["updatedAt"] }
+  { name: "app_settings", table: appSettings, dates: ["updatedAt"] },
 ] as const;
 
 type TableName = (typeof TABLE_SPECS)[number]["name"];
@@ -81,13 +148,36 @@ const SCOPE_TABLES: Record<string, TableName[]> = {
     "neighborhoods",
     "properties",
     "property_images",
-    "property_followups"
+    "property_followups",
   ],
   images: ["property_images"],
   users: ["users", "roles", "permissions", "role_permissions", "user_roles"],
-  settings: ["app_settings", "company_settings", "document_types", "contract_templates"],
-  rentals: ["governorates", "districts", "neighborhoods", "rentals", "rental_images", "rental_followups", "favorite_rentals"],
-  crm: ["customers", "rental_requests", "purchase_requests", "document_types", "documents", "company_settings", "contract_templates", "contracts", "contract_parties"]
+  settings: [
+    "app_settings",
+    "company_settings",
+    "document_types",
+    "contract_templates",
+  ],
+  rentals: [
+    "governorates",
+    "districts",
+    "neighborhoods",
+    "rentals",
+    "rental_images",
+    "rental_followups",
+    "favorite_rentals",
+  ],
+  crm: [
+    "customers",
+    "rental_requests",
+    "purchase_requests",
+    "document_types",
+    "documents",
+    "company_settings",
+    "contract_templates",
+    "contracts",
+    "contract_parties",
+  ],
 };
 
 const SERIAL_TABLES = new Set<TableName>([
@@ -110,7 +200,7 @@ const SERIAL_TABLES = new Set<TableName>([
   "documents",
   "contract_templates",
   "contracts",
-  "audit_logs"
+  "audit_logs",
 ]);
 
 function specByName(name: TableName) {
@@ -170,7 +260,7 @@ export async function listBackupJobs(limit = 50) {
     file_size: row.fileSize,
     duration_ms: row.durationMs,
     error: row.error,
-    created_at: row.createdAt
+    created_at: row.createdAt,
   }));
 }
 
@@ -180,7 +270,11 @@ export async function getLastBackupAt() {
 
 export async function getBackupJob(id: number) {
   const { eq } = await import("drizzle-orm");
-  const [row] = await db.select().from(backupJobs).where(eq(backupJobs.id, id)).limit(1);
+  const [row] = await db
+    .select()
+    .from(backupJobs)
+    .where(eq(backupJobs.id, id))
+    .limit(1);
   return row ?? null;
 }
 
@@ -209,7 +303,7 @@ async function assembleBackupZip(backupType: string) {
     app_version: config.appVersion,
     created_at: new Date().toISOString(),
     backup_type: backupType,
-    tables_count: Object.keys(database).length
+    tables_count: Object.keys(database).length,
   };
 
   const zip = new AdmZip();
@@ -229,7 +323,7 @@ async function assembleBackupZip(backupType: string) {
 async function writeBackupTo(
   filePath: string,
   type: string,
-  userId?: number
+  userId?: number,
 ): Promise<CreateBackupResult> {
   const startedAt = Date.now();
   try {
@@ -242,13 +336,20 @@ async function writeBackupTo(
 
     const [job] = await db
       .insert(backupJobs)
-      .values({ type, status: "success", filePath, fileSize, durationMs, userId: userId ?? null })
+      .values({
+        type,
+        status: "success",
+        filePath,
+        fileSize,
+        durationMs,
+        userId: userId ?? null,
+      })
       .returning();
 
     await logBackup(
       job.id,
       "info",
-      `${type}: ${path.basename(filePath)} (${fileSize} bytes) → ${filePath}`
+      `${type}: ${path.basename(filePath)} (${fileSize} bytes) → ${filePath}`,
     );
     await setSetting("last_backup_at", new Date().toISOString());
 
@@ -257,7 +358,7 @@ async function writeBackupTo(
       job_id: job.id,
       file_path: filePath,
       file_size: fileSize,
-      duration_ms: durationMs
+      duration_ms: durationMs,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -268,7 +369,7 @@ async function writeBackupTo(
         status: "failure",
         durationMs: Date.now() - startedAt,
         error: message,
-        userId: userId ?? null
+        userId: userId ?? null,
       })
       .returning();
     await logBackup(job?.id ?? null, "error", `فشل ${type}: ${message}`);
@@ -279,11 +380,14 @@ async function writeBackupTo(
 /** ينشئ نسخة احتياطية ويحفظها في مجلد النسخ الافتراضي. */
 export async function createBackup(
   type: "manual" | "scheduled" | "email",
-  userId?: number
+  userId?: number,
 ): Promise<CreateBackupResult> {
   const dir = await getBackupDir();
   fs.mkdirSync(dir, { recursive: true });
-  const filePath = path.join(dir, `Dalaly_Backup_${timestampLabel(new Date())}.zip`);
+  const filePath = path.join(
+    dir,
+    `Dalaly_Backup_${timestampLabel(new Date())}.zip`,
+  );
   return writeBackupTo(filePath, type, userId);
 }
 
@@ -293,7 +397,7 @@ export async function createBackup(
  */
 export async function exportBackup(
   outputPath: string,
-  userId?: number
+  userId?: number,
 ): Promise<CreateBackupResult> {
   const target = (outputPath ?? "").trim();
   if (!target) {
@@ -305,7 +409,10 @@ export async function exportBackup(
   return writeBackupTo(target, "manual_export", userId);
 }
 
-function coerceRow(row: Record<string, unknown>, dateFields: readonly string[]) {
+function coerceRow(
+  row: Record<string, unknown>,
+  dateFields: readonly string[],
+) {
   const next = { ...row };
   for (const field of dateFields) {
     if (typeof next[field] === "string") {
@@ -319,12 +426,16 @@ function coerceRow(row: Record<string, unknown>, dateFields: readonly string[]) 
 async function resetSequence(name: TableName) {
   if (!SERIAL_TABLES.has(name)) return;
   await pool.query(
-    `SELECT setval(pg_get_serial_sequence('"${name}"', 'id'), GREATEST((SELECT COALESCE(MAX(id),0) FROM "${name}"), 1))`
+    `SELECT setval(pg_get_serial_sequence('"${name}"', 'id'), GREATEST((SELECT COALESCE(MAX(id),0) FROM "${name}"), 1))`,
   );
 }
 
 function extractImagesFromZip(zip: AdmZip) {
-  const entries = zip.getEntries().filter((e) => e.entryName.startsWith("images/properties/") && !e.isDirectory);
+  const entries = zip
+    .getEntries()
+    .filter(
+      (e) => e.entryName.startsWith("images/properties/") && !e.isDirectory,
+    );
   if (!entries.length) return 0;
   fs.mkdirSync(config.imagesDir, { recursive: true });
   for (const entry of entries) {
@@ -337,7 +448,9 @@ function extractImagesFromZip(zip: AdmZip) {
 }
 
 function extractDocumentsFromZip(zip: AdmZip) {
-  const entries = zip.getEntries().filter((e) => e.entryName.startsWith("documents/") && !e.isDirectory);
+  const entries = zip
+    .getEntries()
+    .filter((e) => e.entryName.startsWith("documents/") && !e.isDirectory);
   if (!entries.length) return 0;
   fs.mkdirSync(config.documentsDir, { recursive: true });
   for (const entry of entries) {
@@ -349,10 +462,15 @@ function extractDocumentsFromZip(zip: AdmZip) {
   return entries.length;
 }
 
-export type RestoreScope = "full" | "properties" | "images" | "users" | "settings" | "rentals" | "crm";
+export type RestoreScope =
+  "full" | "properties" | "images" | "users" | "settings" | "rentals" | "crm";
 
 /** يسترجع نسخة احتياطية من محتوى ZIP حسب النطاق المحدد. */
-export async function restoreBackup(zipBuffer: Buffer, scope: RestoreScope, userId?: number) {
+export async function restoreBackup(
+  zipBuffer: Buffer,
+  scope: RestoreScope,
+  userId?: number,
+) {
   const startedAt = Date.now();
   try {
     const zip = new AdmZip(zipBuffer);
@@ -375,7 +493,9 @@ export async function restoreBackup(zipBuffer: Buffer, scope: RestoreScope, user
       // إدراج بترتيب الأب قبل الابن.
       for (const name of tablesToRestore) {
         const spec = specByName(name);
-        const rows = (database[name] ?? []).map((row) => coerceRow(row, spec.dates));
+        const rows = (database[name] ?? []).map((row) =>
+          coerceRow(row, spec.dates),
+        );
         if (rows.length) {
           await tx.insert(spec.table).values(rows as never);
         }
@@ -398,15 +518,26 @@ export async function restoreBackup(zipBuffer: Buffer, scope: RestoreScope, user
     const durationMs = Date.now() - startedAt;
     const [job] = await db
       .insert(backupJobs)
-      .values({ type: "restore", status: "success", durationMs, userId: userId ?? null })
+      .values({
+        type: "restore",
+        status: "success",
+        durationMs,
+        userId: userId ?? null,
+      })
       .returning();
     await logBackup(
       job.id,
       "info",
-      `تم الاسترجاع (${scope}). الجداول: ${tablesToRestore.join(", ")}. صور: ${imagesRestored}`
+      `تم الاسترجاع (${scope}). الجداول: ${tablesToRestore.join(", ")}. صور: ${imagesRestored}`,
     );
 
-    return { ok: true, scope, tables: tablesToRestore, images_restored: imagesRestored, documents_restored: documentsRestored };
+    return {
+      ok: true,
+      scope,
+      tables: tablesToRestore,
+      images_restored: imagesRestored,
+      documents_restored: documentsRestored,
+    };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const [job] = await db
@@ -416,7 +547,7 @@ export async function restoreBackup(zipBuffer: Buffer, scope: RestoreScope, user
         status: "failure",
         durationMs: Date.now() - startedAt,
         error: message,
-        userId: userId ?? null
+        userId: userId ?? null,
       })
       .returning();
     await logBackup(job?.id ?? null, "error", `فشل الاسترجاع: ${message}`);

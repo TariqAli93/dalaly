@@ -1,7 +1,11 @@
 import { asc, eq } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import { permissions } from "../../infrastructure/database/schema.js";
-import { getSuperAdminRole, setRolePermissionIds, getRolePermissionIds } from "../rbac/rbac.service.js";
+import {
+  getSuperAdminRole,
+  setRolePermissionIds,
+  getRolePermissionIds,
+} from "../rbac/rbac.service.js";
 import type { PermissionPayload } from "./permissions.schema.js";
 
 export async function listPermissions() {
@@ -19,13 +23,15 @@ export async function createPermission(payload: PermissionPayload) {
       key: payload.key,
       name: payload.name,
       description: payload.description ?? null,
-      module: payload.module
+      module: payload.module,
     })
     .returning();
   const superAdmin = await getSuperAdminRole();
   if (superAdmin) {
     const permissionIds = await getRolePermissionIds(superAdmin.id);
-    await setRolePermissionIds(superAdmin.id, [...new Set([...permissionIds, permission.id])]);
+    await setRolePermissionIds(superAdmin.id, [
+      ...new Set([...permissionIds, permission.id]),
+    ]);
   }
   return toPermissionDto(permission);
 }
@@ -38,7 +44,7 @@ export async function updatePermission(id: number, payload: PermissionPayload) {
       name: payload.name,
       description: payload.description ?? null,
       module: payload.module,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
     .where(eq(permissions.id, id))
     .returning();
@@ -61,6 +67,6 @@ function toPermissionDto(permission: typeof permissions.$inferSelect) {
     description: permission.description,
     module: permission.module,
     created_at: permission.createdAt,
-    updated_at: permission.updatedAt
+    updated_at: permission.updatedAt,
   };
 }

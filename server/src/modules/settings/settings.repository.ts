@@ -17,6 +17,6 @@ export async function setSetting(key: string, value: unknown) {
     .values({ key, value, updatedAt: new Date() })
     .onConflictDoUpdate({
       target: appSettings.key,
-      set: { value, updatedAt: new Date() }
+      set: { value, updatedAt: new Date() },
     });
 }

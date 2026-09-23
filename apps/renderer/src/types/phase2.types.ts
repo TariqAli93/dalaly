@@ -11,11 +11,7 @@ export type PropertyImage = {
 };
 
 export type FollowupType =
-  | "phone_call"
-  | "meeting"
-  | "visit"
-  | "negotiation"
-  | "other";
+  "phone_call" | "meeting" | "visit" | "negotiation" | "other";
 
 export type FollowupRecord = {
   id: number;

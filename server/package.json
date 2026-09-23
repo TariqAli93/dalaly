@@ -20,7 +20,9 @@
     "test:runtime:phase4": "node scripts/runtime-smoke-phase4.mjs",
     "test:runtime:phase5": "node scripts/runtime-smoke-phase5.mjs",
     "test:runtime:spaces": "node scripts/runtime-smoke-spaces.mjs",
-    "clean": "node scripts/clean-dist.mjs"
+    "clean": "node scripts/clean-dist.mjs",
+    "format": "npx prettier --write .",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",

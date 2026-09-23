@@ -8,7 +8,7 @@ export class DuplicatePlotError extends Error {
     super(
       ownerName
         ? `هذه القطعة مسجلة مسبقاً باسم: ${ownerName}`
-        : "هذه القطعة مسجلة مسبقاً."
+        : "هذه القطعة مسجلة مسبقاً.",
     );
     this.name = "DuplicatePlotError";
   }

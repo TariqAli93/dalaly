@@ -3,7 +3,7 @@ import { config } from "../../infrastructure/config.js";
 import {
   getDatabaseStartupState,
   tableExists,
-  validateDatabaseConnection
+  validateDatabaseConnection,
 } from "../../infrastructure/database/health.js";
 import { requirePermission } from "./auth.hooks.js";
 import {
@@ -12,9 +12,13 @@ import {
   cleanupExpiredSessions,
   createAdmin,
   login,
-  logout
+  logout,
 } from "./auth.service.js";
-import { changePinSchema, loginSchema, setupAdminSchema } from "./auth.schema.js";
+import {
+  changePinSchema,
+  loginSchema,
+  setupAdminSchema,
+} from "./auth.schema.js";
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   app.get("/setup-status", async () => {
@@ -26,7 +30,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         db_connected: false,
         migrations_ok: false,
         users_table_exists: false,
-        admin_exists: false
+        admin_exists: false,
       };
     }
 
@@ -38,7 +42,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         db_connected: true,
         migrations_ok: false,
         users_table_exists: false,
-        admin_exists: false
+        admin_exists: false,
       };
     }
 
@@ -50,7 +54,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       db_connected: true,
       migrations_ok: startupState.migrationsOk,
       users_table_exists: true,
-      admin_exists: await adminExists()
+      admin_exists: await adminExists(),
     };
   });
 
@@ -60,12 +64,18 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     }
 
     if (!(await tableExists("users"))) {
-      return reply.code(503).send({ message: "قاعدة البيانات غير جاهزة. تعذر العثور على جدول المستخدمين." });
+      return reply
+        .code(503)
+        .send({
+          message: "قاعدة البيانات غير جاهزة. تعذر العثور على جدول المستخدمين.",
+        });
     }
 
     const exists = await adminExists();
     if (exists) {
-      return reply.code(409).send({ message: "تم إنشاء مستخدم المدير مسبقاً." });
+      return reply
+        .code(409)
+        .send({ message: "تم إنشاء مستخدم المدير مسبقاً." });
     }
 
     const payload = setupAdminSchema.parse(request.body);
@@ -79,7 +89,9 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const result = await login(payload.username, payload.pin);
 
     if (!result) {
-      return reply.code(401).send({ message: "اسم المستخدم أو رمز PIN غير صحيح." });
+      return reply
+        .code(401)
+        .send({ message: "اسم المستخدم أو رمز PIN غير صحيح." });
     }
 
     return result;
@@ -103,7 +115,11 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const payload = changePinSchema.parse(request.body);
-      const result = await changePin(request.user.id, payload.current_pin, payload.new_pin);
+      const result = await changePin(
+        request.user.id,
+        payload.current_pin,
+        payload.new_pin,
+      );
 
       if (!result.ok) {
         const message =
@@ -114,7 +130,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       }
 
       return { ok: true };
-    }
+    },
   );
 
   app.get("/me", async (request) => {
@@ -127,10 +143,10 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         id: request.user.id,
         username: request.user.username,
         display_name: request.user.displayName,
-        is_active: request.user.isActive
+        is_active: request.user.isActive,
       },
       roles: request.user.roles,
-      permissions: request.user.permissions
+      permissions: request.user.permissions,
     };
   });
 };

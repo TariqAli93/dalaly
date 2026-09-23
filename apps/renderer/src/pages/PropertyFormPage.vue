@@ -12,7 +12,12 @@ import * as requests from "../services/requests.service";
 import * as customersService from "../services/customers.service";
 import { toNumber } from "../utils/format";
 import MatchingResultsDialog from "../components/requests/MatchingResultsDialog.vue";
-import type { CustomerRecord, MatchResult, PropertyForm as PropertyFormType, PropertyRecord } from "../types";
+import type {
+  CustomerRecord,
+  MatchResult,
+  PropertyForm as PropertyFormType,
+  PropertyRecord,
+} from "../types";
 
 const route = useRoute();
 const router = useRouter();
@@ -122,8 +127,13 @@ const computedTotal = computed(() => {
 
 function isPayloadValid() {
   if (!form.value.property_type || !form.value.legal_type) return false;
-  if (toNumber(form.value.area_value) <= 0 || !form.value.area_unit) return false;
-  if (!form.value.pricing_method || !form.value.owner_name || !form.value.owner_phone) {
+  if (toNumber(form.value.area_value) <= 0 || !form.value.area_unit)
+    return false;
+  if (
+    !form.value.pricing_method ||
+    !form.value.owner_name ||
+    !form.value.owner_phone
+  ) {
     return false;
   }
   if (form.value.pricing_method === DIRECT_PRICE) {

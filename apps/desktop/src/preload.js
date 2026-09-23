@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld("dalalyConfig", {
   chooseExportPath: () => ipcRenderer.invoke("backup:choose-export-path"),
   pickBackupFile: () => ipcRenderer.invoke("backup:pick-file"),
   pickFolder: () => ipcRenderer.invoke("backup:pick-folder"),
-  saveScheduledBackup: (config) => ipcRenderer.invoke("backup:save-schedule", config),
+  saveScheduledBackup: (config) =>
+    ipcRenderer.invoke("backup:save-schedule", config),
   getScheduledBackup: () => ipcRenderer.invoke("backup:get-schedule"),
 });

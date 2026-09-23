@@ -45,7 +45,8 @@ function edit(item: RentalRecord) {
 }
 
 function removeFavorite(item: RentalRecord) {
-  void rentals.removeRentalFavorite(item.id)
+  void rentals
+    .removeRentalFavorite(item.id)
     .then(load)
     .catch((error) => notifyError(getErrorMessage(error)));
 }
@@ -115,7 +116,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <AppLayout title="مفضلة الإيجارات" subtitle="العروض الإيجارية المحفوظة للمستخدم الحالي.">
+  <AppLayout
+    title="مفضلة الإيجارات"
+    subtitle="العروض الإيجارية المحفوظة للمستخدم الحالي."
+  >
     <RentalTable
       :rentals="items"
       :favorite-ids="favoriteIds"

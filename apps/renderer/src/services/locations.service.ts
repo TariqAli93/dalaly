@@ -10,7 +10,10 @@ export function getLocations() {
   return request<LocationsResponse>("/locations");
 }
 
-export function createGovernorate(payload: { name: string; is_active?: boolean }) {
+export function createGovernorate(payload: {
+  name: string;
+  is_active?: boolean;
+}) {
   return request<Governorate>("/locations/governorates", {
     method: "POST",
     body: JSON.stringify(payload),

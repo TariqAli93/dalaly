@@ -24,8 +24,8 @@ async function saveWorkbook(
 /** تصدير قائمة العروض إلى ملف Excel وتنزيله. */
 export async function exportPropertiesToXlsx(properties: PropertyRecord[]) {
   const rows = properties.map((p) => ({
-    "الاسم": p.name ?? `properties ${p.code}`,
-    "المميزات": amenitiesText(p.amenities),
+    الاسم: p.name ?? `properties ${p.code}`,
+    المميزات: amenitiesText(p.amenities),
     الكود: p.code,
     النوع: p.property_type,
     "الصفة القانونية": p.legal_type,
@@ -51,7 +51,11 @@ export async function exportPropertiesToXlsx(properties: PropertyRecord[]) {
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "العروض");
   const date = new Date().toISOString().slice(0, 10);
-  return saveWorkbook(workbook, `Dalaly_Properties_${date}.xlsx`, "تصدير العقارات");
+  return saveWorkbook(
+    workbook,
+    `Dalaly_Properties_${date}.xlsx`,
+    "تصدير العقارات",
+  );
 }
 
 export async function exportRentalsToXlsx(rentals: RentalRecord[]) {
@@ -69,33 +73,38 @@ export async function exportRentalsToXlsx(rentals: RentalRecord[]) {
   };
 
   const rows = rentals.map((rental) => ({
-    "الاسم": rental.name ?? `rentals ${rental.code}`,
-    "الكود": rental.code,
-    "نوع العقار": propertyTypeLabels[rental.property_type] ?? rental.property_type,
+    الاسم: rental.name ?? `rentals ${rental.code}`,
+    الكود: rental.code,
+    "نوع العقار":
+      propertyTypeLabels[rental.property_type] ?? rental.property_type,
     "سعر الإيجار": rental.rent_price,
     "نوع الإيجار": rentPeriodLabels[rental.rent_period] ?? rental.rent_period,
-    "المساحة": rental.area_value,
+    المساحة: rental.area_value,
     "وحدة المساحة": rental.area_unit,
-    "الطوابق": rental.floors_count ?? "",
-    "الغرف": rental.rooms_count ?? "",
-    "الحمامات": rental.bathrooms_count ?? "",
-    "المحافظة": rental.governorate ?? "",
-    "المنطقة": rental.district ?? "",
-    "الحي": rental.neighborhood ?? "",
+    الطوابق: rental.floors_count ?? "",
+    الغرف: rental.rooms_count ?? "",
+    الحمامات: rental.bathrooms_count ?? "",
+    المحافظة: rental.governorate ?? "",
+    المنطقة: rental.district ?? "",
+    الحي: rental.neighborhood ?? "",
     "تفاصيل العنوان": rental.address_details ?? "",
-    "المميزات": amenitiesText(rental.amenities),
+    المميزات: amenitiesText(rental.amenities),
     "اسم المالك": rental.owner_name,
     "هاتف المالك": rental.owner_phone,
-    "الحالة": rental.status,
+    الحالة: rental.status,
     "قابل للتفاوض": rental.is_negotiable ? "نعم" : "لا",
-    "الملاحظات": rental.notes ?? "",
+    الملاحظات: rental.notes ?? "",
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(rows);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "الإيجارات");
   const date = new Date().toISOString().slice(0, 10);
-  return saveWorkbook(workbook, `Dalaly_Rentals_${date}.xlsx`, "تصدير الإيجارات");
+  return saveWorkbook(
+    workbook,
+    `Dalaly_Rentals_${date}.xlsx`,
+    "تصدير الإيجارات",
+  );
 }
 
 export type ParsedSheet = {
@@ -123,13 +132,41 @@ export type ImportField = {
 };
 
 export const IMPORT_FIELDS: ImportField[] = [
-  { key: "property_type", label: "نوع العقار", keywords: ["نوع"], default: "أرض" },
-  { key: "legal_type", label: "الصفة القانونية", keywords: ["صفة", "جنس", "قانون"], default: "طابو ملك صرف" },
+  {
+    key: "property_type",
+    label: "نوع العقار",
+    keywords: ["نوع"],
+    default: "أرض",
+  },
+  {
+    key: "legal_type",
+    label: "الصفة القانونية",
+    keywords: ["صفة", "جنس", "قانون"],
+    default: "طابو ملك صرف",
+  },
   { key: "area_value", label: "المساحة", keywords: ["مساحة"] },
-  { key: "area_unit", label: "وحدة المساحة", keywords: ["وحدة"], default: "متر" },
-  { key: "pricing_method", label: "طريقة التسعير", keywords: ["تسعير", "طريقة"], default: "سعر على المتر" },
-  { key: "unit_price", label: "سعر الوحدة", keywords: ["سعر الوحدة", "سعر المتر"] },
-  { key: "total_price", label: "السعر الكلي", keywords: ["السعر الكلي", "السعر الإجمالي", "السعر"] },
+  {
+    key: "area_unit",
+    label: "وحدة المساحة",
+    keywords: ["وحدة"],
+    default: "متر",
+  },
+  {
+    key: "pricing_method",
+    label: "طريقة التسعير",
+    keywords: ["تسعير", "طريقة"],
+    default: "سعر على المتر",
+  },
+  {
+    key: "unit_price",
+    label: "سعر الوحدة",
+    keywords: ["سعر الوحدة", "سعر المتر"],
+  },
+  {
+    key: "total_price",
+    label: "السعر الكلي",
+    keywords: ["السعر الكلي", "السعر الإجمالي", "السعر"],
+  },
   { key: "governorate_text", label: "المحافظة", keywords: ["محافظة"] },
   { key: "district_text", label: "المنطقة", keywords: ["منطقة"] },
   { key: "neighborhood_text", label: "الحي", keywords: ["حي"] },
@@ -138,7 +175,11 @@ export const IMPORT_FIELDS: ImportField[] = [
   { key: "frontage", label: "الواجهة", keywords: ["واجهة"] },
   { key: "nazal", label: "النزال / العمق", keywords: ["نزال", "عمق"] },
   { key: "owner_name", label: "اسم المالك", keywords: ["مالك", "اسم"] },
-  { key: "owner_phone", label: "هاتف المالك", keywords: ["هاتف", "موبايل", "رقم"] },
+  {
+    key: "owner_phone",
+    label: "هاتف المالك",
+    keywords: ["هاتف", "موبايل", "رقم"],
+  },
   { key: "notes", label: "ملاحظات", keywords: ["ملاحظ"] },
 ];
 

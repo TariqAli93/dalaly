@@ -11,7 +11,10 @@ const databaseName = z
   .trim()
   .min(1)
   .max(63)
-  .regex(DATABASE_NAME_PATTERN, "اسم قاعدة البيانات يجب أن يحتوي حروفاً وأرقاماً وشرطة سفلية فقط.")
+  .regex(
+    DATABASE_NAME_PATTERN,
+    "اسم قاعدة البيانات يجب أن يحتوي حروفاً وأرقاماً وشرطة سفلية فقط.",
+  )
   .default("dalaly");
 
 export const testPostgresSchema = z.object({

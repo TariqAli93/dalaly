@@ -5,7 +5,7 @@ export const createUserSchema = z.object({
   pin: z.string().trim().min(4).max(12),
   display_name: z.string().trim().min(1),
   is_active: z.boolean().default(true),
-  role_ids: z.array(z.coerce.number().int().positive()).default([])
+  role_ids: z.array(z.coerce.number().int().positive()).default([]),
 });
 
 export const updateUserSchema = z.object({
@@ -13,7 +13,7 @@ export const updateUserSchema = z.object({
   pin: z.string().trim().min(4).max(12).optional().or(z.literal("")),
   display_name: z.string().trim().min(1),
   is_active: z.boolean().default(true),
-  role_ids: z.array(z.coerce.number().int().positive()).default([])
+  role_ids: z.array(z.coerce.number().int().positive()).default([]),
 });
 
 export type CreateUserPayload = z.infer<typeof createUserSchema>;

@@ -15,7 +15,10 @@ export async function verifyPin(pin: string, storedHash: string) {
   }
 
   const derived = await scrypt(pin, salt);
-  return crypto.timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(derived, "hex"));
+  return crypto.timingSafeEqual(
+    Buffer.from(hash, "hex"),
+    Buffer.from(derived, "hex"),
+  );
 }
 
 export function createSessionToken() {

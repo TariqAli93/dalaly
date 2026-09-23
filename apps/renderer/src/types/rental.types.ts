@@ -1,16 +1,8 @@
 ﻿export type RentalPropertyType =
-  | "house"
-  | "apartment"
-  | "shop"
-  | "warehouse"
-  | "other";
+  "house" | "apartment" | "shop" | "warehouse" | "other";
 export type RentPeriod = "monthly" | "semi_annual" | "annual";
 export type RentalStatus =
-  | "available"
-  | "reserved"
-  | "negotiating"
-  | "rented"
-  | "archived";
+  "available" | "reserved" | "negotiating" | "rented" | "archived";
 export type RentalImage = {
   id: number;
   rental_id: number;

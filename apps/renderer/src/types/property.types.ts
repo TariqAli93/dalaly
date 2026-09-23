@@ -1,10 +1,5 @@
 export type PropertyStatus =
-  | "available"
-  | "reserved"
-  | "negotiating"
-  | "sold"
-  | "rented"
-  | "archived";
+  "available" | "reserved" | "negotiating" | "sold" | "rented" | "archived";
 
 export type PropertyRecord = {
   id: number;

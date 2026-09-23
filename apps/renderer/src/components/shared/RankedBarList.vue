@@ -29,7 +29,9 @@ const max = computed(() =>
       <span class="rbl__track">
         <span
           class="rbl__fill"
-          :style="{ inlineSize: `${Math.round(((item.count || 0) / max) * 100)}%` }"
+          :style="{
+            inlineSize: `${Math.round(((item.count || 0) / max) * 100)}%`,
+          }"
         />
       </span>
       <span class="rbl__count money">{{ item.count }}</span>

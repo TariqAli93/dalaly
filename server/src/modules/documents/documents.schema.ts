@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-const optionalText = z.string().trim().optional().nullable().transform((value) => value || null);
+const optionalText = z
+  .string()
+  .trim()
+  .optional()
+  .nullable()
+  .transform((value) => value || null);
 export const documentPayloadSchema = z.object({
   customer_id: z.coerce.number().int().positive(),
   document_type_id: z.coerce.number().int().positive().optional().nullable(),
@@ -24,9 +29,15 @@ export const documentFiltersSchema = z.object({
   status: z.enum(["active", "archived", "expired"]).optional(),
 });
 export const documentTypePayloadSchema = z.object({
-  key: z.string().trim().min(1).regex(/^[a-z0-9_]+$/),
+  key: z
+    .string()
+    .trim()
+    .min(1)
+    .regex(/^[a-z0-9_]+$/),
   name: z.string().trim().min(1),
-  transaction_scope: z.enum(["general", "buy", "sell", "rent", "lease"]).default("general"),
+  transaction_scope: z
+    .enum(["general", "buy", "sell", "rent", "lease"])
+    .default("general"),
   is_required: z.coerce.boolean().default(false),
   is_active: z.coerce.boolean().default(true),
 });

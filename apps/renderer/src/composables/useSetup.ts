@@ -1,10 +1,6 @@
 import { ref } from "vue";
 import * as setupService from "../services/setup.service";
-import type {
-  InitializeInput,
-  InitializeResult,
-  SetupStatus,
-} from "../types";
+import type { InitializeInput, InitializeResult, SetupStatus } from "../types";
 
 const status = ref<SetupStatus | null>(null);
 const loading = ref(false);

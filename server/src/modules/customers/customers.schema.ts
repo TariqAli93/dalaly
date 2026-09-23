@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-const optionalText = z.string().trim().optional().nullable().transform((value) => value || null);
+const optionalText = z
+  .string()
+  .trim()
+  .optional()
+  .nullable()
+  .transform((value) => value || null);
 
 export const customerPayloadSchema = z.object({
   full_name: z.string().trim().min(1),
@@ -9,7 +14,9 @@ export const customerPayloadSchema = z.object({
   email: optionalText,
   address: optionalText,
   national_id: optionalText,
-  customer_type: z.enum(["individual", "company", "other"]).default("individual"),
+  customer_type: z
+    .enum(["individual", "company", "other"])
+    .default("individual"),
   status: z.enum(["active", "inactive", "archived"]).default("active"),
   notes: optionalText,
 });

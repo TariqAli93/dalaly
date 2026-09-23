@@ -1,9 +1,5 @@
 import { computed, ref } from "vue";
-import {
-  clearToken,
-  getToken,
-  setToken,
-} from "../services/api.service";
+import { clearToken, getToken, setToken } from "../services/api.service";
 import * as authService from "../services/auth.service";
 import type {
   AuthUserRecord,

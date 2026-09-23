@@ -59,7 +59,10 @@ watch(
   <v-dialog v-model="open" width="980" scrollable>
     <v-card v-if="property">
       <v-card-title class="d-flex align-center ga-2">
-        <span>{{ property.name || `properties ${property.code}` }} · {{ property.code }}</span>
+        <span
+          >{{ property.name || `properties ${property.code}` }} ·
+          {{ property.code }}</span
+        >
         <v-chip :color="statusColor(property.status)" variant="tonal">
           {{ statusLabel(property.status) }}
         </v-chip>

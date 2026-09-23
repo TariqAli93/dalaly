@@ -81,7 +81,11 @@ export const webPlatform: PlatformAdapter = {
   async saveFile({ data, suggestedName }): Promise<SaveResult> {
     const buffer = new ArrayBuffer(data.byteLength);
     new Uint8Array(buffer).set(data);
-    downloadBlob(suggestedName, buffer, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    downloadBlob(
+      suggestedName,
+      buffer,
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
     return { ok: true, fallback: true };
   },
 

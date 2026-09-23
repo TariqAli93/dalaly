@@ -26,7 +26,11 @@ function doPrint() {
 
 async function doPdf() {
   try {
-    await exportPdf(`${props.property.code}.pdf`, title(), buildPropertyText(props.property));
+    await exportPdf(
+      `${props.property.code}.pdf`,
+      title(),
+      buildPropertyText(props.property),
+    );
     notifySuccess("تم تجهيز ملف PDF.");
   } catch {
     notifyError("تعذر تصدير PDF.");
@@ -37,15 +41,23 @@ async function doFolder() {
   try {
     const result = await exportPropertyFolder(props.property);
     if (result.canceled) return;
-    if (!result.ok) throw new Error(result.message ?? "تعذر تصدير مجلد العقار.");
-    notifySuccess(`تم تصدير العقار مع صوره إلى: ${result.path ?? "المجلد المحدد"}`);
+    if (!result.ok)
+      throw new Error(result.message ?? "تعذر تصدير مجلد العقار.");
+    notifySuccess(
+      `تم تصدير العقار مع صوره إلى: ${result.path ?? "المجلد المحدد"}`,
+    );
   } catch (error) {
-    notifyError(error instanceof Error ? error.message : "تعذر تصدير مجلد العقار.");
+    notifyError(
+      error instanceof Error ? error.message : "تعذر تصدير مجلد العقار.",
+    );
   }
 }
 
 function doTxt() {
-  downloadTextFile(`${props.property.code}.txt`, buildPropertyText(props.property));
+  downloadTextFile(
+    `${props.property.code}.txt`,
+    buildPropertyText(props.property),
+  );
   notifySuccess("تم تنزيل ملف TXT.");
 }
 
@@ -82,12 +94,32 @@ async function doAd() {
     </template>
     <v-list min-width="240">
       <v-list-item prepend-icon="mdi-printer" title="طباعة" @click="doPrint" />
-      <v-list-item prepend-icon="mdi-file-pdf-box" title="تصدير PDF" @click="doPdf" />
-      <v-list-item prepend-icon="mdi-file-document-outline" title="تصدير TXT" @click="doTxt" />
-      <v-list-item prepend-icon="mdi-folder-multiple-outline" title="تصدير TXT والصور في مجلد" @click="doFolder" />
+      <v-list-item
+        prepend-icon="mdi-file-pdf-box"
+        title="تصدير PDF"
+        @click="doPdf"
+      />
+      <v-list-item
+        prepend-icon="mdi-file-document-outline"
+        title="تصدير TXT"
+        @click="doTxt"
+      />
+      <v-list-item
+        prepend-icon="mdi-folder-multiple-outline"
+        title="تصدير TXT والصور في مجلد"
+        @click="doFolder"
+      />
       <v-divider />
-      <v-list-item prepend-icon="mdi-whatsapp" title="نسخ للواتساب" @click="doWhatsapp" />
-      <v-list-item prepend-icon="mdi-bullhorn-outline" title="نسخ وصف الإعلان" @click="doAd" />
+      <v-list-item
+        prepend-icon="mdi-whatsapp"
+        title="نسخ للواتساب"
+        @click="doWhatsapp"
+      />
+      <v-list-item
+        prepend-icon="mdi-bullhorn-outline"
+        title="نسخ وصف الإعلان"
+        @click="doAd"
+      />
     </v-list>
   </v-menu>
 </template>

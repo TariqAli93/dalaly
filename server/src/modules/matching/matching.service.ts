@@ -326,7 +326,9 @@ export async function findRentalOfferMatches(
   const [request] = await db
     .select()
     .from(rentalRequests)
-    .where(and(eq(rentalRequests.id, requestId), eq(rentalRequests.status, "open")))
+    .where(
+      and(eq(rentalRequests.id, requestId), eq(rentalRequests.status, "open")),
+    )
     .limit(1);
   if (!request) return [];
   const offers = await db
@@ -379,7 +381,12 @@ export async function findPurchaseOfferMatches(
   const [request] = await db
     .select()
     .from(purchaseRequests)
-    .where(and(eq(purchaseRequests.id, requestId), eq(purchaseRequests.status, "open")))
+    .where(
+      and(
+        eq(purchaseRequests.id, requestId),
+        eq(purchaseRequests.status, "open"),
+      ),
+    )
     .limit(1);
   if (!request) return [];
   const offers = await db
@@ -401,7 +408,9 @@ export async function findPurchaseRequestMatches(
   const [offer] = await db
     .select()
     .from(properties)
-    .where(and(eq(properties.id, propertyId), eq(properties.status, "available")))
+    .where(
+      and(eq(properties.id, propertyId), eq(properties.status, "available")),
+    )
     .limit(1);
   if (!offer) return [];
   const requests = await db

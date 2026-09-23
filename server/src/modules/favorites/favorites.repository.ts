@@ -1,6 +1,9 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
-import { favoriteProperties, properties } from "../../infrastructure/database/schema.js";
+import {
+  favoriteProperties,
+  properties,
+} from "../../infrastructure/database/schema.js";
 import { toApiObjects } from "../../shared/utils/case.js";
 
 export async function listFavoriteIds(userId: number) {
@@ -34,7 +37,7 @@ export async function removeFavorite(userId: number, propertyId: number) {
     .where(
       and(
         eq(favoriteProperties.userId, userId),
-        eq(favoriteProperties.propertyId, propertyId)
-      )
+        eq(favoriteProperties.propertyId, propertyId),
+      ),
     );
 }

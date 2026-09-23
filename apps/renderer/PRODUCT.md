@@ -50,7 +50,7 @@ It is warm and local: Arabic is the native language of the product, not a transl
 
 ## Accessibility & Inclusion
 
-- **Target: WCAG 2.2 AA**, with body text held above the 4.5:1 floor in *both* themes. Assume a cheap, uncalibrated monitor and a user over 50 — treat AA as the minimum, not the goal.
+- **Target: WCAG 2.2 AA**, with body text held above the 4.5:1 floor in _both_ themes. Assume a cheap, uncalibrated monitor and a user over 50 — treat AA as the minimum, not the goal.
 - **Full keyboard operation.** Every task completable without a mouse: visible focus rings, sane tab order through the property form, and shortcuts for the high-frequency data-entry paths.
 - **Dark mode is a real mode.** Both `dalalyLight` and `dalalyDark` are contrast-verified and tested on every surface — not a toggle that ships untested.
 - **Reduced motion respected.** Every transition has a `prefers-reduced-motion: reduce` alternative (crossfade or instant).

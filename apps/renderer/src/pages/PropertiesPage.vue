@@ -40,12 +40,7 @@ const paneOpen = ref(false);
 // فرز على البيانات المُحمّلة فقط (client-side) — كل النتائج مُحمّلة والصفحات
 // تُقسَّم داخل الجدول، فلا يسبب الفرز المحلي ترتيباً خاطئاً عبر الصفحات.
 type SortKey =
-  | "newest"
-  | "updated"
-  | "price_asc"
-  | "price_desc"
-  | "area_desc"
-  | "area_asc";
+  "newest" | "updated" | "price_asc" | "price_desc" | "area_desc" | "area_asc";
 const sortBy = ref<SortKey>("newest");
 const SORT_OPTIONS = [
   { value: "newest", title: "الأحدث" },

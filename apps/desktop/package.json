@@ -14,7 +14,9 @@
     "package:portable": "electron-builder --win portable --publish never",
     "package:installer": "electron-builder --win nsis --publish never",
     "release": "electron-builder --win nsis portable --publish never",
-    "clean": "node -e \"require('node:fs').rmSync('release',{recursive:true,force:true})\""
+    "clean": "node -e \"require('node:fs').rmSync('release',{recursive:true,force:true})\"",
+    "format": "npx prettier --write .",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "electron-log": "^5.4.4",

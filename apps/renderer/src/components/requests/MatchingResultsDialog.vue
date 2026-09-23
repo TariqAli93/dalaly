@@ -26,7 +26,9 @@ function titleOf(match: MatchResult) {
 function subtitleOf(match: MatchResult) {
   const record = recordOf(match);
   const customer = record.customer_name || record.customer_code;
-  return customer ? `${customer} · نسبة المطابقة ${match.score}%` : `نسبة المطابقة ${match.score}%`;
+  return customer
+    ? `${customer} · نسبة المطابقة ${match.score}%`
+    : `نسبة المطابقة ${match.score}%`;
 }
 
 function reasonsOf(match: MatchResult) {
@@ -43,7 +45,12 @@ function reasonsOf(match: MatchResult) {
       <v-card-title class="d-flex align-center ga-2">
         <span>{{ title }}: {{ matches.length }}</span>
         <v-spacer />
-        <v-btn icon="mdi-close" variant="text" aria-label="إغلاق" @click="open = false" />
+        <v-btn
+          icon="mdi-close"
+          variant="text"
+          aria-label="إغلاق"
+          @click="open = false"
+        />
       </v-card-title>
       <v-card-text>
         <v-list v-if="matches.length" lines="three">
@@ -59,10 +66,16 @@ function reasonsOf(match: MatchResult) {
                 {{ match.score }}%
               </v-chip>
             </template>
-            <div class="text-caption">{{ reasonsOf(match) || "مطابقة جزئية" }}</div>
+            <div class="text-caption">
+              {{ reasonsOf(match) || "مطابقة جزئية" }}
+            </div>
           </v-list-item>
         </v-list>
-        <v-empty-state v-else icon="mdi-home-search-outline" title="لا توجد مطابقات" />
+        <v-empty-state
+          v-else
+          icon="mdi-home-search-outline"
+          title="لا توجد مطابقات"
+        />
       </v-card-text>
       <v-card-actions>
         <v-spacer />

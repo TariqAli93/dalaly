@@ -4,7 +4,7 @@ import {
   createFollowup,
   deleteFollowup,
   listFollowups,
-  updateFollowup
+  updateFollowup,
 } from "./followups.repository.js";
 import { followupPayloadSchema } from "./followups.schema.js";
 
@@ -19,9 +19,10 @@ export const followupsRoutes: FastifyPluginAsync = async (app) => {
     { preHandler: requirePermission("followups.read") },
     async (request, reply) => {
       const propertyId = parseId((request.params as { id: string }).id);
-      if (!propertyId) return reply.code(400).send({ message: "معرف العقار غير صحيح." });
+      if (!propertyId)
+        return reply.code(400).send({ message: "معرف العقار غير صحيح." });
       return listFollowups(propertyId);
-    }
+    },
   );
 
   app.post(
@@ -29,11 +30,12 @@ export const followupsRoutes: FastifyPluginAsync = async (app) => {
     { preHandler: requirePermission("followups.create") },
     async (request, reply) => {
       const propertyId = parseId((request.params as { id: string }).id);
-      if (!propertyId) return reply.code(400).send({ message: "معرف العقار غير صحيح." });
+      if (!propertyId)
+        return reply.code(400).send({ message: "معرف العقار غير صحيح." });
       const payload = followupPayloadSchema.parse(request.body);
       const row = await createFollowup(propertyId, request.user?.id, payload);
       return reply.code(201).send(row);
-    }
+    },
   );
 
   app.put(
@@ -42,12 +44,14 @@ export const followupsRoutes: FastifyPluginAsync = async (app) => {
     async (request, reply) => {
       const params = request.params as { id: string; followupId: string };
       const followupId = parseId(params.followupId);
-      if (!followupId) return reply.code(400).send({ message: "معرف المتابعة غير صحيح." });
+      if (!followupId)
+        return reply.code(400).send({ message: "معرف المتابعة غير صحيح." });
       const payload = followupPayloadSchema.parse(request.body);
       const row = await updateFollowup(followupId, payload);
-      if (!row) return reply.code(404).send({ message: "المتابعة غير موجودة." });
+      if (!row)
+        return reply.code(404).send({ message: "المتابعة غير موجودة." });
       return row;
-    }
+    },
   );
 
   app.delete(
@@ -56,10 +60,12 @@ export const followupsRoutes: FastifyPluginAsync = async (app) => {
     async (request, reply) => {
       const params = request.params as { id: string; followupId: string };
       const followupId = parseId(params.followupId);
-      if (!followupId) return reply.code(400).send({ message: "معرف المتابعة غير صحيح." });
+      if (!followupId)
+        return reply.code(400).send({ message: "معرف المتابعة غير صحيح." });
       const row = await deleteFollowup(followupId);
-      if (!row) return reply.code(404).send({ message: "المتابعة غير موجودة." });
+      if (!row)
+        return reply.code(404).send({ message: "المتابعة غير موجودة." });
       return { deleted: true };
-    }
+    },
   );
 };

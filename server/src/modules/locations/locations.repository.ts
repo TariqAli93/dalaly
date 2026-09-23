@@ -4,7 +4,7 @@ import {
   districts,
   governorates,
   neighborhoods,
-  properties
+  properties,
 } from "../../infrastructure/database/schema.js";
 import { toApiObject, toApiObjects } from "../../shared/utils/case.js";
 import {
@@ -12,20 +12,20 @@ import {
   type DistrictUpdatePayload,
   type GovernoratePayload,
   type NeighborhoodPayload,
-  type NeighborhoodUpdatePayload
+  type NeighborhoodUpdatePayload,
 } from "./locations.schema.js";
 
 export async function getLocations() {
   const [governorateRows, districtRows, neighborhoodRows] = await Promise.all([
     db.select().from(governorates).orderBy(asc(governorates.name)),
     db.select().from(districts).orderBy(asc(districts.name)),
-    db.select().from(neighborhoods).orderBy(asc(neighborhoods.name))
+    db.select().from(neighborhoods).orderBy(asc(neighborhoods.name)),
   ]);
 
   return {
     governorates: toApiObjects(governorateRows),
     districts: toApiObjects(districtRows),
-    neighborhoods: toApiObjects(neighborhoodRows)
+    neighborhoods: toApiObjects(neighborhoodRows),
   };
 }
 
@@ -37,10 +37,17 @@ export async function createGovernorate(payload: GovernoratePayload) {
   return toApiObject(row);
 }
 
-export async function updateGovernorate(id: number, payload: GovernoratePayload) {
+export async function updateGovernorate(
+  id: number,
+  payload: GovernoratePayload,
+) {
   const [row] = await db
     .update(governorates)
-    .set({ name: payload.name, isActive: payload.is_active, updatedAt: new Date() })
+    .set({
+      name: payload.name,
+      isActive: payload.is_active,
+      updatedAt: new Date(),
+    })
     .where(eq(governorates.id, id))
     .returning();
   return row ? toApiObject(row) : null;
@@ -65,16 +72,23 @@ export async function createDistrict(payload: DistrictPayload) {
     .values({
       governorateId: payload.governorate_id,
       name: payload.name,
-      isActive: payload.is_active
+      isActive: payload.is_active,
     })
     .returning();
   return toApiObject(row);
 }
 
-export async function updateDistrict(id: number, payload: DistrictUpdatePayload) {
+export async function updateDistrict(
+  id: number,
+  payload: DistrictUpdatePayload,
+) {
   const [row] = await db
     .update(districts)
-    .set({ name: payload.name, isActive: payload.is_active, updatedAt: new Date() })
+    .set({
+      name: payload.name,
+      isActive: payload.is_active,
+      updatedAt: new Date(),
+    })
     .where(eq(districts.id, id))
     .returning();
   return row ? toApiObject(row) : null;
@@ -86,7 +100,10 @@ export async function deleteDistrict(id: number) {
     throw new Error("لا يمكن حذف منطقة مرتبطة بعقارات.");
   }
 
-  const [row] = await db.delete(districts).where(eq(districts.id, id)).returning();
+  const [row] = await db
+    .delete(districts)
+    .where(eq(districts.id, id))
+    .returning();
   return row ? toApiObject(row) : null;
 }
 
@@ -96,7 +113,7 @@ export async function createNeighborhood(payload: NeighborhoodPayload) {
     .values({
       districtId: payload.district_id,
       name: payload.name,
-      isActive: payload.is_active
+      isActive: payload.is_active,
     })
     .returning();
   return toApiObject(row);
@@ -104,11 +121,15 @@ export async function createNeighborhood(payload: NeighborhoodPayload) {
 
 export async function updateNeighborhood(
   id: number,
-  payload: NeighborhoodUpdatePayload
+  payload: NeighborhoodUpdatePayload,
 ) {
   const [row] = await db
     .update(neighborhoods)
-    .set({ name: payload.name, isActive: payload.is_active, updatedAt: new Date() })
+    .set({
+      name: payload.name,
+      isActive: payload.is_active,
+      updatedAt: new Date(),
+    })
     .where(eq(neighborhoods.id, id))
     .returning();
   return row ? toApiObject(row) : null;
@@ -183,7 +204,9 @@ export async function districtExists(governorateId: number, name: string) {
   const [row] = await db
     .select({ id: districts.id })
     .from(districts)
-    .where(and(eq(districts.governorateId, governorateId), eq(districts.name, name)))
+    .where(
+      and(eq(districts.governorateId, governorateId), eq(districts.name, name)),
+    )
     .limit(1);
   return Boolean(row);
 }
@@ -194,7 +217,10 @@ export async function neighborhoodExists(districtId: number, name: string) {
     .select({ id: neighborhoods.id })
     .from(neighborhoods)
     .where(
-      and(eq(neighborhoods.districtId, districtId), eq(neighborhoods.name, name))
+      and(
+        eq(neighborhoods.districtId, districtId),
+        eq(neighborhoods.name, name),
+      ),
     )
     .limit(1);
   return Boolean(row);

@@ -38,8 +38,7 @@ function onInput(value: string) {
     const dot = cleaned.indexOf(".");
     if (dot !== -1) {
       cleaned =
-        cleaned.slice(0, dot + 1) +
-        cleaned.slice(dot + 1).replace(/\./g, "");
+        cleaned.slice(0, dot + 1) + cleaned.slice(dot + 1).replace(/\./g, "");
     }
   }
   model.value = cleaned;

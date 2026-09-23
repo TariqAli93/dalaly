@@ -5,7 +5,12 @@ import * as rentalsService from "../services/rentals.service";
 import { formatMoney, formatPlot } from "./format";
 import { amenitiesText } from "./amenities";
 import { neighborhoodOf } from "./exportProperty";
-import type { PropertyImage, PropertyRecord, RentalImage, RentalRecord } from "../types";
+import type {
+  PropertyImage,
+  PropertyRecord,
+  RentalImage,
+  RentalRecord,
+} from "../types";
 import type { FolderExportFile, SaveResult } from "../platform/types";
 
 function line(label: string, value: unknown) {
@@ -50,7 +55,10 @@ async function imageFiles(
       const data = new Uint8Array(await response.arrayBuffer());
       const fallback = `photo-${String(index + 1).padStart(2, "0")}${fileExtension(image.file_path)}`;
       const originalName = image.original_name?.trim() || fallback;
-      const name = uniqueFileName(safeFileName(originalName, fallback), usedNames);
+      const name = uniqueFileName(
+        safeFileName(originalName, fallback),
+        usedNames,
+      );
       return { name, data };
     }),
   );
@@ -74,7 +82,10 @@ function propertyText(property: PropertyRecord) {
   text += line("الجنس", property.legal_type);
   text += line("المساحة", `${property.area_value} ${property.area_unit}`);
   text += line("السعر الكلي", `${formatMoney(property.total_price)} دينار`);
-  text += line("سعر الوحدة", property.unit_price ? formatMoney(property.unit_price) : "");
+  text += line(
+    "سعر الوحدة",
+    property.unit_price ? formatMoney(property.unit_price) : "",
+  );
   text += line("الحالة", statusLabel(property.status));
   text += line("قابل للتفاوض", property.is_negotiable ? "نعم" : "لا");
   text += line("الواجهة", property.frontage);
@@ -82,7 +93,10 @@ function propertyText(property: PropertyRecord) {
   text += line("عرض الشارع", property.street_width);
   text += line("عدد الغرف", property.rooms_count);
   text += line("عدد الحمامات", property.bathrooms_count);
-  text += line("رقم القطعة", formatPlot(property.plot_number, property.plot_letter));
+  text += line(
+    "رقم القطعة",
+    formatPlot(property.plot_number, property.plot_letter),
+  );
   text += line("المقاطعة", property.subdistrict_name);
   text += line("المحلة", property.mahalla);
   text += line("الزقاق", property.alley);
@@ -123,11 +137,15 @@ function rentalText(rental: RentalRecord) {
   return text;
 }
 
-export async function exportPropertyFolder(property: PropertyRecord): Promise<SaveResult> {
+export async function exportPropertyFolder(
+  property: PropertyRecord,
+): Promise<SaveResult> {
   const images = await imagesService.listImages(property.id);
   const files = [
     textFile(propertyText(property)),
-    ...(await imageFiles(images, (image) => imagesService.imageFileUrl(property.id, image.id))),
+    ...(await imageFiles(images, (image) =>
+      imagesService.imageFileUrl(property.id, image.id),
+    )),
   ];
   return platform.exportFolder({
     files,
@@ -136,11 +154,15 @@ export async function exportPropertyFolder(property: PropertyRecord): Promise<Sa
   });
 }
 
-export async function exportRentalFolder(rental: RentalRecord): Promise<SaveResult> {
+export async function exportRentalFolder(
+  rental: RentalRecord,
+): Promise<SaveResult> {
   const images = await rentalsService.listRentalImages(rental.id);
   const files = [
     textFile(rentalText(rental)),
-    ...(await imageFiles(images, (image) => rentalsService.rentalImageUrl(rental.id, image.id))),
+    ...(await imageFiles(images, (image) =>
+      rentalsService.rentalImageUrl(rental.id, image.id),
+    )),
   ];
   return platform.exportFolder({
     files,

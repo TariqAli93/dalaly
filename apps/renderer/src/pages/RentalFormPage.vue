@@ -10,7 +10,12 @@ import * as customersService from "../services/customers.service";
 import { getErrorMessage } from "../services/api.service";
 import { useLocations } from "../composables/useLocations";
 import { useSnackbar } from "../composables/useSnackbar";
-import type { CustomerRecord, MatchResult, RentalForm as RentalFormType, RentalRecord } from "../types";
+import type {
+  CustomerRecord,
+  MatchResult,
+  RentalForm as RentalFormType,
+  RentalRecord,
+} from "../types";
 
 const route = useRoute();
 const router = useRouter();
@@ -99,9 +104,14 @@ async function save() {
     ...form.value,
     rent_price: Number(form.value.rent_price),
     area_value: Number(form.value.area_value),
-    floors_count: form.value.floors_count === null ? null : Number(form.value.floors_count),
-    rooms_count: form.value.rooms_count === null ? null : Number(form.value.rooms_count),
-    bathrooms_count: form.value.bathrooms_count === null ? null : Number(form.value.bathrooms_count),
+    floors_count:
+      form.value.floors_count === null ? null : Number(form.value.floors_count),
+    rooms_count:
+      form.value.rooms_count === null ? null : Number(form.value.rooms_count),
+    bathrooms_count:
+      form.value.bathrooms_count === null
+        ? null
+        : Number(form.value.bathrooms_count),
   };
   try {
     let savedId = editingId.value;
@@ -114,7 +124,9 @@ async function save() {
       notifySuccess("تمت إضافة العرض الإيجاري.");
     }
 
-    const destination = editingId.value ? "/rentals" : `/rentals/${savedId}/edit`;
+    const destination = editingId.value
+      ? "/rentals"
+      : `/rentals/${savedId}/edit`;
     if (savedId !== null) {
       try {
         const result = await requests.rentalRequestMatches(savedId);
@@ -172,7 +184,10 @@ onMounted(async () => {
 </script>
 
 <template>
-  <AppLayout :title="isEditing ? 'تعديل عرض إيجاري' : 'إضافة عرض إيجاري'" subtitle="نموذج مستقل للعروض الإيجارية.">
+  <AppLayout
+    :title="isEditing ? 'تعديل عرض إيجاري' : 'إضافة عرض إيجاري'"
+    subtitle="نموذج مستقل للعروض الإيجارية."
+  >
     <RentalForm
       ref="formRef"
       v-model="form"

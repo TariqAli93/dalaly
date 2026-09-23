@@ -10,7 +10,8 @@ import { electronPlatform } from "./electron";
 import { webPlatform } from "./web";
 import type { PlatformAdapter } from "./types";
 
-const hasElectronBridge = typeof window !== "undefined" && Boolean(window.dalalyConfig);
+const hasElectronBridge =
+  typeof window !== "undefined" && Boolean(window.dalalyConfig);
 
 export const platform: PlatformAdapter = hasElectronBridge
   ? electronPlatform

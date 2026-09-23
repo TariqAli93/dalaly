@@ -13,10 +13,15 @@ async function exportFolder() {
   try {
     const result = await exportRentalFolder(props.rental);
     if (result.canceled) return;
-    if (!result.ok) throw new Error(result.message ?? "تعذر تصدير مجلد الإيجار.");
-    notifySuccess(`تم تصدير الإيجار مع صوره إلى: ${result.path ?? "المجلد المحدد"}`);
+    if (!result.ok)
+      throw new Error(result.message ?? "تعذر تصدير مجلد الإيجار.");
+    notifySuccess(
+      `تم تصدير الإيجار مع صوره إلى: ${result.path ?? "المجلد المحدد"}`,
+    );
   } catch (error) {
-    notifyError(error instanceof Error ? error.message : "تعذر تصدير مجلد الإيجار.");
+    notifyError(
+      error instanceof Error ? error.message : "تعذر تصدير مجلد الإيجار.",
+    );
   } finally {
     loading.value = false;
   }

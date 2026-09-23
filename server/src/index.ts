@@ -3,12 +3,12 @@ import { config } from "./infrastructure/config.js";
 import { isDatabaseConfigured } from "./infrastructure/database/pool.js";
 import {
   getMigrationsFolder,
-  runDatabaseMigrations
+  runDatabaseMigrations,
 } from "./infrastructure/database/run-migrations.js";
 import {
   markMigrationsFailed,
   markMigrationsSucceeded,
-  validateDatabaseConnection
+  validateDatabaseConnection,
 } from "./infrastructure/database/health.js";
 
 const app = await buildServer();
@@ -17,12 +17,16 @@ try {
   if (!isDatabaseConfigured()) {
     // أول تشغيل: لا توجد قاعدة بيانات مهيأة بعد. نشغّل الـ API فقط ليقوم
     // First Run Wizard بإنشاء القاعدة وتشغيل migrations عبر /api/setup/initialize.
-    app.log.info("Database not configured yet. Starting API for First Run Wizard.");
+    app.log.info(
+      "Database not configured yet. Starting API for First Run Wizard.",
+    );
     markMigrationsFailed("Database not configured.", null);
   } else {
     const dbConnected = await validateDatabaseConnection();
     if (!dbConnected) {
-      app.log.error("PostgreSQL is not connected. API will start for health/setup checks.");
+      app.log.error(
+        "PostgreSQL is not connected. API will start for health/setup checks.",
+      );
       markMigrationsFailed("PostgreSQL is not connected.", null);
     } else {
       let migrationsFolder: string | null = null;

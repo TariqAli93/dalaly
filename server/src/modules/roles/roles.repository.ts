@@ -5,13 +5,16 @@ import {
   grantAllPermissionsToRole,
   getRolePermissionIds,
   hasAnyUserWithRole,
-  setRolePermissionIds
+  setRolePermissionIds,
 } from "../rbac/rbac.service.js";
 import { SUPER_ADMIN_ROLE } from "../rbac/rbac.constants.js";
 import type { RolePayload } from "./roles.schema.js";
 
 export async function listRoles() {
-  const rows = await db.select().from(roles).orderBy(desc(roles.createdAt), desc(roles.id));
+  const rows = await db
+    .select()
+    .from(roles)
+    .orderBy(desc(roles.createdAt), desc(roles.id));
   return Promise.all(rows.map(toRoleDto));
 }
 
@@ -34,7 +37,7 @@ export async function updateRole(id: number, payload: RolePayload) {
     .set({
       name: payload.name,
       description: payload.description ?? null,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
     .where(eq(roles.id, id))
     .returning();
@@ -55,7 +58,10 @@ export async function deleteRole(id: number) {
   return deleted ? toRoleDto(deleted) : null;
 }
 
-export async function updateRolePermissions(id: number, permissionIds: number[]) {
+export async function updateRolePermissions(
+  id: number,
+  permissionIds: number[],
+) {
   const role = await getRawRole(id);
   if (!role) return null;
   if (role.name === SUPER_ADMIN_ROLE) {
@@ -80,6 +86,6 @@ async function toRoleDto(role: typeof roles.$inferSelect) {
     is_system: role.isSystem,
     created_at: role.createdAt,
     updated_at: role.updatedAt,
-    permission_ids: await getRolePermissionIds(role.id)
+    permission_ids: await getRolePermissionIds(role.id),
   };
 }

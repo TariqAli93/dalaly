@@ -20,7 +20,9 @@ function reset() {
  */
 function start(handler: () => void) {
   onIdle = handler;
-  events.forEach((event) => window.addEventListener(event, reset, { passive: true }));
+  events.forEach((event) =>
+    window.addEventListener(event, reset, { passive: true }),
+  );
   reset();
 }
 

@@ -3,7 +3,7 @@ import { db } from "../../infrastructure/database/db.js";
 import {
   properties,
   propertyFollowups,
-  users
+  users,
 } from "../../infrastructure/database/schema.js";
 import { type FollowupPayload } from "./followups.schema.js";
 
@@ -23,7 +23,7 @@ export async function listFollowups(propertyId: number) {
       type: propertyFollowups.type,
       notes: propertyFollowups.notes,
       scheduled_at: propertyFollowups.scheduledAt,
-      created_at: propertyFollowups.createdAt
+      created_at: propertyFollowups.createdAt,
     })
     .from(propertyFollowups)
     .leftJoin(users, eq(propertyFollowups.userId, users.id))
@@ -34,7 +34,7 @@ export async function listFollowups(propertyId: number) {
 export async function createFollowup(
   propertyId: number,
   userId: number | undefined,
-  payload: FollowupPayload
+  payload: FollowupPayload,
 ) {
   const [row] = await db
     .insert(propertyFollowups)
@@ -43,7 +43,7 @@ export async function createFollowup(
       userId: userId ?? null,
       type: payload.type,
       notes: payload.notes ?? null,
-      scheduledAt: normalizeScheduledAt(payload.scheduled_at)
+      scheduledAt: normalizeScheduledAt(payload.scheduled_at),
     })
     .returning();
   return row;
@@ -55,7 +55,7 @@ export async function updateFollowup(id: number, payload: FollowupPayload) {
     .set({
       type: payload.type,
       notes: payload.notes ?? null,
-      scheduledAt: normalizeScheduledAt(payload.scheduled_at)
+      scheduledAt: normalizeScheduledAt(payload.scheduled_at),
     })
     .where(eq(propertyFollowups.id, id))
     .returning();
@@ -79,15 +79,15 @@ export async function listUpcomingReminders(fromDate: Date, limit = 20) {
       property_code: properties.code,
       type: propertyFollowups.type,
       notes: propertyFollowups.notes,
-      scheduled_at: propertyFollowups.scheduledAt
+      scheduled_at: propertyFollowups.scheduledAt,
     })
     .from(propertyFollowups)
     .innerJoin(properties, eq(propertyFollowups.propertyId, properties.id))
     .where(
       and(
         isNotNull(propertyFollowups.scheduledAt),
-        gte(propertyFollowups.scheduledAt, fromDate)
-      )
+        gte(propertyFollowups.scheduledAt, fromDate),
+      ),
     )
     .orderBy(asc(propertyFollowups.scheduledAt))
     .limit(limit);

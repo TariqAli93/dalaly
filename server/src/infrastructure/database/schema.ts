@@ -159,8 +159,12 @@ export const customers = pgTable(
     customerType: text("customer_type").notNull().default("individual"),
     status: text("status").notNull().default("active"),
     notes: text("notes"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index("idx_customers_full_name").on(table.fullName),
@@ -197,7 +201,10 @@ export const properties = pgTable(
     ownerName: text("owner_name").notNull(),
     ownerPhone: text("owner_phone").notNull(),
     ownerNotes: text("owner_notes"),
-    ownerCustomerId: bigint("owner_customer_id", { mode: "number" }).references(() => customers.id, { onDelete: "set null" }),
+    ownerCustomerId: bigint("owner_customer_id", { mode: "number" }).references(
+      () => customers.id,
+      { onDelete: "set null" },
+    ),
     status: text("status").notNull().default("available"),
     notes: text("notes"),
     // Ø­Ù‚ÙˆÙ„ Ø¹Ø±Ø§Ù‚ÙŠØ© Ø§Ø®ØªÙŠØ§Ø±ÙŠØ© Ø¥Ø¶Ø§ÙÙŠØ©
@@ -271,9 +278,18 @@ export const rentals = pgTable(
     bathroomsCount: integer("bathrooms_count"),
     amenities: jsonb("amenities").notNull().default({}),
     otherDetails: text("other_details"),
-    governorateId: bigint("governorate_id", { mode: "number" }).references(() => governorates.id, { onDelete: "set null" }),
-    districtId: bigint("district_id", { mode: "number" }).references(() => districts.id, { onDelete: "set null" }),
-    neighborhoodId: bigint("neighborhood_id", { mode: "number" }).references(() => neighborhoods.id, { onDelete: "set null" }),
+    governorateId: bigint("governorate_id", { mode: "number" }).references(
+      () => governorates.id,
+      { onDelete: "set null" },
+    ),
+    districtId: bigint("district_id", { mode: "number" }).references(
+      () => districts.id,
+      { onDelete: "set null" },
+    ),
+    neighborhoodId: bigint("neighborhood_id", { mode: "number" }).references(
+      () => neighborhoods.id,
+      { onDelete: "set null" },
+    ),
     governorate: text("governorate"),
     district: text("district"),
     neighborhood: text("neighborhood"),
@@ -281,12 +297,19 @@ export const rentals = pgTable(
     ownerName: text("owner_name").notNull(),
     ownerPhone: text("owner_phone").notNull(),
     ownerNotes: text("owner_notes"),
-    ownerCustomerId: bigint("owner_customer_id", { mode: "number" }).references(() => customers.id, { onDelete: "set null" }),
+    ownerCustomerId: bigint("owner_customer_id", { mode: "number" }).references(
+      () => customers.id,
+      { onDelete: "set null" },
+    ),
     status: text("status").notNull().default("available"),
     isNegotiable: boolean("is_negotiable").notNull().default(false),
     notes: text("notes"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
   (table) => [
@@ -308,12 +331,16 @@ export const rentalImages = pgTable(
   "rental_images",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
-    rentalId: bigint("rental_id", { mode: "number" }).notNull().references(() => rentals.id, { onDelete: "cascade" }),
+    rentalId: bigint("rental_id", { mode: "number" })
+      .notNull()
+      .references(() => rentals.id, { onDelete: "cascade" }),
     filePath: text("file_path").notNull(),
     originalName: text("original_name"),
     isPrimary: boolean("is_primary").notNull().default(false),
     sortOrder: integer("sort_order").notNull().default(0),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [index("idx_rental_images_rental").on(table.rentalId)],
 );
@@ -375,22 +402,37 @@ export const rentalFollowups = pgTable(
   "rental_followups",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
-    rentalId: bigint("rental_id", { mode: "number" }).notNull().references(() => rentals.id, { onDelete: "cascade" }),
-    userId: bigint("user_id", { mode: "number" }).references(() => users.id, { onDelete: "set null" }),
+    rentalId: bigint("rental_id", { mode: "number" })
+      .notNull()
+      .references(() => rentals.id, { onDelete: "cascade" }),
+    userId: bigint("user_id", { mode: "number" }).references(() => users.id, {
+      onDelete: "set null",
+    }),
     type: text("type").notNull(),
     notes: text("notes"),
     scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
-  (table) => [index("idx_rental_followups_rental").on(table.rentalId), index("idx_rental_followups_scheduled").on(table.scheduledAt)],
+  (table) => [
+    index("idx_rental_followups_rental").on(table.rentalId),
+    index("idx_rental_followups_scheduled").on(table.scheduledAt),
+  ],
 );
 
 export const favoriteRentals = pgTable(
   "favorite_rentals",
   {
-    userId: bigint("user_id", { mode: "number" }).notNull().references(() => users.id, { onDelete: "cascade" }),
-    rentalId: bigint("rental_id", { mode: "number" }).notNull().references(() => rentals.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    userId: bigint("user_id", { mode: "number" })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    rentalId: bigint("rental_id", { mode: "number" })
+      .notNull()
+      .references(() => rentals.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [primaryKey({ columns: [table.userId, table.rentalId] })],
 );
@@ -400,7 +442,9 @@ export const rentalRequests = pgTable(
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
     code: text("code").notNull().unique(),
-    customerId: bigint("customer_id", { mode: "number" }).notNull().references(() => customers.id, { onDelete: "restrict" }),
+    customerId: bigint("customer_id", { mode: "number" })
+      .notNull()
+      .references(() => customers.id, { onDelete: "restrict" }),
     propertyType: text("property_type").notNull(),
     rentPeriod: text("rent_period"),
     budgetMin: numeric("budget_min", { precision: 18, scale: 2 }),
@@ -411,9 +455,18 @@ export const rentalRequests = pgTable(
     floorsCount: integer("floors_count"),
     roomsCount: integer("rooms_count"),
     bathroomsCount: integer("bathrooms_count"),
-    governorateId: bigint("governorate_id", { mode: "number" }).references(() => governorates.id, { onDelete: "set null" }),
-    districtId: bigint("district_id", { mode: "number" }).references(() => districts.id, { onDelete: "set null" }),
-    neighborhoodId: bigint("neighborhood_id", { mode: "number" }).references(() => neighborhoods.id, { onDelete: "set null" }),
+    governorateId: bigint("governorate_id", { mode: "number" }).references(
+      () => governorates.id,
+      { onDelete: "set null" },
+    ),
+    districtId: bigint("district_id", { mode: "number" }).references(
+      () => districts.id,
+      { onDelete: "set null" },
+    ),
+    neighborhoodId: bigint("neighborhood_id", { mode: "number" }).references(
+      () => neighborhoods.id,
+      { onDelete: "set null" },
+    ),
     governorate: text("governorate"),
     district: text("district"),
     neighborhood: text("neighborhood"),
@@ -421,8 +474,12 @@ export const rentalRequests = pgTable(
     otherRequirements: text("other_requirements"),
     status: text("status").notNull().default("open"),
     notes: text("notes"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
   (table) => [
@@ -442,7 +499,9 @@ export const purchaseRequests = pgTable(
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
     code: text("code").notNull().unique(),
-    customerId: bigint("customer_id", { mode: "number" }).notNull().references(() => customers.id, { onDelete: "restrict" }),
+    customerId: bigint("customer_id", { mode: "number" })
+      .notNull()
+      .references(() => customers.id, { onDelete: "restrict" }),
     propertyType: text("property_type").notNull(),
     budgetMin: numeric("budget_min", { precision: 18, scale: 2 }),
     budgetMax: numeric("budget_max", { precision: 18, scale: 2 }),
@@ -452,9 +511,18 @@ export const purchaseRequests = pgTable(
     roomsCount: integer("rooms_count"),
     bathroomsCount: integer("bathrooms_count"),
     floorsCount: integer("floors_count"),
-    governorateId: bigint("governorate_id", { mode: "number" }).references(() => governorates.id, { onDelete: "set null" }),
-    districtId: bigint("district_id", { mode: "number" }).references(() => districts.id, { onDelete: "set null" }),
-    neighborhoodId: bigint("neighborhood_id", { mode: "number" }).references(() => neighborhoods.id, { onDelete: "set null" }),
+    governorateId: bigint("governorate_id", { mode: "number" }).references(
+      () => governorates.id,
+      { onDelete: "set null" },
+    ),
+    districtId: bigint("district_id", { mode: "number" }).references(
+      () => districts.id,
+      { onDelete: "set null" },
+    ),
+    neighborhoodId: bigint("neighborhood_id", { mode: "number" }).references(
+      () => neighborhoods.id,
+      { onDelete: "set null" },
+    ),
     governorate: text("governorate"),
     district: text("district"),
     neighborhood: text("neighborhood"),
@@ -462,8 +530,12 @@ export const purchaseRequests = pgTable(
     otherRequirements: text("other_requirements"),
     status: text("status").notNull().default("open"),
     notes: text("notes"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
   (table) => [
@@ -486,10 +558,17 @@ export const documentTypes = pgTable(
     transactionScope: text("transaction_scope").notNull().default("general"),
     isRequired: boolean("is_required").notNull().default(false),
     isActive: boolean("is_active").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
-  (table) => [index("idx_document_types_scope").on(table.transactionScope), index("idx_document_types_active").on(table.isActive)],
+  (table) => [
+    index("idx_document_types_scope").on(table.transactionScope),
+    index("idx_document_types_active").on(table.isActive),
+  ],
 );
 
 export const documents = pgTable(
@@ -497,18 +576,29 @@ export const documents = pgTable(
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
     code: text("code").notNull().unique(),
-    customerId: bigint("customer_id", { mode: "number" }).notNull().references(() => customers.id, { onDelete: "restrict" }),
-    documentTypeId: bigint("document_type_id", { mode: "number" }).references(() => documentTypes.id, { onDelete: "set null" }),
+    customerId: bigint("customer_id", { mode: "number" })
+      .notNull()
+      .references(() => customers.id, { onDelete: "restrict" }),
+    documentTypeId: bigint("document_type_id", { mode: "number" }).references(
+      () => documentTypes.id,
+      { onDelete: "set null" },
+    ),
     documentName: text("document_name").notNull(),
     filePath: text("file_path").notNull(),
     fileType: text("file_type").notNull(),
     fileSize: bigint("file_size", { mode: "number" }),
-    uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow(),
+    uploadedAt: timestamp("uploaded_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     status: text("status").notNull().default("active"),
     notes: text("notes"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index("idx_documents_customer").on(table.customerId),
@@ -527,22 +617,27 @@ export const companySettings = pgTable("company_settings", {
   address: text("address"),
   additionalContact: text("additional_contact"),
   logoFilePath: text("logo_file_path"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
-export const contractTemplates = pgTable(
-  "contract_templates",
-  {
-    id: bigserial("id", { mode: "number" }).primaryKey(),
-    contractType: text("contract_type").notNull().unique(),
-    name: text("name").notNull(),
-    body: text("body").notNull(),
-    isActive: boolean("is_active").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-);
+export const contractTemplates = pgTable("contract_templates", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  contractType: text("contract_type").notNull().unique(),
+  name: text("name").notNull(),
+  body: text("body").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
 export const contracts = pgTable(
   "contracts",
@@ -550,12 +645,25 @@ export const contracts = pgTable(
     id: bigserial("id", { mode: "number" }).primaryKey(),
     code: text("code").notNull().unique(),
     contractType: text("contract_type").notNull(),
-    primaryCustomerId: bigint("primary_customer_id", { mode: "number" }).references(() => customers.id, { onDelete: "set null" }),
-    propertyId: bigint("property_id", { mode: "number" }).references(() => properties.id, { onDelete: "set null" }),
-    rentalId: bigint("rental_id", { mode: "number" }).references(() => rentals.id, { onDelete: "set null" }),
-    templateId: bigint("template_id", { mode: "number" }).references(() => contractTemplates.id, { onDelete: "set null" }),
+    primaryCustomerId: bigint("primary_customer_id", {
+      mode: "number",
+    }).references(() => customers.id, { onDelete: "set null" }),
+    propertyId: bigint("property_id", { mode: "number" }).references(
+      () => properties.id,
+      { onDelete: "set null" },
+    ),
+    rentalId: bigint("rental_id", { mode: "number" }).references(
+      () => rentals.id,
+      { onDelete: "set null" },
+    ),
+    templateId: bigint("template_id", { mode: "number" }).references(
+      () => contractTemplates.id,
+      { onDelete: "set null" },
+    ),
     status: text("status").notNull().default("draft"),
-    contractDate: timestamp("contract_date", { withTimezone: true }).notNull().defaultNow(),
+    contractDate: timestamp("contract_date", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     startDate: timestamp("start_date", { withTimezone: true }),
     endDate: timestamp("end_date", { withTimezone: true }),
     amount: numeric("amount", { precision: 18, scale: 2 }),
@@ -563,8 +671,12 @@ export const contracts = pgTable(
     notes: text("notes"),
     generatedContent: text("generated_content"),
     generatedAt: timestamp("generated_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index("idx_contracts_type").on(table.contractType),
@@ -579,10 +691,16 @@ export const contracts = pgTable(
 export const contractParties = pgTable(
   "contract_parties",
   {
-    contractId: bigint("contract_id", { mode: "number" }).notNull().references(() => contracts.id, { onDelete: "cascade" }),
-    customerId: bigint("customer_id", { mode: "number" }).notNull().references(() => customers.id, { onDelete: "restrict" }),
+    contractId: bigint("contract_id", { mode: "number" })
+      .notNull()
+      .references(() => contracts.id, { onDelete: "cascade" }),
+    customerId: bigint("customer_id", { mode: "number" })
+      .notNull()
+      .references(() => customers.id, { onDelete: "restrict" }),
     role: text("role").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     primaryKey({ columns: [table.contractId, table.customerId, table.role] }),

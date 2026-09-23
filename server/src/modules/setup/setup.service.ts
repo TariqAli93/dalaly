@@ -46,7 +46,9 @@ function createAdminPool(input: AdminConnectionInput) {
   });
 }
 
-function buildConnectionString(input: AdminConnectionInput & { databaseName: string }) {
+function buildConnectionString(
+  input: AdminConnectionInput & { databaseName: string },
+) {
   const user = encodeURIComponent(input.adminUsername);
   const password = encodeURIComponent(input.adminPassword);
   return `postgres://${user}:${password}@${input.host}:${input.port}/${input.databaseName}`;
@@ -117,7 +119,10 @@ export async function initializeSystem(input: InitializeInput) {
   }
 
   // 4) إنشاء أول Super Admin (idempotent: لا ينشئ تكراراً).
-  const admin = await ensureFirstAdmin(input.firstAdminUsername, input.firstAdminPin);
+  const admin = await ensureFirstAdmin(
+    input.firstAdminUsername,
+    input.firstAdminPin,
+  );
 
   return {
     ok: true as const,

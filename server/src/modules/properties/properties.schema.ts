@@ -4,7 +4,7 @@ import {
   LEGAL_TYPES,
   PRICING_METHODS,
   PROPERTY_TYPES,
-  STATUSES
+  STATUSES,
 } from "../../shared/constants/domain.js";
 
 const optionalText = z
@@ -15,7 +15,12 @@ const optionalText = z
   .transform((value) => (value ? value : null));
 
 const optionalId = z.coerce.number().int().positive().optional().nullable();
-const optionalCount = z.coerce.number().int().nonnegative().optional().nullable();
+const optionalCount = z.coerce
+  .number()
+  .int()
+  .nonnegative()
+  .optional()
+  .nullable();
 
 export const propertyPayloadSchema = z
   .object({
@@ -58,7 +63,7 @@ export const propertyPayloadSchema = z
     rooms_count: optionalCount,
     bathrooms_count: optionalCount,
     is_negotiable: z.coerce.boolean().optional().default(false),
-    amenities: z.record(z.string(), z.unknown()).default({})
+    amenities: z.record(z.string(), z.unknown()).default({}),
   })
   .superRefine((value, ctx) => {
     if (
@@ -68,7 +73,7 @@ export const propertyPayloadSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["unit_price"],
-        message: "سعر الوحدة مطلوب ويجب أن يكون أكبر من صفر."
+        message: "سعر الوحدة مطلوب ويجب أن يكون أكبر من صفر.",
       });
     }
 
@@ -79,7 +84,7 @@ export const propertyPayloadSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["total_price"],
-        message: "السعر الإجمالي المباشر مطلوب ويجب أن يكون أكبر من صفر."
+        message: "السعر الإجمالي المباشر مطلوب ويجب أن يكون أكبر من صفر.",
       });
     }
   });
@@ -104,7 +109,7 @@ export const propertyFiltersSchema = z.object({
   search: z.string().optional(),
   // جاهزية الـ pagination من قاعدة البيانات (اختياري؛ بدونها تُرجع كل النتائج).
   limit: z.coerce.number().int().positive().max(500).optional(),
-  offset: z.coerce.number().int().nonnegative().optional()
+  offset: z.coerce.number().int().nonnegative().optional(),
 });
 
 export type PropertyPayload = z.infer<typeof propertyPayloadSchema>;

@@ -1,8 +1,23 @@
 ﻿import { z } from "zod";
-import { AREA_UNITS, RENTAL_PROPERTY_TYPES, RENTAL_STATUSES, RENT_PERIODS } from "../../shared/constants/domain.js";
+import {
+  AREA_UNITS,
+  RENTAL_PROPERTY_TYPES,
+  RENTAL_STATUSES,
+  RENT_PERIODS,
+} from "../../shared/constants/domain.js";
 
-const optionalText = z.string().trim().optional().nullable().transform((value) => value || null);
-const optionalCount = z.coerce.number().int().nonnegative().optional().nullable();
+const optionalText = z
+  .string()
+  .trim()
+  .optional()
+  .nullable()
+  .transform((value) => value || null);
+const optionalCount = z.coerce
+  .number()
+  .int()
+  .nonnegative()
+  .optional()
+  .nullable();
 const optionalId = z.coerce.number().int().positive().optional().nullable();
 
 export const rentalPayloadSchema = z.object({
@@ -30,7 +45,7 @@ export const rentalPayloadSchema = z.object({
   owner_notes: optionalText,
   status: z.enum(RENTAL_STATUSES).default("available"),
   is_negotiable: z.coerce.boolean().default(false),
-  notes: optionalText
+  notes: optionalText,
 });
 
 export const rentalFiltersSchema = z.object({
@@ -51,7 +66,7 @@ export const rentalFiltersSchema = z.object({
   amenities: z.string().optional(),
   q: z.string().optional(),
   limit: z.coerce.number().int().positive().max(500).optional(),
-  offset: z.coerce.number().int().nonnegative().optional()
+  offset: z.coerce.number().int().nonnegative().optional(),
 });
 
 export type RentalPayload = z.infer<typeof rentalPayloadSchema>;
