@@ -10,6 +10,16 @@ export function getLocations() {
   return request<LocationsResponse>("/locations");
 }
 
+export function seedIraqLocations() {
+  return request<{
+    seeded: true;
+    governoratesCreated: number;
+    governoratesSkipped: number;
+    districtsCreated: number;
+    districtsSkipped: number;
+  }>("/locations/seed/iraq", { method: "POST" });
+}
+
 export function createGovernorate(payload: {
   name: string;
   is_active?: boolean;

@@ -14,6 +14,7 @@ import { config } from "../config.js";
 import { db } from "./db.js";
 import { pool } from "./pool.js";
 import { runDatabaseMigrations } from "./run-migrations.js";
+import { seedIraqLocations } from "./iraq-locations.seed.js";
 import {
   districts,
   companySettings,
@@ -1009,6 +1010,7 @@ async function main() {
   const customerIndex = await seedCustomers();
 
   console.log("→ بذر المواقع…");
+  await seedIraqLocations();
   const locationIndex = await seedLocations();
 
   console.log("→ بذر العروض والصور والمتابعات…");

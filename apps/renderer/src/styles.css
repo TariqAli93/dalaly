@@ -407,9 +407,17 @@ body {
 }
 
 .settings-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 2fr));
   gap: 14px;
+}
+
+.settings-grid > :first-child {
+  grid-column: span 3;
+}
+
+.settings-grid > :last-child {
+  grid-column: span 3;
 }
 
 .dialog-grid {

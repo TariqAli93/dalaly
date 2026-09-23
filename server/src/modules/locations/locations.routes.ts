@@ -1,5 +1,6 @@
 import { type FastifyPluginAsync } from "fastify";
 import { requirePermission } from "../auth/auth.hooks.js";
+import { seedIraqLocations } from "../../infrastructure/database/iraq-locations.seed.js";
 import {
   createDistrict,
   createGovernorate,
@@ -28,6 +29,12 @@ function parseId(value: string) {
 export const locationsRoutes: FastifyPluginAsync = async (app) => {
   // القراءة متاحة لأي مستخدم مصادق (لازمة لنماذج العقار).
   app.get("/", async () => getLocations());
+
+  app.post(
+    "/seed/iraq",
+    { preHandler: requirePermission("locations.manage") },
+    async () => ({ seeded: true, ...(await seedIraqLocations()) }),
+  );
 
   app.post(
     "/governorates",

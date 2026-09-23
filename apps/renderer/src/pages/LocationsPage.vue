@@ -16,6 +16,7 @@ const { setRefreshHandler } = useRefresh();
 
 const selectedGovId = ref<number | null>(null);
 const selectedDistId = ref<number | null>(null);
+const seedingIraqLocations = ref(false);
 
 const selectedDistricts = computed(() =>
   districts.value.filter((d) => d.governorate_id === selectedGovId.value),
@@ -41,6 +42,21 @@ async function refresh() {
   await loadLocations(true);
   if (selectedGovId.value === null && governorates.value.length) {
     selectedGovId.value = governorates.value[0].id;
+  }
+}
+
+async function seedIraqLocations() {
+  if (seedingIraqLocations.value) return;
+
+  seedingIraqLocations.value = true;
+  try {
+    await service.seedIraqLocations();
+    await refresh();
+    notifySuccess("تمت إضافة المحافظات والأقضية العراقية.");
+  } catch (error) {
+    notifyError(getErrorMessage(error));
+  } finally {
+    seedingIraqLocations.value = false;
   }
 }
 
@@ -226,6 +242,17 @@ onMounted(() => {
         <v-card-title class="d-flex align-center">
           <span>المحافظات</span>
           <v-spacer />
+          <v-btn
+            color="secondary"
+            prepend-icon="mdi-map-marker-multiple"
+            :loading="seedingIraqLocations"
+            :disabled="seedingIraqLocations"
+            @click="seedIraqLocations"
+            class="ml-2"
+          >
+            إضافة محافظات العراق تلقائياً
+          </v-btn>
+
           <v-btn
             color="primary"
             prepend-icon="mdi-plus"

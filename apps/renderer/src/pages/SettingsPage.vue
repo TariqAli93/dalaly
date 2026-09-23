@@ -187,23 +187,42 @@ onMounted(() => {
       </v-card>
 
       <v-card variant="flat" border>
-        <v-card-title>المظهر</v-card-title>
+        <v-card-title>الأمان</v-card-title>
         <v-card-text>
-          <div class="d-flex align-center justify-space-between ga-4">
+          <div class="d-flex align-center justify-space-between ga-4 mb-4">
             <div>
-              <div class="font-weight-bold">Light / Dark Mode</div>
+              <div class="font-weight-bold">رمز الدخول PIN</div>
               <div class="text-body-2 text-medium-emphasis">
-                يتم حفظ اختيار الثيم محلياً على هذا الجهاز.
+                غيّر رمز الدخول الخاص بك.
               </div>
             </div>
-            <v-switch
-              :model-value="isDark"
-              color="primary"
-              hide-details
-              inset
-              @update:model-value="toggle"
-            />
+            <v-btn
+              v-if="can('security.change_pin')"
+              variant="tonal"
+              prepend-icon="mdi-form-textbox-password"
+              @click="changePinOpen = true"
+            >
+              تغيير رمز PIN
+            </v-btn>
           </div>
+          <v-select
+            :model-value="idleMinutes"
+            :items="idleOptions"
+            label="تسجيل خروج تلقائي بعد خمول"
+            density="comfortable"
+            hide-details
+            class="mb-4"
+            @update:model-value="setIdleMinutes"
+          />
+          <v-btn
+            block
+            variant="tonal"
+            color="warning"
+            prepend-icon="mdi-lock-outline"
+            @click="lockNow"
+          >
+            قفل الشاشة الآن
+          </v-btn>
         </v-card-text>
       </v-card>
 
@@ -248,46 +267,6 @@ onMounted(() => {
             إيقاف
           </v-btn>
         </v-card-actions>
-      </v-card>
-
-      <v-card variant="flat" border>
-        <v-card-title>الأمان</v-card-title>
-        <v-card-text>
-          <div class="d-flex align-center justify-space-between ga-4 mb-4">
-            <div>
-              <div class="font-weight-bold">رمز الدخول PIN</div>
-              <div class="text-body-2 text-medium-emphasis">
-                غيّر رمز الدخول الخاص بك.
-              </div>
-            </div>
-            <v-btn
-              v-if="can('security.change_pin')"
-              variant="tonal"
-              prepend-icon="mdi-form-textbox-password"
-              @click="changePinOpen = true"
-            >
-              تغيير رمز PIN
-            </v-btn>
-          </div>
-          <v-select
-            :model-value="idleMinutes"
-            :items="idleOptions"
-            label="تسجيل خروج تلقائي بعد خمول"
-            density="comfortable"
-            hide-details
-            class="mb-4"
-            @update:model-value="setIdleMinutes"
-          />
-          <v-btn
-            block
-            variant="tonal"
-            color="warning"
-            prepend-icon="mdi-lock-outline"
-            @click="lockNow"
-          >
-            قفل الشاشة الآن
-          </v-btn>
-        </v-card-text>
       </v-card>
 
       <v-card variant="flat" border>
