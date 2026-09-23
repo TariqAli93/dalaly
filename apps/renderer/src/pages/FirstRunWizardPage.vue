@@ -110,7 +110,7 @@ async function runInitialize() {
     markStagesDone();
     await fetchStatus().catch(() => undefined);
     resultDialog.value = true;
-    notifySuccess("تم إعداد النظام بنجاح.");
+    notifySuccess("تم إعداد النظام.");
   } catch (error) {
     notifyError(getErrorMessage(error));
   } finally {

@@ -87,8 +87,8 @@ const displayed = computed(() => {
 // عدّاد النتائج مع سياق البحث (لا عنوان كبير ولا بطاقة).
 const resultsLabel = computed(() => {
   const n = displayed.value.length;
-  if (filters.value.q) return `${n} نتيجة مطابقة لـ "${filters.value.q}"`;
-  return `${n} ${n === 1 ? "عرض" : "عرض"}`;
+  if (filters.value.q) return `عدد النتائج المطابقة لـ "${filters.value.q}": ${n}`;
+  return `عدد العروض: ${n}`;
 });
 
 // هل توجد فلاتر فعّالة؟ (لتمييز الحالة الفارغة ومسح الكل)
@@ -151,7 +151,7 @@ function askArchive(property: PropertyRecord) {
       await service.archiveProperty(property.id);
       detailsDialog.value = false;
       await refreshData();
-      notifySuccess("تمت أرشفة العرض بنجاح.");
+      notifySuccess("تمت أرشفة العرض.");
     },
   });
 }
@@ -166,7 +166,7 @@ function askRestore(property: PropertyRecord) {
       await service.restoreProperty(property.id);
       detailsDialog.value = false;
       await refreshData();
-      notifySuccess("تم إرجاع العرض إلى المتاح بنجاح.");
+      notifySuccess("تم إرجاع العرض إلى المتاح.");
     },
   });
 }
@@ -183,7 +183,7 @@ function askDelete(property: PropertyRecord) {
         selectedProperty.value = null;
       detailsDialog.value = false;
       await refreshData();
-      notifySuccess("تم حذف العرض بنجاح.");
+      notifySuccess("تم حذف العرض.");
     },
   });
 }
@@ -237,7 +237,7 @@ onMounted(() => {
 <template>
   <AppLayout
     title="العروض العقارية"
-    subtitle="إدارة محلية وسريعة لعروض البيع والتسويق داخل المكتب."
+    subtitle="إدارة عروض البيع داخل المكتب."
   >
     <template #header-actions>
       <div class="d-flex flex-wrap ga-2">

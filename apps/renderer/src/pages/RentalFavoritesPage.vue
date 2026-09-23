@@ -62,7 +62,7 @@ function askArchive(item: RentalRecord) {
         await rentals.archiveRental(item.id);
         detailsDialog.value = false;
         await load();
-        notifySuccess("تمت أرشفة الإيجار بنجاح.");
+        notifySuccess("تمت أرشفة العرض الإيجاري.");
       } catch (error) {
         notifyError(getErrorMessage(error));
       }
@@ -81,7 +81,7 @@ function askRestore(item: RentalRecord) {
         await rentals.restoreRental(item.id);
         detailsDialog.value = false;
         await load();
-        notifySuccess("تم إرجاع الإيجار بنجاح.");
+        notifySuccess("تم إرجاع العرض الإيجاري.");
       } catch (error) {
         notifyError(getErrorMessage(error));
       }
@@ -101,7 +101,7 @@ function askDelete(item: RentalRecord) {
         detailsDialog.value = false;
         selected.value = null;
         await load();
-        notifySuccess("تم حذف الإيجار بنجاح.");
+        notifySuccess("تم حذف العرض الإيجاري.");
       } catch (error) {
         notifyError(getErrorMessage(error));
       }

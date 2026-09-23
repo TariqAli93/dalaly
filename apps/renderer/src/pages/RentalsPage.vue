@@ -99,7 +99,7 @@ const displayed = computed(() => {
     : items.value;
   return sortList(base);
 });
-const resultsLabel = computed(() => `${displayed.value.length} عرض إيجاري`);
+const resultsLabel = computed(() => `عدد العروض الإيجارية: ${displayed.value.length}`);
 const hasActiveFilters = computed(() => {
   const filter = filters.value;
   return Boolean(
@@ -190,7 +190,7 @@ function archive(item: RentalRecord) {
         await rentals.archiveRental(item.id);
         detailsDialog.value = false;
         await load();
-        notifySuccess("تمت أرشفة الإيجار بنجاح.");
+        notifySuccess("تمت أرشفة العرض الإيجاري.");
       } catch (error) {
         notifyError(getErrorMessage(error));
       }
@@ -208,7 +208,7 @@ function restore(item: RentalRecord) {
         await rentals.restoreRental(item.id);
         detailsDialog.value = false;
         await load();
-        notifySuccess("تم إرجاع الإيجار بنجاح.");
+        notifySuccess("تم إرجاع العرض الإيجاري.");
       } catch (error) {
         notifyError(getErrorMessage(error));
       }
@@ -227,7 +227,7 @@ function remove(item: RentalRecord) {
         detailsDialog.value = false;
         selected.value = null;
         await load();
-        notifySuccess("تم حذف الإيجار بنجاح.");
+      notifySuccess("تم حذف العرض الإيجاري.");
       } catch (error) {
         notifyError(getErrorMessage(error));
       }
@@ -262,7 +262,7 @@ onMounted(async () => {
 <template>
   <AppLayout
     title="الإيجارات"
-    subtitle="إدارة محلية وسريعة للعروض الإيجارية داخل المكتب."
+    subtitle="إدارة العروض الإيجارية داخل المكتب."
   >
     <template #header-actions>
       <div class="d-flex flex-wrap ga-2">

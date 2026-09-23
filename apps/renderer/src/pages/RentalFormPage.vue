@@ -132,7 +132,7 @@ async function save() {
         const result = await requests.rentalRequestMatches(savedId);
         matches.value = result.matches;
         if (result.count) {
-          notifySuccess(`تم العثور على ${result.count} طلبات إيجار مطابقة.`);
+          notifySuccess(`طلبات الإيجار المطابقة: ${result.count}.`);
           pendingRedirect.value = destination;
         }
       } catch {
@@ -186,7 +186,7 @@ onMounted(async () => {
 <template>
   <AppLayout
     :title="isEditing ? 'تعديل عرض إيجاري' : 'إضافة عرض إيجاري'"
-    subtitle="نموذج مستقل للعروض الإيجارية."
+    subtitle="بيانات العرض الإيجاري."
   >
     <RentalForm
       ref="formRef"

@@ -85,7 +85,7 @@ defineExpose({ validate, computedTotal });
             v-model="model.legal_type"
             :items="LEGAL_TYPES"
             :rules="[required]"
-            label="جنس الأرض / الصفة القانونية"
+            label="الصفة القانونية"
           />
           <v-select
             v-model="model.status"
@@ -158,7 +158,7 @@ defineExpose({ validate, computedTotal });
         </div>
 
         <v-divider class="my-4" />
-        <div class="text-subtitle-2 mb-2">الملحقات / المميزات</div>
+        <div class="text-subtitle-2 mb-2">المميزات</div>
         <v-chip-group v-model="amenities" column multiple>
           <v-chip
             v-for="item in AMENITY_OPTIONS"
@@ -214,7 +214,7 @@ defineExpose({ validate, computedTotal });
         >
           <v-expansion-panel>
             <v-expansion-panel-title>
-              حقول عقارية إضافية (اختيارية)
+              بيانات إضافية (اختيارية)
             </v-expansion-panel-title>
             <v-expansion-panel-text>
               <div class="form-grid">

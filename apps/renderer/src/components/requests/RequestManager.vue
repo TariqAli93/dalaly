@@ -237,7 +237,7 @@ async function save() {
     matches.value = result.matches;
     dialog.value = false;
     await load();
-    notifySuccess(`${endpointLabel.value} محفوظ. ${result.count} عروض مطابقة.`);
+    notifySuccess(`تم حفظ ${endpointLabel.value}. العروض المطابقة: ${result.count}.`);
     if (result.count) matchDialog.value = true;
   } catch (error) {
     notifyError(getErrorMessage(error));
@@ -263,7 +263,7 @@ onMounted(async () => {
 <template>
   <AppLayout
     :title="title"
-    subtitle="طلبات منظمة مرتبطة بالعملاء مع مطابقة تلقائية للعروض المتاحة."
+    subtitle="طلبات العملاء ومطابقتها بالعروض المتاحة."
   >
     <template #header-actions
       ><v-btn

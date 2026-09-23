@@ -457,7 +457,7 @@ body {
 }
 
 .money {
-  direction: ltr;
+  direction: rtl;
   unicode-bidi: isolate;
   display: inline-block;
 }

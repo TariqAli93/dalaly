@@ -149,7 +149,7 @@ async function save() {
     return;
   }
   if (!isPayloadValid()) {
-    notifyError("لا يمكن حفظ عرض بدون سعر كلي صحيح وبيانات مالك.");
+    notifyError("تعذر حفظ العرض: أدخل سعراً إجمالياً صحيحاً وبيانات المالك.");
     return;
   }
 
@@ -168,18 +168,18 @@ async function save() {
     let savedId = editingId.value;
     if (editingId.value !== null) {
       await service.updateProperty(editingId.value, payload);
-      notifySuccess("تم تحديث العرض بنجاح.");
+      notifySuccess("تم تحديث العرض.");
     } else {
       const created = await service.createProperty(payload);
       savedId = created.id;
-      notifySuccess("تمت إضافة العرض بنجاح.");
+      notifySuccess("تمت إضافة العرض.");
     }
     if (savedId !== null) {
       try {
         const result = await requests.purchaseRequestMatches(savedId);
         matches.value = result.matches;
         if (result.count) {
-          notifySuccess(`تم العثور على ${result.count} طلبات شراء مطابقة.`);
+          notifySuccess(`طلبات الشراء المطابقة: ${result.count}.`);
           pendingRedirect.value = "/properties";
         }
       } catch {

@@ -81,6 +81,29 @@ export type DashboardSummary = {
   top_districts: Array<{ name: string | null; count: number }>;
   needs_review: PropertyRecord[];
   reminders: ReminderRecord[];
+  sales: {
+    by_type: Array<{ name: string; count: number }>;
+    monthly_activity: Array<{ month: string; created: number }>;
+  };
+  rentals: {
+    counts: {
+      total: number;
+      active: number;
+      available: number;
+      reserved: number;
+      negotiating: number;
+      rented: number;
+      archived: number;
+    };
+    financial: {
+      monthly_value: number;
+      avg_monthly_price: number;
+      available_monthly_value: number;
+      rented_monthly_value: number;
+    };
+    by_type: Array<{ name: string; count: number }>;
+    monthly_activity: Array<{ month: string; created: number }>;
+  };
 };
 
 export type ImportValidation = {

@@ -235,23 +235,25 @@ onMounted(() => {
 <template>
   <AppLayout
     title="المحافظات والمناطق والأحياء"
-    subtitle="تسريع إدخال العقارات والفلترة."
+    subtitle="اختيار مواقع العقارات عند إدخالها والبحث فيها."
   >
+    <template #header-actions>
+      <v-btn
+        color="secondary"
+        prepend-icon="mdi-map-marker-multiple"
+        :loading="seedingIraqLocations"
+        :disabled="seedingIraqLocations"
+        @click="seedIraqLocations"
+        class="ml-2"
+      >
+        إضافة محافظات العراق تلقائياً
+      </v-btn>
+    </template>
     <div class="flex gap-4">
       <v-card variant="flat" border class="w-full md:w-1/3">
         <v-card-title class="d-flex align-center">
           <span>المحافظات</span>
           <v-spacer />
-          <v-btn
-            color="secondary"
-            prepend-icon="mdi-map-marker-multiple"
-            :loading="seedingIraqLocations"
-            :disabled="seedingIraqLocations"
-            @click="seedIraqLocations"
-            class="ml-2"
-          >
-            إضافة محافظات العراق تلقائياً
-          </v-btn>
 
           <v-btn
             color="primary"

@@ -71,7 +71,7 @@ async function exportManualBackup() {
   exporting.value = true;
   try {
     const result = await backupService.exportBackup(selected.filePath);
-    notifySuccess(`تم تصدير النسخة الاحتياطية بنجاح إلى: ${result.file_path}`);
+    notifySuccess(`تم تصدير النسخة الاحتياطية إلى: ${result.file_path}`);
     await load();
   } catch (error) {
     notifyError(getErrorMessage(error));
@@ -161,7 +161,7 @@ async function runRestore() {
       data: restoreData.value || undefined,
     });
     restoreOpen.value = false;
-    notifySuccess("تم الاسترجاع بنجاح. قد تحتاج لإعادة تسجيل الدخول.");
+    notifySuccess("تم استرجاع النسخة الاحتياطية. قد تحتاج إلى إعادة تسجيل الدخول.");
     await load();
   } catch (error) {
     notifyError(getErrorMessage(error));

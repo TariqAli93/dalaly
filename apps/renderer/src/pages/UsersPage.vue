@@ -128,7 +128,7 @@ onMounted(() => {
         <v-empty-state
           v-if="!users.length"
           icon="mdi-account-group-outline"
-          title="لا توجد مستخدمون"
+          title="لا يوجد مستخدمون"
         />
         <v-table v-else density="comfortable">
           <thead>
@@ -159,7 +159,7 @@ onMounted(() => {
                   :color="user.is_active ? 'success' : undefined"
                   variant="tonal"
                 >
-                  {{ user.is_active ? "فعال" : "معطل" }}
+                  {{ user.is_active ? "نشط" : "معطل" }}
                 </v-chip>
               </td>
               <td class="text-end">

@@ -34,7 +34,7 @@ async function submit() {
   <v-form @submit.prevent="submit">
     <div class="text-h6 mb-2">تسجيل الدخول</div>
     <div class="text-body-2 text-medium-emphasis mb-5">
-      الدخول محلي باستخدام Username وPIN فقط.
+      الدخول إلى التطبيق باستخدام اسم المستخدم وPIN.
     </div>
     <v-text-field
       v-model="form.username"

@@ -126,7 +126,7 @@ onMounted(load);
 <template>
   <AppLayout
     title="العملاء"
-    subtitle="سجل مركزي للعملاء المرتبطين بالطلبات والمستندات والعقود."
+    subtitle="بيانات العملاء المرتبطين بالطلبات والمستندات والعقود."
   >
     <template #header-actions
       ><v-btn
