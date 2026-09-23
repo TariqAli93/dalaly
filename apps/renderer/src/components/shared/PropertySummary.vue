@@ -75,15 +75,17 @@ const rows = computed(() => {
           {{ property.code }} · {{ property.property_type }}
         </div>
       </div>
-      <StatusChip :status="property.status" />
-      <FavoriteButton :property-id="property.id" />
-      <v-btn
-        icon="mdi-close"
-        size="x-small"
-        variant="text"
-        aria-label="إغلاق التفاصيل"
-        @click="emit('close')"
-      />
+      <div class="flex items-center gap-2">
+        <StatusChip :status="property.status" />
+        <FavoriteButton :property-id="property.id" />
+        <v-btn
+          icon="mdi-close"
+          size="x-small"
+          variant="text"
+          aria-label="إغلاق التفاصيل"
+          @click="emit('close')"
+        />
+      </div>
     </div>
 
     <v-divider />
@@ -209,7 +211,8 @@ const rows = computed(() => {
 .ps__head {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 0px;
   padding-bottom: 8px;
 }
 .ps__code {

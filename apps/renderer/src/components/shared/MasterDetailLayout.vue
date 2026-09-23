@@ -35,11 +35,11 @@ const emit = defineEmits<{ close: [] }>();
 .dal-md__detail {
   flex: 0 0 340px;
   width: 340px;
-  align-self: stretch;
+  align-self: flex-start;
   border-inline-start: 1px solid var(--dal-stroke);
   background: rgb(var(--v-theme-surface));
   position: sticky;
-  top: 8px;
+  top: 45px;
   max-height: calc(100vh - 60px);
   overflow: auto;
 }

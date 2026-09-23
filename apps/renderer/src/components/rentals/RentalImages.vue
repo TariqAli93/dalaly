@@ -145,12 +145,7 @@ onMounted(() => void load());
         </div>
       </div>
     </div>
-    <v-empty-state
-      v-else-if="!loading"
-      icon="mdi-image-off-outline"
-      title="لا توجد صور"
-      text="أضف صوراً لهذا العرض الإيجاري."
-    />
+    <v-empty-state v-else-if="!loading" icon="mdi-image-off-outline" />
     <v-btn
       v-if="canManage"
       variant="tonal"
