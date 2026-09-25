@@ -161,11 +161,6 @@ async function load() {
     };
     lastLoadedAt.value = new Date();
     loadError.value = null;
-    console.info("[Dalaly][Dashboard] summary loaded", {
-      properties: dashboard.counts.total,
-      rentals: dashboard.rentals?.counts.total ?? 0,
-      reminders: dashboard.reminders.length,
-    });
   } catch (error) {
     const message = getErrorMessage(error);
     loadError.value = message;
