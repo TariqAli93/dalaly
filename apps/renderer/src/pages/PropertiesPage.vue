@@ -87,7 +87,8 @@ const displayed = computed(() => {
 // عدّاد النتائج مع سياق البحث (لا عنوان كبير ولا بطاقة).
 const resultsLabel = computed(() => {
   const n = displayed.value.length;
-  if (filters.value.q) return `عدد النتائج المطابقة لـ "${filters.value.q}": ${n}`;
+  if (filters.value.q)
+    return `عدد النتائج المطابقة لـ "${filters.value.q}": ${n}`;
   return `عدد العروض: ${n}`;
 });
 
@@ -235,10 +236,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <AppLayout
-    title="العروض العقارية"
-    subtitle="إدارة عروض البيع داخل المكتب."
-  >
+  <AppLayout title="العروض العقارية" subtitle="إدارة عروض البيع داخل المكتب.">
     <template #header-actions>
       <div class="d-flex flex-wrap ga-2">
         <v-btn

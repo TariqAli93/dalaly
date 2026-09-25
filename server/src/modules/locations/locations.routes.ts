@@ -74,12 +74,10 @@ export const locationsRoutes: FastifyPluginAsync = async (app) => {
           return reply.code(404).send({ message: "المحافظة غير موجودة." });
         return { deleted: true, governorate };
       } catch (error) {
-        return reply
-          .code(400)
-          .send({
-            message:
-              error instanceof Error ? error.message : "تعذر حذف المحافظة.",
-          });
+        return reply.code(400).send({
+          message:
+            error instanceof Error ? error.message : "تعذر حذف المحافظة.",
+        });
       }
     },
   );
@@ -122,12 +120,9 @@ export const locationsRoutes: FastifyPluginAsync = async (app) => {
           return reply.code(404).send({ message: "المنطقة غير موجودة." });
         return { deleted: true, district };
       } catch (error) {
-        return reply
-          .code(400)
-          .send({
-            message:
-              error instanceof Error ? error.message : "تعذر حذف المنطقة.",
-          });
+        return reply.code(400).send({
+          message: error instanceof Error ? error.message : "تعذر حذف المنطقة.",
+        });
       }
     },
   );
@@ -168,11 +163,9 @@ export const locationsRoutes: FastifyPluginAsync = async (app) => {
           return reply.code(404).send({ message: "الحي غير موجود." });
         return { deleted: true, neighborhood };
       } catch (error) {
-        return reply
-          .code(400)
-          .send({
-            message: error instanceof Error ? error.message : "تعذر حذف الحي.",
-          });
+        return reply.code(400).send({
+          message: error instanceof Error ? error.message : "تعذر حذف الحي.",
+        });
       }
     },
   );

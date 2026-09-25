@@ -90,6 +90,7 @@ export const propertyPayloadSchema = z
   });
 
 export const propertyFiltersSchema = z.object({
+  name: z.string().optional(),
   property_type: z.enum(PROPERTY_TYPES).optional(),
   legal_type: z.enum(LEGAL_TYPES).optional(),
   area_unit: z.enum(AREA_UNITS).optional(),

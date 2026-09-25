@@ -154,15 +154,13 @@ export async function createContract(payload: ContractPayload) {
       .insert(contracts)
       .values({ ...(await normalize(payload)), code: await generateCode() })
       .returning();
-    await tx
-      .insert(contractParties)
-      .values(
-        payload.parties.map((party) => ({
-          contractId: row.id,
-          customerId: party.customer_id,
-          role: party.role,
-        })),
-      );
+    await tx.insert(contractParties).values(
+      payload.parties.map((party) => ({
+        contractId: row.id,
+        customerId: party.customer_id,
+        role: party.role,
+      })),
+    );
     return row;
   });
   const result = await generateContract(created.id);
@@ -186,15 +184,13 @@ export async function updateContract(id: number, payload: ContractPayload) {
       .returning();
     if (!row) return null;
     await tx.delete(contractParties).where(eq(contractParties.contractId, id));
-    await tx
-      .insert(contractParties)
-      .values(
-        payload.parties.map((party) => ({
-          contractId: id,
-          customerId: party.customer_id,
-          role: party.role,
-        })),
-      );
+    await tx.insert(contractParties).values(
+      payload.parties.map((party) => ({
+        contractId: id,
+        customerId: party.customer_id,
+        role: party.role,
+      })),
+    );
     return row;
   });
   return updated ? generateContract(id) : null;

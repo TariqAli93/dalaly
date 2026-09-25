@@ -66,11 +66,9 @@ export const rolesRoutes: FastifyPluginAsync = async (app) => {
         if (!role) return reply.code(404).send({ message: "الدور غير موجود." });
         return { deleted: true, role };
       } catch (error) {
-        return reply
-          .code(400)
-          .send({
-            message: error instanceof Error ? error.message : "تعذر حذف الدور.",
-          });
+        return reply.code(400).send({
+          message: error instanceof Error ? error.message : "تعذر حذف الدور.",
+        });
       }
     },
   );

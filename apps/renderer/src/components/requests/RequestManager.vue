@@ -237,7 +237,9 @@ async function save() {
     matches.value = result.matches;
     dialog.value = false;
     await load();
-    notifySuccess(`تم حفظ ${endpointLabel.value}. العروض المطابقة: ${result.count}.`);
+    notifySuccess(
+      `تم حفظ ${endpointLabel.value}. العروض المطابقة: ${result.count}.`,
+    );
     if (result.count) matchDialog.value = true;
   } catch (error) {
     notifyError(getErrorMessage(error));
@@ -261,10 +263,7 @@ onMounted(async () => {
 });
 </script>
 <template>
-  <AppLayout
-    :title="title"
-    subtitle="طلبات العملاء ومطابقتها بالعروض المتاحة."
-  >
+  <AppLayout :title="title" subtitle="طلبات العملاء ومطابقتها بالعروض المتاحة.">
     <template #header-actions
       ><v-btn
         v-if="can('requests.create')"

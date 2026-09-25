@@ -99,7 +99,9 @@ const displayed = computed(() => {
     : items.value;
   return sortList(base);
 });
-const resultsLabel = computed(() => `عدد العروض الإيجارية: ${displayed.value.length}`);
+const resultsLabel = computed(
+  () => `عدد العروض الإيجارية: ${displayed.value.length}`,
+);
 const hasActiveFilters = computed(() => {
   const filter = filters.value;
   return Boolean(
@@ -227,7 +229,7 @@ function remove(item: RentalRecord) {
         detailsDialog.value = false;
         selected.value = null;
         await load();
-      notifySuccess("تم حذف العرض الإيجاري.");
+        notifySuccess("تم حذف العرض الإيجاري.");
       } catch (error) {
         notifyError(getErrorMessage(error));
       }
@@ -260,10 +262,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <AppLayout
-    title="الإيجارات"
-    subtitle="إدارة العروض الإيجارية داخل المكتب."
-  >
+  <AppLayout title="الإيجارات" subtitle="إدارة العروض الإيجارية داخل المكتب.">
     <template #header-actions>
       <div class="d-flex flex-wrap ga-2">
         <v-btn

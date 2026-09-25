@@ -23,7 +23,7 @@ async function submit() {
   loading.value = true;
   try {
     await changePin(form.value.current, form.value.next);
-  notifySuccess("تم تغيير رمز PIN.");
+    notifySuccess("تم تغيير رمز PIN.");
     form.value = { current: "", next: "", confirm: "" };
     open.value = false;
   } catch (error) {

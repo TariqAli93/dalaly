@@ -1,5 +1,10 @@
 export type PropertyStatus =
-  "available" | "reserved" | "negotiating" | "sold" | "rented" | "archived";
+  | "available"
+  | "reserved"
+  | "negotiating"
+  | "sold"
+  | "rented"
+  | "archived";
 
 export type PropertyRecord = {
   id: number;
@@ -90,6 +95,7 @@ export type PropertyForm = {
 };
 
 export type PropertyFilters = {
+  name: string;
   property_type: string;
   legal_type: string;
   area_unit: string;

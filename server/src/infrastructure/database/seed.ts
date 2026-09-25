@@ -897,15 +897,13 @@ async function seedContracts(customerIndex: CustomerIndex) {
       })
       .returning({ id: contracts.id });
 
-    await db
-      .insert(contractParties)
-      .values(
-        partyRows.map((party) => ({
-          contractId: contract.id,
-          customerId: party.customerId,
-          role: party.role,
-        })),
-      );
+    await db.insert(contractParties).values(
+      partyRows.map((party) => ({
+        contractId: contract.id,
+        customerId: party.customerId,
+        role: party.role,
+      })),
+    );
     await generateContract(contract.id);
     bump(created, "contracts");
     bump(created, "contract_parties");

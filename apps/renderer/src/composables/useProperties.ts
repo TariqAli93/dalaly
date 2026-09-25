@@ -6,6 +6,7 @@ import { useSnackbar } from "./useSnackbar";
 
 function emptyFilters(): PropertyFilters {
   return {
+    name: "",
     property_type: "",
     legal_type: "",
     area_unit: "",

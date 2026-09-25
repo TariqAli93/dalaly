@@ -63,7 +63,10 @@ export async function getDashboard() {
   };
 
   const salesByTypeRows = await db
-    .select({ name: properties.propertyType, count: sql<number>`count(*)::int` })
+    .select({
+      name: properties.propertyType,
+      count: sql<number>`count(*)::int`,
+    })
     .from(properties)
     .where(ne(properties.status, "archived"))
     .groupBy(properties.propertyType)
@@ -160,9 +163,7 @@ export async function getDashboard() {
     available_monthly_value: Number(
       rentalFinancialRow?.available_monthly_value ?? 0,
     ),
-    rented_monthly_value: Number(
-      rentalFinancialRow?.rented_monthly_value ?? 0,
-    ),
+    rented_monthly_value: Number(rentalFinancialRow?.rented_monthly_value ?? 0),
   };
 
   const latestRows = await db

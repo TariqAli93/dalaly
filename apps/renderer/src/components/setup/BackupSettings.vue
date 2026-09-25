@@ -161,7 +161,9 @@ async function runRestore() {
       data: restoreData.value || undefined,
     });
     restoreOpen.value = false;
-    notifySuccess("تم استرجاع النسخة الاحتياطية. قد تحتاج إلى إعادة تسجيل الدخول.");
+    notifySuccess(
+      "تم استرجاع النسخة الاحتياطية. قد تحتاج إلى إعادة تسجيل الدخول.",
+    );
     await load();
   } catch (error) {
     notifyError(getErrorMessage(error));

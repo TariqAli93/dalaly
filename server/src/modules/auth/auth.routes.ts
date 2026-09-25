@@ -64,11 +64,9 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     }
 
     if (!(await tableExists("users"))) {
-      return reply
-        .code(503)
-        .send({
-          message: "قاعدة البيانات غير جاهزة. تعذر العثور على جدول المستخدمين.",
-        });
+      return reply.code(503).send({
+        message: "قاعدة البيانات غير جاهزة. تعذر العثور على جدول المستخدمين.",
+      });
     }
 
     const exists = await adminExists();
