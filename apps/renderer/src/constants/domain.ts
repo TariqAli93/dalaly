@@ -25,7 +25,6 @@ export const STATUSES = [
   { title: "مباع", value: "sold" },
   { title: "مؤجر", value: "rented" },
   { title: "مؤرشف", value: "archived" },
-  { title: "مفتوح", value: "open" },
   { title: "مغلق", value: "closed" },
   { title: "تمت المطابقة", value: "matched" },
 ];

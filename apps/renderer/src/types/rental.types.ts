@@ -1,8 +1,45 @@
 ﻿export type RentalPropertyType =
-  "house" | "apartment" | "shop" | "warehouse" | "other";
+  | "house"
+  | "apartment"
+  | "shop"
+  | "warehouse"
+  | "other";
 export type RentPeriod = "monthly" | "semi_annual" | "annual";
 export type RentalStatus =
-  "available" | "reserved" | "negotiating" | "rented" | "archived";
+  | "available"
+  | "reserved"
+  | "negotiating"
+  | "rented"
+  | "sold"
+  | "closed"
+  | "open"
+  | "matched"
+  | "archived"
+  | "unavailable"
+  | "pending"
+  | "draft"
+  | "rejected"
+  | "approved"
+  | "inactive"
+  | "active"
+  | "deleted"
+  | "expired"
+  | "suspended"
+  | "terminated"
+  | "cancelled"
+  | "completed"
+  | "in_progress"
+  | "on_hold"
+  | "under_review"
+  | "awaiting_payment"
+  | "payment_received"
+  | "payment_failed"
+  | "shipped"
+  | "delivered"
+  | "returned"
+  | "refunded"
+  | "unknown"
+  | "custom";
 export type RentalImage = {
   id: number;
   rental_id: number;
