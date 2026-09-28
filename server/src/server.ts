@@ -2,13 +2,13 @@ import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { ZodError } from "zod";
 import { config } from "./infrastructure/config.js";
-import { DuplicatePlotError } from "./shared/errors.js";
+import { ContractValidationError, DuplicatePlotError } from "./shared/errors.js";
 import { getSetupStatus } from "./infrastructure/database/health.js";
 import { registerAuthHook } from "./modules/auth/auth.hooks.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { backupRoutes } from "./modules/backup/backup.routes.js";
 import { dashboardRoutes } from "./modules/dashboard/dashboard.routes.js";
-import { customersRoutes } from "./modules/customers/customers.routes.js";
+import { peopleRoutes } from "./modules/people/people.routes.js";
 import { rentalRequestsRoutes } from "./modules/rental-requests/rental-requests.routes.js";
 import { purchaseRequestsRoutes } from "./modules/purchase-requests/purchase-requests.routes.js";
 import { matchingRoutes } from "./modules/matching/matching.routes.js";
@@ -63,6 +63,13 @@ export async function buildServer() {
       return reply.code(409).send({ message: error.message });
     }
 
+    if (error instanceof ContractValidationError) {
+      return reply.code(400).send({
+        message: "لا يمكن إصدار العقد قبل إكمال المتطلبات.",
+        issues: error.issues,
+      });
+    }
+
     app.log.error(error);
     return reply.code(500).send({
       message: "حدث خطأ أثناء تنفيذ العملية.",
@@ -86,16 +93,14 @@ export async function buildServer() {
   await app.register(permissionsRoutes, { prefix: "/api/permissions" });
   await app.register(statsRoutes, { prefix: "/api/stats" });
   await app.register(dashboardRoutes, { prefix: "/api/dashboard" });
-  await app.register(customersRoutes, { prefix: "/api/customers" });
+  await app.register(peopleRoutes, { prefix: "/api/people" });
   await app.register(rentalRequestsRoutes, { prefix: "/api/rental-requests" });
   await app.register(purchaseRequestsRoutes, {
     prefix: "/api/purchase-requests",
   });
   await app.register(matchingRoutes, { prefix: "/api/matching" });
   await app.register(documentsRoutes, { prefix: "/api/documents" });
-  await app.register(companySettingsRoutes, {
-    prefix: "/api/company-settings",
-  });
+  await app.register(companySettingsRoutes, { prefix: "/api/office" });
   await app.register(contractsRoutes, { prefix: "/api/contracts" });
   await app.register(locationsRoutes, { prefix: "/api/locations" });
   await app.register(favoritesRoutes, { prefix: "/api/favorites" });

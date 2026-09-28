@@ -74,11 +74,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, permission: "rentals.read" },
   },
   {
-    path: "/customers",
-    name: "customers",
-    component: () => import("../pages/CustomersPage.vue"),
-    meta: { requiresAuth: true, permission: "customers.read" },
+    path: "/people",
+    name: "people",
+    component: () => import("../pages/PeoplePage.vue"),
+    meta: { requiresAuth: true, permission: "people.read" },
   },
+  { path: "/customers", redirect: "/people" },
   {
     path: "/rental-requests",
     name: "rental-requests",

@@ -46,7 +46,7 @@ const NAV_GROUPS: { title: string; paths: string[] }[] = [
 ];
 
 NAV_GROUPS[1].paths.push(
-  "/customers",
+  "/people",
   "/rental-requests",
   "/purchase-requests",
   "/documents",

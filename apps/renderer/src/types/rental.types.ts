@@ -71,7 +71,7 @@ export type RentalRecord = {
   district: string | null;
   neighborhood: string | null;
   address_details: string | null;
-  owner_customer_id: number | null;
+  owner_person_id: number | null;
   owner_name: string;
   owner_phone: string;
   owner_notes: string | null;
@@ -101,7 +101,7 @@ export type RentalForm = {
   district: string;
   neighborhood: string;
   address_details: string;
-  owner_customer_id: number | null;
+  owner_person_id: number | null;
   owner_name: string;
   owner_phone: string;
   owner_notes: string;

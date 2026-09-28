@@ -17,13 +17,13 @@ import { runDatabaseMigrations } from "./run-migrations.js";
 import { seedIraqLocations } from "./iraq-locations.seed.js";
 import {
   districts,
-  companySettings,
+  officeProfiles,
   contractParties,
   contractTemplates,
   contracts,
-  customers,
+  people,
   documentTypes,
-  documents,
+  identityDocuments,
   favoriteProperties,
   favoriteRentals,
   governorates,
@@ -122,8 +122,8 @@ async function resetSeedData() {
     .delete(contracts)
     .where(inArray(contracts.code, seededContractCodes));
   await db
-    .delete(documents)
-    .where(inArray(documents.code, seededDocumentCodes));
+    .delete(identityDocuments)
+    .where(inArray(identityDocuments.code, seededDocumentCodes));
   await db
     .delete(rentalRequests)
     .where(inArray(rentalRequests.code, seededRentalRequestCodes));
@@ -132,8 +132,8 @@ async function resetSeedData() {
     .where(inArray(purchaseRequests.code, seededPurchaseRequestCodes));
   await db.delete(rentals).where(inArray(rentals.code, seededRentalCodes));
   await db
-    .delete(customers)
-    .where(inArray(customers.code, seededCustomerCodes));
+    .delete(people)
+    .where(inArray(people.code, seededCustomerCodes));
 
   // الحذف بالترتيب الآمن — بقية الجداول مرتبطة بـ ON DELETE CASCADE.
   await db.delete(favoriteProperties);
@@ -244,9 +244,9 @@ async function seedCustomers(): Promise<CustomerIndex> {
 
   for (const customer of SEED_CUSTOMERS) {
     const [existing] = await db
-      .select({ id: customers.id })
-      .from(customers)
-      .where(eq(customers.code, customer.code))
+      .select({ id: people.id })
+      .from(people)
+      .where(eq(people.code, customer.code))
       .limit(1);
 
     let customerId = existing?.id;
@@ -254,7 +254,7 @@ async function seedCustomers(): Promise<CustomerIndex> {
       bump(skipped, "customers");
     } else {
       const [createdCustomer] = await db
-        .insert(customers)
+        .insert(people)
         .values({
           code: customer.code,
           fullName: customer.fullName,
@@ -263,11 +263,11 @@ async function seedCustomers(): Promise<CustomerIndex> {
           email: customer.email ?? null,
           address: customer.address ?? null,
           nationalId: customer.nationalId ?? null,
-          customerType: customer.customerType,
+          personType: customer.customerType,
           status: customer.status,
           notes: customer.notes ?? null,
         })
-        .returning({ id: customers.id });
+        .returning({ id: people.id });
       customerId = createdCustomer.id;
       bump(created, "customers");
     }
@@ -568,7 +568,7 @@ async function seedRentals(
             SEED_CUSTOMERS.find(
               (customer) => customer.code === seed.customerCode,
             )?.phonePrimary ?? "07700000000",
-          ownerCustomerId: customerId,
+        ownerPersonId: customerId,
           status: seed.status,
           isNegotiable: seed.isNegotiable,
           notes: seed.notes ?? null,
@@ -700,7 +700,7 @@ async function seedRentalRequests(
 
     await db.insert(rentalRequests).values({
       code: seed.code,
-      customerId,
+      personId: customerId,
       propertyType: seed.propertyType,
       rentPeriod: seed.rentPeriod ?? null,
       budgetMin: seed.budgetMin == null ? null : String(seed.budgetMin),
@@ -747,7 +747,7 @@ async function seedPurchaseRequests(
 
     await db.insert(purchaseRequests).values({
       code: seed.code,
-      customerId,
+      personId: customerId,
       propertyType: seed.propertyType,
       budgetMin: seed.budgetMin == null ? null : String(seed.budgetMin),
       budgetMax: seed.budgetMax == null ? null : String(seed.budgetMax),
@@ -780,9 +780,9 @@ async function seedDocuments(customerIndex: CustomerIndex) {
 
   for (const seed of SEED_DOCUMENTS) {
     const [existing] = await db
-      .select({ id: documents.id })
-      .from(documents)
-      .where(eq(documents.code, seed.code))
+      .select({ id: identityDocuments.id })
+      .from(identityDocuments)
+      .where(eq(identityDocuments.code, seed.code))
       .limit(1);
     if (existing) {
       bump(skipped, "documents");
@@ -794,14 +794,14 @@ async function seedDocuments(customerIndex: CustomerIndex) {
     if (!customerId || !documentTypeId) continue;
 
     const stored = saveManagedFile(
-      `customers/${customerId}`,
+      `people/${customerId}`,
       DEMO_DOCUMENT_DATA,
       seed.originalName,
       "text/plain",
     );
-    await db.insert(documents).values({
+    await db.insert(identityDocuments).values({
       code: seed.code,
-      customerId,
+      personId: customerId,
       documentTypeId,
       documentName: seed.name,
       filePath: stored.filePath,
@@ -818,13 +818,13 @@ async function seedDocuments(customerIndex: CustomerIndex) {
 async function seedCompanySettings() {
   const [existing] = await db
     .select()
-    .from(companySettings)
-    .where(eq(companySettings.id, 1))
+    .from(officeProfiles)
+    .where(eq(officeProfiles.id, 1))
     .limit(1);
 
   if (!existing) {
     await db
-      .insert(companySettings)
+      .insert(officeProfiles)
       .values({ id: 1, ...SEED_COMPANY_SETTINGS });
     bump(created, "company_settings");
     return;
@@ -832,9 +832,9 @@ async function seedCompanySettings() {
 
   if (!existing.companyName) {
     await db
-      .update(companySettings)
+      .update(officeProfiles)
       .set({ ...SEED_COMPANY_SETTINGS, updatedAt: new Date() })
-      .where(eq(companySettings.id, 1));
+      .where(eq(officeProfiles.id, 1));
     bump(created, "company_settings");
   } else {
     bump(skipped, "company_settings");
@@ -863,12 +863,12 @@ async function seedContracts(customerIndex: CustomerIndex) {
       continue;
     }
 
-    const primaryCustomerId = customerIndex.byCode.get(seed.customerCode);
-    const partyRows: Array<{ customerId: number; role: string }> = [];
+    const primaryPersonId = customerIndex.byCode.get(seed.customerCode);
+    const partyRows: Array<{ personId: number; role: string }> = [];
     for (const party of seed.parties) {
       const customerId = customerIndex.byCode.get(party.customerCode);
       if (customerId !== undefined)
-        partyRows.push({ customerId, role: party.role });
+        partyRows.push({ personId: customerId, role: party.role === "landlord" ? "lessor" : "lessee" });
     }
     const [rental] = await db
       .select({ id: rentals.id })
@@ -876,7 +876,7 @@ async function seedContracts(customerIndex: CustomerIndex) {
       .where(eq(rentals.code, seed.rentalCode))
       .limit(1);
     const templateId = templateIds.get(seed.contractType);
-    if (!primaryCustomerId || !rental || !templateId || !partyRows.length)
+    if (!primaryPersonId || !rental || !templateId || !partyRows.length)
       continue;
 
     const [contract] = await db
@@ -884,7 +884,6 @@ async function seedContracts(customerIndex: CustomerIndex) {
       .values({
         code: seed.code,
         contractType: seed.contractType,
-        primaryCustomerId,
         rentalId: rental.id,
         templateId,
         status: seed.status,
@@ -900,7 +899,7 @@ async function seedContracts(customerIndex: CustomerIndex) {
     await db.insert(contractParties).values(
       partyRows.map((party) => ({
         contractId: contract.id,
-        customerId: party.customerId,
+        personId: party.personId,
         role: party.role,
       })),
     );

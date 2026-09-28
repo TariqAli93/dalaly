@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import {
-  customers,
+  people,
   properties,
   purchaseRequests,
   rentalRequests,
@@ -356,11 +356,11 @@ export async function findRentalRequestMatches(
   const requests = await db
     .select({
       request: rentalRequests,
-      customerName: customers.fullName,
-      customerCode: customers.code,
+      customerName: people.fullName,
+      customerCode: people.code,
     })
     .from(rentalRequests)
-    .innerJoin(customers, eq(rentalRequests.customerId, customers.id))
+    .innerJoin(people, eq(rentalRequests.personId, people.id))
     .where(eq(rentalRequests.status, "open"));
   return requests
     .map(({ request, customerName, customerCode }) => ({
@@ -416,11 +416,11 @@ export async function findPurchaseRequestMatches(
   const requests = await db
     .select({
       request: purchaseRequests,
-      customerName: customers.fullName,
-      customerCode: customers.code,
+      customerName: people.fullName,
+      customerCode: people.code,
     })
     .from(purchaseRequests)
-    .innerJoin(customers, eq(purchaseRequests.customerId, customers.id))
+    .innerJoin(people, eq(purchaseRequests.personId, people.id))
     .where(eq(purchaseRequests.status, "open"));
   return requests
     .map(({ request, customerName, customerCode }) => ({

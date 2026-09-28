@@ -1,24 +1,27 @@
-export type CustomerRecord = {
+export type PersonRecord = {
   id: number;
   code: string;
   full_name: string;
-  phone_primary: string;
+  phone_primary: string | null;
   phone_secondary: string | null;
   email: string | null;
   address: string | null;
   national_id: string | null;
-  customer_type: "individual" | "company" | "other";
+  person_type: "individual" | "company" | "other";
   status: "active" | "inactive" | "archived";
   notes: string | null;
   created_at: string;
   updated_at: string;
 };
+
 export type RentalRequestRecord = {
   id: number;
   code: string;
-  customer_id: number;
-  customer_name: string | null;
-  customer_code: string | null;
+  person_id: number;
+  person_name: string | null;
+  person_code: string | null;
+  customer_name?: string | null;
+  customer_code?: string | null;
   property_type: string;
   rent_period: string | null;
   budget_min: string | number | null;
@@ -43,17 +46,10 @@ export type RentalRequestRecord = {
   updated_at: string;
 };
 export type PurchaseRequestRecord = Omit<RentalRequestRecord, "rent_period">;
-export type MatchReason = {
-  field: string;
-  label: string;
-  matched: boolean;
-  detail: string;
-};
-export type MatchResult<T = Record<string, unknown>> = {
-  score: number;
-  reasons: MatchReason[];
-  record: T;
-};
+
+export type MatchReason = { field: string; label: string; matched: boolean; detail: string };
+export type MatchResult<T = Record<string, unknown>> = { score: number; reasons: MatchReason[]; record: T };
+
 export type DocumentTypeRecord = {
   id: number;
   key: string;
@@ -65,11 +61,12 @@ export type DocumentTypeRecord = {
 export type DocumentRecord = {
   id: number;
   code: string;
-  customer_id: number;
-  customer_name: string | null;
+  person_id: number;
+  person_name: string | null;
   document_type_id: number | null;
   document_type_name: string | null;
   document_name: string;
+  document_number: string | null;
   file_path: string;
   file_type: string;
   file_size: number | null;
@@ -87,14 +84,22 @@ export type CompanySettingsRecord = {
   email: string | null;
   address: string | null;
   additional_contact: string | null;
+  license_number: string | null;
   logo_file_path: string | null;
 };
-export type ContractParty = { customer_id: number; role: string };
+export type OfficeProfileRecord = CompanySettingsRecord;
+
+export type ContractTemplateRecord = {
+  id: number;
+  contract_type: "sale" | "rental";
+  name: string;
+  body: string;
+  is_active: boolean;
+};
 export type ContractRecord = {
   id: number;
   code: string;
-  contract_type: string;
-  primary_customer_id: number | null;
+  contract_type: "sale" | "rental";
   property_id: number | null;
   rental_id: number | null;
   template_id: number | null;
@@ -107,17 +112,50 @@ export type ContractRecord = {
   notes: string | null;
   generated_content: string | null;
   generated_at: string | null;
-  customer_name?: string | null;
+  primary_person_name?: string | null;
+  primary_party_role?: string | null;
+};
+export type ContractPartyBundle = {
+  id: number;
+  contract_id: number;
+  person_id: number;
+  role: string;
+  person: PersonRecord;
+  snapshot: PartySnapshot | null;
+};
+export type PartySnapshot = {
+  id: number;
+  contract_party_id: number;
+  full_name: string;
+  identity_number: string | null;
+  phone_primary: string | null;
+  phone_secondary: string | null;
+  email: string | null;
+  address: string | null;
+  notes: string | null;
+  captured_at: string;
 };
 export type ContractBundle = {
   contract: ContractRecord;
-  template_name: string | null;
-  template_body: string | null;
-  parties: Array<{
+  template: ContractTemplateRecord | null;
+  parties: ContractPartyBundle[];
+  office: CompanySettingsRecord | null;
+  asset: { id: number; contract_id: number; source_type: string; source_id: number; data: Record<string, unknown> } | null;
+  attachments: Array<{
+    id: number;
     contract_id: number;
-    customer_id: number;
-    role: string;
-    customer_name: string;
-    customer_phone: string;
+    contract_party_id: number;
+    identity_document_id: number;
+    document_type: string | null;
+    document_name: string;
+    document_number: string | null;
+    file_path: string;
+    file_type: string;
+    file_size: number | null;
   }>;
+};
+export type ContractValidation = {
+  valid: boolean;
+  issues: Array<{ code: string; message: string; path?: string }>;
+  parties: Array<{ role: string; person: PersonRecord; documents: DocumentRecord[]; selected_document_ids: number[] }>;
 };

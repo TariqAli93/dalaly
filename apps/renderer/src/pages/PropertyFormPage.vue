@@ -9,11 +9,11 @@ import { useProperties } from "../composables/useProperties";
 import { useStats } from "../composables/useStats";
 import { useSnackbar } from "../composables/useSnackbar";
 import * as requests from "../services/requests.service";
-import * as customersService from "../services/customers.service";
+import * as peopleService from "../services/people.service";
 import { toNumber } from "../utils/format";
 import MatchingResultsDialog from "../components/requests/MatchingResultsDialog.vue";
 import type {
-  CustomerRecord,
+  PersonRecord,
   MatchResult,
   PropertyForm as PropertyFormType,
   PropertyRecord,
@@ -24,7 +24,7 @@ const router = useRouter();
 const { service, loadProperties } = useProperties();
 const { loadStats } = useStats();
 const { notifySuccess, notifyError } = useSnackbar();
-const customers = ref<CustomerRecord[]>([]);
+const people = ref<PersonRecord[]>([]);
 
 function defaultForm(): PropertyFormType {
   return {
@@ -43,7 +43,7 @@ function defaultForm(): PropertyFormType {
     district_text: "",
     neighborhood_text: "",
     address_details: "",
-    owner_customer_id: null,
+    owner_person_id: null,
     owner_name: "",
     owner_phone: "",
     owner_notes: "",
@@ -84,7 +84,7 @@ function propertyToForm(p: PropertyRecord): PropertyFormType {
     district_text: p.district_text ?? "",
     neighborhood_text: p.neighborhood_text ?? "",
     address_details: p.address_details ?? "",
-    owner_customer_id: p.owner_customer_id ?? null,
+    owner_person_id: p.owner_person_id ?? null,
     owner_name: p.owner_name,
     owner_phone: p.owner_phone,
     owner_notes: p.owner_notes ?? "",
@@ -214,7 +214,7 @@ function openMatch(match: MatchResult) {
 }
 
 onMounted(async () => {
-  customers.value = await customersService.listCustomers().catch(() => []);
+  people.value = await peopleService.listPeople().catch(() => []);
   const idParam = route.params.id;
   if (idParam) {
     const id = Number(idParam);
@@ -235,7 +235,7 @@ onMounted(async () => {
     <PropertyForm
       ref="formRef"
       v-model="form"
-      :customers="customers"
+      :people="people"
       :editing="isEditing"
       :saving="saving"
       @submit="save"

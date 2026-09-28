@@ -10,6 +10,7 @@
   primaryKey,
   text,
   timestamp,
+  unique,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -145,18 +146,18 @@ export const neighborhoods = pgTable(
   (table) => [index("idx_neighborhoods_district").on(table.districtId)],
 );
 
-export const customers = pgTable(
-  "customers",
+export const people = pgTable(
+  "people",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
     code: text("code").notNull().unique(),
     fullName: text("full_name").notNull(),
-    phonePrimary: text("phone_primary").notNull(),
+    phonePrimary: text("phone_primary"),
     phoneSecondary: text("phone_secondary"),
     email: text("email"),
     address: text("address"),
     nationalId: text("national_id"),
-    customerType: text("customer_type").notNull().default("individual"),
+    personType: text("person_type").notNull().default("individual"),
     status: text("status").notNull().default("active"),
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -167,10 +168,10 @@ export const customers = pgTable(
       .defaultNow(),
   },
   (table) => [
-    index("idx_customers_full_name").on(table.fullName),
-    index("idx_customers_phone_primary").on(table.phonePrimary),
-    index("idx_customers_customer_type").on(table.customerType),
-    index("idx_customers_status").on(table.status),
+    index("idx_people_full_name").on(table.fullName),
+    index("idx_people_phone_primary").on(table.phonePrimary),
+    index("idx_people_person_type").on(table.personType),
+    index("idx_people_status").on(table.status),
   ],
 );
 
@@ -201,8 +202,8 @@ export const properties = pgTable(
     ownerName: text("owner_name").notNull(),
     ownerPhone: text("owner_phone").notNull(),
     ownerNotes: text("owner_notes"),
-    ownerCustomerId: bigint("owner_customer_id", { mode: "number" }).references(
-      () => customers.id,
+    ownerPersonId: bigint("owner_person_id", { mode: "number" }).references(
+      () => people.id,
       { onDelete: "set null" },
     ),
     status: text("status").notNull().default("available"),
@@ -297,8 +298,8 @@ export const rentals = pgTable(
     ownerName: text("owner_name").notNull(),
     ownerPhone: text("owner_phone").notNull(),
     ownerNotes: text("owner_notes"),
-    ownerCustomerId: bigint("owner_customer_id", { mode: "number" }).references(
-      () => customers.id,
+    ownerPersonId: bigint("owner_person_id", { mode: "number" }).references(
+      () => people.id,
       { onDelete: "set null" },
     ),
     status: text("status").notNull().default("available"),
@@ -442,9 +443,9 @@ export const rentalRequests = pgTable(
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
     code: text("code").notNull().unique(),
-    customerId: bigint("customer_id", { mode: "number" })
+    personId: bigint("person_id", { mode: "number" })
       .notNull()
-      .references(() => customers.id, { onDelete: "restrict" }),
+      .references(() => people.id, { onDelete: "restrict" }),
     propertyType: text("property_type").notNull(),
     rentPeriod: text("rent_period"),
     budgetMin: numeric("budget_min", { precision: 18, scale: 2 }),
@@ -483,7 +484,7 @@ export const rentalRequests = pgTable(
     archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
   (table) => [
-    index("idx_rental_requests_customer").on(table.customerId),
+    index("idx_rental_requests_person").on(table.personId),
     index("idx_rental_requests_property_type").on(table.propertyType),
     index("idx_rental_requests_rent_period").on(table.rentPeriod),
     index("idx_rental_requests_budget").on(table.budgetMax),
@@ -499,9 +500,9 @@ export const purchaseRequests = pgTable(
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
     code: text("code").notNull().unique(),
-    customerId: bigint("customer_id", { mode: "number" })
+    personId: bigint("person_id", { mode: "number" })
       .notNull()
-      .references(() => customers.id, { onDelete: "restrict" }),
+      .references(() => people.id, { onDelete: "restrict" }),
     propertyType: text("property_type").notNull(),
     budgetMin: numeric("budget_min", { precision: 18, scale: 2 }),
     budgetMax: numeric("budget_max", { precision: 18, scale: 2 }),
@@ -539,7 +540,7 @@ export const purchaseRequests = pgTable(
     archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
   (table) => [
-    index("idx_purchase_requests_customer").on(table.customerId),
+    index("idx_purchase_requests_person").on(table.personId),
     index("idx_purchase_requests_property_type").on(table.propertyType),
     index("idx_purchase_requests_budget").on(table.budgetMax),
     index("idx_purchase_requests_governorate").on(table.governorateId),
@@ -571,19 +572,20 @@ export const documentTypes = pgTable(
   ],
 );
 
-export const documents = pgTable(
-  "documents",
+export const identityDocuments = pgTable(
+  "identity_documents",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
     code: text("code").notNull().unique(),
-    customerId: bigint("customer_id", { mode: "number" })
+    personId: bigint("person_id", { mode: "number" })
       .notNull()
-      .references(() => customers.id, { onDelete: "restrict" }),
+      .references(() => people.id, { onDelete: "restrict" }),
     documentTypeId: bigint("document_type_id", { mode: "number" }).references(
       () => documentTypes.id,
       { onDelete: "set null" },
     ),
     documentName: text("document_name").notNull(),
+    documentNumber: text("document_number"),
     filePath: text("file_path").notNull(),
     fileType: text("file_type").notNull(),
     fileSize: bigint("file_size", { mode: "number" }),
@@ -601,14 +603,14 @@ export const documents = pgTable(
       .defaultNow(),
   },
   (table) => [
-    index("idx_documents_customer").on(table.customerId),
-    index("idx_documents_type").on(table.documentTypeId),
-    index("idx_documents_status").on(table.status),
-    index("idx_documents_expires_at").on(table.expiresAt),
+    index("idx_identity_documents_person").on(table.personId),
+    index("idx_identity_documents_type").on(table.documentTypeId),
+    index("idx_identity_documents_status").on(table.status),
+    index("idx_identity_documents_expires_at").on(table.expiresAt),
   ],
 );
 
-export const companySettings = pgTable("company_settings", {
+export const officeProfiles = pgTable("office_profiles", {
   id: integer("id").primaryKey().default(1),
   companyName: text("company_name").notNull().default(""),
   phonePrimary: text("phone_primary"),
@@ -616,6 +618,7 @@ export const companySettings = pgTable("company_settings", {
   email: text("email"),
   address: text("address"),
   additionalContact: text("additional_contact"),
+  licenseNumber: text("license_number"),
   logoFilePath: text("logo_file_path"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
@@ -627,7 +630,7 @@ export const companySettings = pgTable("company_settings", {
 
 export const contractTemplates = pgTable("contract_templates", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
-  contractType: text("contract_type").notNull().unique(),
+  contractType: text("contract_type").notNull(),
   name: text("name").notNull(),
   body: text("body").notNull(),
   isActive: boolean("is_active").notNull().default(true),
@@ -645,9 +648,6 @@ export const contracts = pgTable(
     id: bigserial("id", { mode: "number" }).primaryKey(),
     code: text("code").notNull().unique(),
     contractType: text("contract_type").notNull(),
-    primaryCustomerId: bigint("primary_customer_id", {
-      mode: "number",
-    }).references(() => customers.id, { onDelete: "set null" }),
     propertyId: bigint("property_id", { mode: "number" }).references(
       () => properties.id,
       { onDelete: "set null" },
@@ -680,7 +680,6 @@ export const contracts = pgTable(
   },
   (table) => [
     index("idx_contracts_type").on(table.contractType),
-    index("idx_contracts_primary_customer").on(table.primaryCustomerId),
     index("idx_contracts_property").on(table.propertyId),
     index("idx_contracts_rental").on(table.rentalId),
     index("idx_contracts_status").on(table.status),
@@ -691,20 +690,104 @@ export const contracts = pgTable(
 export const contractParties = pgTable(
   "contract_parties",
   {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
     contractId: bigint("contract_id", { mode: "number" })
       .notNull()
       .references(() => contracts.id, { onDelete: "cascade" }),
-    customerId: bigint("customer_id", { mode: "number" })
+    personId: bigint("person_id", { mode: "number" })
       .notNull()
-      .references(() => customers.id, { onDelete: "restrict" }),
+      .references(() => people.id, { onDelete: "restrict" }),
     role: text("role").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
   (table) => [
-    primaryKey({ columns: [table.contractId, table.customerId, table.role] }),
-    index("idx_contract_parties_customer").on(table.customerId),
+    unique("contract_parties_contract_role_key").on(table.contractId, table.role),
+    index("idx_contract_parties_person").on(table.personId),
+  ],
+);
+
+export const partySnapshots = pgTable("party_snapshots", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  contractPartyId: bigint("contract_party_id", { mode: "number" })
+    .notNull()
+    .unique()
+    .references(() => contractParties.id, { onDelete: "cascade" }),
+  fullName: text("full_name").notNull(),
+  identityNumber: text("identity_number"),
+  phonePrimary: text("phone_primary"),
+  phoneSecondary: text("phone_secondary"),
+  email: text("email"),
+  address: text("address"),
+  notes: text("notes"),
+  capturedAt: timestamp("captured_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const contractOfficeSnapshots = pgTable("contract_office_snapshots", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  contractId: bigint("contract_id", { mode: "number" })
+    .notNull()
+    .unique()
+    .references(() => contracts.id, { onDelete: "cascade" }),
+  officeName: text("office_name").notNull(),
+  logoFilePath: text("logo_file_path"),
+  address: text("address"),
+  phonePrimary: text("phone_primary"),
+  phoneSecondary: text("phone_secondary"),
+  email: text("email"),
+  licenseNumber: text("license_number"),
+  additionalContact: text("additional_contact"),
+  capturedAt: timestamp("captured_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const contractAssetSnapshots = pgTable("contract_asset_snapshots", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  contractId: bigint("contract_id", { mode: "number" })
+    .notNull()
+    .unique()
+    .references(() => contracts.id, { onDelete: "cascade" }),
+  sourceType: text("source_type").notNull(),
+  sourceId: bigint("source_id", { mode: "number" }).notNull(),
+  data: jsonb("data").notNull().default({}),
+  capturedAt: timestamp("captured_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const contractAttachments = pgTable(
+  "contract_attachments",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    contractId: bigint("contract_id", { mode: "number" })
+      .notNull()
+      .references(() => contracts.id, { onDelete: "cascade" }),
+    contractPartyId: bigint("contract_party_id", { mode: "number" })
+      .notNull()
+      .references(() => contractParties.id, { onDelete: "cascade" }),
+    identityDocumentId: bigint("identity_document_id", { mode: "number" })
+      .notNull()
+      .references(() => identityDocuments.id, { onDelete: "restrict" }),
+    documentType: text("document_type"),
+    documentName: text("document_name").notNull(),
+    documentNumber: text("document_number"),
+    filePath: text("file_path").notNull(),
+    fileType: text("file_type").notNull(),
+    fileSize: bigint("file_size", { mode: "number" }),
+    capturedAt: timestamp("captured_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("contract_attachments_party_document_key").on(
+      table.contractPartyId,
+      table.identityDocumentId,
+    ),
+    index("idx_contract_attachments_contract").on(table.contractId),
   ],
 );
 export const backupJobs = pgTable("backup_jobs", {
@@ -741,8 +824,8 @@ export const appSettings = pgTable("app_settings", {
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
-export type Customer = typeof customers.$inferSelect;
-export type NewCustomer = typeof customers.$inferInsert;
+export type Person = typeof people.$inferSelect;
+export type NewPerson = typeof people.$inferInsert;
 export type Role = typeof roles.$inferSelect;
 export type NewRole = typeof roles.$inferInsert;
 export type Permission = typeof permissions.$inferSelect;
@@ -776,16 +859,24 @@ export type PurchaseRequest = typeof purchaseRequests.$inferSelect;
 export type NewPurchaseRequest = typeof purchaseRequests.$inferInsert;
 export type DocumentType = typeof documentTypes.$inferSelect;
 export type NewDocumentType = typeof documentTypes.$inferInsert;
-export type Document = typeof documents.$inferSelect;
-export type NewDocument = typeof documents.$inferInsert;
-export type CompanySettings = typeof companySettings.$inferSelect;
-export type NewCompanySettings = typeof companySettings.$inferInsert;
+export type IdentityDocument = typeof identityDocuments.$inferSelect;
+export type NewIdentityDocument = typeof identityDocuments.$inferInsert;
+export type OfficeProfile = typeof officeProfiles.$inferSelect;
+export type NewOfficeProfile = typeof officeProfiles.$inferInsert;
 export type ContractTemplate = typeof contractTemplates.$inferSelect;
 export type NewContractTemplate = typeof contractTemplates.$inferInsert;
 export type Contract = typeof contracts.$inferSelect;
 export type NewContract = typeof contracts.$inferInsert;
 export type ContractParty = typeof contractParties.$inferSelect;
 export type NewContractParty = typeof contractParties.$inferInsert;
+export type PartySnapshot = typeof partySnapshots.$inferSelect;
+export type NewPartySnapshot = typeof partySnapshots.$inferInsert;
+export type ContractOfficeSnapshot = typeof contractOfficeSnapshots.$inferSelect;
+export type NewContractOfficeSnapshot = typeof contractOfficeSnapshots.$inferInsert;
+export type ContractAssetSnapshot = typeof contractAssetSnapshots.$inferSelect;
+export type NewContractAssetSnapshot = typeof contractAssetSnapshots.$inferInsert;
+export type ContractAttachment = typeof contractAttachments.$inferSelect;
+export type NewContractAttachment = typeof contractAttachments.$inferInsert;
 export type BackupJob = typeof backupJobs.$inferSelect;
 export type NewBackupJob = typeof backupJobs.$inferInsert;
 export type BackupLog = typeof backupLogs.$inferSelect;

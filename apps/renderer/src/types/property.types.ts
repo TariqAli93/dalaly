@@ -56,7 +56,7 @@ export type PropertyRecord = {
   district_text: string | null;
   neighborhood_text: string | null;
   address_details: string | null;
-  owner_customer_id: number | null;
+  owner_person_id: number | null;
   owner_name: string;
   owner_phone: string;
   owner_notes: string | null;
@@ -99,7 +99,7 @@ export type PropertyForm = {
   district_text: string;
   neighborhood_text: string;
   address_details: string | null;
-  owner_customer_id: number | null;
+  owner_person_id: number | null;
   owner_name: string;
   owner_phone: string;
   owner_notes: string | null;

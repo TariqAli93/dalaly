@@ -12,6 +12,7 @@ export const companySettingsSchema = z.object({
   email: optionalText,
   address: optionalText,
   additional_contact: optionalText,
+  license_number: optionalText,
 });
 export const companyLogoSchema = z.object({
   data: z.string().min(1),

@@ -15,7 +15,7 @@ const optionalId = z.coerce.number().int().positive().optional().nullable();
 
 export const rentalRequestPayloadSchema = z
   .object({
-    customer_id: z.coerce.number().int().positive(),
+    person_id: z.coerce.number().int().positive(),
     property_type: z.enum(RENTAL_PROPERTY_TYPES),
     rent_period: z.enum(RENT_PERIODS).optional().nullable(),
     budget_min: optionalNumber,
@@ -70,7 +70,7 @@ export const rentalRequestPayloadSchema = z
   });
 
 export const rentalRequestFiltersSchema = z.object({
-  customer_id: z.coerce.number().int().positive().optional(),
+  person_id: z.coerce.number().int().positive().optional(),
   property_type: z.enum(RENTAL_PROPERTY_TYPES).optional(),
   rent_period: z.enum(RENT_PERIODS).optional(),
   status: z.enum(["open", "matched", "closed", "archived"]).optional(),

@@ -1,7 +1,7 @@
 import { and, desc, eq, ilike, ne, or } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import {
-  customers,
+  people,
   purchaseRequests,
   type NewPurchaseRequest,
 } from "../../infrastructure/database/schema.js";
@@ -23,15 +23,15 @@ function apiRow(
 ) {
   return {
     ...toApiObject(request),
-    customer_name: customerName,
-    customer_code: customerCode,
+    person_name: customerName,
+    person_code: customerCode,
   };
 }
 async function normalize(
   payload: PurchaseRequestPayload,
 ): Promise<Omit<NewPurchaseRequest, "code">> {
   return {
-    customerId: payload.customer_id,
+    personId: payload.person_id,
     propertyType: payload.property_type,
     budgetMin: payload.budget_min == null ? null : String(payload.budget_min),
     budgetMax: payload.budget_max == null ? null : String(payload.budget_max),
@@ -70,8 +70,8 @@ async function generateCode() {
 }
 export async function listPurchaseRequests(filters: PurchaseRequestFilters) {
   const where = [];
-  if (filters.customer_id)
-    where.push(eq(purchaseRequests.customerId, filters.customer_id));
+  if (filters.person_id)
+    where.push(eq(purchaseRequests.personId, filters.person_id));
   if (filters.property_type)
     where.push(eq(purchaseRequests.propertyType, filters.property_type));
   if (filters.status) where.push(eq(purchaseRequests.status, filters.status));
@@ -91,29 +91,29 @@ export async function listPurchaseRequests(filters: PurchaseRequestFilters) {
   const rows = await db
     .select({
       request: purchaseRequests,
-      customerName: customers.fullName,
-      customerCode: customers.code,
+      personName: people.fullName,
+      personCode: people.code,
     })
     .from(purchaseRequests)
-    .innerJoin(customers, eq(purchaseRequests.customerId, customers.id))
+    .innerJoin(people, eq(purchaseRequests.personId, people.id))
     .where(where.length ? and(...where) : undefined)
     .orderBy(desc(purchaseRequests.updatedAt), desc(purchaseRequests.id));
   return rows.map((row) =>
-    apiRow(row.request, row.customerName, row.customerCode),
+    apiRow(row.request, row.personName, row.personCode),
   );
 }
 export async function getPurchaseRequest(id: number) {
   const [row] = await db
     .select({
       request: purchaseRequests,
-      customerName: customers.fullName,
-      customerCode: customers.code,
+      personName: people.fullName,
+      personCode: people.code,
     })
     .from(purchaseRequests)
-    .innerJoin(customers, eq(purchaseRequests.customerId, customers.id))
+    .innerJoin(people, eq(purchaseRequests.personId, people.id))
     .where(eq(purchaseRequests.id, id))
     .limit(1);
-  return row ? apiRow(row.request, row.customerName, row.customerCode) : null;
+  return row ? apiRow(row.request, row.personName, row.personCode) : null;
 }
 export async function createPurchaseRequest(payload: PurchaseRequestPayload) {
   const [row] = await db

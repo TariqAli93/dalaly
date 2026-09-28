@@ -12,7 +12,7 @@ const optionalId = z.coerce.number().int().positive().optional().nullable();
 
 export const purchaseRequestPayloadSchema = z
   .object({
-    customer_id: z.coerce.number().int().positive(),
+    person_id: z.coerce.number().int().positive(),
     property_type: z.string().trim().min(1),
     budget_min: optionalNumber,
     budget_max: optionalNumber,
@@ -66,7 +66,7 @@ export const purchaseRequestPayloadSchema = z
   });
 
 export const purchaseRequestFiltersSchema = z.object({
-  customer_id: z.coerce.number().int().positive().optional(),
+  person_id: z.coerce.number().int().positive().optional(),
   property_type: z.string().trim().optional(),
   status: z.enum(["open", "matched", "closed", "archived"]).optional(),
   governorate_id: z.coerce.number().int().positive().optional(),

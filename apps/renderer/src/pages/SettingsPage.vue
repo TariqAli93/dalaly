@@ -41,6 +41,7 @@ const company = ref({
   email: "",
   address: "",
   additional_contact: "",
+  license_number: "",
 });
 const companySaving = ref(false);
 const companyLogo = ref<File | null>(null);
@@ -95,6 +96,7 @@ async function loadCompany() {
       email: value.email ?? "",
       address: value.address ?? "",
       additional_contact: value.additional_contact ?? "",
+      license_number: value.license_number ?? "",
     };
   } catch (error) {
     notifyError(getErrorMessage(error));
@@ -162,6 +164,7 @@ onMounted(() => {
               v-model="company.additional_contact"
               label="معلومات اتصال إضافية"
             />
+            <v-text-field v-model="company.license_number" label="رقم الإجازة أو الترخيص" />
           </div>
           <v-file-input
             v-model="companyLogo"

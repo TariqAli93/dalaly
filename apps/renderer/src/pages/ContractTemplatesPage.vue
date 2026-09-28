@@ -25,7 +25,8 @@ async function load() {
 async function save(item: (typeof items.value)[number]) {
   saving.value = item.id;
   try {
-    await contracts.updateTemplate(item.contract_type, {
+    await contracts.updateTemplate(item.id, {
+      contract_type: item.contract_type as "sale" | "rental",
       name: item.name,
       body: item.body,
       is_active: item.is_active,
@@ -49,7 +50,7 @@ onMounted(load);
       variant="flat"
       border
       class="mb-3"
-      ><v-card-title>{{ item.name }}</v-card-title
+      ><v-card-title>{{ item.name }} · {{ item.contract_type === 'sale' ? 'بيع' : 'إيجار' }}</v-card-title
       ><v-card-text
         ><v-text-field v-model="item.name" label="اسم القالب" /><v-textarea
           v-model="item.body"

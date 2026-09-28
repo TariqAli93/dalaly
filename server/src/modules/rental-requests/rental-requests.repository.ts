@@ -2,7 +2,7 @@ import { and, desc, eq, ilike, ne, or } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import {
   rentalRequests,
-  customers,
+  people,
   type NewRentalRequest,
 } from "../../infrastructure/database/schema.js";
 import {
@@ -23,8 +23,8 @@ function apiRow(
 ) {
   return {
     ...toApiObject(request),
-    customer_name: customerName,
-    customer_code: customerCode,
+    person_name: customerName,
+    person_code: customerCode,
   };
 }
 
@@ -32,7 +32,7 @@ async function normalize(
   payload: RentalRequestPayload,
 ): Promise<Omit<NewRentalRequest, "code">> {
   return {
-    customerId: payload.customer_id,
+    personId: payload.person_id,
     propertyType: payload.property_type,
     rentPeriod: payload.rent_period ?? null,
     budgetMin:
@@ -86,8 +86,8 @@ async function generateCode() {
 
 export async function listRentalRequests(filters: RentalRequestFilters) {
   const where = [];
-  if (filters.customer_id)
-    where.push(eq(rentalRequests.customerId, filters.customer_id));
+  if (filters.person_id)
+    where.push(eq(rentalRequests.personId, filters.person_id));
   if (filters.property_type)
     where.push(eq(rentalRequests.propertyType, filters.property_type));
   if (filters.rent_period)
@@ -109,15 +109,15 @@ export async function listRentalRequests(filters: RentalRequestFilters) {
   const rows = await db
     .select({
       request: rentalRequests,
-      customerName: customers.fullName,
-      customerCode: customers.code,
+      personName: people.fullName,
+      personCode: people.code,
     })
     .from(rentalRequests)
-    .innerJoin(customers, eq(rentalRequests.customerId, customers.id))
+    .innerJoin(people, eq(rentalRequests.personId, people.id))
     .where(where.length ? and(...where) : undefined)
     .orderBy(desc(rentalRequests.updatedAt), desc(rentalRequests.id));
   return rows.map((row) =>
-    apiRow(row.request, row.customerName, row.customerCode),
+    apiRow(row.request, row.personName, row.personCode),
   );
 }
 
@@ -125,14 +125,14 @@ export async function getRentalRequest(id: number) {
   const [row] = await db
     .select({
       request: rentalRequests,
-      customerName: customers.fullName,
-      customerCode: customers.code,
+      personName: people.fullName,
+      personCode: people.code,
     })
     .from(rentalRequests)
-    .innerJoin(customers, eq(rentalRequests.customerId, customers.id))
+    .innerJoin(people, eq(rentalRequests.personId, people.id))
     .where(eq(rentalRequests.id, id))
     .limit(1);
-  return row ? apiRow(row.request, row.customerName, row.customerCode) : null;
+  return row ? apiRow(row.request, row.personName, row.personCode) : null;
 }
 
 export async function createRentalRequest(payload: RentalRequestPayload) {

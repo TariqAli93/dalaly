@@ -6,12 +6,12 @@ import RentalForm from "../components/rentals/RentalForm.vue";
 import MatchingResultsDialog from "../components/requests/MatchingResultsDialog.vue";
 import * as rentals from "../services/rentals.service";
 import * as requests from "../services/requests.service";
-import * as customersService from "../services/customers.service";
+import * as peopleService from "../services/people.service";
 import { getErrorMessage } from "../services/api.service";
 import { useLocations } from "../composables/useLocations";
 import { useSnackbar } from "../composables/useSnackbar";
 import type {
-  CustomerRecord,
+  PersonRecord,
   MatchResult,
   RentalForm as RentalFormType,
   RentalRecord,
@@ -42,7 +42,7 @@ function empty(): RentalFormType {
     district: "",
     neighborhood: "",
     address_details: "",
-    owner_customer_id: null,
+    owner_person_id: null,
     owner_name: "",
     owner_phone: "",
     owner_notes: "",
@@ -72,7 +72,7 @@ function toForm(item: RentalRecord): RentalFormType {
     district: item.district ?? "",
     neighborhood: item.neighborhood ?? "",
     address_details: item.address_details ?? "",
-    owner_customer_id: item.owner_customer_id ?? null,
+    owner_person_id: item.owner_person_id ?? null,
     owner_name: item.owner_name,
     owner_phone: item.owner_phone,
     owner_notes: item.owner_notes ?? "",
@@ -83,7 +83,7 @@ function toForm(item: RentalRecord): RentalFormType {
 }
 
 const form = ref<RentalFormType>(empty());
-const customers = ref<CustomerRecord[]>([]);
+const people = ref<PersonRecord[]>([]);
 const editingId = ref<number | null>(null);
 const saving = ref(false);
 const formRef = ref<{ validate: () => Promise<boolean> } | null>(null);
@@ -168,7 +168,7 @@ function openMatch(match: MatchResult) {
 
 onMounted(async () => {
   await loadLocations();
-  customers.value = await customersService.listCustomers().catch(() => []);
+  people.value = await peopleService.listPeople().catch(() => []);
   const id = Number(route.params.id);
   if (id) {
     try {
@@ -194,7 +194,7 @@ onMounted(async () => {
       :editing="isEditing"
       :saving="saving"
       :rental-id="editingId"
-      :customers="customers"
+      :people="people"
       @submit="save"
       @cancel="router.push('/rentals')"
     />

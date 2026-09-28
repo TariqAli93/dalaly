@@ -6,14 +6,14 @@ import StatusChip from "../shared/StatusChip.vue";
 import NumberField from "../app/NumberField.vue";
 import AppLayout from "../../layouts/AppLayout.vue";
 import { PROPERTY_TYPES, RENTAL_PROPERTY_TYPES } from "../../constants/domain";
-import * as customersService from "../../services/customers.service";
+import * as peopleService from "../../services/people.service";
 import * as requests from "../../services/requests.service";
 import { getErrorMessage } from "../../services/api.service";
 import { usePermissions } from "../../composables/usePermissions";
 import { useSnackbar } from "../../composables/useSnackbar";
 import { formatMoney } from "../../utils/format";
 import type {
-  CustomerRecord,
+  PersonRecord,
   MatchResult,
   PurchaseRequestRecord,
   RentalRequestRecord,
@@ -25,7 +25,7 @@ const router = useRouter();
 const { can } = usePermissions();
 const { notifyError, notifySuccess } = useSnackbar();
 const rows = ref<Array<RentalRequestRecord | PurchaseRequestRecord>>([]);
-const customers = ref<CustomerRecord[]>([]);
+const people = ref<PersonRecord[]>([]);
 const loading = ref(false);
 const dialog = ref(false);
 const matchDialog = ref(false);
@@ -34,7 +34,7 @@ const editing = ref<(RentalRequestRecord | PurchaseRequestRecord) | null>(null);
 const matches = ref<Array<MatchResult>>([]);
 const q = ref("");
 const form = ref({
-  customer_id: null as number | null,
+  person_id: null as number | null,
   property_type: props.mode === "rental" ? "apartment" : PROPERTY_TYPES[0],
   rent_period: "monthly",
   budget_min: null as number | null,
@@ -70,7 +70,7 @@ const propertyItems = computed(() =>
 );
 const headers = computed(() => [
   { title: "الرمز", key: "code" },
-  { title: "العميل", key: "customer_name" },
+  { title: "الشخص", key: "person_name" },
   { title: "نوع العقار", key: "property_type" },
   ...(props.mode === "rental"
     ? [{ title: "نوع الإيجار", key: "rent_period" }]
@@ -128,7 +128,7 @@ async function load() {
       props.mode === "rental"
         ? await requests.listRentalRequests({ q: q.value })
         : await requests.listPurchaseRequests({ q: q.value });
-    customers.value = await customersService.listCustomers();
+    people.value = await peopleService.listPeople();
   } catch (error) {
     notifyError(getErrorMessage(error));
   } finally {
@@ -137,7 +137,7 @@ async function load() {
 }
 function resetForm() {
   form.value = {
-    customer_id: null,
+    person_id: null,
     property_type: props.mode === "rental" ? "apartment" : PROPERTY_TYPES[0],
     rent_period: "monthly",
     budget_min: null,
@@ -169,7 +169,7 @@ function openCreate() {
 function openEdit(item: RentalRequestRecord | PurchaseRequestRecord) {
   editing.value = item;
   form.value = {
-    customer_id: item.customer_id,
+    person_id: item.person_id,
     property_type: item.property_type,
     rent_period:
       "rent_period" in item ? (item.rent_period ?? "monthly") : "monthly",
@@ -215,7 +215,7 @@ function payload() {
   return purchase;
 }
 async function save() {
-  if (!form.value.customer_id) {
+  if (!form.value.person_id) {
     notifyError("اختر العميل أولاً.");
     return;
   }
@@ -292,8 +292,8 @@ onMounted(async () => {
         hover
         @click:row="handleRowClick"
       >
-        <template #item.customer_name="{ item }">{{
-          item.customer_name || item.customer_code || "-"
+        <template #item.person_name="{ item }">{{
+          item.person_name || item.person_code || "-"
         }}</template
         ><template #item.property_type="{ item }">{{
           requestPropertyTypeLabel(item.property_type)
@@ -322,8 +322,8 @@ onMounted(async () => {
         ><v-card-text
           ><div class="form-grid">
             <v-select
-              v-model="form.customer_id"
-              :items="customers"
+              v-model="form.person_id"
+              :items="people"
               item-title="full_name"
               item-value="id"
               label="العميل"

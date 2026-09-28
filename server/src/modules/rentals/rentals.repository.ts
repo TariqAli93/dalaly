@@ -152,7 +152,7 @@ async function normalizePayload(
     district,
     neighborhood,
     addressDetails: payload.address_details,
-    ownerCustomerId: payload.owner_customer_id ?? null,
+    ownerPersonId: payload.owner_person_id ?? null,
     ownerName: payload.owner_name,
     ownerPhone: payload.owner_phone,
     ownerNotes: payload.owner_notes,

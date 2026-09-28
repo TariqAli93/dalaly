@@ -9,7 +9,7 @@ import {
   STATUSES,
 } from "../../constants/domain";
 import { formatMoney, toNumber } from "../../utils/format";
-import type { CustomerRecord, PropertyForm } from "../../types";
+import type { PersonRecord, PropertyForm } from "../../types";
 import LocationSelects from "./LocationSelects.vue";
 import NumberField from "../app/NumberField.vue";
 import { AMENITY_OPTIONS } from "../../utils/amenities";
@@ -19,7 +19,7 @@ const model = defineModel<PropertyForm>({ required: true });
 const props = defineProps<{
   editing?: boolean;
   saving?: boolean;
-  customers?: CustomerRecord[];
+  people?: PersonRecord[];
 }>();
 const emit = defineEmits<{ submit: []; cancel: [] }>();
 

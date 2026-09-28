@@ -99,6 +99,20 @@
       "when": 1781265600000,
       "tag": "0013_crm_modules",
       "breakpoints": false
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1782734400000,
+      "tag": "0014_contract_domain_rebuild",
+      "breakpoints": false
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1782820800000,
+      "tag": "0015_contract_template_placeholders",
+      "breakpoints": false
     }
   ]
 }

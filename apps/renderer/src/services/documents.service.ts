@@ -27,8 +27,14 @@ export function updateDocument(id: number, payload: unknown) {
     body: JSON.stringify(payload),
   });
 }
-export function requirements(customerId: number) {
-  return request(`/documents/customers/${customerId}/requirements`);
+export function requirements(personId: number, scope: "sale" | "rent" = "sale") {
+  return request<{ required: DocumentTypeRecord[]; uploaded: DocumentRecord[]; missing: DocumentTypeRecord[]; expired: DocumentRecord[] }>(`/documents/people/${personId}/requirements?scope=${scope}`);
+}
+export function addPersonDocument(personId: number, payload: unknown) {
+  return request<DocumentRecord>(`/documents/people/${personId}`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 export function fileUrl(id: number) {
   return `${API_BASE}/documents/${id}/file?token=${encodeURIComponent(getToken())}`;

@@ -1,7 +1,7 @@
 ﻿<script setup lang="ts">
 import { computed, ref } from "vue";
 import { AREA_UNITS } from "../../constants/domain";
-import type { CustomerRecord, RentalForm as RentalFormType } from "../../types";
+import type { PersonRecord, RentalForm as RentalFormType } from "../../types";
 import LocationSelects from "../properties/LocationSelects.vue";
 import NumberField from "../app/NumberField.vue";
 import RentalImages from "./RentalImages.vue";
@@ -11,7 +11,7 @@ const props = defineProps<{
   editing?: boolean;
   saving?: boolean;
   rentalId?: number | null;
-  customers?: CustomerRecord[];
+  people?: PersonRecord[];
 }>();
 const emit = defineEmits<{ submit: []; cancel: [] }>();
 const formRef = ref<{ validate: () => Promise<{ valid: boolean }> } | null>(
@@ -154,8 +154,8 @@ defineExpose({ validate });
             :rules="[required]"
             label="اسم المالك"
           /><v-autocomplete
-            v-model="model.owner_customer_id"
-            :items="props.customers ?? []"
+            v-model="model.owner_person_id"
+            :items="props.people ?? []"
             item-title="full_name"
             item-value="id"
             clearable

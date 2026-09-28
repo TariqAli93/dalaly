@@ -115,10 +115,10 @@ export const NAV_ITEMS: NavItem[] = [
 
 export const CRM_NAV_ITEMS: NavItem[] = [
   {
-    title: "العملاء",
-    to: "/customers",
+    title: "الأشخاص",
+    to: "/people",
     icon: "mdi-account-group-outline",
-    permission: "customers.read",
+    permission: "people.read",
   },
   {
     title: "طلبات الإيجار",
@@ -132,24 +132,24 @@ export const CRM_NAV_ITEMS: NavItem[] = [
     icon: "mdi-home-search-outline",
     permission: "requests.read",
   },
-  // {
-  //   title: "المستندات",
-  //   to: "/documents",
-  //   icon: "mdi-file-document-multiple-outline",
-  //   permission: "documents.read",
-  // },
-  // {
-  //   title: "العقود",
-  //   to: "/contracts",
-  //   icon: "mdi-file-sign",
-  //   permission: "contracts.read",
-  // },
-  // {
-  //   title: "قوالب العقود",
-  //   to: "/contract-templates",
-  //   icon: "mdi-file-edit-outline",
-  //   permission: "contract_templates.manage",
-  // },
+  {
+    title: "المستندات",
+    to: "/documents",
+    icon: "mdi-file-document-multiple-outline",
+    permission: "documents.read",
+  },
+  {
+    title: "العقود",
+    to: "/contracts",
+    icon: "mdi-file-sign",
+    permission: "contracts.read",
+  },
+  {
+    title: "قوالب العقود",
+    to: "/contract-templates",
+    icon: "mdi-file-edit-outline",
+    permission: "contract_templates.manage",
+  },
 ];
 
 export function statusLabel(status: string) {
