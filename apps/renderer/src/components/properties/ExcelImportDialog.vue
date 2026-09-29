@@ -84,7 +84,7 @@ function close() {
   <v-dialog v-model="open" width="640" scrollable persistent>
     <v-card>
       <v-card-title class="d-flex align-center">
-        <span>استيراد عروض من Excel</span>
+        <span>استيراد عروض من ملف إكسل</span>
         <v-spacer />
         <v-btn icon="mdi-close" variant="text" @click="close" />
       </v-card-title>
@@ -93,7 +93,7 @@ function close() {
         <div v-if="step === 1" class="text-center pa-4">
           <v-icon icon="mdi-file-excel-outline" size="48" color="success" />
           <div class="text-body-2 my-3">
-            اختر ملف Excel (.xlsx) يحتوي على العروض.
+            اختر ملف إكسل (.xlsx) يحتوي على العروض.
           </div>
           <v-btn
             color="primary"

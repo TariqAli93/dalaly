@@ -11,6 +11,7 @@ declare module "vue-router" {
   interface RouteMeta {
     requiresAuth?: boolean;
     permission?: string;
+    titleKey?: string;
   }
 }
 
@@ -29,122 +30,194 @@ const routes: RouteRecordRaw[] = [
     path: "/",
     name: "dashboard",
     component: () => import("../pages/DashboardPage.vue"),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, titleKey: "routes.dashboard" },
   },
   {
     path: "/properties",
     name: "properties",
     component: () => import("../pages/PropertiesPage.vue"),
-    meta: { requiresAuth: true, permission: "properties.read" },
+    meta: {
+      requiresAuth: true,
+      permission: "properties.read",
+      titleKey: "routes.properties",
+    },
   },
   {
     path: "/properties/new",
     name: "property-new",
     component: () => import("../pages/PropertyFormPage.vue"),
-    meta: { requiresAuth: true, permission: "properties.create" },
+    meta: {
+      requiresAuth: true,
+      permission: "properties.create",
+      titleKey: "routes.propertyNew",
+    },
   },
   {
     path: "/properties/:id/edit",
     name: "property-edit",
     component: () => import("../pages/PropertyFormPage.vue"),
-    meta: { requiresAuth: true, permission: "properties.update" },
+    meta: {
+      requiresAuth: true,
+      permission: "properties.update",
+      titleKey: "routes.propertyEdit",
+    },
   },
   {
     path: "/rentals",
     name: "rentals",
     component: () => import("../pages/RentalsPage.vue"),
-    meta: { requiresAuth: true, permission: "rentals.read" },
+    meta: {
+      requiresAuth: true,
+      permission: "rentals.read",
+      titleKey: "routes.rentals",
+    },
   },
   {
     path: "/rentals/new",
     name: "rental-new",
     component: () => import("../pages/RentalFormPage.vue"),
-    meta: { requiresAuth: true, permission: "rentals.create" },
+    meta: {
+      requiresAuth: true,
+      permission: "rentals.create",
+      titleKey: "routes.rentalNew",
+    },
   },
   {
     path: "/rentals/:id/edit",
     name: "rental-edit",
     component: () => import("../pages/RentalFormPage.vue"),
-    meta: { requiresAuth: true, permission: "rentals.update" },
+    meta: {
+      requiresAuth: true,
+      permission: "rentals.update",
+      titleKey: "routes.rentalEdit",
+    },
   },
   {
     path: "/rental-favorites",
     name: "rental-favorites",
     component: () => import("../pages/RentalFavoritesPage.vue"),
-    meta: { requiresAuth: true, permission: "rentals.read" },
+    meta: {
+      requiresAuth: true,
+      permission: "rentals.read",
+      titleKey: "routes.rentals",
+    },
   },
   {
     path: "/people",
     name: "people",
     component: () => import("../pages/PeoplePage.vue"),
-    meta: { requiresAuth: true, permission: "people.read" },
+    meta: {
+      requiresAuth: true,
+      permission: "people.read",
+      titleKey: "routes.people",
+    },
   },
   { path: "/customers", redirect: "/people" },
   {
     path: "/rental-requests",
     name: "rental-requests",
     component: () => import("../pages/RentalRequestsPage.vue"),
-    meta: { requiresAuth: true, permission: "requests.read" },
+    meta: {
+      requiresAuth: true,
+      permission: "requests.read",
+      titleKey: "routes.rentals",
+    },
   },
   {
     path: "/purchase-requests",
     name: "purchase-requests",
     component: () => import("../pages/PurchaseRequestsPage.vue"),
-    meta: { requiresAuth: true, permission: "requests.read" },
+    meta: {
+      requiresAuth: true,
+      permission: "requests.read",
+      titleKey: "routes.properties",
+    },
   },
   {
     path: "/documents",
     name: "documents",
     component: () => import("../pages/DocumentsPage.vue"),
-    meta: { requiresAuth: true, permission: "documents.read" },
+    meta: {
+      requiresAuth: true,
+      permission: "documents.read",
+      titleKey: "routes.documents",
+    },
   },
   {
     path: "/contracts",
     name: "contracts",
     component: () => import("../pages/ContractsPage.vue"),
-    meta: { requiresAuth: true, permission: "contracts.read" },
+    meta: {
+      requiresAuth: true,
+      permission: "contracts.read",
+      titleKey: "routes.contracts",
+    },
   },
   {
     path: "/contract-templates",
     name: "contract-templates",
     component: () => import("../pages/ContractTemplatesPage.vue"),
-    meta: { requiresAuth: true, permission: "contract_templates.manage" },
+    meta: {
+      requiresAuth: true,
+      permission: "contract_templates.manage",
+      titleKey: "routes.contracts",
+    },
   },
   {
     path: "/users",
     name: "users",
     component: () => import("../pages/UsersPage.vue"),
-    meta: { requiresAuth: true, permission: "users.read" },
+    meta: {
+      requiresAuth: true,
+      permission: "users.read",
+      titleKey: "routes.users",
+    },
   },
   {
     path: "/roles",
     name: "roles",
     component: () => import("../pages/RolesPage.vue"),
-    meta: { requiresAuth: true, permission: "roles.read" },
+    meta: {
+      requiresAuth: true,
+      permission: "roles.read",
+      titleKey: "routes.roles",
+    },
   },
   {
     path: "/favorites",
     name: "favorites",
     component: () => import("../pages/FavoritesPage.vue"),
-    meta: { requiresAuth: true, permission: "properties.read" },
+    meta: {
+      requiresAuth: true,
+      permission: "properties.read",
+      titleKey: "routes.properties",
+    },
   },
   {
     path: "/locations",
     name: "locations",
     component: () => import("../pages/LocationsPage.vue"),
-    meta: { requiresAuth: true, permission: "locations.manage" },
+    meta: {
+      requiresAuth: true,
+      permission: "locations.manage",
+      titleKey: "routes.locations",
+    },
   },
   {
     path: "/settings",
     name: "settings",
     component: () => import("../pages/SettingsPage.vue"),
-    meta: { requiresAuth: true, permission: "settings.read" },
+    meta: {
+      requiresAuth: true,
+      permission: "settings.read",
+      titleKey: "routes.settings",
+    },
   },
   {
     path: "/help",
     name: "help",
     component: () => import("../pages/HelpPage.vue"),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, titleKey: "routes.help" },
   },
   { path: "/:pathMatch(.*)*", redirect: "/" },
 ];

@@ -2,7 +2,10 @@ import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { ZodError } from "zod";
 import { config } from "./infrastructure/config.js";
-import { ContractValidationError, DuplicatePlotError } from "./shared/errors.js";
+import {
+  ContractValidationError,
+  DuplicatePlotError,
+} from "./shared/errors.js";
 import { getSetupStatus } from "./infrastructure/database/health.js";
 import { registerAuthHook } from "./modules/auth/auth.hooks.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
@@ -32,6 +35,15 @@ import { setupRoutes } from "./modules/setup/setup.routes.js";
 import { statsRoutes } from "./modules/stats/stats.routes.js";
 import { usersRoutes } from "./modules/users/users.routes.js";
 
+function localizedValidationMessage(issue: ZodError["issues"][number]) {
+  if (issue.code === "invalid_type") return "نوع القيمة المدخلة غير صحيح.";
+  if (issue.code === "too_small")
+    return "القيمة المدخلة أقصر أو أصغر من الحد المطلوب.";
+  if (issue.code === "too_big") return "القيمة المدخلة أكبر من الحد المسموح.";
+  if (issue.code === "invalid_format") return "تنسيق القيمة المدخلة غير صالح.";
+  return "القيمة المدخلة غير صالحة.";
+}
+
 export async function buildServer() {
   // bodyLimit مرفوع لدعم رفع صور العقارات عبر base64.
   const app = Fastify({ logger: true, bodyLimit: 50 * 1024 * 1024 });
@@ -51,20 +63,28 @@ export async function buildServer() {
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof ZodError) {
       return reply.code(400).send({
+        code: "VALIDATION_ERROR",
+        messageKey: "validation.invalid",
         message: "بيانات الطلب غير صحيحة.",
         issues: error.issues.map((issue) => ({
           field: issue.path.join("."),
-          message: issue.message,
+          message: localizedValidationMessage(issue),
         })),
       });
     }
 
     if (error instanceof DuplicatePlotError) {
-      return reply.code(409).send({ message: error.message });
+      return reply.code(409).send({
+        code: "DUPLICATE_PLOT",
+        messageKey: "error.duplicatePlot",
+        message: error.message,
+      });
     }
 
     if (error instanceof ContractValidationError) {
       return reply.code(400).send({
+        code: "CONTRACT_VALIDATION_ERROR",
+        messageKey: "error.contractRequirements",
         message: "لا يمكن إصدار العقد قبل إكمال المتطلبات.",
         issues: error.issues,
       });
@@ -72,6 +92,8 @@ export async function buildServer() {
 
     app.log.error(error);
     return reply.code(500).send({
+      code: "INTERNAL_ERROR",
+      messageKey: "error.generic",
       message: "حدث خطأ أثناء تنفيذ العملية.",
     });
   });

@@ -1,6 +1,9 @@
 import { and, desc, eq, ilike, ne, or } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
-import { people, type NewPerson } from "../../infrastructure/database/schema.js";
+import {
+  people,
+  type NewPerson,
+} from "../../infrastructure/database/schema.js";
 import { toApiObject, toApiObjects } from "../../shared/utils/case.js";
 import type { PersonFilters, PersonPayload } from "./people.schema.js";
 
@@ -31,7 +34,8 @@ async function generateCode() {
 
 export async function listPeople(filters: PersonFilters) {
   const where = [];
-  if (filters.person_type) where.push(eq(people.personType, filters.person_type));
+  if (filters.person_type)
+    where.push(eq(people.personType, filters.person_type));
   if (filters.status) where.push(eq(people.status, filters.status));
   else where.push(ne(people.status, "archived"));
   const q = filters.q?.trim();
@@ -56,7 +60,11 @@ export async function listPeople(filters: PersonFilters) {
 }
 
 export async function getPerson(id: number) {
-  const [row] = await db.select().from(people).where(eq(people.id, id)).limit(1);
+  const [row] = await db
+    .select()
+    .from(people)
+    .where(eq(people.id, id))
+    .limit(1);
   return row ? toApiObject(row, "people") : null;
 }
 

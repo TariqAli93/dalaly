@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import AppLayout from "../layouts/AppLayout.vue";
 import { getErrorMessage } from "../services/api.service";
 import * as rolesService from "../services/roles.service";
@@ -14,6 +15,7 @@ const { can } = usePermissions();
 const { openConfirm } = useConfirm();
 const { notifySuccess, notifyError } = useSnackbar();
 const { setRefreshHandler } = useRefresh();
+const { t } = useI18n();
 
 const roles = ref<RoleRecord[]>([]);
 const permissions = ref<PermissionRecord[]>([]);
@@ -88,8 +90,8 @@ async function saveRole() {
 function askDeleteRole(role: RoleRecord) {
   openConfirm({
     title: `حذف ${role.name}`,
-    body: "هل تريد حذف هذا الدور؟",
-    confirmText: "حذف",
+    body: t("roles.deleteRoleQuestion"),
+    confirmText: t("common.delete"),
     color: "error",
     onConfirm: async () => {
       await rolesService.deleteRole(role.id);
@@ -131,8 +133,8 @@ async function savePermission() {
 function askDeletePermission(permission: PermissionRecord) {
   openConfirm({
     title: `حذف ${permission.key}`,
-    body: "هل تريد حذف هذه الصلاحية؟",
-    confirmText: "حذف",
+    body: t("roles.deletePermissionQuestion"),
+    confirmText: t("common.delete"),
     color: "error",
     onConfirm: async () => {
       await permissionsService.deletePermission(permission.id);
@@ -149,7 +151,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <AppLayout title="الأدوار والصلاحيات">
+  <AppLayout :title="t('roles.title')">
     <div class="flex flex-col gap-4">
       <v-card variant="flat" border>
         <v-card-title class="d-flex align-center">
@@ -161,7 +163,7 @@ onMounted(() => {
             prepend-icon="mdi-shield-plus-outline"
             @click="openRoleDialog()"
           >
-            إضافة Role
+            {{ t("roles.addRole") }}
           </v-btn>
         </v-card-title>
         <v-card-text>
@@ -170,11 +172,11 @@ onMounted(() => {
               v-for="role in roles"
               :key="role.id"
               :title="role.name"
-              :subtitle="role.description || 'بدون وصف'"
+              :subtitle="role.description || t('common.withoutDescription')"
             >
               <template #append>
                 <v-chip v-if="role.is_system" class="me-2" variant="tonal">
-                  System
+                  {{ t("roles.system") }}
                 </v-chip>
                 <v-btn
                   v-if="can('roles.update')"
@@ -252,7 +254,7 @@ onMounted(() => {
     <v-dialog v-model="roleDialog" width="760">
       <v-card>
         <v-card-title>{{
-          editingRoleId ? "تعديل Role" : "إضافة Role"
+          editingRoleId ? t("roles.editRole") : t("roles.addRole")
         }}</v-card-title>
         <v-card-text>
           <div class="dialog-grid">
@@ -298,9 +300,15 @@ onMounted(() => {
         </v-card-title>
         <v-card-text>
           <div class="dialog-grid">
-            <v-text-field v-model="permissionForm.key" label="Permission Key" />
+            <v-text-field
+              v-model="permissionForm.key"
+              :label="t('roles.permissionKey')"
+            />
             <v-text-field v-model="permissionForm.name" label="الاسم" />
-            <v-text-field v-model="permissionForm.module" label="Module" />
+            <v-text-field
+              v-model="permissionForm.module"
+              :label="t('roles.module')"
+            />
             <v-text-field v-model="permissionForm.description" label="الوصف" />
           </div>
         </v-card-text>

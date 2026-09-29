@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { platform } from "../../platform";
 import { usePermissions } from "../../composables/usePermissions";
 import { useSnackbar } from "../../composables/useSnackbar";
@@ -7,6 +8,7 @@ import type { ScheduledBackupConfig } from "../../types";
 
 const { can } = usePermissions();
 const { notifySuccess, notifyError } = useSnackbar();
+const { t } = useI18n();
 
 const available = ref(platform.supportsScheduledBackup);
 const saving = ref(false);
@@ -59,10 +61,10 @@ async function save() {
       password: password.value || undefined,
     });
     password.value = "";
-    notifySuccess("تم حفظ إعدادات النسخ المجدول.");
+    notifySuccess(t("backup.saved"));
     await load();
   } catch {
-    notifyError("تعذر حفظ الإعدادات.");
+    notifyError(t("backup.saveFailed"));
   } finally {
     saving.value = false;
   }
@@ -73,24 +75,24 @@ onMounted(load);
 
 <template>
   <v-card variant="flat" border>
-    <v-card-title>النسخ الاحتياطي المجدول بالبريد</v-card-title>
+    <v-card-title>{{ t("backup.scheduled") }}</v-card-title>
     <v-card-text>
       <v-alert
         v-if="!available"
         type="info"
         variant="tonal"
-        text="جدولة النسخ عبر البريد متاحة فقط داخل تطبيق سطح المكتب (Electron)."
+        :text="t('backup.notAvailable')"
       />
       <template v-else>
         <v-alert
           type="warning"
           variant="tonal"
           class="mb-4"
-          text="تنبيه: إرسال النسخة بالبريد يرسل بيانات العقارات خارج هذا الجهاز. لا تُرسل أي بيانات بدون تفعيل صريح."
+          :text="t('backup.warning')"
         />
         <v-switch
           v-model="config.enabled"
-          label="تفعيل النسخ المجدول بالبريد"
+          :label="t('backup.enableScheduled')"
           color="primary"
           hide-details
           class="mb-3"
@@ -103,25 +105,34 @@ onMounted(load);
           />
           <v-select v-model="config.frequency" :items="FREQ" label="التكرار" />
           <v-text-field v-model="config.time" label="وقت التنفيذ" type="time" />
-          <v-text-field v-model="config.smtpHost" label="SMTP Host" />
-          <v-text-field v-model="config.smtpPort" label="SMTP Port" />
-          <v-text-field v-model="config.smtpUser" label="SMTP Username" />
+          <v-text-field
+            v-model="config.smtpHost"
+            :label="t('backup.smtpHost')"
+          />
+          <v-text-field
+            v-model="config.smtpPort"
+            :label="t('backup.smtpPort')"
+          />
+          <v-text-field
+            v-model="config.smtpUser"
+            :label="t('backup.smtpUser')"
+          />
           <v-text-field
             v-model="password"
             class="span-2"
             :label="
               config.hasPassword
-                ? 'SMTP Password (محفوظة — اتركها فارغة للإبقاء عليها)'
-                : 'SMTP Password'
+                ? t('backup.savedPassword')
+                : t('backup.smtpPassword')
             "
             type="password"
-            hint="تُخزَّن مشفّرة عبر Electron safeStorage ولا تُحفظ كنص صريح."
+            :hint="t('backup.secureHint')"
             persistent-hint
           />
         </div>
         <div class="d-flex align-center mt-3">
           <div class="text-caption text-medium-emphasis">
-            آخر تنفيذ: {{ fmt(config.lastRunAt) }}
+            {{ t("backup.lastRun") }}: {{ fmt(config.lastRunAt) }}
             <span v-if="config.lastError" class="text-error">
               · خطأ: {{ config.lastError }}</span
             >

@@ -116,9 +116,7 @@ export async function listRentalRequests(filters: RentalRequestFilters) {
     .innerJoin(people, eq(rentalRequests.personId, people.id))
     .where(where.length ? and(...where) : undefined)
     .orderBy(desc(rentalRequests.updatedAt), desc(rentalRequests.id));
-  return rows.map((row) =>
-    apiRow(row.request, row.personName, row.personCode),
-  );
+  return rows.map((row) => apiRow(row.request, row.personName, row.personCode));
 }
 
 export async function getRentalRequest(id: number) {

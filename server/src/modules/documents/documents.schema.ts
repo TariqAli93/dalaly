@@ -35,14 +35,22 @@ export const documentFiltersSchema = z.object({
 });
 
 export const documentTypePayloadSchema = z.object({
-  key: z.string().trim().min(1).regex(/^[a-z0-9_]+$/),
+  key: z
+    .string()
+    .trim()
+    .min(1)
+    .regex(/^[a-z0-9_]+$/),
   name: z.string().trim().min(1),
   transaction_scope: z.enum(["general", "sale", "rent"]).default("general"),
   is_required: z.coerce.boolean().default(false),
   is_active: z.coerce.boolean().default(true),
 });
 
-export type IdentityDocumentPayload = z.infer<typeof identityDocumentPayloadSchema>;
-export type IdentityDocumentUpdate = z.infer<typeof identityDocumentUpdateSchema>;
+export type IdentityDocumentPayload = z.infer<
+  typeof identityDocumentPayloadSchema
+>;
+export type IdentityDocumentUpdate = z.infer<
+  typeof identityDocumentUpdateSchema
+>;
 export type DocumentFilters = z.infer<typeof documentFiltersSchema>;
 export type DocumentTypePayload = z.infer<typeof documentTypePayloadSchema>;

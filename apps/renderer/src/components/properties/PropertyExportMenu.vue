@@ -31,9 +31,9 @@ async function doPdf() {
       title(),
       buildPropertyText(props.property),
     );
-    notifySuccess("تم تجهيز ملف PDF.");
+    notifySuccess("تم تجهيز ملف بي دي إف.");
   } catch {
-    notifyError("تعذر تصدير PDF.");
+    notifyError("تعذر تصدير ملف بي دي إف.");
   }
 }
 
@@ -58,7 +58,7 @@ function doTxt() {
     `${props.property.code}.txt`,
     buildPropertyText(props.property),
   );
-  notifySuccess("تم تنزيل ملف TXT.");
+  notifySuccess("تم تنزيل الملف النصي.");
 }
 
 async function doWhatsapp() {
@@ -96,17 +96,17 @@ async function doAd() {
       <v-list-item prepend-icon="mdi-printer" title="طباعة" @click="doPrint" />
       <v-list-item
         prepend-icon="mdi-file-pdf-box"
-        title="تصدير PDF"
+        title="تصدير ملف بي دي إف"
         @click="doPdf"
       />
       <v-list-item
         prepend-icon="mdi-file-document-outline"
-        title="تصدير TXT"
+        title="تصدير ملف نصي"
         @click="doTxt"
       />
       <v-list-item
         prepend-icon="mdi-folder-multiple-outline"
-        title="تصدير TXT والصور في مجلد"
+        title="تصدير ملف نصي والصور في مجلد"
         @click="doFolder"
       />
       <v-divider />

@@ -29,7 +29,7 @@
   },
   "build": {
     "appId": "codel.dalaly.desktop",
-    "productName": "Dalaly",
+    "productName": "دلالي",
     "asar": true,
     "compression": "normal",
     "directories": {
@@ -87,10 +87,10 @@
         }
       ],
       "icon": "build/icon.ico",
-      "artifactName": "Dalaly-${version}-${arch}.${ext}"
+      "artifactName": "دلالي-${version}-${arch}.${ext}"
     },
     "portable": {
-      "artifactName": "Dalaly-Portable-${version}-${arch}.${ext}"
+      "artifactName": "دلالي-محمول-${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -98,10 +98,10 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Dalaly",
+      "shortcutName": "دلالي",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
-      "artifactName": "Dalaly-Setup-${version}-${arch}.${ext}"
+      "artifactName": "دلالي-تثبيت-${version}-${arch}.${ext}"
     }
   }
 }

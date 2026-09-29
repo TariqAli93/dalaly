@@ -43,7 +43,9 @@ export const contractPayloadSchema = z
   })
   .superRefine((value, ctx) => {
     const expectedRoles =
-      value.contract_type === "sale" ? ["seller", "buyer"] : ["lessor", "lessee"];
+      value.contract_type === "sale"
+        ? ["seller", "buyer"]
+        : ["lessor", "lessee"];
     const roles = value.parties.map((party) => party.role);
     for (const role of expectedRoles) {
       if (!roles.includes(role as (typeof CONTRACT_ROLES)[number]))

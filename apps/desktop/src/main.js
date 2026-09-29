@@ -2,6 +2,7 @@ import {
   app,
   BrowserWindow,
   dialog,
+  Menu,
   safeStorage,
   shell,
   ipcMain,
@@ -17,6 +18,9 @@ import { fileURLToPath } from "node:url";
 log.initialize();
 log.transports.file.level = "info";
 log.transports.console.level = "info";
+
+app.commandLine.appendSwitch("lang", "ar-IQ");
+app.setName("دلالي");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..", "..", "..");
@@ -79,6 +83,59 @@ const SPLASH_STAGES = {
   },
 };
 
+function createApplicationMenu() {
+  const menu = Menu.buildFromTemplate([
+    {
+      label: "ملف",
+      submenu: [
+        { label: "إعادة تحميل", role: "reload" },
+        { type: "separator" },
+        { label: "خروج", role: "quit" },
+      ],
+    },
+    {
+      label: "تحرير",
+      submenu: [
+        { label: "تراجع", role: "undo" },
+        { label: "إعادة", role: "redo" },
+        { type: "separator" },
+        { label: "قص", role: "cut" },
+        { label: "نسخ", role: "copy" },
+        { label: "لصق", role: "paste" },
+        { label: "تحديد الكل", role: "selectAll" },
+      ],
+    },
+    {
+      label: "عرض",
+      submenu: [
+        { label: "تكبير", role: "zoomIn" },
+        { label: "تصغير", role: "zoomOut" },
+        { label: "الحجم الافتراضي", role: "resetZoom" },
+        { label: "ملء الشاشة", role: "togglefullscreen" },
+      ],
+    },
+    {
+      label: "مساعدة",
+      submenu: [
+        {
+          label: "حول دلالي",
+          click: () => {
+            void dialog.showMessageBox(mainWindow ?? undefined, {
+              type: "info",
+              title: "حول دلالي",
+              message: "دلالي",
+              detail: "نظام إدارة العروض العقارية لمكتب الوساطة.",
+              buttons: ["موافق"],
+            });
+          },
+        },
+      ],
+    },
+  ]);
+
+  Menu.setApplicationMenu(menu);
+}
+
 function readAppConfig() {
   try {
     if (!fs.existsSync(configPath)) return {};
@@ -116,7 +173,7 @@ async function createWindow() {
     minHeight: 720,
     title: "دلالي",
     backgroundColor: "#f6f7f5",
-    autoHideMenuBar: true,
+    autoHideMenuBar: false,
     // تبقى مخفية حتى تكتمل شاشة البدء، لمنع الوميض والظهور خلف الـ Splash.
     show: false,
     webPreferences: {
@@ -283,9 +340,9 @@ ipcMain.handle("export:save-pdf", async (_event, input) => {
   }
 
   const saveResult = await dialog.showSaveDialog(mainWindow ?? undefined, {
-    title: "حفظ ملف PDF",
+    title: "حفظ ملف بي دي إف",
     defaultPath: suggestedName,
-    filters: [{ name: "PDF", extensions: ["pdf"] }],
+    filters: [{ name: "ملف بي دي إف", extensions: ["pdf"] }],
   });
 
   if (saveResult.canceled || !saveResult.filePath) {
@@ -309,7 +366,7 @@ ipcMain.handle("export:save-pdf", async (_event, input) => {
     return { ok: true, path: saveResult.filePath };
   } catch (error) {
     log.error("PDF export failed", error);
-    return { ok: false, message: "تعذر إنشاء PDF." };
+    return { ok: false, message: "تعذر إنشاء ملف بي دي إف." };
   } finally {
     pdfWindow.destroy();
   }
@@ -320,7 +377,7 @@ ipcMain.handle("export:save-file", async (_event, input) => {
   const suggestedName =
     typeof input?.suggestedName === "string" && input.suggestedName
       ? input.suggestedName
-      : "Dalaly_Export.xlsx";
+      : "تصدير_دلالي.xlsx";
   if (!(data instanceof Uint8Array)) {
     return { ok: false, message: "محتوى الملف غير صالح." };
   }
@@ -331,7 +388,7 @@ ipcMain.handle("export:save-file", async (_event, input) => {
     filters:
       Array.isArray(input?.filters) && input.filters.length
         ? input.filters
-        : [{ name: "Excel Workbook", extensions: ["xlsx"] }],
+        : [{ name: "مصنف إكسل", extensions: ["xlsx"] }],
   });
   if (saveResult.canceled || !saveResult.filePath) {
     return { ok: false, canceled: true };
@@ -368,10 +425,7 @@ ipcMain.handle("export:save-folder", async (_event, input) => {
     return { ok: false, canceled: true };
   }
 
-  const folderName = safeExportName(
-    input?.suggestedFolderName,
-    "Dalaly_Export",
-  );
+  const folderName = safeExportName(input?.suggestedFolderName, "تصدير_دلالي");
   const targetFolder = path.join(folderResult.filePaths[0], folderName);
 
   try {
@@ -433,8 +487,8 @@ ipcMain.handle("backup:choose-export-path", async () => {
   const now = new Date().toISOString().slice(0, 10);
   const result = await dialog.showSaveDialog(mainWindow ?? undefined, {
     title: "حفظ النسخة الاحتياطية",
-    defaultPath: `Dalaly_Backup_${now}.zip`,
-    filters: [{ name: "ZIP Archive", extensions: ["zip"] }],
+    defaultPath: `نسخة_دلالي_الاحتياطية_${now}.zip`,
+    filters: [{ name: "أرشيف مضغوط", extensions: ["zip"] }],
   });
 
   if (result.canceled || !result.filePath) {
@@ -447,7 +501,7 @@ ipcMain.handle("backup:choose-export-path", async () => {
 ipcMain.handle("backup:pick-file", async () => {
   const result = await dialog.showOpenDialog(mainWindow ?? undefined, {
     title: "اختر ملف النسخة الاحتياطية",
-    filters: [{ name: "Backup", extensions: ["zip"] }],
+    filters: [{ name: "نسخة احتياطية", extensions: ["zip"] }],
     properties: ["openFile"],
   });
   if (result.canceled || !result.filePaths.length) return { canceled: true };
@@ -740,6 +794,7 @@ async function runStartup() {
 }
 
 app.whenReady().then(() => {
+  createApplicationMenu();
   createSplashWindow();
   void runStartup();
 

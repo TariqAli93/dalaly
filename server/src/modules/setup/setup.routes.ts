@@ -17,7 +17,7 @@ export const setupRoutes: FastifyPluginAsync = async (app) => {
         message:
           error instanceof Error
             ? `تعذر الاتصال بـ PostgreSQL: ${error.message}`
-            : "تعذر الاتصال بـ PostgreSQL.",
+            : "تعذر الاتصال بقاعدة البيانات.",
       });
     }
   });

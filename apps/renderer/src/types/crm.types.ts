@@ -47,8 +47,17 @@ export type RentalRequestRecord = {
 };
 export type PurchaseRequestRecord = Omit<RentalRequestRecord, "rent_period">;
 
-export type MatchReason = { field: string; label: string; matched: boolean; detail: string };
-export type MatchResult<T = Record<string, unknown>> = { score: number; reasons: MatchReason[]; record: T };
+export type MatchReason = {
+  field: string;
+  label: string;
+  matched: boolean;
+  detail: string;
+};
+export type MatchResult<T = Record<string, unknown>> = {
+  score: number;
+  reasons: MatchReason[];
+  record: T;
+};
 
 export type DocumentTypeRecord = {
   id: number;
@@ -140,7 +149,13 @@ export type ContractBundle = {
   template: ContractTemplateRecord | null;
   parties: ContractPartyBundle[];
   office: CompanySettingsRecord | null;
-  asset: { id: number; contract_id: number; source_type: string; source_id: number; data: Record<string, unknown> } | null;
+  asset: {
+    id: number;
+    contract_id: number;
+    source_type: string;
+    source_id: number;
+    data: Record<string, unknown>;
+  } | null;
   attachments: Array<{
     id: number;
     contract_id: number;
@@ -157,5 +172,10 @@ export type ContractBundle = {
 export type ContractValidation = {
   valid: boolean;
   issues: Array<{ code: string; message: string; path?: string }>;
-  parties: Array<{ role: string; person: PersonRecord; documents: DocumentRecord[]; selected_document_ids: number[] }>;
+  parties: Array<{
+    role: string;
+    person: PersonRecord;
+    documents: DocumentRecord[];
+    selected_document_ids: number[];
+  }>;
 };

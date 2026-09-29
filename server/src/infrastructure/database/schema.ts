@@ -703,7 +703,10 @@ export const contractParties = pgTable(
       .defaultNow(),
   },
   (table) => [
-    unique("contract_parties_contract_role_key").on(table.contractId, table.role),
+    unique("contract_parties_contract_role_key").on(
+      table.contractId,
+      table.role,
+    ),
     index("idx_contract_parties_person").on(table.personId),
   ],
 );
@@ -871,10 +874,13 @@ export type ContractParty = typeof contractParties.$inferSelect;
 export type NewContractParty = typeof contractParties.$inferInsert;
 export type PartySnapshot = typeof partySnapshots.$inferSelect;
 export type NewPartySnapshot = typeof partySnapshots.$inferInsert;
-export type ContractOfficeSnapshot = typeof contractOfficeSnapshots.$inferSelect;
-export type NewContractOfficeSnapshot = typeof contractOfficeSnapshots.$inferInsert;
+export type ContractOfficeSnapshot =
+  typeof contractOfficeSnapshots.$inferSelect;
+export type NewContractOfficeSnapshot =
+  typeof contractOfficeSnapshots.$inferInsert;
 export type ContractAssetSnapshot = typeof contractAssetSnapshots.$inferSelect;
-export type NewContractAssetSnapshot = typeof contractAssetSnapshots.$inferInsert;
+export type NewContractAssetSnapshot =
+  typeof contractAssetSnapshots.$inferInsert;
 export type ContractAttachment = typeof contractAttachments.$inferSelect;
 export type NewContractAttachment = typeof contractAttachments.$inferInsert;
 export type BackupJob = typeof backupJobs.$inferSelect;

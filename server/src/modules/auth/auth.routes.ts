@@ -60,7 +60,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 
   app.post("/setup-admin", async (request, reply) => {
     if (!(await validateDatabaseConnection())) {
-      return reply.code(503).send({ message: "PostgreSQL غير متصل." });
+      return reply.code(503).send({ message: "قاعدة البيانات غير متصلة." });
     }
 
     if (!(await tableExists("users"))) {
@@ -89,7 +89,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     if (!result) {
       return reply
         .code(401)
-        .send({ message: "اسم المستخدم أو رمز PIN غير صحيح." });
+        .send({ message: "اسم المستخدم أو الرمز السري غير صحيح." });
     }
 
     return result;
@@ -122,7 +122,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       if (!result.ok) {
         const message =
           result.reason === "invalid_pin"
-            ? "رمز PIN الحالي غير صحيح."
+            ? "الرمز السري الحالي غير صحيح."
             : "تعذر تغيير الرمز.";
         return reply.code(400).send({ message });
       }

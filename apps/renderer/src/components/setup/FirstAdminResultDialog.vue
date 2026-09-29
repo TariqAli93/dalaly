@@ -21,7 +21,7 @@ const copied = ref(false);
 
 const TITLE = "بيانات الدخول - دلالي";
 function credentialsText() {
-  return `اسم المستخدم: ${props.username}\nرمز PIN: ${props.pin ?? ""}\n\nاحفظ هذه البيانات في مكان آمن. لن يظهر الرمز مرة أخرى.`;
+  return `اسم المستخدم: ${props.username}\nالرمز السري: ${props.pin ?? ""}\n\nاحفظ هذه البيانات في مكان آمن. لن يظهر الرمز مرة أخرى.`;
 }
 
 async function copyCredentials() {
@@ -36,15 +36,15 @@ async function copyCredentials() {
 
 function saveTxt() {
   downloadTextFile("dalaly-login.txt", credentialsText());
-  notifySuccess("تم تنزيل ملف TXT.");
+  notifySuccess("تم تنزيل الملف النصي.");
 }
 
 async function savePdf() {
   try {
     await exportPdf("dalaly-login.pdf", TITLE, credentialsText());
-    notifySuccess("تم تجهيز ملف PDF.");
+    notifySuccess("تم تجهيز ملف بي دي إف.");
   } catch {
-    notifyError("تعذر تصدير PDF.");
+    notifyError("تعذر تصدير ملف بي دي إف.");
   }
 }
 
@@ -65,15 +65,15 @@ function printCredentials() {
           type="warning"
           variant="tonal"
           class="mb-4"
-          text="احفظ هذه البيانات الآن. لن يظهر الـ PIN مرة أخرى."
+          text="احفظ هذه البيانات الآن. لن يظهر الرمز السري مرة أخرى."
         />
         <div class="detail-grid">
           <div class="detail-item">
-            <div class="detail-label">Username</div>
+            <div class="detail-label">اسم المستخدم</div>
             <div class="detail-value">{{ username }}</div>
           </div>
           <div class="detail-item">
-            <div class="detail-label">PIN</div>
+            <div class="detail-label">الرمز السري</div>
             <div class="detail-value money">{{ pin ?? "—" }}</div>
           </div>
         </div>
@@ -91,10 +91,10 @@ function printCredentials() {
           prepend-icon="mdi-file-document-outline"
           @click="saveTxt"
         >
-          TXT
+          ملف نصي
         </v-btn>
         <v-btn variant="tonal" prepend-icon="mdi-file-pdf-box" @click="savePdf">
-          PDF
+          بي دي إف
         </v-btn>
         <v-btn
           variant="tonal"

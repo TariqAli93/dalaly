@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import AppLayout from "../layouts/AppLayout.vue";
 import { getErrorMessage } from "../services/api.service";
 import * as usersService from "../services/users.service";
@@ -14,6 +15,7 @@ const { can } = usePermissions();
 const { openConfirm } = useConfirm();
 const { notifySuccess, notifyError } = useSnackbar();
 const { setRefreshHandler } = useRefresh();
+const { t } = useI18n();
 
 const users = ref<ManagedUserRecord[]>([]);
 const roles = ref<RoleRecord[]>([]);
@@ -62,10 +64,10 @@ async function save() {
         ...form.value,
         pin: form.value.pin || undefined,
       });
-      notifySuccess("تم تحديث المستخدم.");
+      notifySuccess(t("users.updated"));
     } else {
       await usersService.createUser(form.value);
-      notifySuccess("تم إنشاء المستخدم.");
+      notifySuccess(t("users.created"));
     }
     dialog.value = false;
     await loadUsers();
@@ -82,7 +84,9 @@ async function toggleActive(user: ManagedUserRecord) {
       await usersService.activateUser(user.id);
     }
     await loadUsers();
-    notifySuccess(user.is_active ? "تم تعطيل المستخدم." : "تم تفعيل المستخدم.");
+    notifySuccess(
+      user.is_active ? t("users.deactivated") : t("users.activated"),
+    );
   } catch (error) {
     notifyError(getErrorMessage(error));
   }
@@ -91,13 +95,13 @@ async function toggleActive(user: ManagedUserRecord) {
 function askDelete(user: ManagedUserRecord) {
   openConfirm({
     title: `حذف ${user.username}`,
-    body: "هل تريد حذف هذا المستخدم؟",
-    confirmText: "حذف",
+    body: t("users.deleteQuestion"),
+    confirmText: t("common.delete"),
     color: "error",
     onConfirm: async () => {
       await usersService.deleteUser(user.id);
       await loadUsers();
-      notifySuccess("تم حذف المستخدم.");
+      notifySuccess(t("users.deleted"));
     },
   });
 }
@@ -110,10 +114,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <AppLayout title="المستخدمون">
+  <AppLayout :title="t('users.title')">
     <v-card variant="flat" border>
       <v-card-title class="d-flex align-center">
-        <span>إدارة المستخدمين</span>
+        <span>{{ t("users.manage") }}</span>
         <v-spacer />
         <v-btn
           v-if="can('users.create')"
@@ -121,22 +125,22 @@ onMounted(() => {
           prepend-icon="mdi-account-plus"
           @click="openDialog()"
         >
-          إضافة مستخدم
+          {{ t("users.add") }}
         </v-btn>
       </v-card-title>
       <v-card-text>
         <v-empty-state
           v-if="!users.length"
           icon="mdi-account-group-outline"
-          title="لا يوجد مستخدمون"
+          :title="t('users.empty')"
         />
         <v-table v-else density="comfortable">
           <thead>
             <tr>
-              <th>المستخدم</th>
+              <th>{{ t("common.username") }}</th>
               <th>الاسم</th>
-              <th>الأدوار</th>
-              <th>الحالة</th>
+              <th>{{ t("users.roles") }}</th>
+              <th>{{ t("users.status") }}</th>
               <th></th>
             </tr>
           </thead>
@@ -159,7 +163,9 @@ onMounted(() => {
                   :color="user.is_active ? 'success' : undefined"
                   variant="tonal"
                 >
-                  {{ user.is_active ? "نشط" : "معطل" }}
+                  {{
+                    user.is_active ? t("common.active") : t("common.inactive")
+                  }}
                 </v-chip>
               </td>
               <td class="text-end">
@@ -196,20 +202,23 @@ onMounted(() => {
     <v-dialog v-model="dialog" width="620">
       <v-card>
         <v-card-title>
-          {{ editingId ? "تعديل مستخدم" : "إضافة مستخدم" }}
+          {{ editingId ? t("common.edit") : t("users.add") }}
         </v-card-title>
         <v-card-text>
           <div class="dialog-grid">
-            <v-text-field v-model="form.username" label="Username" />
+            <v-text-field
+              v-model="form.username"
+              :label="t('common.username')"
+            />
             <v-text-field v-model="form.display_name" label="الاسم الظاهر" />
             <v-text-field
               v-model="form.pin"
-              :label="editingId ? 'PIN جديد اختياري' : 'PIN'"
+              :label="editingId ? t('users.optionalNewPin') : t('common.pin')"
               type="password"
             />
             <v-switch
               v-model="form.is_active"
-              label="فعال"
+              :label="t('common.active')"
               color="primary"
               hide-details
             />

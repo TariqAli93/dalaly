@@ -9,6 +9,7 @@ import * as directives from "vuetify/directives";
 import { ar } from "vuetify/locale";
 import App from "./App.vue";
 import { router } from "./router";
+import { i18n } from "./plugins/i18n";
 import { setUnauthorizedHandler } from "./services/api.service";
 import { useAuth } from "./composables/useAuth";
 import { md3 } from "vuetify/blueprints";
@@ -19,7 +20,7 @@ const vuetify = createVuetify({
   blueprint: md3,
   locale: {
     locale: "ar",
-    fallback: "en",
+    fallback: "ar",
     messages: { ar },
     rtl: { ar: true },
   },
@@ -91,4 +92,14 @@ setUnauthorizedHandler(() => {
   }
 });
 
-createApp(App).use(vuetify).use(router).mount("#app");
+document.documentElement.lang = "ar";
+document.documentElement.dir = "rtl";
+
+router.afterEach((to) => {
+  const titleKey = to.meta.titleKey as string | undefined;
+  document.title = titleKey
+    ? `${i18n.global.t(titleKey)} | ${i18n.global.t("common.appName")}`
+    : i18n.global.t("common.appName");
+});
+
+createApp(App).use(i18n).use(vuetify).use(router).mount("#app");

@@ -143,7 +143,7 @@ async function goToLogin() {
           <div class="text-h6 mb-2">مرحباً بك في دلالي</div>
           <p class="text-body-2 text-medium-emphasis mb-4">
             سنقوم بتهيئة قاعدة البيانات وإنشاء أول مستخدم. تأكد من تشغيل خادم
-            PostgreSQL على هذا الجهاز قبل المتابعة.
+            قاعدة البيانات المحلية على هذا الجهاز قبل المتابعة.
           </p>
           <v-alert
             v-if="status?.app_version"

@@ -35,6 +35,6 @@ async function exportFolder() {
     :loading="loading"
     @click="exportFolder"
   >
-    تصدير TXT والصور
+    تصدير ملف نصي والصور
   </v-btn>
 </template>

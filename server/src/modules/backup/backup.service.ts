@@ -139,9 +139,21 @@ const TABLE_SPECS = [
   },
   { name: "contract_parties", table: contractParties, dates: ["createdAt"] },
   { name: "party_snapshots", table: partySnapshots, dates: ["capturedAt"] },
-  { name: "contract_office_snapshots", table: contractOfficeSnapshots, dates: ["capturedAt"] },
-  { name: "contract_asset_snapshots", table: contractAssetSnapshots, dates: ["capturedAt"] },
-  { name: "contract_attachments", table: contractAttachments, dates: ["capturedAt"] },
+  {
+    name: "contract_office_snapshots",
+    table: contractOfficeSnapshots,
+    dates: ["capturedAt"],
+  },
+  {
+    name: "contract_asset_snapshots",
+    table: contractAssetSnapshots,
+    dates: ["capturedAt"],
+  },
+  {
+    name: "contract_attachments",
+    table: contractAttachments,
+    dates: ["capturedAt"],
+  },
   { name: "audit_logs", table: auditLogs, dates: ["createdAt"] },
   { name: "app_settings", table: appSettings, dates: ["updatedAt"] },
 ] as const;

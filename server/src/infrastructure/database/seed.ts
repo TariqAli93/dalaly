@@ -131,9 +131,7 @@ async function resetSeedData() {
     .delete(purchaseRequests)
     .where(inArray(purchaseRequests.code, seededPurchaseRequestCodes));
   await db.delete(rentals).where(inArray(rentals.code, seededRentalCodes));
-  await db
-    .delete(people)
-    .where(inArray(people.code, seededCustomerCodes));
+  await db.delete(people).where(inArray(people.code, seededCustomerCodes));
 
   // الحذف بالترتيب الآمن — بقية الجداول مرتبطة بـ ON DELETE CASCADE.
   await db.delete(favoriteProperties);
@@ -568,7 +566,7 @@ async function seedRentals(
             SEED_CUSTOMERS.find(
               (customer) => customer.code === seed.customerCode,
             )?.phonePrimary ?? "07700000000",
-        ownerPersonId: customerId,
+          ownerPersonId: customerId,
           status: seed.status,
           isNegotiable: seed.isNegotiable,
           notes: seed.notes ?? null,
@@ -823,9 +821,7 @@ async function seedCompanySettings() {
     .limit(1);
 
   if (!existing) {
-    await db
-      .insert(officeProfiles)
-      .values({ id: 1, ...SEED_COMPANY_SETTINGS });
+    await db.insert(officeProfiles).values({ id: 1, ...SEED_COMPANY_SETTINGS });
     bump(created, "company_settings");
     return;
   }
@@ -868,7 +864,10 @@ async function seedContracts(customerIndex: CustomerIndex) {
     for (const party of seed.parties) {
       const customerId = customerIndex.byCode.get(party.customerCode);
       if (customerId !== undefined)
-        partyRows.push({ personId: customerId, role: party.role === "landlord" ? "lessor" : "lessee" });
+        partyRows.push({
+          personId: customerId,
+          role: party.role === "landlord" ? "lessor" : "lessee",
+        });
     }
     const [rental] = await db
       .select({ id: rentals.id })

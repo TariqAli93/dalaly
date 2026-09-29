@@ -164,7 +164,10 @@ onMounted(() => {
               v-model="company.additional_contact"
               label="معلومات اتصال إضافية"
             />
-            <v-text-field v-model="company.license_number" label="رقم الإجازة أو الترخيص" />
+            <v-text-field
+              v-model="company.license_number"
+              label="رقم الإجازة أو الترخيص"
+            />
           </div>
           <v-file-input
             v-model="companyLogo"
@@ -194,7 +197,7 @@ onMounted(() => {
         <v-card-text>
           <div class="d-flex align-center justify-space-between ga-4 mb-4">
             <div>
-              <div class="font-weight-bold">رمز الدخول PIN</div>
+              <div class="font-weight-bold">الرمز السري للدخول</div>
               <div class="text-body-2 text-medium-emphasis">
                 غيّر رمز الدخول الخاص بك.
               </div>
@@ -205,7 +208,7 @@ onMounted(() => {
               prepend-icon="mdi-form-textbox-password"
               @click="changePinOpen = true"
             >
-              تغيير رمز PIN
+              تغيير الرمز السري
             </v-btn>
           </div>
           <v-select
@@ -282,7 +285,7 @@ onMounted(() => {
           />
           <v-list-item
             title="قاعدة البيانات"
-            subtitle="PostgreSQL محلي"
+            subtitle="قاعدة بيانات محلية"
             prepend-icon="mdi-database-outline"
           />
           <v-list-item

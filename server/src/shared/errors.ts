@@ -16,7 +16,11 @@ export class DuplicatePlotError extends Error {
 
 export class ContractValidationError extends Error {
   constructor(
-    public readonly issues: Array<{ code: string; message: string; path?: string }>,
+    public readonly issues: Array<{
+      code: string;
+      message: string;
+      path?: string;
+    }>,
   ) {
     super(issues.map((issue) => issue.message).join("، "));
     this.name = "ContractValidationError";

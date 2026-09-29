@@ -246,7 +246,7 @@ onMounted(() => {
           :disabled="!selectedProperty"
           @click="exportSelected"
         >
-          تصدير TXT والصور
+          تصدير ملف نصي والصور
         </v-btn>
         <v-btn
           v-if="can('properties.create')"
@@ -254,7 +254,7 @@ onMounted(() => {
           prepend-icon="mdi-file-import-outline"
           @click="importOpen = true"
         >
-          استيراد Excel
+          استيراد ملف إكسل
         </v-btn>
         <v-btn
           v-if="can('properties.create')"

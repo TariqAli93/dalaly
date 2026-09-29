@@ -17,6 +17,7 @@
     "@tailwindcss/vite": "^4.3.0",
     "tailwindcss": "^4.3.0",
     "vue": "^3.5.24",
+    "vue-i18n": "^11.4.12",
     "vue-router": "^4.5.0",
     "vuetify": "^3.10.11",
     "xlsx": "^0.18.5"

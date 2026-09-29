@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import { getErrorMessage } from "../../services/api.service";
 import { useAuth } from "../../composables/useAuth";
@@ -9,11 +10,12 @@ const route = useRoute();
 const router = useRouter();
 const { loginWithCredentials } = useAuth();
 const { notifySuccess, notifyError } = useSnackbar();
+const { t } = useI18n();
 
 const form = ref({ username: "admin", pin: "" });
 const loading = ref(false);
 
-const required = (value: unknown) => Boolean(value) || "هذا الحقل مطلوب";
+const required = (value: unknown) => Boolean(value) || t("common.required");
 
 async function submit() {
   loading.value = true;
@@ -34,17 +36,17 @@ async function submit() {
   <v-form @submit.prevent="submit">
     <div class="text-h6 mb-2">تسجيل الدخول</div>
     <div class="text-body-2 text-medium-emphasis mb-5">
-      الدخول إلى التطبيق باستخدام اسم المستخدم وPIN.
+      {{ t("auth.loginDescription") }}
     </div>
     <v-text-field
       v-model="form.username"
-      label="Username"
+      :label="t('common.username')"
       :rules="[required]"
       autofocus
     />
     <v-text-field
       v-model="form.pin"
-      label="PIN Code"
+      :label="t('common.pin')"
       type="password"
       :rules="[required]"
     />

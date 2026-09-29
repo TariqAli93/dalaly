@@ -17,7 +17,7 @@ async function saveWorkbook(
     data: new Uint8Array(data),
     suggestedName,
     title,
-    filters: [{ name: "Excel Workbook", extensions: ["xlsx"] }],
+    filters: [{ name: "مصنف إكسل", extensions: ["xlsx"] }],
   });
 }
 

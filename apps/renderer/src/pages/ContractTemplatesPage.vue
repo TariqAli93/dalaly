@@ -50,7 +50,9 @@ onMounted(load);
       variant="flat"
       border
       class="mb-3"
-      ><v-card-title>{{ item.name }} · {{ item.contract_type === 'sale' ? 'بيع' : 'إيجار' }}</v-card-title
+      ><v-card-title
+        >{{ item.name }} ·
+        {{ item.contract_type === "sale" ? "بيع" : "إيجار" }}</v-card-title
       ><v-card-text
         ><v-text-field v-model="item.name" label="اسم القالب" /><v-textarea
           v-model="item.body"

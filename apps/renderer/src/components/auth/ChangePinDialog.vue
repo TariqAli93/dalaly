@@ -17,13 +17,13 @@ const pinRule = (v: string) =>
 
 async function submit() {
   if (form.value.next !== form.value.confirm) {
-    notifyError("رمز PIN الجديد وتأكيده غير متطابقين.");
+    notifyError("الرمز السري الجديد وتأكيده غير متطابقين.");
     return;
   }
   loading.value = true;
   try {
     await changePin(form.value.current, form.value.next);
-    notifySuccess("تم تغيير رمز PIN.");
+    notifySuccess("تم تغيير الرمز السري.");
     form.value = { current: "", next: "", confirm: "" };
     open.value = false;
   } catch (error) {
@@ -37,7 +37,7 @@ async function submit() {
 <template>
   <v-dialog v-model="open" width="460">
     <v-card>
-      <v-card-title>تغيير رمز PIN</v-card-title>
+      <v-card-title>تغيير الرمز السري</v-card-title>
       <v-card-text>
         <v-form @submit.prevent="submit">
           <v-text-field

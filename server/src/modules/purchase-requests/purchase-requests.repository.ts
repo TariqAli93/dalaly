@@ -98,9 +98,7 @@ export async function listPurchaseRequests(filters: PurchaseRequestFilters) {
     .innerJoin(people, eq(purchaseRequests.personId, people.id))
     .where(where.length ? and(...where) : undefined)
     .orderBy(desc(purchaseRequests.updatedAt), desc(purchaseRequests.id));
-  return rows.map((row) =>
-    apiRow(row.request, row.personName, row.personCode),
-  );
+  return rows.map((row) => apiRow(row.request, row.personName, row.personCode));
 }
 export async function getPurchaseRequest(id: number) {
   const [row] = await db

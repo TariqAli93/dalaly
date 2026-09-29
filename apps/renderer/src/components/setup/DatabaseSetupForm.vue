@@ -1,33 +1,43 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import type { DatabaseSetupInput } from "../../types";
 
 const model = defineModel<DatabaseSetupInput>({ required: true });
 
 defineProps<{ testing?: boolean }>();
 const emit = defineEmits<{ test: [] }>();
+const { t } = useI18n();
 
-const required = (value: unknown) => Boolean(value) || "هذا الحقل مطلوب";
+const required = (value: unknown) => Boolean(value) || t("common.required");
 const dbNameRule = (value: string) =>
-  /^[a-zA-Z0-9_]+$/.test(value) || "اسم القاعدة: حروف وأرقام وشرطة سفلية فقط.";
+  /^[a-zA-Z0-9_]+$/.test(value) || t("database.nameRule");
 </script>
 
 <template>
   <div>
-    <div class="text-h6 mb-2">إعداد قاعدة بيانات PostgreSQL</div>
+    <div class="text-h6 mb-2">{{ t("database.title") }}</div>
     <div class="text-body-2 text-medium-emphasis mb-5">
-      أدخل بيانات مدير PostgreSQL لإنشاء قاعدة البيانات تلقائياً.
+      {{ t("database.description") }}
     </div>
     <div class="dialog-grid">
-      <v-text-field v-model="model.host" label="Host" :rules="[required]" />
-      <v-text-field v-model="model.port" label="Port" :rules="[required]" />
+      <v-text-field
+        v-model="model.host"
+        :label="t('common.host')"
+        :rules="[required]"
+      />
+      <v-text-field
+        v-model="model.port"
+        :label="t('common.port')"
+        :rules="[required]"
+      />
       <v-text-field
         v-model="model.adminUsername"
-        label="PostgreSQL Admin Username"
+        :label="t('database.adminUsername')"
         :rules="[required]"
       />
       <v-text-field
         v-model="model.adminPassword"
-        label="PostgreSQL Admin Password"
+        :label="t('database.adminPassword')"
         type="password"
       />
       <v-text-field
@@ -44,7 +54,7 @@ const dbNameRule = (value: string) =>
         :loading="testing"
         @click="emit('test')"
       >
-        اختبار الاتصال
+        {{ t("database.testConnection") }}
       </v-btn>
     </div>
   </div>
