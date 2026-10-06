@@ -117,6 +117,7 @@ export type ContractRecord = {
   start_date: string | null;
   end_date: string | null;
   amount: string | number | null;
+  paid_amount: string | number | null;
   payment_info: Record<string, unknown>;
   notes: string | null;
   generated_content: string | null;
@@ -156,6 +157,13 @@ export type ContractBundle = {
     source_id: number;
     data: Record<string, unknown>;
   } | null;
+  assets?: Array<{
+    id: number;
+    contract_id: number;
+    source_type: string;
+    source_id: number;
+    data: Record<string, unknown>;
+  }>;
   attachments: Array<{
     id: number;
     contract_id: number;

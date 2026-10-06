@@ -197,11 +197,11 @@ CREATE TABLE IF NOT EXISTS "contract_parties" (
 CREATE INDEX IF NOT EXISTS "idx_contract_parties_customer" ON "contract_parties" ("customer_id");
 
 INSERT INTO "document_types" ("key", "name", "transaction_scope", "is_required") VALUES
-  ('national_id', 'National ID', 'general', true),
-  ('passport', 'Passport', 'general', false),
-  ('ownership_document', 'Property ownership document', 'sale', true),
-  ('authorization', 'Authorization document', 'general', false),
-  ('other', 'Other document', 'general', false)
+  ('national_id', 'البطاقة الوطنية', 'general', true),
+  ('passport', 'جواز السفر', 'general', false),
+  ('ownership_document', 'سند ملكية العقار', 'sale', true),
+  ('authorization', 'مستند التفويض', 'general', false),
+  ('other', 'مستند آخر', 'general', false)
 ON CONFLICT ("key") DO NOTHING;
 
 INSERT INTO "contract_templates" ("contract_type", "name", "body") VALUES

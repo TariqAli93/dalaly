@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, lte } from "drizzle-orm";
+import { and, asc, desc, eq, lte, or } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import {
   documentTypes,
@@ -167,7 +167,10 @@ export async function getPersonDocumentRequirements(
       and(
         eq(documentTypes.isRequired, true),
         eq(documentTypes.isActive, true),
-        eq(documentTypes.transactionScope, scope),
+        or(
+          eq(documentTypes.transactionScope, "general"),
+          eq(documentTypes.transactionScope, scope),
+        ),
       ),
     )
     .orderBy(asc(documentTypes.name));

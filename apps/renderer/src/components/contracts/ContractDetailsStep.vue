@@ -1,37 +1,56 @@
 <script setup lang="ts">
+import DateField from "./DateField.vue";
+import NumberField from "../app/NumberField.vue";
 import type {
   ContractTemplateRecord,
   PropertyRecord,
   RentalRecord,
 } from "../../types";
-defineProps<{
-  contractType: "sale" | "rental";
-  propertyId: number | null;
-  rentalId: number | null;
+import type { ContractType } from "./contract-form";
+
+const props = defineProps<{
+  contractType: ContractType;
+  propertyIds: number[];
+  rentalIds: number[];
   contractDate: string;
   startDate: string;
   endDate: string;
-  amount: string | number | null;
+  amount: number;
+  paidAmount: string | number | null;
+  remainingAmount: number;
   templateId: number | null;
   properties: PropertyRecord[];
   rentals: RentalRecord[];
   templates: ContractTemplateRecord[];
 }>();
 const emit = defineEmits<{
-  "update:contractType": [value: "sale" | "rental"];
-  "update:propertyId": [value: number | null];
-  "update:rentalId": [value: number | null];
-  "update:contractDate": [value: string];
-  "update:startDate": [value: string];
-  "update:endDate": [value: string];
-  "update:amount": [value: string | number | null];
-  "update:templateId": [value: number | null];
+  (event: "update:contractType", value: ContractType): void;
+  (event: "update:propertyIds", value: number[]): void;
+  (event: "update:rentalIds", value: number[]): void;
+  (event: "update:contractDate", value: string): void;
+  (event: "update:startDate", value: string): void;
+  (event: "update:endDate", value: string): void;
+  (event: "update:paidAmount", value: string | number | null): void;
+  (event: "update:templateId", value: number | null): void;
 }>();
+
+function updatePaid(value: string | number | null | undefined) {
+  emit("update:paidAmount", value ?? null);
+}
+
+function assetTitle(item: PropertyRecord | RentalRecord) {
+  return `${item.name || item.code} — ${
+    props.contractType === "sale"
+      ? (item as PropertyRecord).total_price
+      : (item as RentalRecord).rent_price
+  }`;
+}
 </script>
+
 <template>
   <div class="details-grid">
     <v-select
-      :model-value="contractType"
+      :model-value="props.contractType"
       :items="[
         { title: 'عقد بيع', value: 'sale' },
         { title: 'عقد إيجار', value: 'rental' },
@@ -40,68 +59,99 @@ const emit = defineEmits<{
       @update:model-value="emit('update:contractType', $event)"
     />
     <v-autocomplete
-      v-if="contractType === 'sale'"
-      :model-value="propertyId"
-      :items="properties"
-      item-title="name"
+      v-if="props.contractType === 'sale'"
+      :model-value="props.propertyIds"
+      :items="props.properties"
+      :item-title="assetTitle"
       item-value="id"
-      label="العقار"
+      label="العقار / العقارات"
+      multiple
+      chips
+      closable-chips
       clearable
-      @update:model-value="emit('update:propertyId', $event)"
+      :rules="[
+        (value: number[]) =>
+          value.length > 0 || 'اختر عقاراً واحداً على الأقل.',
+      ]"
+      @update:model-value="emit('update:propertyIds', $event)"
     />
     <v-autocomplete
       v-else
-      :model-value="rentalId"
-      :items="rentals"
-      item-title="name"
+      :model-value="props.rentalIds"
+      :items="props.rentals"
+      :item-title="assetTitle"
       item-value="id"
-      label="العرض الإيجاري"
+      label="العرض الإيجاري / العروض الإيجارية"
+      multiple
+      chips
+      closable-chips
       clearable
-      @update:model-value="emit('update:rentalId', $event)"
+      :rules="[
+        (value: number[]) =>
+          value.length > 0 || 'اختر عرضاً إيجارياً واحداً على الأقل.',
+      ]"
+      @update:model-value="emit('update:rentalIds', $event)"
     />
     <v-select
-      :model-value="templateId"
-      :items="templates"
+      :model-value="props.templateId"
+      :items="props.templates"
       item-title="name"
       item-value="id"
       label="قالب العقد"
       clearable
       @update:model-value="emit('update:templateId', $event)"
     />
-    <v-text-field
-      :model-value="contractDate"
-      type="date"
+    <DateField
+      :model-value="props.contractDate"
       label="تاريخ العقد"
       @update:model-value="emit('update:contractDate', $event)"
     />
-    <v-text-field
-      v-if="contractType === 'rental'"
-      :model-value="startDate"
-      type="date"
+    <DateField
+      v-if="props.contractType === 'rental'"
+      :model-value="props.startDate"
       label="تاريخ بدء الإيجار"
       @update:model-value="emit('update:startDate', $event)"
     />
-    <v-text-field
-      v-if="contractType === 'rental'"
-      :model-value="endDate"
-      type="date"
+    <DateField
+      v-if="props.contractType === 'rental'"
+      :model-value="props.endDate"
       label="تاريخ انتهاء الإيجار"
       @update:model-value="emit('update:endDate', $event)"
     />
-    <v-text-field
-      :model-value="amount"
-      label="المبلغ"
-      inputmode="decimal"
-      @update:model-value="emit('update:amount', $event)"
+    <NumberField
+      :model-value="props.amount"
+      label="المبلغ الإجمالي"
+      readonly
+      prefix=""
+    />
+    <NumberField
+      :model-value="props.paidAmount"
+      label="المبلغ المدفوع"
+      :min="0"
+      :rules="[
+        (value: string | number | null) =>
+          Number(value || 0) >= 0 || 'لا يمكن أن يكون المبلغ المدفوع سالباً.',
+        (value: string | number | null) =>
+          Number(value || 0) <= props.amount ||
+          'لا يمكن أن يتجاوز المدفوع المبلغ الإجمالي.',
+      ]"
+      @update:model-value="updatePaid"
+    />
+    <NumberField
+      :model-value="props.remainingAmount"
+      label="المبلغ المتبقي"
+      readonly
     />
   </div>
 </template>
+
 <style scoped>
 .details-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
+
 @media (max-width: 760px) {
   .details-grid {
     grid-template-columns: 1fr;

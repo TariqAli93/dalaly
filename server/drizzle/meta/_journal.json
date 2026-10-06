@@ -113,6 +113,20 @@
       "when": 1782820800000,
       "tag": "0015_contract_template_placeholders",
       "breakpoints": false
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790670140399,
+      "tag": "0016_arabic_document_type_names",
+      "breakpoints": false
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790938800000,
+      "tag": "0017_contract_payments_multi_assets",
+      "breakpoints": false
     }
   ]
 }

@@ -35,6 +35,24 @@ function api(row: Record<string, unknown>) {
   return toApiObject(row);
 }
 
+function selectedAssetIds(payload: ContractPayload) {
+  if (payload.contract_type !== "rental")
+    return payload.property_ids.length
+      ? payload.property_ids
+      : payload.property_id
+        ? [payload.property_id]
+        : [];
+  return payload.rental_ids.length
+    ? payload.rental_ids
+    : payload.rental_id
+      ? [payload.rental_id]
+      : [];
+}
+
+function assetSourceType(payload: ContractPayload) {
+  return payload.contract_type === "rental" ? "rental" : "property";
+}
+
 async function generateCode(executor: any = db) {
   const [last] = await executor
     .select({ code: contracts.code })
@@ -45,7 +63,7 @@ async function generateCode(executor: any = db) {
   return `CTR-${String(next).padStart(4, "0")}`;
 }
 
-export async function listTemplates(contractType?: "sale" | "rental") {
+export async function listTemplates(contractType?: "sale" | "rental" | "purchase") {
   const rows = await db
     .select()
     .from(contractTemplates)
@@ -120,11 +138,11 @@ async function bundle(id: number) {
     .from(contractOfficeSnapshots)
     .where(eq(contractOfficeSnapshots.contractId, id))
     .limit(1);
-  const [asset] = await db
+  const assets = await db
     .select()
     .from(contractAssetSnapshots)
     .where(eq(contractAssetSnapshots.contractId, id))
-    .limit(1);
+    .orderBy(contractAssetSnapshots.id);
   const attachments = await db
     .select()
     .from(contractAttachments)
@@ -140,7 +158,10 @@ async function bundle(id: number) {
       snapshot: item.snapshot ? api(item.snapshot) : null,
     })),
     office: office ? api(office) : null,
-    asset: asset ? api(asset) : null,
+    // `asset` is retained for old renderer/API consumers; `assets` is the
+    // complete immutable snapshot list for multi-asset contracts.
+    asset: assets[0] ? api(assets[0]) : null,
+    assets: assets.map(api),
     attachments: attachments.map(api),
   };
 }
@@ -151,8 +172,35 @@ export async function listContracts(filters: ContractFilters) {
     where.push(eq(contracts.contractType, filters.contract_type));
   if (filters.status) where.push(eq(contracts.status, filters.status));
   if (filters.property_id)
-    where.push(eq(contracts.propertyId, filters.property_id));
-  if (filters.rental_id) where.push(eq(contracts.rentalId, filters.rental_id));
+    where.push(
+      inArray(
+        contracts.id,
+        db
+          .select({ id: contractAssetSnapshots.contractId })
+          .from(contractAssetSnapshots)
+          .where(
+            and(
+              eq(contractAssetSnapshots.sourceType, "property"),
+              eq(contractAssetSnapshots.sourceId, filters.property_id),
+            ),
+          ),
+      ),
+    );
+  if (filters.rental_id)
+    where.push(
+      inArray(
+        contracts.id,
+        db
+          .select({ id: contractAssetSnapshots.contractId })
+          .from(contractAssetSnapshots)
+          .where(
+            and(
+              eq(contractAssetSnapshots.sourceType, "rental"),
+              eq(contractAssetSnapshots.sourceId, filters.rental_id),
+            ),
+          ),
+      ),
+    );
   if (filters.person_id)
     where.push(
       inArray(
@@ -197,9 +245,12 @@ export async function getContract(id: number) {
   return bundle(id);
 }
 
-async function requiredTypes(contractType: "sale" | "rental") {
-  const scope = contractType === "sale" ? "sale" : "rent";
-  return db
+async function requiredTypes(
+  contractType: "sale" | "rental" | "purchase",
+  role: string,
+) {
+  const scope = contractType === "rental" ? "rent" : "sale";
+  const types = await db
     .select()
     .from(documentTypes)
     .where(
@@ -213,6 +264,15 @@ async function requiredTypes(contractType: "sale" | "rental") {
       ),
     )
     .orderBy(asc(documentTypes.name));
+  const keys =
+    contractType !== "rental"
+      ? role === "seller"
+        ? ["national_id", "residence_card", "ownership_document"]
+        : ["national_id", "residence_card"]
+      : role === "lessee"
+        ? ["national_id", "residence_card", "security_approval"]
+        : ["national_id", "residence_card"];
+  return types.filter((type) => keys.includes(type.key));
 }
 
 type ValidationParty = {
@@ -225,31 +285,52 @@ type ValidationParty = {
 
 async function loadValidationData(payload: ContractPayload) {
   const issues: Array<{ code: string; message: string; path?: string }> = [];
-  const asset =
-    payload.contract_type === "sale"
-      ? payload.property_id
-        ? (
-            await db
-              .select()
-              .from(properties)
-              .where(eq(properties.id, payload.property_id))
-              .limit(1)
-          )[0]
-        : null
-      : payload.rental_id
-        ? (
-            await db
-              .select()
-              .from(rentals)
-              .where(eq(rentals.id, payload.rental_id))
-              .limit(1)
-          )[0]
-        : null;
-  if (!asset)
+  const sourceType = assetSourceType(payload);
+  const assetIds = selectedAssetIds(payload);
+  const assetRows =
+    sourceType === "property"
+      ? await db
+          .select()
+          .from(properties)
+          .where(inArray(properties.id, assetIds))
+      : await db
+          .select()
+          .from(rentals)
+          .where(inArray(rentals.id, assetIds));
+  const asset = assetRows[0] ?? null;
+  if (!assetRows.length)
     issues.push({
       code: "asset_missing",
       message: "العقار المرتبط بالعقد غير موجود.",
       path: "asset",
+    });
+  if (assetRows.length !== assetIds.length)
+    issues.push({
+      code: "asset_missing",
+      message: "يوجد عقار أو عرض إيجاري محدد غير موجود.",
+      path: "assets",
+    });
+  const totalAmount = assetRows.reduce(
+    (total, row) =>
+      total +
+      Number(
+        sourceType === "property"
+          ? (row as typeof properties.$inferSelect).totalPrice
+          : (row as typeof rentals.$inferSelect).rentPrice,
+      ),
+    0,
+  );
+  if (payload.amount == null || payload.amount <= 0)
+    issues.push({
+      code: "amount_missing",
+      message: "المبلغ الإجمالي مطلوب.",
+      path: "amount",
+    });
+  else if (Math.abs(payload.amount - totalAmount) > 0.01)
+    issues.push({
+      code: "amount_mismatch",
+      message: "المبلغ الإجمالي يجب أن يساوي مجموع مبالغ العقارات المحددة.",
+      path: "amount",
     });
 
   const template = payload.template_id
@@ -266,7 +347,12 @@ async function loadValidationData(payload: ContractPayload) {
           .from(contractTemplates)
           .where(
             and(
-              eq(contractTemplates.contractType, payload.contract_type),
+              eq(
+                contractTemplates.contractType,
+                payload.contract_type === "purchase"
+                  ? "sale"
+                  : payload.contract_type,
+              ),
               eq(contractTemplates.isActive, true),
             ),
           )
@@ -298,7 +384,6 @@ async function loadValidationData(payload: ContractPayload) {
       path: "office",
     });
 
-  const required = await requiredTypes(payload.contract_type);
   const partyData: ValidationParty[] = [];
   for (const input of payload.parties) {
     const [person] = await db
@@ -339,6 +424,7 @@ async function loadValidationData(payload: ContractPayload) {
     const selectedTypeIds = new Set(
       selected.map((doc) => doc.documentTypeId).filter(Boolean),
     );
+    const required = await requiredTypes(payload.contract_type, input.role);
     for (const type of required) {
       if (!selectedTypeIds.has(type.id))
         issues.push({
@@ -365,7 +451,7 @@ async function loadValidationData(payload: ContractPayload) {
       inputIds: input.identity_document_ids,
     });
   }
-  return { asset, template, office, partyData, issues };
+  return { asset, assets: assetRows, sourceType, totalAmount, template, office, partyData, issues };
 }
 
 export async function validateContract(payload: ContractPayload) {
@@ -412,6 +498,10 @@ function buildRenderValues(
     "contract.type": payload.contract_type,
     "contract.date": formatDate(payload.contract_date ?? new Date()),
     "contract.amount": payload.amount == null ? "" : String(payload.amount),
+    "contract.paid_amount": String(payload.paid_amount ?? 0),
+    "contract.remaining_amount": String(
+      Math.max(0, Number(payload.amount ?? 0) - Number(payload.paid_amount ?? 0)),
+    ),
     "contract.start_date": formatDate(payload.start_date),
     "contract.end_date": formatDate(payload.end_date),
     "contract.notes": payload.notes ?? "",
@@ -450,6 +540,16 @@ function buildRenderValues(
     );
     values["property.address"] = assetPlace(asset);
   }
+  const assetRecords = loaded.assets as Array<Record<string, unknown>>;
+  values["property.names"] = assetRecords
+    .map((item) => String(item.name ?? item.code ?? ""))
+    .filter(Boolean)
+    .join("، ");
+  values["property.addresses"] = assetRecords
+    .map((item) => assetPlace(item))
+    .filter(Boolean)
+    .join("؛ ");
+  values["property.total"] = String(loaded.totalAmount);
   // Backward-compatible aliases for templates created before the rebuild.
   values.seller_name = values["seller.full_name"] ?? "";
   values.buyer_name = values["buyer.full_name"] ?? "";
@@ -457,6 +557,8 @@ function buildRenderValues(
   values.tenant_name = values["lessee.full_name"] ?? "";
   values.property_address = values["property.address"] ?? "";
   values.contract_amount = values["contract.amount"] ?? "";
+  values.paid_amount = values["contract.paid_amount"] ?? "";
+  values.remaining_amount = values["contract.remaining_amount"] ?? "";
   values.contract_date = values["contract.date"] ?? "";
   values.start_date = values["contract.start_date"] ?? "";
   values.end_date = values["contract.end_date"] ?? "";
@@ -488,17 +590,18 @@ async function createSnapshots(
     })
     .returning();
   void office;
-  const sourceType = payload.contract_type === "sale" ? "property" : "rental";
-  const sourceId =
-    payload.contract_type === "sale"
-      ? payload.property_id!
-      : payload.rental_id!;
-  await tx.insert(contractAssetSnapshots).values({
-    contractId,
-    sourceType,
-    sourceId,
-    data: loaded.asset ?? {},
-  });
+  const assetRows = loaded.assets as Array<Record<string, unknown>>;
+  const assetIds = selectedAssetIds(payload);
+  await tx.insert(contractAssetSnapshots).values(
+    assetIds.map((sourceId) => ({
+      contractId,
+      sourceType: assetSourceType(payload),
+      sourceId,
+      data:
+        assetRows.find((row) => Number(row.id) === sourceId) ??
+        ({} as Record<string, unknown>),
+    })),
+  );
   for (const input of payload.parties) {
     const data = loaded.partyData.find((item) => item.role === input.role);
     if (!data) continue;
@@ -559,6 +662,7 @@ export async function previewContract(payload: ContractPayload) {
     template: api(loaded.template!),
     office: loaded.office ? api(loaded.office) : null,
     asset: loaded.asset ? api(loaded.asset) : null,
+    assets: loaded.assets.map(api),
   };
 }
 
@@ -575,14 +679,19 @@ export async function createContract(payload: ContractPayload) {
       .values({
         code: await generateCode(tx),
         contractType: payload.contract_type,
-        propertyId: payload.property_id ?? null,
-        rentalId: payload.rental_id ?? null,
+        propertyId: selectedAssetIds(payload)[0] && assetSourceType(payload) === "property"
+          ? selectedAssetIds(payload)[0]
+          : null,
+        rentalId: selectedAssetIds(payload)[0] && assetSourceType(payload) === "rental"
+          ? selectedAssetIds(payload)[0]
+          : null,
         templateId: loaded.template!.id,
         status: payload.status,
         contractDate: payload.contract_date ?? new Date(),
         startDate: payload.start_date ?? null,
         endDate: payload.end_date ?? null,
         amount: payload.amount == null ? null : String(payload.amount),
+        paidAmount: String(payload.paid_amount ?? 0),
         paymentInfo: payload.payment_info,
         notes: payload.notes,
         generatedContent: content,
@@ -618,14 +727,19 @@ export async function updateContract(id: number, payload: ContractPayload) {
       .update(contracts)
       .set({
         contractType: payload.contract_type,
-        propertyId: payload.property_id ?? null,
-        rentalId: payload.rental_id ?? null,
+        propertyId: selectedAssetIds(payload)[0] && assetSourceType(payload) === "property"
+          ? selectedAssetIds(payload)[0]
+          : null,
+        rentalId: selectedAssetIds(payload)[0] && assetSourceType(payload) === "rental"
+          ? selectedAssetIds(payload)[0]
+          : null,
         templateId: loaded.template!.id,
         status: payload.status,
         contractDate: payload.contract_date ?? new Date(),
         startDate: payload.start_date ?? null,
         endDate: payload.end_date ?? null,
         amount: payload.amount == null ? null : String(payload.amount),
+        paidAmount: String(payload.paid_amount ?? 0),
         paymentInfo: payload.payment_info,
         notes: payload.notes,
         generatedContent: content,
@@ -665,10 +779,16 @@ export async function generateContract(id: number) {
   if (!existing.contract.generated_content) {
     const stored = existing.contract as Record<string, unknown>;
     const payload: ContractPayload = {
-      contract_type: String(stored.contract_type) as "sale" | "rental",
+      contract_type: String(stored.contract_type) as ContractPayload["contract_type"],
       property_id:
         stored.property_id == null ? null : Number(stored.property_id),
       rental_id: stored.rental_id == null ? null : Number(stored.rental_id),
+      property_ids: existing.assets
+        .filter((asset) => asset.source_type === "property")
+        .map((asset) => Number(asset.source_id)),
+      rental_ids: existing.assets
+        .filter((asset) => asset.source_type === "rental")
+        .map((asset) => Number(asset.source_id)),
       template_id:
         stored.template_id == null ? null : Number(stored.template_id),
       status: String(stored.status) as ContractPayload["status"],
@@ -678,6 +798,8 @@ export async function generateContract(id: number) {
         : null,
       end_date: stored.end_date ? new Date(String(stored.end_date)) : null,
       amount: stored.amount == null ? null : Number(stored.amount),
+      paid_amount:
+        stored.paid_amount == null ? 0 : Number(stored.paid_amount),
       payment_info: (stored.payment_info ?? {}) as Record<string, unknown>,
       notes: stored.notes == null ? null : String(stored.notes),
       parties: existing.parties.map((party) => {

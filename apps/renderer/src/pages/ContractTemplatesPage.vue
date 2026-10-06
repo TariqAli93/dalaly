@@ -17,7 +17,9 @@ const items = ref<
 const saving = ref<number | null>(null);
 async function load() {
   try {
-    items.value = await contracts.listTemplates();
+    items.value = (await contracts.listTemplates()).filter(
+      (item) => item.contract_type === "sale" || item.contract_type === "rental",
+    );
   } catch (error) {
     notifyError(getErrorMessage(error));
   }

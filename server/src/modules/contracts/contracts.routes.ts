@@ -29,7 +29,9 @@ export const contractsRoutes: FastifyPluginAsync = async (app) => {
     "/templates",
     { preHandler: requirePermission("contracts.read") },
     async (request) => {
-      const query = request.query as { contract_type?: "sale" | "rental" };
+      const query = request.query as {
+        contract_type?: "sale" | "rental" | "purchase";
+      };
       return listTemplates(query.contract_type);
     },
   );

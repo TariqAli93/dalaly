@@ -667,6 +667,9 @@ export const contracts = pgTable(
     startDate: timestamp("start_date", { withTimezone: true }),
     endDate: timestamp("end_date", { withTimezone: true }),
     amount: numeric("amount", { precision: 18, scale: 2 }),
+    paidAmount: numeric("paid_amount", { precision: 18, scale: 2 })
+      .notNull()
+      .default("0"),
     paymentInfo: jsonb("payment_info").notNull().default({}),
     notes: text("notes"),
     generatedContent: text("generated_content"),
@@ -752,7 +755,6 @@ export const contractAssetSnapshots = pgTable("contract_asset_snapshots", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
   contractId: bigint("contract_id", { mode: "number" })
     .notNull()
-    .unique()
     .references(() => contracts.id, { onDelete: "cascade" }),
   sourceType: text("source_type").notNull(),
   sourceId: bigint("source_id", { mode: "number" }).notNull(),
@@ -760,7 +762,14 @@ export const contractAssetSnapshots = pgTable("contract_asset_snapshots", {
   capturedAt: timestamp("captured_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  unique("contract_asset_snapshots_source_key").on(
+    table.contractId,
+    table.sourceType,
+    table.sourceId,
+  ),
+  index("idx_contract_asset_snapshots_contract").on(table.contractId),
+]);
 
 export const contractAttachments = pgTable(
   "contract_attachments",

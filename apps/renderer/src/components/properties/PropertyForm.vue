@@ -189,7 +189,7 @@ defineExpose({ validate, computedTotal });
         </div>
 
         <v-divider class="my-4" />
-        <div class="form-grid">
+        <div class="grid gap-4 grid-cols-2">
           <v-text-field
             v-model="model.owner_name"
             :rules="[required]"
@@ -200,6 +200,9 @@ defineExpose({ validate, computedTotal });
             :rules="[required]"
             label="رقم هاتف المالك"
           />
+        </div>
+
+        <div class="mt-4 grid gap-4 grid-cols-1">
           <v-textarea
             v-model="model.owner_notes"
             label="ملاحظات المالك"

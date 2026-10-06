@@ -7,13 +7,18 @@ import type {
 } from "../../types";
 import * as documentsService from "../../services/documents.service";
 import { getErrorMessage } from "../../services/api.service";
+import DateField from "./DateField.vue";
 
 const props = defineProps<{
   person: PersonRecord | null;
   scope: "sale" | "rent";
   modelValue: number[];
+  requiredDocumentKeys?: string[];
 }>();
-const emit = defineEmits<{ "update:modelValue": [value: number[]] }>();
+const emit = defineEmits<{
+  "update:modelValue": [value: number[]];
+  requirements: [value: { missingKeys: string[] }];
+}>();
 const documents = ref<DocumentRecord[]>([]);
 const required = ref<DocumentTypeRecord[]>([]);
 const missing = ref<DocumentTypeRecord[]>([]);
@@ -37,6 +42,9 @@ async function load() {
     required.value = [];
     missing.value = [];
     emit("update:modelValue", []);
+    emit("requirements", {
+      missingKeys: props.requiredDocumentKeys ?? [],
+    });
     return;
   }
   loading.value = true;
@@ -46,9 +54,17 @@ async function load() {
       documentsService.listDocumentTypes(),
     ]);
     documents.value = requirements.uploaded;
-    required.value = requirements.required;
-    missing.value = requirements.missing;
+    const requiredKeys = props.requiredDocumentKeys;
+    required.value = requiredKeys?.length
+      ? requirements.required.filter((item) => requiredKeys.includes(item.key))
+      : requirements.required;
+    missing.value = requiredKeys?.length
+      ? requirements.missing.filter((item) => requiredKeys.includes(item.key))
+      : requirements.missing;
     types.value = documentTypes;
+    emit("requirements", {
+      missingKeys: missing.value.map((item) => item.key),
+    });
     emit(
       "update:modelValue",
       documents.value.map((item) => item.id),
@@ -106,7 +122,11 @@ async function addDocument() {
     saving.value = false;
   }
 }
-watch(() => [props.person?.id, props.scope], load, { immediate: true });
+watch(
+  () => [props.person?.id, props.scope, props.requiredDocumentKeys?.join(",")],
+  load,
+  { immediate: true },
+);
 </script>
 <template>
   <v-card variant="tonal" class="documents-card">
@@ -190,11 +210,7 @@ watch(() => [props.person?.id, props.scope], load, { immediate: true });
           />
           <v-text-field v-model="form.document_name" label="اسم المستمسك" />
           <v-text-field v-model="form.document_number" label="رقم المستمسك" />
-          <v-text-field
-            v-model="form.expires_at"
-            type="date"
-            label="تاريخ الانتهاء"
-          />
+          <DateField v-model="form.expires_at" label="تاريخ الانتهاء" />
           <v-file-input
             v-model="file"
             label="ملف أو صورة المستمسك"

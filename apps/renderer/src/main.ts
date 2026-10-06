@@ -12,7 +12,7 @@ import { router } from "./router";
 import { i18n } from "./plugins/i18n";
 import { setUnauthorizedHandler } from "./services/api.service";
 import { useAuth } from "./composables/useAuth";
-import { md3 } from "vuetify/blueprints";
+import { md3, md1, md2 } from "vuetify/blueprints";
 
 const vuetify = createVuetify({
   components,
@@ -27,22 +27,26 @@ const vuetify = createVuetify({
   // كثافة سطح المكتب: حقول محدّدة بإطار ومضغوطة، وأزرار أقصر — لغة برامج
   // Windows لا لغة الويب. compact يقارب ارتفاع 40px للحقول.
   defaults: {
-    VTextField: { variant: "outlined", density: "comfortable" },
-    VSelect: { variant: "outlined", density: "comfortable" },
-    VAutocomplete: { variant: "outlined", density: "comfortable" },
-    VCombobox: { variant: "outlined", density: "comfortable" },
-    VTextarea: { variant: "outlined", density: "comfortable" },
+    VTextField: { variant: "outlined", density: "comfortable", rounded: "xl" },
+    VSelect: { variant: "outlined", density: "comfortable", rounded: "xl" },
+    VAutocomplete: {
+      variant: "outlined",
+      density: "comfortable",
+      rounded: "xl",
+    },
+    VCombobox: { variant: "outlined", density: "comfortable", rounded: "xl" },
+    VTextarea: { variant: "outlined", density: "comfortable", rounded: "md" },
     VFileInput: {
       variant: "outlined",
       density: "comfortable",
       rounded: "none",
     },
-    VBtn: { density: "comfortable", rounded: "none" },
-    global: { rounded: "none" },
-    VCard: { rounded: "none" },
-    VDialog: { rounded: "none" },
-    VMenu: { rounded: "none" },
-    VSheet: { rounded: "none" },
+    // VBtn: { density: "comfortable", rounded: "none" },
+    // global: { rounded: "none" },
+    // VCard: { rounded: "none" },
+    // VDialog: { rounded: "none" },
+    // VMenu: { rounded: "none" },
+    // VSheet: { rounded: "none" },
   },
   theme: {
     defaultTheme: localStorage.getItem("dalaly.theme") ?? "dalalyLight",

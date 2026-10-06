@@ -9,6 +9,9 @@ const optionalText = z
   .transform((value) => value || null);
 
 export const CONTRACT_TYPES = ["sale", "rental"] as const;
+// Backend compatibility only. The renderer deliberately filters this value
+// out and offers only sale/rental creation.
+export const BACKEND_CONTRACT_TYPES = ["sale", "rental", "purchase"] as const;
 export const CONTRACT_ROLES = ["seller", "buyer", "lessor", "lessee"] as const;
 export const CONTRACT_STATUSES = [
   "draft",
@@ -28,22 +31,30 @@ export const contractPartyPayloadSchema = z.object({
 
 export const contractPayloadSchema = z
   .object({
-    contract_type: z.enum(CONTRACT_TYPES),
+    contract_type: z.enum(BACKEND_CONTRACT_TYPES),
+    // Singular ids remain accepted for old clients and old draft workflows.
     property_id: z.coerce.number().int().positive().optional().nullable(),
     rental_id: z.coerce.number().int().positive().optional().nullable(),
+    property_ids: z
+      .array(z.coerce.number().int().positive())
+      .default([]),
+    rental_ids: z
+      .array(z.coerce.number().int().positive())
+      .default([]),
     template_id: z.coerce.number().int().positive().optional().nullable(),
     status: z.enum(CONTRACT_STATUSES).default("draft"),
     contract_date: optionalDate,
     start_date: optionalDate,
     end_date: optionalDate,
     amount: z.coerce.number().nonnegative().optional().nullable(),
+    paid_amount: z.coerce.number().nonnegative().default(0),
     payment_info: z.record(z.string(), z.unknown()).default({}),
     notes: optionalText,
     parties: z.array(contractPartyPayloadSchema).min(1),
   })
   .superRefine((value, ctx) => {
     const expectedRoles =
-      value.contract_type === "sale"
+      value.contract_type === "sale" || value.contract_type === "purchase"
         ? ["seller", "buyer"]
         : ["lessor", "lessee"];
     const roles = value.parties.map((party) => party.role);
@@ -61,23 +72,49 @@ export const contractPayloadSchema = z
         path: ["parties"],
         message: "لا يمكن تكرار دور الطرف داخل العقد.",
       });
-    if (value.contract_type === "sale" && !value.property_id)
+
+    const propertyIds = value.property_ids.length
+      ? value.property_ids
+      : value.property_id
+        ? [value.property_id]
+        : [];
+    const rentalIds = value.rental_ids.length
+      ? value.rental_ids
+      : value.rental_id
+        ? [value.rental_id]
+        : [];
+    if (
+      (value.contract_type === "sale" || value.contract_type === "purchase") &&
+      !propertyIds.length
+    )
       ctx.addIssue({
         code: "custom",
-        path: ["property_id"],
-        message: "اختر العقار المرتبط بعقد البيع.",
+        path: ["property_ids"],
+        message: "اختر عقاراً واحداً على الأقل لعقد البيع.",
       });
-    if (value.contract_type === "rental" && !value.rental_id)
+    if (value.contract_type === "rental" && !rentalIds.length)
       ctx.addIssue({
         code: "custom",
-        path: ["rental_id"],
-        message: "اختر العرض الإيجاري المرتبط بعقد الإيجار.",
+        path: ["rental_ids"],
+        message: "اختر عرضاً إيجارياً واحداً على الأقل لعقد الإيجار.",
       });
-    if (value.property_id && value.rental_id)
+    if (propertyIds.length && rentalIds.length)
       ctx.addIssue({
         code: "custom",
-        path: ["rental_id"],
-        message: "لا يمكن ربط العقد بعقار وعرض إيجاري معاً.",
+        path: ["rental_ids"],
+        message: "لا يمكن ربط العقد بعقارات وعروض إيجارية معاً.",
+      });
+    if (value.amount == null || value.amount <= 0)
+      ctx.addIssue({
+        code: "custom",
+        path: ["amount"],
+        message: "المبلغ الإجمالي مطلوب ويجب أن يكون أكبر من صفر.",
+      });
+    if (value.paid_amount > (value.amount ?? 0))
+      ctx.addIssue({
+        code: "custom",
+        path: ["paid_amount"],
+        message: "لا يمكن أن يتجاوز المبلغ المدفوع المبلغ الإجمالي.",
       });
     if (value.end_date && value.start_date && value.end_date < value.start_date)
       ctx.addIssue({
@@ -88,7 +125,7 @@ export const contractPayloadSchema = z
   });
 
 export const contractFiltersSchema = z.object({
-  contract_type: z.enum(CONTRACT_TYPES).optional(),
+  contract_type: z.enum(BACKEND_CONTRACT_TYPES).optional(),
   status: z.enum(CONTRACT_STATUSES).optional(),
   person_id: z.coerce.number().int().positive().optional(),
   property_id: z.coerce.number().int().positive().optional(),
@@ -96,7 +133,7 @@ export const contractFiltersSchema = z.object({
 });
 
 export const contractTemplateSchema = z.object({
-  contract_type: z.enum(CONTRACT_TYPES),
+  contract_type: z.enum(BACKEND_CONTRACT_TYPES),
   name: z.string().trim().min(1),
   body: z.string().min(1),
   is_active: z.coerce.boolean().default(true),

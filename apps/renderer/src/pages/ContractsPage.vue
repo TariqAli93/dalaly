@@ -7,7 +7,7 @@ import { getErrorMessage, getToken } from "../services/api.service";
 import { platform } from "../platform";
 import { usePermissions } from "../composables/usePermissions";
 import { useSnackbar } from "../composables/useSnackbar";
-import { formatMoney } from "../utils/format";
+import { formatMoney, toNumber } from "../utils/format";
 import type { ContractBundle, ContractRecord } from "../types";
 
 const { can } = usePermissions();
@@ -15,6 +15,7 @@ const { notifyError, notifySuccess } = useSnackbar();
 const rows = ref<ContractRecord[]>([]);
 const loading = ref(false);
 const wizardOpen = ref(false);
+const editId = ref<number | null>(null);
 const previewOpen = ref(false);
 const selected = ref<ContractBundle | null>(null);
 const headers = [
@@ -22,6 +23,8 @@ const headers = [
   { title: "النوع", key: "contract_type" },
   { title: "الطرف الأساسي", key: "primary_person_name" },
   { title: "المبلغ", key: "amount" },
+  { title: "المدفوع", key: "paid_amount" },
+  { title: "المتبقي", key: "remaining_amount", sortable: false },
   { title: "الحالة", key: "status" },
   { title: "", key: "actions", sortable: false },
 ];
@@ -44,7 +47,9 @@ function statusLabel(value: string) {
 async function load() {
   loading.value = true;
   try {
-    rows.value = await contractsService.listContracts();
+    rows.value = (await contractsService.listContracts()).filter(
+      (item) => item.contract_type === "sale" || item.contract_type === "rental",
+    );
   } catch (cause) {
     notifyError(getErrorMessage(cause));
   } finally {
@@ -58,6 +63,16 @@ async function openPreview(id: number) {
   } catch (cause) {
     notifyError(getErrorMessage(cause));
   }
+}
+function openCreate() {
+  editId.value = null;
+  wizardOpen.value = true;
+}
+function openEdit() {
+  if (!selected.value || selected.value.contract.status !== "draft") return;
+  editId.value = selected.value.contract.id;
+  previewOpen.value = false;
+  wizardOpen.value = true;
 }
 function previewHtml() {
   const text = selected.value?.contract.generated_content ?? "";
@@ -105,7 +120,8 @@ async function exportDocx() {
   }
 }
 function onSaved() {
-  notifySuccess("تم إنشاء العقد وحفظ الحزمة التاريخية.");
+  notifySuccess(editId.value ? "تم تحديث مسودة العقد." : "تم إنشاء العقد وحفظ الحزمة التاريخية.");
+  editId.value = null;
   void load();
 }
 onMounted(load);
@@ -120,7 +136,7 @@ onMounted(load);
         v-if="can('contracts.manage')"
         color="primary"
         prepend-icon="mdi-file-document-plus-outline"
-        @click="wizardOpen = true"
+        @click="openCreate"
         >إنشاء عقد</v-btn
       ></template
     >
@@ -138,6 +154,12 @@ onMounted(load);
         <template #item.amount="{ item }">{{
           item.amount == null ? "-" : formatMoney(item.amount)
         }}</template>
+        <template #item.paid_amount="{ item }">{{
+          formatMoney(item.paid_amount ?? 0)
+        }}</template>
+        <template #item.remaining_amount="{ item }">{{
+          formatMoney(toNumber(item.amount) - toNumber(item.paid_amount))
+        }}</template>
         <template #item.status="{ item }"
           ><v-chip size="small" variant="tonal">{{
             statusLabel(item.status)
@@ -149,9 +171,15 @@ onMounted(load);
             variant="text"
             title="فتح الحزمة"
             @click="openPreview(item.id)"
+          /><v-btn
+            v-if="can('contracts.manage') && item.status === 'draft'"
+            icon="mdi-pencil"
+            variant="text"
+            title="تعديل المسودة"
+            @click="openPreview(item.id)"
         /></template> </v-data-table
     ></v-card>
-    <ContractWizard v-model="wizardOpen" @saved="onSaved" />
+    <ContractWizard v-model="wizardOpen" :contract-id="editId" @saved="onSaved" />
     <v-dialog v-model="previewOpen" max-width="980"
       ><v-card
         ><v-card-title class="d-flex align-center"
@@ -213,6 +241,12 @@ onMounted(load);
             {{ selected?.contract.generated_content }}
           </div> </v-card-text
         ><v-card-actions
+          ><v-btn
+            v-if="can('contracts.manage') && selected?.contract.status === 'draft'"
+            prepend-icon="mdi-pencil"
+            variant="tonal"
+            @click="openEdit"
+            >تعديل المسودة</v-btn
           ><v-btn
             prepend-icon="mdi-file-pdf-box"
             variant="tonal"

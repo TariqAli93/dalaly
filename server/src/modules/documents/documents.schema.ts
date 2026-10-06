@@ -40,7 +40,12 @@ export const documentTypePayloadSchema = z.object({
     .trim()
     .min(1)
     .regex(/^[a-z0-9_]+$/),
-  name: z.string().trim().min(1),
+  // Document type names are displayed directly in the Arabic RTL interface.
+  name: z
+    .string()
+    .trim()
+    .min(1)
+    .regex(/[\u0600-\u06ff]/, "يجب أن يكون اسم نوع المستمسك باللغة العربية."),
   transaction_scope: z.enum(["general", "sale", "rent"]).default("general"),
   is_required: z.coerce.boolean().default(false),
   is_active: z.coerce.boolean().default(true),

@@ -112,6 +112,7 @@ function createApplicationMenu() {
         { label: "تصغير", role: "zoomOut" },
         { label: "الحجم الافتراضي", role: "resetZoom" },
         { label: "ملء الشاشة", role: "togglefullscreen" },
+        { label: "أدوات المطور", role: "toggleDevTools" },
       ],
     },
     {
