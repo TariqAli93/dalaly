@@ -27,26 +27,26 @@ const vuetify = createVuetify({
   // كثافة سطح المكتب: حقول محدّدة بإطار ومضغوطة، وأزرار أقصر — لغة برامج
   // Windows لا لغة الويب. compact يقارب ارتفاع 40px للحقول.
   defaults: {
-    VTextField: { variant: "outlined", density: "comfortable", rounded: "xl" },
-    VSelect: { variant: "outlined", density: "comfortable", rounded: "xl" },
+    VTextField: { variant: "outlined", density: "comfortable", rounded: "md" },
+    VSelect: { variant: "outlined", density: "comfortable", rounded: "md" },
     VAutocomplete: {
       variant: "outlined",
       density: "comfortable",
-      rounded: "xl",
+      rounded: "md",
     },
-    VCombobox: { variant: "outlined", density: "comfortable", rounded: "xl" },
+    VCombobox: { variant: "outlined", density: "comfortable", rounded: "md" },
     VTextarea: { variant: "outlined", density: "comfortable", rounded: "md" },
     VFileInput: {
       variant: "outlined",
       density: "comfortable",
-      rounded: "none",
+      rounded: "md",
     },
-    // VBtn: { density: "comfortable", rounded: "none" },
-    // global: { rounded: "none" },
-    // VCard: { rounded: "none" },
-    // VDialog: { rounded: "none" },
-    // VMenu: { rounded: "none" },
-    // VSheet: { rounded: "none" },
+    VBtn: { density: "comfortable", rounded: "none" },
+    global: { rounded: "md" },
+    VCard: { rounded: "md" },
+    VDialog: { rounded: "md" },
+    VMenu: { rounded: "md" },
+    VSheet: { rounded: "md" },
   },
   theme: {
     defaultTheme: localStorage.getItem("dalaly.theme") ?? "dalalyLight",
