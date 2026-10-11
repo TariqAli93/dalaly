@@ -56,7 +56,12 @@ const paneOpen = ref(false);
 const favOnly = ref(false);
 
 type SortKey =
-  "newest" | "updated" | "price_asc" | "price_desc" | "area_desc" | "area_asc";
+  | "newest"
+  | "updated"
+  | "price_asc"
+  | "price_desc"
+  | "area_desc"
+  | "area_asc";
 const sortBy = ref<SortKey>("newest");
 const SORT_OPTIONS = [
   { value: "newest", title: "الأحدث" },
@@ -106,22 +111,22 @@ const hasActiveFilters = computed(() => {
   const filter = filters.value;
   return Boolean(
     filter.q ||
-    filter.property_type ||
-    filter.rent_period ||
-    filter.status ||
-    filter.governorate_id ||
-    filter.district_id ||
-    filter.neighborhood_id ||
-    filter.rent_price_min ||
-    filter.rent_price_max ||
-    filter.area_min ||
-    filter.area_max ||
-    filter.rooms_count ||
-    filter.bathrooms_count ||
-    filter.floors_count ||
-    filter.negotiable ||
-    filter.amenities ||
-    favOnly.value,
+      filter.property_type ||
+      filter.rent_period ||
+      filter.status ||
+      filter.governorate_id ||
+      filter.district_id ||
+      filter.neighborhood_id ||
+      filter.rent_price_min ||
+      filter.rent_price_max ||
+      filter.area_min ||
+      filter.area_max ||
+      filter.rooms_count ||
+      filter.bathrooms_count ||
+      filter.floors_count ||
+      filter.negotiable ||
+      filter.amenities ||
+      favOnly.value,
   );
 });
 
@@ -388,7 +393,7 @@ onMounted(async () => {
   margin: 8px 0 10px;
 }
 .dal-resultsbar__count {
-  font-size: 13px;
+  font-size: calc(13px * var(--dal-font-scale));
   font-weight: 600;
   color: rgba(var(--v-theme-on-surface), 0.8);
 }

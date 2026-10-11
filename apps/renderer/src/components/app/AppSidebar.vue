@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRouter } from "vue-router";
-import { useDisplay } from "vuetify";
+import { useDisplay, useTheme } from "vuetify";
 import { CRM_NAV_ITEMS, NAV_ITEMS } from "../../constants/domain";
 import { useAuth } from "../../composables/useAuth";
 import { usePermissions } from "../../composables/usePermissions";
+import { appearance } from "../../composables/useAppearance";
 
 // نموذج فتح/إغلاق الدرج (يُتحكَّم به من الشريط العلوي على الجوال).
 const drawer = defineModel<boolean>({ default: false });
@@ -13,6 +14,7 @@ const rail = defineModel<boolean>("rail", { default: false });
 
 const router = useRouter();
 const { mdAndUp } = useDisplay();
+const theme = useTheme();
 const { can } = usePermissions();
 const { currentUser, logout } = useAuth();
 
@@ -23,42 +25,35 @@ const navItems = computed(() =>
   ),
 );
 
-// وضع الأيقونات فقط: يُفعّل تلميحات Tooltip ويخفي عناوين المجموعات.
+// وضع الأيقونات فقط يُفعّل تلميحات التنقّل.
 const isRail = computed(() => rail.value && mdAndUp.value);
 
-// تجميع بصري فوق NAV_ITEMS دون تغيير مصدرها أو شروط صلاحياتها.
-// كل مجموعة تُبنى من العناصر المسموح بها فقط، وتُخفى إن خلت.
-const NAV_GROUPS: { title: string; paths: string[] }[] = [
-  {
-    title: "",
-    paths: [
-      "/",
-      "/properties",
-      "/properties/new",
-      "/favorites",
-      "/rentals",
-      "/rentals/new",
-      "/rental-favorites",
-    ],
-  },
-  { title: "الإدارة", paths: ["/users", "/roles", "/locations"] },
-  { title: "النظام", paths: ["/settings", "/help"] },
-];
-
-NAV_GROUPS[1].paths.push(
+// قائمة مسطّحة تحفظ ترتيب الروابط الحالي وشروط صلاحياتها.
+const NAV_ORDER = [
+  "/",
+  "/properties",
+  "/rentals",
   "/people",
+  "/contracts",
+  "/properties/new",
+  "/rentals/new",
+  "/favorites",
+  "/rental-favorites",
   "/rental-requests",
   "/purchase-requests",
   "/documents",
-  "/contracts",
   "/contract-templates",
-);
+  "/users",
+  "/roles",
+  "/locations",
+  "/settings",
+  "/help",
+];
 
-const groupedNav = computed(() =>
-  NAV_GROUPS.map((group) => ({
-    title: group.title,
-    items: navItems.value.filter((item) => group.paths.includes(item.to)),
-  })).filter((group) => group.items.length > 0),
+const orderedNav = computed(() =>
+  NAV_ORDER.flatMap((path) =>
+    navItems.value.filter((item) => item.to === path),
+  ),
 );
 
 function go(to: string) {
@@ -76,15 +71,20 @@ async function onLogout() {
   <v-navigation-drawer
     v-model="drawer"
     class="dal-nav-drawer"
+    :color="
+      appearance.colors[
+        theme.global.current.value.dark ? 'dalalyDark' : 'dalalyLight'
+      ].sidebar
+    "
     :rail="isRail"
-    rail-width="56"
+    rail-width="64"
     location="right"
     :permanent="mdAndUp"
     :temporary="!mdAndUp"
-    width="240"
+    width="224"
   >
     <div class="dal-brand">
-      <v-icon icon="mdi-home-city" color="primary" size="26" />
+      <v-icon icon="mdi-home-city-outline" size="32" />
       <div v-if="!isRail">
         <div class="dal-brand__title">دلالي</div>
         <div class="dal-brand__sub">إدارة العروض العقارية</div>
@@ -94,31 +94,38 @@ async function onLogout() {
     <v-divider />
 
     <v-list nav density="compact">
-      <template v-for="(group, gi) in groupedNav" :key="gi">
-        <div v-if="group.title && !isRail" class="dal-nav-subheader">
-          {{ group.title }}
-        </div>
-        <v-divider v-else-if="group.title && isRail" class="my-2" />
-
-        <v-tooltip
-          v-for="item in group.items"
-          :key="item.to"
-          :text="item.title"
-          :disabled="!isRail"
-          location="start"
-        >
-          <template #activator="{ props }">
-            <v-list-item
-              v-bind="props"
-              :active="$route.path === item.to"
-              :prepend-icon="item.icon"
-              :title="item.title"
-              color="primary"
-              @click="go(item.to)"
-            />
-          </template>
-        </v-tooltip>
-      </template>
+      <v-tooltip
+        v-for="item in orderedNav"
+        :key="item.to"
+        :text="item.title"
+        :disabled="!isRail"
+        location="start"
+      >
+        <template #activator="{ props }">
+          <v-list-item
+            v-bind="props"
+            :to="item.to"
+            :active="
+              $route.path === item.to ||
+              (item.to === '/people' && $route.path.startsWith('/clients/')) ||
+              (['/properties', '/contracts'].includes(item.to) &&
+                $route.path.startsWith(item.to + '/') &&
+                $route.path !== item.to + '/new')
+            "
+            :prepend-icon="item.icon"
+            :aria-label="item.title"
+            class="dal-nav-item"
+            :title="
+              item.to === '/'
+                ? 'لوحة التحكم'
+                : item.to === '/people'
+                  ? 'العملاء والأشخاص'
+                  : item.title
+            "
+            @click="go(item.to)"
+          />
+        </template>
+      </v-tooltip>
     </v-list>
 
     <template #append>
@@ -144,7 +151,11 @@ async function onLogout() {
                 v-bind="props"
                 title="تسجيل الخروج"
                 prepend-icon="mdi-logout"
-                base-color="error"
+                base-color="on-sidebar"
+                aria-label="تسجيل الخروج"
+                link
+                role="button"
+                tabindex="0"
                 @click="onLogout"
               />
             </template>

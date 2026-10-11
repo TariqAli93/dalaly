@@ -10,14 +10,17 @@ import { ar } from "vuetify/locale";
 import App from "./App.vue";
 import { router } from "./router";
 import { i18n } from "./plugins/i18n";
+import {
+  configuredThemes,
+  initializeAppearance,
+} from "./composables/useAppearance";
 import { setUnauthorizedHandler } from "./services/api.service";
 import { useAuth } from "./composables/useAuth";
-import { md3, md1, md2 } from "vuetify/blueprints";
 
+initializeAppearance();
 const vuetify = createVuetify({
   components,
   directives,
-  blueprint: md3,
   locale: {
     locale: "ar",
     fallback: "ar",
@@ -27,64 +30,34 @@ const vuetify = createVuetify({
   // كثافة سطح المكتب: حقول محدّدة بإطار ومضغوطة، وأزرار أقصر — لغة برامج
   // Windows لا لغة الويب. compact يقارب ارتفاع 40px للحقول.
   defaults: {
-    VTextField: { variant: "outlined", density: "comfortable", rounded: "md" },
-    VSelect: { variant: "outlined", density: "comfortable", rounded: "md" },
+    VTextField: { variant: "outlined", density: "compact", rounded: "lg" },
+    VSelect: { variant: "outlined", density: "compact", rounded: "lg" },
     VAutocomplete: {
       variant: "outlined",
-      density: "comfortable",
-      rounded: "md",
+      density: "compact",
+      rounded: "lg",
     },
-    VCombobox: { variant: "outlined", density: "comfortable", rounded: "md" },
-    VTextarea: { variant: "outlined", density: "comfortable", rounded: "md" },
+    VCombobox: { variant: "outlined", density: "compact", rounded: "lg" },
+    VTextarea: { variant: "outlined", density: "compact", rounded: "lg" },
     VFileInput: {
       variant: "outlined",
-      density: "comfortable",
-      rounded: "md",
+      density: "compact",
+      rounded: "lg",
     },
-    VBtn: { density: "comfortable", rounded: "none" },
-    global: { rounded: "md" },
-    VCard: { rounded: "md" },
-    VDialog: { rounded: "md" },
-    VMenu: { rounded: "md" },
-    VSheet: { rounded: "md" },
+    VBtn: { density: "comfortable", rounded: "lg", elevation: 0 },
+    VCard: { rounded: "lg", elevation: 0 },
+    VDialog: { rounded: "lg" },
+    VMenu: { rounded: "lg" },
+    VChip: { rounded: "lg" },
+    VTabs: { height: 44 },
+    VDataTable: { density: "compact" },
   },
   theme: {
-    defaultTheme: localStorage.getItem("dalaly.theme") ?? "dalalyLight",
-    themes: {
-      dalalyLight: {
-        dark: false,
-        colors: {
-          primary: "#116466",
-          secondary: "#5b6f62",
-          accent: "#c27c3a",
-          // لوحة رمادية محايدة (Fluent/Win11) مع أسطح بيضاء ترتفع فوقها.
-          surface: "#ffffff",
-          background: "#f3f3f3",
-          error: "#b3261e",
-          // بدون تعريف صريح ترجع Vuetify إلى ألوان Material الافتراضية
-          // (كهرماني وأزرق) وهي خارج نظام التصميم. القيم أدناه من عائلة
-          // الأوكر والسيج نفسها، وبتباين ≥4.5:1 على الأبيض.
-          warning: "#8a5a1f",
-          success: "#2f6d4f",
-          info: "#5b6f62",
-        },
-      },
-      dalalyDark: {
-        dark: true,
-        colors: {
-          primary: "#4db6ac",
-          secondary: "#9db5a7",
-          accent: "#d8a15f",
-          // داكن محايد بطبقتين على نمط Windows 11 (قاعدة/بطاقة).
-          surface: "#272727",
-          background: "#1c1c1c",
-          error: "#ffb4ab",
-          warning: "#d8a15f",
-          success: "#7fc9a3",
-          info: "#9db5a7",
-        },
-      },
-    },
+    defaultTheme:
+      localStorage.getItem("dalaly.theme") === "dalalyDark"
+        ? "dalalyDark"
+        : "dalalyLight",
+    themes: configuredThemes(),
   },
 });
 

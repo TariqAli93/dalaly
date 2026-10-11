@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { onMounted, ref } from "vue";
 import type { RentalRecord, RentalImage } from "../../types";
 import * as rentals from "../../services/rentals.service";
@@ -121,12 +121,12 @@ onMounted(async () => {
   inset-inline-end: 8px;
 }
 .rental-card__price {
-  font-size: 18px;
+  font-size: calc(18px * var(--dal-font-scale));
   font-weight: 700;
-  color: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-primary-text));
 }
 .rental-card__price span {
-  font-size: 12px;
+  font-size: calc(12px * var(--dal-font-scale));
   font-weight: 400;
   color: rgba(var(--v-theme-on-surface), 0.68);
 }

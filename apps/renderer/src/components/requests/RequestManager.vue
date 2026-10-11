@@ -251,7 +251,7 @@ function openMatch(match: MatchResult) {
   const id = Number((match.record as { id?: number }).id);
   if (!id) return;
   void router.push(
-    props.mode === "rental" ? `/rentals/${id}/edit` : `/properties/${id}/edit`,
+    props.mode === "rental" ? `/rentals/${id}/edit` : `/properties/${id}`,
   );
 }
 onMounted(async () => {

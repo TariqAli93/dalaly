@@ -21,6 +21,11 @@ import { toApiObjects } from "../../shared/utils/case.js";
 import { listUpcomingReminders } from "../followups/followups.repository.js";
 
 const REVIEW_DAYS = 30;
+const activityMonths = sql`generate_series(
+  date_trunc('month', current_timestamp at time zone 'Asia/Baghdad') - interval '5 months',
+  date_trunc('month', current_timestamp at time zone 'Asia/Baghdad'),
+  interval '1 month'
+) as activity_months(month)`;
 
 export async function getDashboard() {
   const statusRows = await db
@@ -70,26 +75,30 @@ export async function getDashboard() {
     .from(properties)
     .where(ne(properties.status, "archived"))
     .groupBy(properties.propertyType)
-    .orderBy(desc(sql`count(*)`))
-    .limit(6);
+    .orderBy(desc(sql`count(*)`), asc(properties.propertyType));
 
   const salesActivityRows = await db
     .select({
-      month: sql<string>`to_char(date_trunc('month', ${properties.createdAt}), 'YYYY-MM')`,
-      created: sql<number>`count(*)::int`,
+      month: sql<string>`to_char(activity_months.month, 'YYYY-MM')`,
+      created: sql<number>`count(${properties.id})::int`,
     })
-    .from(properties)
-    .where(
+    .from(activityMonths)
+    .leftJoin(
+      properties,
       and(
         ne(properties.status, "archived"),
         gte(
           properties.createdAt,
-          sql`date_trunc('month', current_date) - interval '5 months'`,
+          sql`activity_months.month at time zone 'Asia/Baghdad'`,
+        ),
+        lt(
+          properties.createdAt,
+          sql`(activity_months.month + interval '1 month') at time zone 'Asia/Baghdad'`,
         ),
       ),
     )
-    .groupBy(sql`date_trunc('month', ${properties.createdAt})`)
-    .orderBy(asc(sql`date_trunc('month', ${properties.createdAt})`));
+    .groupBy(sql`activity_months.month`)
+    .orderBy(asc(sql`activity_months.month`));
 
   const rentalStatusRows = await db
     .select({ status: rentals.status, count: sql<number>`count(*)::int` })
@@ -137,23 +146,29 @@ export async function getDashboard() {
     .from(rentals)
     .where(ne(rentals.status, "archived"))
     .groupBy(rentals.propertyType)
-    .orderBy(desc(sql`count(*)`))
-    .limit(6);
+    .orderBy(desc(sql`count(*)`), asc(rentals.propertyType));
 
   const rentalActivityRows = await db
     .select({
-      month: sql<string>`to_char(date_trunc('month', ${rentals.createdAt}), 'YYYY-MM')`,
-      created: sql<number>`count(*)::int`,
+      month: sql<string>`to_char(activity_months.month, 'YYYY-MM')`,
+      created: sql<number>`count(${rentals.id})::int`,
     })
-    .from(rentals)
-    .where(
-      gte(
-        rentals.createdAt,
-        sql`date_trunc('month', current_date) - interval '5 months'`,
+    .from(activityMonths)
+    .leftJoin(
+      rentals,
+      and(
+        gte(
+          rentals.createdAt,
+          sql`activity_months.month at time zone 'Asia/Baghdad'`,
+        ),
+        lt(
+          rentals.createdAt,
+          sql`(activity_months.month + interval '1 month') at time zone 'Asia/Baghdad'`,
+        ),
       ),
     )
-    .groupBy(sql`date_trunc('month', ${rentals.createdAt})`)
-    .orderBy(asc(sql`date_trunc('month', ${rentals.createdAt})`));
+    .groupBy(sql`activity_months.month`)
+    .orderBy(asc(sql`activity_months.month`));
 
   const rentalFinancial = {
     monthly_value: Number(rentalFinancialRow?.monthly_value ?? 0),

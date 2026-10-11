@@ -4,13 +4,13 @@ import { useRouter } from "vue-router";
 import AppLayout from "../layouts/AppLayout.vue";
 import PropertyFilters from "../components/properties/PropertyFilters.vue";
 import PropertiesTable from "../components/properties/PropertiesTable.vue";
-import PropertyDetailsDialog from "../components/properties/PropertyDetailsDialog.vue";
+
 import ExcelImportDialog from "../components/properties/ExcelImportDialog.vue";
 import MasterDetailLayout from "../components/shared/MasterDetailLayout.vue";
 import PropertySummary from "../components/shared/PropertySummary.vue";
 import { useProperties } from "../composables/useProperties";
 import { useStats } from "../composables/useStats";
-import { useConfirm } from "../composables/useConfirm";
+import { usePropertyActions } from "../composables/usePropertyActions";
 import { useSnackbar } from "../composables/useSnackbar";
 import { useRefresh } from "../composables/useRefresh";
 import { useFavorites } from "../composables/useFavorites";
@@ -21,16 +21,15 @@ import { getErrorMessage } from "../services/api.service";
 import type { PropertyRecord } from "../types";
 
 const router = useRouter();
-const { properties, loading, filters, loadProperties, clearFilters, service } =
+const { properties, loading, filters, loadProperties, clearFilters } =
   useProperties();
 const { loadStats } = useStats();
-const { openConfirm } = useConfirm();
+
 const { notifyError, notifySuccess } = useSnackbar();
 const { setRefreshHandler } = useRefresh();
 const { isFavorite, loadFavoriteIds } = useFavorites();
 const { can } = usePermissions();
 
-const detailsDialog = ref(false);
 const selectedProperty = ref<PropertyRecord | null>(null);
 const favOnly = ref(false);
 const importOpen = ref(false);
@@ -40,7 +39,12 @@ const paneOpen = ref(false);
 // فرز على البيانات المُحمّلة فقط (client-side) — كل النتائج مُحمّلة والصفحات
 // تُقسَّم داخل الجدول، فلا يسبب الفرز المحلي ترتيباً خاطئاً عبر الصفحات.
 type SortKey =
-  "newest" | "updated" | "price_asc" | "price_desc" | "area_desc" | "area_asc";
+  | "newest"
+  | "updated"
+  | "price_asc"
+  | "price_desc"
+  | "area_desc"
+  | "area_asc";
 const sortBy = ref<SortKey>("newest");
 const SORT_OPTIONS = [
   { value: "newest", title: "الأحدث" },
@@ -98,21 +102,21 @@ const hasActiveFilters = computed(() => {
   return (
     Boolean(
       f.q ||
-      f.status ||
-      f.property_type ||
-      f.governorate_id ||
-      f.district_id ||
-      f.neighborhood_id ||
-      f.legal_type ||
-      f.area_unit ||
-      f.pricing_method ||
-      f.district ||
-      f.plot_number ||
-      f.plot_letter ||
-      f.area_min ||
-      f.area_max ||
-      f.price_min ||
-      f.price_max,
+        f.status ||
+        f.property_type ||
+        f.governorate_id ||
+        f.district_id ||
+        f.neighborhood_id ||
+        f.legal_type ||
+        f.area_unit ||
+        f.pricing_method ||
+        f.district ||
+        f.plot_number ||
+        f.plot_letter ||
+        f.area_min ||
+        f.area_max ||
+        f.price_min ||
+        f.price_max,
     ) || favOnly.value
   );
 });
@@ -133,61 +137,20 @@ async function refreshData() {
 }
 
 function viewDetails(property: PropertyRecord) {
-  selectedProperty.value = property;
-  detailsDialog.value = true;
+  void router.push(`/properties/${property.id}`);
 }
 
 function editProperty(property: PropertyRecord) {
-  detailsDialog.value = false;
   void router.push(`/properties/${property.id}/edit`);
 }
 
-function askArchive(property: PropertyRecord) {
-  openConfirm({
-    title: `أرشفة ${property.code}`,
-    body: "سيبقى العرض محفوظاً لكنه لن يظهر في القائمة الافتراضية.",
-    confirmText: "أرشفة",
-    color: "warning",
-    onConfirm: async () => {
-      await service.archiveProperty(property.id);
-      detailsDialog.value = false;
-      await refreshData();
-      notifySuccess("تمت أرشفة العرض.");
-    },
-  });
-}
-
-function askRestore(property: PropertyRecord) {
-  openConfirm({
-    title: `إرجاع ${property.code}`,
-    body: "هل تريد إرجاع هذا العرض إلى حالة متاح؟",
-    confirmText: "إرجاع",
-    color: "success",
-    onConfirm: async () => {
-      await service.restoreProperty(property.id);
-      detailsDialog.value = false;
-      await refreshData();
-      notifySuccess("تم إرجاع العرض إلى المتاح.");
-    },
-  });
-}
-
-function askDelete(property: PropertyRecord) {
-  openConfirm({
-    title: `حذف ${property.code}`,
-    body: "سيتم حذف العرض نهائياً من قاعدة البيانات. لا يمكن التراجع عن هذه العملية.",
-    confirmText: "حذف",
-    color: "error",
-    onConfirm: async () => {
-      await service.deleteProperty(property.id);
-      if (selectedProperty.value?.id === property.id)
-        selectedProperty.value = null;
-      detailsDialog.value = false;
-      await refreshData();
-      notifySuccess("تم حذف العرض.");
-    },
-  });
-}
+const { askArchive, askRestore, askDelete } = usePropertyActions(
+  async (action, property) => {
+    if (action === "delete" && selectedProperty.value?.id === property.id)
+      selectedProperty.value = null;
+    await refreshData();
+  },
+);
 
 async function exportSelected() {
   try {
@@ -348,15 +311,6 @@ onMounted(() => {
       </template>
     </MasterDetailLayout>
 
-    <PropertyDetailsDialog
-      v-model="detailsDialog"
-      :property="selectedProperty"
-      @edit="editProperty"
-      @archive="askArchive"
-      @restore="askRestore"
-      @delete="askDelete"
-    />
-
     <ExcelImportDialog v-model="importOpen" @imported="refreshData" />
   </AppLayout>
 </template>
@@ -370,7 +324,7 @@ onMounted(() => {
   margin: 8px 0 10px;
 }
 .dal-resultsbar__count {
-  font-size: 13px;
+  font-size: calc(13px * var(--dal-font-scale));
   font-weight: 600;
   color: rgba(var(--v-theme-on-surface), 0.8);
 }

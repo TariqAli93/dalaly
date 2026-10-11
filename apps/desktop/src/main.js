@@ -61,11 +61,8 @@ let mainReadyToShow = null;
 let scheduleTimer = null;
 let startupInFlight = false;
 
-// توقيتات شاشة البدء.
-const MIN_SPLASH_MS = 1800; // أدنى مدة ظهور حتى لو جهُز التطبيق فوراً.
+// تُغلق شاشة البدء فور جاهزية التطبيق، دون مدة ظهور مصطنعة.
 const SLOW_AFTER_MS = 8000; // بعدها نُظهر حالة "يستغرق وقتاً أطول" دون فشل.
-const READY_HOLD_MS = 200; // تثبيت 100% قبل الاختفاء.
-const FADE_MS = 250; // مدة تلاشي السبلاش.
 
 // مراحل الإقلاع مرتبطة بخطوات التشغيل الفعلية. مصدر واحد للرسائل والنسب.
 // النسبة لا تصل 100% إلا بعد جاهزية النافذة الرئيسية فعلاً.
@@ -82,6 +79,7 @@ const SPLASH_STAGES = {
     isError: true,
   },
 };
+let lastSplashStage = SPLASH_STAGES.start;
 
 function createApplicationMenu() {
   const menu = Menu.buildFromTemplate([
@@ -167,14 +165,15 @@ function buildDatabaseUrl(input) {
 }
 
 async function createWindow() {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.destroy();
   mainWindow = new BrowserWindow({
     width: 1320,
     height: 860,
     minWidth: 1024,
     minHeight: 720,
     title: "دلالي",
-    backgroundColor: "#f6f7f5",
-    autoHideMenuBar: false,
+    backgroundColor: "#F3F5F6",
+    autoHideMenuBar: true,
     // تبقى مخفية حتى تكتمل شاشة البدء، لمنع الوميض والظهور خلف الـ Splash.
     show: false,
     webPreferences: {
@@ -649,15 +648,15 @@ function createSplashWindow() {
   if (splashWindow) return splashWindow;
 
   splashWindow = new BrowserWindow({
-    width: 1050,
-    height: 590,
+    width: 465,
+    height: 300,
     frame: false,
     resizable: false,
     movable: false,
     center: true,
     show: false,
-    // خلفية بترولية لمنع الوميض الأبيض قبل ظهور المحتوى.
-    backgroundColor: "#0f4d4f",
+    transparent: true,
+    backgroundColor: "#00000000",
     skipTaskbar: true,
     alwaysOnTop: true,
     maximizable: false,
@@ -671,19 +670,48 @@ function createSplashWindow() {
       preload: path.join(__dirname, "splash-preload.js"),
     },
   });
+  const currentSplash = splashWindow;
 
-  splashWindow.once("ready-to-show", () => splashWindow?.show());
+  splashWindow.once("ready-to-show", () => {
+    splashWindow?.show();
+    log.info("Splash window ready", { width: 465, height: 300 });
+  });
   splashWindow.on("closed", () => {
     splashWindow = null;
   });
 
-  void splashWindow.loadFile(path.join(__dirname, "splash", "splash.html"));
+  splashWindow.webContents.on("did-finish-load", () =>
+    sendSplashProgress(lastSplashStage),
+  );
+  const splashLoad = viteUrl
+    ? splashWindow.loadURL(
+        new URL("splash.html", viteUrl.endsWith("/") ? viteUrl : `${viteUrl}/`)
+          .href,
+      )
+    : splashWindow.loadFile(
+        path.join(path.dirname(rendererIndex), "splash.html"),
+      );
+  void splashLoad.catch((error) => {
+    // Closing an unfinished development navigation aborts loadURL intentionally.
+    if (currentSplash.isDestroyed()) return;
+    log.error("Splash renderer failed to load", error);
+    dialog.showErrorBox(
+      "تعذّر بدء دلالي",
+      "تعذّر تحميل شاشة البدء. أعد بناء التطبيق ثم حاول تشغيله مجدداً.",
+    );
+    app.quit();
+  });
   return splashWindow;
 }
 
 function sendSplashProgress(stage) {
+  lastSplashStage = {
+    ...lastSplashStage,
+    ...stage,
+    isError: Boolean(stage.isError),
+  };
   if (!splashWindow || splashWindow.isDestroyed()) return;
-  splashWindow.webContents.send("splash:progress", stage);
+  splashWindow.webContents.send("splash:progress", lastSplashStage);
 }
 
 function closeSplashWindow() {
@@ -706,18 +734,6 @@ ipcMain.handle("splash:open-logs", async () => {
   }
 });
 ipcMain.handle("splash:quit", () => app.quit());
-
-// تلاشٍ ناعم لنافذة السبلاش عبر الشفافية، ثم تُغلق لاحقاً.
-async function fadeOutSplash(durationMs) {
-  if (!splashWindow || splashWindow.isDestroyed()) return;
-  const steps = 12;
-  const interval = Math.max(10, Math.round(durationMs / steps));
-  for (let i = 1; i <= steps; i += 1) {
-    if (!splashWindow || splashWindow.isDestroyed()) return;
-    splashWindow.setOpacity(Math.max(0, 1 - i / steps));
-    await new Promise((resolve) => setTimeout(resolve, interval));
-  }
-}
 
 // الجاهزية الفعلية: خادم محلي يعمل، /api/health ناجح، وقاعدة بيانات سليمة
 // إن كانت مهيأة، ثم تحميل نافذة التطبيق. يرمي خطأً عند الفشل الفادح.
@@ -745,10 +761,20 @@ async function waitForApplicationReady() {
   sendSplashProgress(SPLASH_STAGES.ui);
 
   // ننتظر جاهزية عرض النافذة فعلاً (مع حدّ أقصى للأمان كي لا تعلق).
-  await Promise.race([
-    mainReadyToShow ?? Promise.resolve(),
-    new Promise((resolve) => setTimeout(resolve, 6000)),
-  ]);
+  let readinessTimer;
+  try {
+    await Promise.race([
+      mainReadyToShow,
+      new Promise((_, reject) => {
+        readinessTimer = setTimeout(
+          () => reject(new Error("STARTUP_RENDERER_TIMEOUT")),
+          6000,
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(readinessTimer);
+  }
 }
 
 // تسلسل الإقلاع القابل لإعادة التشغيل (زر إعادة المحاولة).
@@ -760,29 +786,23 @@ async function runStartup() {
   if (splashWindow && !splashWindow.isDestroyed()) splashWindow.setOpacity(1);
   sendSplashProgress(SPLASH_STAGES.start);
 
-  const reachedMinimum = new Promise((resolve) =>
-    setTimeout(resolve, MIN_SPLASH_MS),
-  );
   const slowTimer = setTimeout(
     () => sendSplashProgress(SPLASH_STAGES.slow),
     SLOW_AFTER_MS,
   );
 
   try {
-    // لا تُغلق السبلاش إلا عند تحقق الشرطين معاً: الجاهزية + الحد الأدنى.
-    await Promise.all([waitForApplicationReady(), reachedMinimum]);
+    await waitForApplicationReady();
     clearTimeout(slowTimer);
 
     sendSplashProgress(SPLASH_STAGES.ready); // 100% فقط بعد الجاهزية.
-    await new Promise((resolve) => setTimeout(resolve, READY_HOLD_MS));
-    await fadeOutSplash(FADE_MS);
-
-    // نُظهر الرئيسية بعد انتهاء التلاشي لتفادي ظهور النافذتين معاً.
+    // يُعرض التطبيق فور جاهزيته ثم تُغلق شاشة البدء.
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.show();
       mainWindow.focus();
     }
     closeSplashWindow();
+    log.info("Startup complete", { mainReady: true, splashClosed: true });
     startScheduler();
   } catch (error) {
     clearTimeout(slowTimer);
@@ -795,7 +815,7 @@ async function runStartup() {
 }
 
 app.whenReady().then(() => {
-  createApplicationMenu();
+  // createApplicationMenu();
   createSplashWindow();
   void runStartup();
 

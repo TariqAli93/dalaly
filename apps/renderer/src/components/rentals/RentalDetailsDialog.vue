@@ -66,8 +66,8 @@ watch(
 </script>
 
 <template>
-  <v-dialog v-model="open" width="980" scrollable>
-    <v-card v-if="rental">
+  <v-dialog v-model="open" width="1120" scrollable>
+    <v-card v-if="rental" class="property-detail-card">
       <v-card-title class="d-flex align-center ga-2">
         <span
           >{{ rental.name || `rentals ${rental.code}` }} ·
@@ -80,7 +80,12 @@ watch(
           قابل للتفاوض
         </v-chip>
         <v-spacer />
-        <v-btn icon="mdi-close" variant="text" @click="open = false" />
+        <v-btn
+          icon="mdi-close"
+          variant="text"
+          aria-label="إغلاق التفاصيل"
+          @click="open = false"
+        />
       </v-card-title>
 
       <v-tabs v-model="tab" color="primary">
@@ -92,110 +97,149 @@ watch(
         <v-tab v-if="can('audit.read')" value="audit">السجل</v-tab>
       </v-tabs>
 
-      <v-card-text style="max-height: 60vh">
-        <v-window v-model="tab">
-          <v-window-item value="details">
-            <div class="detail-grid">
-              <div class="detail-item">
-                <div class="detail-label">نوع العقار</div>
-                <div class="detail-value">
-                  {{ typeLabel[rental.property_type] ?? rental.property_type }}
-                </div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">نوع الإيجار</div>
-                <div class="detail-value">
-                  {{ periodLabel[rental.rent_period] ?? rental.rent_period }}
-                </div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">سعر الإيجار</div>
-                <div class="detail-value">
-                  <span class="money">{{
-                    formatMoney(rental.rent_price)
-                  }}</span>
-                  دينار
-                </div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">المساحة</div>
-                <div class="detail-value">
-                  {{ rental.area_value }} {{ rental.area_unit }}
-                </div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">الغرف / الحمامات</div>
-                <div class="detail-value">
-                  {{ rental.rooms_count ?? "-" }} /
-                  {{ rental.bathrooms_count ?? "-" }}
-                </div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">الطوابق</div>
-                <div class="detail-value">{{ rental.floors_count ?? "-" }}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">المحافظة</div>
-                <div class="detail-value">{{ rental.governorate || "-" }}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">المنطقة</div>
-                <div class="detail-value">{{ rental.district || "-" }}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">الحي</div>
-                <div class="detail-value">{{ rental.neighborhood || "-" }}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">اسم المالك</div>
-                <div class="detail-value">{{ rental.owner_name }}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">هاتف المالك</div>
-                <div class="detail-value">{{ rental.owner_phone }}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">آخر تحديث</div>
-                <div class="detail-value">
-                  {{ formatDate(rental.updated_at) }}
-                </div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">العنوان التفصيلي</div>
-                <div class="detail-value">
-                  {{ rental.address_details || "-" }}
-                </div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">المميزات</div>
-                <div class="detail-value">
-                  {{ amenitiesText(rental.amenities) || "-" }}
-                </div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">ملاحظات الإيجار</div>
-                <div class="detail-value">
-                  {{ rental.notes || rental.other_details || "-" }}
-                </div>
-              </div>
-            </div>
-          </v-window-item>
-
-          <v-window-item value="images">
+      <v-card-text class="property-detail-body">
+        <div v-if="tab === 'details'" class="detail-identity">
+          <div>
+            <h2>{{ rental.name || rental.code }}</h2>
+            <p>
+              <v-icon icon="mdi-map-marker-outline" size="16" />{{
+                [rental.governorate, rental.district, rental.neighborhood]
+                  .filter(Boolean)
+                  .join(" · ")
+              }}
+            </p>
+          </div>
+          <div class="detail-price">
+            <span>قيمة الإيجار</span
+            ><strong
+              ><bdi>{{ formatMoney(rental.rent_price) }}</bdi>
+              <small>د.ع</small></strong
+            >
+          </div>
+        </div>
+        <div
+          class="detail-workspace"
+          :class="{ 'detail-workspace--wide': tab !== 'details' }"
+        >
+          <div
+            v-show="tab === 'details' || tab === 'images'"
+            class="detail-gallery"
+          >
             <RentalImages
               :rental-id="rental.id"
               :can-manage="can('rentals.images.manage')"
             />
-          </v-window-item>
+          </div>
+          <v-window v-model="tab">
+            <v-window-item value="details">
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <div class="detail-label">نوع العقار</div>
+                  <div class="detail-value">
+                    {{
+                      typeLabel[rental.property_type] ?? rental.property_type
+                    }}
+                  </div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">نوع الإيجار</div>
+                  <div class="detail-value">
+                    {{ periodLabel[rental.rent_period] ?? rental.rent_period }}
+                  </div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">سعر الإيجار</div>
+                  <div class="detail-value">
+                    <span class="money">{{
+                      formatMoney(rental.rent_price)
+                    }}</span>
+                    دينار
+                  </div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">المساحة</div>
+                  <div class="detail-value">
+                    {{ rental.area_value }} {{ rental.area_unit }}
+                  </div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">الغرف / الحمامات</div>
+                  <div class="detail-value">
+                    {{ rental.rooms_count ?? "-" }} /
+                    {{ rental.bathrooms_count ?? "-" }}
+                  </div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">الطوابق</div>
+                  <div class="detail-value">
+                    {{ rental.floors_count ?? "-" }}
+                  </div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">المحافظة</div>
+                  <div class="detail-value">
+                    {{ rental.governorate || "-" }}
+                  </div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">المنطقة</div>
+                  <div class="detail-value">{{ rental.district || "-" }}</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">الحي</div>
+                  <div class="detail-value">
+                    {{ rental.neighborhood || "-" }}
+                  </div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">اسم المالك</div>
+                  <div class="detail-value">{{ rental.owner_name }}</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">هاتف المالك</div>
+                  <div class="detail-value">{{ rental.owner_phone }}</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">آخر تحديث</div>
+                  <div class="detail-value">
+                    {{ formatDate(rental.updated_at) }}
+                  </div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">العنوان التفصيلي</div>
+                  <div class="detail-value">
+                    {{ rental.address_details || "-" }}
+                  </div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">المميزات</div>
+                  <div class="detail-value">
+                    {{ amenitiesText(rental.amenities) || "-" }}
+                  </div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">ملاحظات الإيجار</div>
+                  <div class="detail-value">
+                    {{ rental.notes || rental.other_details || "-" }}
+                  </div>
+                </div>
+              </div>
+            </v-window-item>
 
-          <v-window-item v-if="can('rentals.followups.read')" value="followups">
-            <RentalFollowupsTab :rental-id="rental.id" />
-          </v-window-item>
+            <v-window-item value="images" />
 
-          <v-window-item v-if="can('audit.read')" value="audit">
-            <AuditLogList :logs="auditLogs" :loading="auditLoading" />
-          </v-window-item>
-        </v-window>
+            <v-window-item
+              v-if="can('rentals.followups.read')"
+              value="followups"
+            >
+              <RentalFollowupsTab :rental-id="rental.id" />
+            </v-window-item>
+
+            <v-window-item v-if="can('audit.read')" value="audit">
+              <AuditLogList :logs="auditLogs" :loading="auditLoading" />
+            </v-window-item>
+          </v-window>
+        </div>
       </v-card-text>
 
       <v-card-actions>
@@ -251,12 +295,95 @@ watch(
   min-width: 0;
 }
 .detail-label {
-  color: rgba(var(--v-theme-on-surface), 0.6);
-  font-size: 12px;
+  color: var(--dal-muted);
+  font-size: calc(12px * var(--dal-font-scale));
 }
 .detail-value {
   font-weight: 600;
   margin-top: 3px;
   overflow-wrap: anywhere;
+}
+</style>
+
+<style scoped>
+.property-detail-body {
+  max-height: calc(100dvh - 230px);
+}
+.detail-identity {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.detail-identity h2 {
+  font-size: calc(20px * var(--dal-font-scale));
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.detail-identity p {
+  color: var(--dal-muted);
+  font-size: calc(12px * var(--dal-font-scale));
+  margin-top: 4px;
+}
+.detail-price > span {
+  color: var(--dal-muted);
+  font-size: calc(11px * var(--dal-font-scale));
+}
+.detail-price {
+  flex-shrink: 0;
+  text-align: end;
+}
+.detail-price strong {
+  display: block;
+  font-size: calc(24px * var(--dal-font-scale));
+  color: rgb(var(--v-theme-primary-text));
+}
+.detail-price small {
+  font-size: calc(12px * var(--dal-font-scale));
+  margin-inline-start: 6px;
+}
+.detail-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 24px;
+}
+.detail-workspace--wide {
+  grid-template-columns: 1fr;
+}
+.detail-workspace--wide .detail-gallery {
+  max-width: 800px;
+  margin-inline: auto;
+  width: 100%;
+}
+.detail-workspace :deep(.detail-grid) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.detail-workspace :deep(.detail-item) {
+  border: 0;
+  border-bottom: 1px solid var(--dal-stroke);
+  border-radius: 0;
+  padding: 12px 4px;
+  min-height: 64px;
+}
+.detail-workspace :deep(.detail-label) {
+  font-size: calc(12px * var(--dal-font-scale));
+  margin-bottom: 4px;
+}
+.detail-workspace :deep(.detail-value) {
+  font-size: calc(13px * var(--dal-font-scale));
+  font-weight: 600;
+}
+@media (max-width: 900px) {
+  .detail-workspace {
+    grid-template-columns: 1fr;
+  }
+  .detail-identity {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .detail-price {
+    text-align: start;
+  }
 }
 </style>

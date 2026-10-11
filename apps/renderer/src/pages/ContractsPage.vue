@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import AppLayout from "../layouts/AppLayout.vue";
-import ContractWizard from "../components/contracts/ContractWizard.vue";
 import * as contractsService from "../services/contracts.service";
 import { getErrorMessage, getToken } from "../services/api.service";
 import { platform } from "../platform";
@@ -9,13 +9,17 @@ import { usePermissions } from "../composables/usePermissions";
 import { useSnackbar } from "../composables/useSnackbar";
 import { formatMoney, toNumber } from "../utils/format";
 import type { ContractBundle, ContractRecord } from "../types";
+import {
+  contractTypeLabel as typeLabel,
+  contractStatusLabel as statusLabel,
+} from "../constants/crm";
 
 const { can } = usePermissions();
+const router = useRouter();
+const route = useRoute();
 const { notifyError, notifySuccess } = useSnackbar();
 const rows = ref<ContractRecord[]>([]);
 const loading = ref(false);
-const wizardOpen = ref(false);
-const editId = ref<number | null>(null);
 const previewOpen = ref(false);
 const selected = ref<ContractBundle | null>(null);
 const headers = [
@@ -28,27 +32,12 @@ const headers = [
   { title: "الحالة", key: "status" },
   { title: "", key: "actions", sortable: false },
 ];
-function typeLabel(value: string) {
-  return value === "sale" ? "بيع" : "إيجار";
-}
-function statusLabel(value: string) {
-  return (
-    (
-      {
-        active: "صادر",
-        draft: "مسودة",
-        completed: "مكتمل",
-        cancelled: "ملغى",
-        expired: "منتهي",
-      } as Record<string, string>
-    )[value] ?? value
-  );
-}
 async function load() {
   loading.value = true;
   try {
     rows.value = (await contractsService.listContracts()).filter(
-      (item) => item.contract_type === "sale" || item.contract_type === "rental",
+      (item) =>
+        item.contract_type === "sale" || item.contract_type === "rental",
     );
   } catch (cause) {
     notifyError(getErrorMessage(cause));
@@ -65,14 +54,11 @@ async function openPreview(id: number) {
   }
 }
 function openCreate() {
-  editId.value = null;
-  wizardOpen.value = true;
+  void router.push("/contracts/create");
 }
 function openEdit() {
   if (!selected.value || selected.value.contract.status !== "draft") return;
-  editId.value = selected.value.contract.id;
-  previewOpen.value = false;
-  wizardOpen.value = true;
+  void router.push(`/contracts/${selected.value.contract.id}/edit`);
 }
 function previewHtml() {
   const text = selected.value?.contract.generated_content ?? "";
@@ -119,11 +105,21 @@ async function exportDocx() {
     notifyError(getErrorMessage(cause));
   }
 }
-function onSaved() {
-  notifySuccess(editId.value ? "تم تحديث مسودة العقد." : "تم إنشاء العقد وحفظ الحزمة التاريخية.");
-  editId.value = null;
-  void load();
-}
+watch(
+  () => route.query.view,
+  (value) => {
+    const id = Number(value);
+    if (Number.isSafeInteger(id) && id > 0) void openPreview(id);
+  },
+  { immediate: true },
+);
+watch(previewOpen, (value) => {
+  if (!value && route.query.view) {
+    const query = { ...route.query };
+    delete query.view;
+    void router.replace({ query });
+  }
+});
 onMounted(load);
 </script>
 <template>
@@ -170,8 +166,7 @@ onMounted(load);
             icon="mdi-eye"
             variant="text"
             title="فتح الحزمة"
-            @click="openPreview(item.id)"
-          /><v-btn
+            @click="openPreview(item.id)" /><v-btn
             v-if="can('contracts.manage') && item.status === 'draft'"
             icon="mdi-pencil"
             variant="text"
@@ -179,7 +174,6 @@ onMounted(load);
             @click="openPreview(item.id)"
         /></template> </v-data-table
     ></v-card>
-    <ContractWizard v-model="wizardOpen" :contract-id="editId" @saved="onSaved" />
     <v-dialog v-model="previewOpen" max-width="980"
       ><v-card
         ><v-card-title class="d-flex align-center"
@@ -242,7 +236,9 @@ onMounted(load);
           </div> </v-card-text
         ><v-card-actions
           ><v-btn
-            v-if="can('contracts.manage') && selected?.contract.status === 'draft'"
+            v-if="
+              can('contracts.manage') && selected?.contract.status === 'draft'
+            "
             prepend-icon="mdi-pencil"
             variant="tonal"
             @click="openEdit"

@@ -161,7 +161,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="dal-filters bg-surface pa-3 border">
+  <div class="dal-filters">
     <!-- شريط البحث + الفلاتر الأساسية (≤6، فورية) -->
     <div class="dal-filters__primary">
       <v-text-field
@@ -376,7 +376,10 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  padding: 16px;
+  background: var(--dal-surface);
+  border: 1px solid var(--dal-stroke);
 }
 .dal-search {
   flex: 2 1 300px;
@@ -398,14 +401,14 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 10px;
-  min-height: 44px;
+  padding: 8px 16px;
+  min-height: 52px;
 }
 .dal-extra__body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px;
+  gap: 16px;
+  padding: 16px;
 }
 .dal-extra__pair {
   display: grid;

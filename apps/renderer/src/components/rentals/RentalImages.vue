@@ -1,4 +1,5 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
+import ListingImage from "../shared/ListingImage.vue";
 import { computed, onMounted, ref } from "vue";
 import type { RentalImage } from "../../types";
 import * as rentals from "../../services/rentals.service";
@@ -13,9 +14,15 @@ const props = defineProps<{
 const { notifySuccess, notifyError } = useSnackbar();
 const { openConfirm } = useConfirm();
 const images = ref<RentalImage[]>([]);
+const activeImageId = ref<number | null>(null);
 const primaryImage = computed(
   () =>
     images.value.find((image) => image.is_primary) ?? images.value[0] ?? null,
+);
+const activeImage = computed(
+  () =>
+    images.value.find((image) => image.id === activeImageId.value) ??
+    primaryImage.value,
 );
 const loading = ref(false);
 const uploading = ref(false);
@@ -90,32 +97,49 @@ function remove(image: RentalImage) {
 onMounted(() => void load());
 </script>
 <template>
-  <div>
+  <div :class="{ 'gallery--thumbnail': primaryOnly }">
     <v-progress-linear
       v-if="loading || uploading"
       indeterminate
       color="primary"
       class="mb-2"
     />
+    <ListingImage
+      v-if="activeImage && !primaryOnly"
+      :src="imageUrl(activeImage)"
+      class="rental-gallery-primary"
+      alt="صورة العقار الإيجاري"
+    />
     <div v-if="images.length && !primaryOnly" class="rental-gallery">
       <div
         v-for="image in images"
         :key="image.id"
         class="rental-image"
-        :class="{ primary: image.is_primary }"
+        :class="{ primary: image.id === activeImage?.id }"
       >
-        <img :src="imageUrl(image)" alt="صورة الإيجار" />
+        <button
+          type="button"
+          :aria-label="`عرض الصورة ${images.indexOf(image) + 1}`"
+          :aria-pressed="image.id === activeImage?.id"
+          @click="activeImageId = image.id"
+        >
+          <ListingImage :src="imageUrl(image)" alt="صورة الإيجار" />
+        </button>
         <div v-if="canManage" class="rental-image__actions">
           <v-btn
             v-if="!image.is_primary"
             icon="mdi-star-outline"
             size="x-small"
             color="warning"
+            aria-label="تعيين صورة رئيسية"
+            title="تعيين صورة رئيسية"
             @click="primary(image)"
           /><v-icon v-else icon="mdi-star" color="warning" /><v-btn
             icon="mdi-delete-outline"
             size="x-small"
             color="error"
+            aria-label="حذف الصورة"
+            title="حذف الصورة"
             @click="remove(image)"
           />
         </div>
@@ -128,24 +152,40 @@ onMounted(() => void load());
         class="rental-image small"
         :class="{ primary: image.is_primary }"
       >
-        <img :src="imageUrl(image)" alt="صورة الإيجار" />
+        <ListingImage :src="imageUrl(image)" alt="صورة الإيجار" />
         <div v-if="canManage" class="rental-image__actions">
           <v-btn
             v-if="!image.is_primary"
             icon="mdi-star-outline"
             size="x-small"
             color="warning"
+            aria-label="تعيين صورة رئيسية"
+            title="تعيين صورة رئيسية"
             @click="primary(image)"
           /><v-icon v-else icon="mdi-star" color="warning" /><v-btn
             icon="mdi-delete-outline"
             size="x-small"
             color="error"
+            aria-label="حذف الصورة"
+            title="حذف الصورة"
             @click="remove(image)"
           />
         </div>
       </div>
     </div>
-    <v-empty-state v-else-if="!loading" icon="mdi-image-off-outline" />
+    <v-avatar
+      v-else-if="!loading && primaryOnly"
+      color="primary"
+      variant="tonal"
+      rounded="lg"
+      size="48"
+      ><v-icon icon="mdi-home-city-outline" size="22"
+    /></v-avatar>
+    <v-empty-state
+      v-else-if="!loading"
+      icon="mdi-image-off-outline"
+      title="لا توجد صور للعقار"
+    />
     <v-btn
       v-if="canManage"
       variant="tonal"
@@ -164,9 +204,21 @@ onMounted(() => void load());
   </div>
 </template>
 <style scoped>
+.rental-gallery-primary {
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+.rental-image > button {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
 .rental-gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
   gap: 8px;
   margin-bottom: 12px;
 }
@@ -176,18 +228,24 @@ onMounted(() => void load());
   border: 2px solid transparent;
   aspect-ratio: 4/3;
   overflow: hidden;
+  border-radius: 8px;
 }
 
 .rental-image.small {
-  max-width: 120px;
-  max-height: 100px;
+  width: 48px;
+  height: 40px;
+  border: 0;
+  margin-block: 6px;
+}
+.gallery--thumbnail {
+  width: 48px;
 }
 
 .rental-image.primary {
   border-color: rgb(var(--v-theme-primary));
 }
 
-.rental-image img {
+.rental-image :deep(.v-img) {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -200,5 +258,6 @@ onMounted(() => void load());
   gap: 2px;
   background: rgba(0, 0, 0, 0.45);
   padding: 2px;
+  border-radius: 6px;
 }
 </style>

@@ -2,6 +2,9 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AppLayout from "../layouts/AppLayout.vue";
+import MetricCard from "../components/shared/MetricCard.vue";
+import OfferTrendChart from "../components/shared/OfferTrendChart.vue";
+import DistributionChart from "../components/shared/DistributionChart.vue";
 import StatusChip from "../components/shared/StatusChip.vue";
 import EmptyState from "../components/shared/EmptyState.vue";
 import RankedBarList from "../components/shared/RankedBarList.vue";
@@ -19,8 +22,9 @@ const router = useRouter();
 const { can } = usePermissions();
 const { notifySuccess, notifyError } = useSnackbar();
 const { setRefreshHandler } = useRefresh();
-const { filters, loadProperties } = useProperties();
+const { filters, loadProperties, properties, service } = useProperties();
 
+const analysisDomain = ref("sales");
 const REVIEW_LIMIT = 8;
 const EMPTY_RENTALS: DashboardSummary["rentals"] = {
   counts: {
@@ -46,7 +50,26 @@ const EMPTY_SALES: DashboardSummary["sales"] = {
   monthly_activity: [],
 };
 
-function openProperty(code?: string | null) {
+async function openProperty(code?: string | null) {
+  if (code && can("properties.read")) {
+    try {
+      const record =
+        properties.value.find((property) => property.code === code) ??
+        (await service.listProperties({ q: code })).find(
+          (property) => property.code === code,
+        ) ??
+        (await service.listProperties({ q: code, status: "archived" })).find(
+          (property) => property.code === code,
+        );
+      if (record) {
+        await router.push(`/properties/${record.id}`);
+        return;
+      }
+    } catch (cause) {
+      notifyError(getErrorMessage(cause));
+      return;
+    }
+  }
   filters.value.q = code ?? "";
   void router.push("/properties").then(() => loadProperties());
 }
@@ -219,87 +242,22 @@ const overdueCount = computed(
     ).length,
 );
 
-function monthKey(date: Date) {
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+function trendPoints(rows: DashboardSummary["sales"]["monthly_activity"]) {
+  return rows.map((row) => ({
+    ...row,
+    label: new Date(`${row.month}-01T00:00:00Z`).toLocaleDateString("ar-IQ", {
+      month: "short",
+      timeZone: "UTC",
+    }),
+  }));
 }
 
-const rentalTrend = computed(() => {
-  const rows = new Map(
-    (data.value?.rentals.monthly_activity ?? []).map((row) => [
-      row.month,
-      row.created,
-    ]),
-  );
-  const now = new Date();
-  const points = Array.from({ length: 6 }, (_, index) => {
-    const date = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - index), 1),
-    );
-    const key = monthKey(date);
-    return {
-      month: key,
-      label: date.toLocaleDateString("ar-IQ", {
-        month: "short",
-        timeZone: "UTC",
-      }),
-      created: rows.get(key) ?? 0,
-    };
-  });
-  const max = Math.max(1, ...points.map((point) => point.created));
-  const plotted = points.map((point, index) => ({
-    ...point,
-    x: 24 + index * 94.4,
-    y: 142 - (point.created / max) * 108,
-  }));
-  return {
-    points: plotted,
-    path: plotted
-      .map((point, index) => `${index ? "L" : "M"} ${point.x} ${point.y}`)
-      .join(" "),
-    max,
-    hasData: points.some((point) => point.created > 0),
-  };
-});
-
-const salesTrend = computed(() => {
-  const rows = new Map(
-    (data.value?.sales.monthly_activity ?? []).map((row) => [
-      row.month,
-      row.created,
-    ]),
-  );
-  const now = new Date();
-  const points = Array.from({ length: 6 }, (_, index) => {
-    const date = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (5 - index), 1),
-    );
-    const key = monthKey(date);
-    return {
-      month: key,
-      label: date.toLocaleDateString("ar-IQ", {
-        month: "short",
-        timeZone: "UTC",
-      }),
-      created: rows.get(key) || 0,
-    };
-  });
-  const max = Math.max(1, ...points.map((point) => point.created));
-  const plotted = points.map((point, index) => ({
-    ...point,
-    x: 24 + index * 94.4,
-    y: 142 - (point.created / max) * 108,
-  }));
-  return {
-    points: plotted,
-    path: plotted
-      .map((point, index) => {
-        const command = index ? "L " : "M ";
-        return command + point.x + " " + point.y;
-      })
-      .join(" "),
-    hasData: points.some((point) => point.created > 0),
-  };
-});
+const rentalTrend = computed(() =>
+  trendPoints(data.value?.rentals.monthly_activity ?? []),
+);
+const salesTrend = computed(() =>
+  trendPoints(data.value?.sales.monthly_activity ?? []),
+);
 
 function rentalTypeLabel(name: string) {
   return rentalTypeLabels[name] ?? name;
@@ -384,752 +342,484 @@ onMounted(() => {
       v-if="loadError && !data"
       variant="flat"
       border
-      class="dashboard-state pa-6 text-center"
+      class="pa-6 text-center"
     >
       <v-icon
         icon="mdi-lan-disconnect"
         size="40"
         class="text-medium-emphasis"
       />
-      <div class="text-h6 mt-3">تعذّر تحميل لوحة التحكم</div>
-      <div class="text-body-2 text-medium-emphasis mt-1">{{ loadError }}</div>
-      <div class="text-body-2 text-medium-emphasis mt-1">
-        تأكد من تشغيل قاعدة البيانات ثم أعد المحاولة.
-      </div>
-      <v-btn
-        color="primary"
-        class="mt-4"
-        prepend-icon="mdi-refresh"
-        :loading="loading"
-        @click="load"
+      <h2 class="text-h6 mt-3">تعذّر تحميل لوحة التحكم</h2>
+      <p class="text-medium-emphasis mt-2">{{ loadError }}</p>
+      <v-btn color="primary" class="mt-4" :loading="loading" @click="load"
+        >إعادة المحاولة</v-btn
       >
-        إعادة المحاولة
-      </v-btn>
     </v-card>
-
-    <template v-else-if="loading && !data">
-      <div class="dashboard-loading">
-        <v-skeleton-loader type="list-item-two-line" />
-        <v-skeleton-loader type="list-item-two-line" />
-        <v-skeleton-loader type="image" class="dashboard-loading__chart" />
-        <v-skeleton-loader type="list-item-two-line, list-item, list-item" />
-      </div>
-    </template>
-
+    <div v-else-if="loading && !data" class="dashboard-loading">
+      <v-skeleton-loader v-for="n in 4" :key="n" type="list-item-two-line" />
+      <v-skeleton-loader type="image" class="dashboard-loading__chart" />
+    </div>
     <template v-else-if="data">
       <v-alert
         v-if="loadError"
         type="warning"
         variant="tonal"
-        class="mb-3"
+        class="mb-4"
         role="status"
       >
         تعذّر تحديث البيانات؛ المعروض هو آخر تحميل ناجح.
-        <template #append>
-          <v-btn variant="text" :loading="loading" @click="load"
+        <template #append
+          ><v-btn variant="text" :loading="loading" @click="load"
             >إعادة المحاولة</v-btn
-          >
-        </template>
+          ></template
+        >
       </v-alert>
-
-      <section
-        class="dashboard-intro mb-3"
-        aria-labelledby="dashboard-brief-title"
-      >
-        <div>
-          <div class="dashboard-intro__eyebrow">ملخص المكتب</div>
-          <h1 id="dashboard-brief-title">العروض والمتابعات</h1>
-          <p>العروض والإيجارات والمتابعات الحالية.</p>
-        </div>
-        <div class="dashboard-intro__date">
-          <v-icon icon="mdi-calendar-today" size="18" />
-          <span>{{ todayLabel }}</span>
-        </div>
-      </section>
-
-      <section
-        class="dal-panel dal-attention mb-3"
-        :class="{ 'dal-attention--urgent': overdueCount }"
-      >
-        <div class="dal-panel__header">
-          <v-icon
-            :icon="
-              overdueCount
-                ? 'mdi-alert-decagram-outline'
-                : 'mdi-bell-check-outline'
-            "
-            size="18"
-            :color="overdueCount ? 'error' : undefined"
-          />
-          <span class="dal-section-title">ما يحتاج انتباهك</span>
-          <v-chip
-            v-if="overdueCount"
-            size="x-small"
-            color="error"
-            variant="tonal"
-            label
-          >
-            <span class="money">{{ overdueCount }}</span> متأخرة
-          </v-chip>
-          <v-spacer />
-          <span class="dal-summary__label">متابعة اليوم</span>
-        </div>
-        <div class="dal-panel__body">
-          <EmptyState
-            v-if="!sortedReminders.length"
-            class="dal-empty"
-            icon="mdi-check-circle-outline"
-            title="لا توجد متابعة مستحقة"
-            text="أضف متابعة من صفحة أي عرض لتظهر هنا في موعدها."
-          />
-          <v-list v-else density="compact">
-            <v-list-item
-              v-for="reminder in sortedReminders.slice(0, 5)"
-              :key="reminder.id"
-              :title="`${reminder.property_code} — ${reminder.notes || 'متابعة'}`"
-              :prepend-icon="
-                isOverdue(reminder.scheduled_at)
-                  ? 'mdi-bell-alert-outline'
-                  : 'mdi-bell-ring-outline'
-              "
-              :base-color="
-                isOverdue(reminder.scheduled_at) ? 'error' : undefined
-              "
-              @click="openProperty(reminder.property_code)"
-            >
-              <template #subtitle>
-                <span
-                  v-if="isOverdue(reminder.scheduled_at)"
-                  class="text-error font-weight-bold"
-                  >متأخر ·
-                </span>
-                <span class="money">{{ when(reminder.scheduled_at) }}</span>
-              </template>
-            </v-list-item>
-          </v-list>
-        </div>
-      </section>
-
-      <div class="dal-discover bg-surface pa-3 mb-3">
-        <v-text-field
-          v-model="discoverQuery"
-          class="dal-discover__search"
-          density="compact"
-          hide-details
-          clearable
-          prepend-inner-icon="mdi-magnify"
-          placeholder="ابحث بالكود، المالك، الهاتف أو المنطقة…"
-          aria-label="بحث سريع في العروض"
-          @keyup.enter="searchProperties"
-        />
-        <v-btn
-          variant="tonal"
-          prepend-icon="mdi-check-circle-outline"
-          @click="goAvailable"
-          >العروض المتاحة</v-btn
-        >
-        <v-btn
-          variant="text"
-          prepend-icon="mdi-format-list-bulleted"
-          @click="router.push('/properties')"
-          >كل العروض</v-btn
-        >
+      <div class="dashboard-context">
+        <span
+          ><v-icon icon="mdi-calendar-outline" size="16" />
+          {{ todayLabel }}</span
+        ><span>نظرة عامة على نشاط المكتب</span>
       </div>
-
-      <section class="portfolio-strip mb-3" aria-label="حالة العروض">
-        <div
+      <section class="dashboard-metrics" aria-label="مؤشرات العروض">
+        <MetricCard
           v-for="card in statusCards"
           :key="card.key"
-          class="portfolio-strip__item"
-        >
-          <v-icon :icon="card.icon" size="18" />
-          <div>
-            <div class="portfolio-strip__label">{{ card.label }}</div>
-            <div class="portfolio-strip__value money">
-              {{ formatNumber(data.counts[card.key], 0) }}
-            </div>
-          </div>
-        </div>
-        <div class="portfolio-strip__item portfolio-strip__item--value">
-          <v-icon icon="mdi-cash-multiple" size="18" />
-          <div>
-            <div class="portfolio-strip__label">قيمة العروض النشطة</div>
-            <div class="portfolio-strip__value money">
-              {{ formatMoney(data.financial.total_value) }} د.ع
-            </div>
-          </div>
-        </div>
+          :label="card.label"
+          :value="formatNumber(data!.counts[card.key], 0)"
+          :icon="card.icon"
+          :tone="
+            card.key === 'reserved'
+              ? 'warning'
+              : card.key === 'sold'
+                ? 'info'
+                : 'primary'
+          "
+        />
       </section>
-
-      <div class="dashboard-layout">
-        <main class="dashboard-main">
-          <div class="summary-boards mb-3">
-            <section
-              class="dal-panel rental-board"
-              aria-labelledby="rental-summary-title"
-            >
-              <div class="dal-panel__header rental-board__header">
-                <div>
-                  <div class="dashboard-intro__eyebrow">الإيجارات</div>
-                  <h2 id="rental-summary-title" class="dal-section-title">
-                    ملخص الإيجارات
-                  </h2>
-                  <p class="panel-note">
-                    القيم موحّدة إلى تقدير شهري للمقارنة بين الفترات.
-                  </p>
-                </div>
-                <v-btn
-                  size="small"
-                  variant="text"
-                  append-icon="mdi-arrow-left"
-                  @click="router.push('/rentals')"
-                  >إدارة الإيجارات</v-btn
-                >
+      <div class="dashboard-workspace">
+        <div class="dashboard-main">
+          <v-card variant="flat" border class="analytics-workspace">
+            <div class="analytics-heading">
+              <div>
+                <h2>التقارير والإحصائيات</h2>
+                <p>العروض الجديدة وتوزيع العقارات النشطة</p>
               </div>
-              <div class="dal-panel__body">
-                <div class="rental-kpis">
-                  <div class="rental-kpi rental-kpi--accent">
-                    <span class="rental-kpi__label">إيجارات نشطة</span>
-                    <strong class="money">{{
-                      formatNumber(data.rentals.counts.active, 0)
-                    }}</strong>
-                  </div>
-                  <div class="rental-kpi">
-                    <span class="rental-kpi__label">القيمة الشهرية</span>
-                    <strong class="money">{{
-                      formatMoney(data.rentals.financial.monthly_value)
-                    }}</strong>
-                  </div>
-                  <div class="rental-kpi">
-                    <span class="rental-kpi__label">متوسط الإيجار</span>
-                    <strong class="money">{{
-                      formatMoney(data.rentals.financial.avg_monthly_price)
-                    }}</strong>
-                  </div>
-                  <div class="rental-kpi">
-                    <span class="rental-kpi__label">المؤجر حالياً</span>
-                    <strong class="money">{{
-                      formatMoney(data.rentals.financial.rented_monthly_value)
-                    }}</strong>
-                  </div>
-                </div>
-
-                <div class="rental-chart-grid">
-                  <div class="chart-panel">
-                    <div class="chart-panel__heading">
-                      <div>
-                        <h3>تسجيل الإيجارات</h3>
-                        <span>آخر 6 أشهر</span>
-                      </div>
-                      <span class="chart-key"
-                        ><i class="chart-key__dot" /> سجل جديد</span
-                      >
-                    </div>
-                    <div v-if="rentalTrend.hasData" class="trend-chart">
-                      <svg
-                        viewBox="0 0 520 170"
-                        role="img"
-                        aria-labelledby="trend-chart-title trend-chart-desc"
-                      >
-                        <title id="trend-chart-title">
-                          تسجيل الإيجارات خلال آخر ستة أشهر
-                        </title>
-                        <desc id="trend-chart-desc">
-                          خط يوضح عدد سجلات الإيجار الجديدة شهرياً.
-                        </desc>
-                        <line
-                          v-for="y in [34, 88, 142]"
-                          :key="y"
-                          x1="24"
-                          :y1="y"
-                          x2="496"
-                          :y2="y"
-                          class="trend-chart__grid"
-                        />
-                        <path :d="rentalTrend.path" class="trend-chart__line" />
-                        <g
-                          v-for="point in rentalTrend.points"
-                          :key="point.month"
-                        >
-                          <circle
-                            :cx="point.x"
-                            :cy="point.y"
-                            r="5"
-                            class="trend-chart__point"
-                          >
-                            <title>
-                              {{ point.label }}: {{ point.created }} سجل
-                            </title>
-                          </circle>
-                        </g>
-                      </svg>
-                      <div class="trend-chart__labels" aria-hidden="true">
-                        <span
-                          v-for="point in rentalTrend.points"
-                          :key="point.month"
-                        >
-                          <b class="money">{{ point.created }}</b
-                          ><small>{{ point.label }}</small>
-                        </span>
-                      </div>
-                    </div>
-                    <EmptyState
-                      v-else
-                      class="chart-empty"
-                      icon="mdi-chart-line-variant"
-                      title="لا توجد سجلات جديدة بعد"
-                      text="ستظهر حركة التسجيل هنا مع إضافة الإيجارات."
-                    />
-                  </div>
-
-                  <div class="chart-panel">
-                    <div class="chart-panel__heading">
-                      <div>
-                        <h3>توزيع النوع</h3>
-                        <span>الإيجارات النشطة</span>
-                      </div>
-                    </div>
-                    <div v-if="data.rentals.by_type.length" class="type-bars">
-                      <div
-                        v-for="item in data.rentals.by_type"
-                        :key="item.name"
-                        class="type-bar"
-                      >
-                        <div class="type-bar__meta">
-                          <span>{{ rentalTypeLabel(item.name) }}</span
-                          ><b class="money">{{ item.count }}</b>
-                        </div>
-                        <div class="type-bar__track">
-                          <span
-                            :style="{
-                              inlineSize: `${typeBarWidth(item.count)}%`,
-                            }"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <EmptyState
-                      v-else
-                      class="chart-empty"
-                      icon="mdi-home-search-outline"
-                      title="لا توجد بيانات للتوزيع"
-                      text="أضف أول عرض إيجاري لعرض المقارنة."
-                    />
-                  </div>
-                </div>
-
-                <div class="rental-status" aria-label="حالة الإيجارات">
-                  <div class="rental-status__head">
-                    <span>حالة الإيجارات النشطة</span
-                    ><span class="money"
-                      >{{
-                        formatNumber(data.rentals.counts.active, 0)
-                      }}
-                      إجمالي</span
-                    >
-                  </div>
-                  <div
-                    class="rental-status__track"
-                    role="img"
-                    aria-label="نسب حالات الإيجارات النشطة"
-                  >
-                    <span
-                      v-for="status in rentalStatusCards"
-                      :key="status.key"
-                      :class="`rental-status__segment rental-status__segment--${status.tone}`"
-                      :style="{ inlineSize: `${statusPercent(status.key)}%` }"
-                    />
-                  </div>
-                  <div class="rental-status__legend">
-                    <span v-for="status in rentalStatusCards" :key="status.key"
-                      ><i :class="`legend-dot legend-dot--${status.tone}`" />{{
-                        status.label
-                      }}
-                      <b class="money">{{
-                        data.rentals.counts[status.key]
-                      }}</b></span
-                    >
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <section
-              class="dal-panel rental-board"
-              aria-labelledby="sales-summary-title"
-            >
-              <div class="dal-panel__header rental-board__header">
-                <div>
-                  <div class="dashboard-intro__eyebrow">عقارات للبيع</div>
-                  <h2 id="sales-summary-title" class="dal-section-title">
-                    ملخص البيع
-                  </h2>
-                  <p class="panel-note">
-                    أسعار العروض الحالية بالدينار العراقي.
-                  </p>
-                </div>
-                <v-btn
-                  size="small"
-                  variant="text"
-                  append-icon="mdi-arrow-left"
-                  @click="router.push('/properties')"
-                  >إدارة العروض</v-btn
-                >
-              </div>
-              <div class="dal-panel__body">
-                <template v-if="data.counts.total - data.counts.archived > 0">
-                  <div class="rental-kpis">
-                    <div class="rental-kpi rental-kpi--accent">
-                      <span class="rental-kpi__label">عروض نشطة</span>
-                      <strong class="money">{{
-                        formatNumber(
-                          data.counts.total - data.counts.archived,
-                          0,
-                        )
-                      }}</strong>
-                    </div>
-                    <div class="rental-kpi">
-                      <span class="rental-kpi__label">متاح للبيع</span>
-                      <strong class="money">{{
-                        formatNumber(data.counts.available, 0)
-                      }}</strong>
-                    </div>
-                    <div class="rental-kpi">
-                      <span class="rental-kpi__label">مباع</span>
-                      <strong class="money">{{
-                        formatNumber(data.counts.sold, 0)
-                      }}</strong>
-                    </div>
-                    <div class="rental-kpi">
-                      <span class="rental-kpi__label">متوسط السعر</span>
-                      <strong class="money">{{
-                        formatMoney(data.financial.avg_price)
-                      }}</strong>
-                    </div>
-                  </div>
-
-                  <div class="rental-chart-grid">
-                    <div class="chart-panel">
-                      <div class="chart-panel__heading">
-                        <div>
-                          <h3>تسجيل عروض البيع</h3>
-                          <span>آخر 6 أشهر</span>
-                        </div>
-                        <span class="chart-key"
-                          ><i class="chart-key__dot chart-key__dot--sales" />عرض
-                          جديد</span
-                        >
-                      </div>
-                      <div
-                        v-if="salesTrend.hasData"
-                        class="trend-chart trend-chart--sales"
-                      >
-                        <svg
-                          viewBox="0 0 520 170"
-                          role="img"
-                          aria-labelledby="sales-trend-title sales-trend-desc"
-                        >
-                          <title id="sales-trend-title">
-                            تسجيل عروض البيع خلال آخر ستة أشهر
-                          </title>
-                          <desc id="sales-trend-desc">
-                            عدد العروض العقارية الجديدة المسجلة شهرياً.
-                          </desc>
-                          <line
-                            v-for="y in [34, 88, 142]"
-                            :key="y"
-                            x1="24"
-                            :y1="y"
-                            x2="496"
-                            :y2="y"
-                            class="trend-chart__grid"
-                          />
-                          <path
-                            :d="salesTrend.path"
-                            class="trend-chart__line trend-chart__line--sales"
-                          />
-                          <g
-                            v-for="point in salesTrend.points"
-                            :key="point.month"
-                          >
-                            <circle
-                              :cx="point.x"
-                              :cy="point.y"
-                              r="5"
-                              class="trend-chart__point trend-chart__point--sales"
-                            >
-                              <title>
-                                {{ point.label }}: {{ point.created }} عرض
-                              </title>
-                            </circle>
-                          </g>
-                        </svg>
-                        <div class="trend-chart__labels" aria-hidden="true">
-                          <span
-                            v-for="point in salesTrend.points"
-                            :key="point.month"
-                          >
-                            <b class="money">{{ point.created }}</b
-                            ><small>{{ point.label }}</small>
-                          </span>
-                        </div>
-                      </div>
-                      <EmptyState
-                        v-else
-                        class="chart-empty"
-                        icon="mdi-chart-line-variant"
-                        title="لا توجد عروض جديدة بعد"
-                        text="ستظهر حركة تسجيل العروض هنا."
-                      />
-                    </div>
-
-                    <div class="chart-panel">
-                      <div class="chart-panel__heading">
-                        <div>
-                          <h3>توزيع نوع العقار</h3>
-                          <span>العروض النشطة</span>
-                        </div>
-                      </div>
-                      <div v-if="data.sales.by_type.length" class="type-bars">
-                        <div
-                          v-for="item in data.sales.by_type"
-                          :key="item.name"
-                          class="type-bar"
-                        >
-                          <div class="type-bar__meta">
-                            <span>{{ rentalTypeLabel(item.name) }}</span
-                            ><b class="money">{{ item.count }}</b>
-                          </div>
-                          <div class="type-bar__track">
-                            <span
-                              :style="{
-                                inlineSize: `${salesTypeBarWidth(item.count)}%`,
-                              }"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <EmptyState
-                        v-else
-                        class="chart-empty"
-                        icon="mdi-home-search-outline"
-                        title="لا توجد بيانات للتوزيع"
-                        text="أضف عروضاً نشطة لعرض المقارنة."
-                      />
-                    </div>
-                  </div>
-
-                  <div
-                    class="rental-status sales-status"
-                    aria-label="حالة عروض البيع"
-                  >
-                    <div class="rental-status__head">
-                      <span>حالة عروض البيع النشطة</span>
-                      <span class="money"
-                        >{{
-                          formatNumber(
-                            data.counts.total - data.counts.archived,
-                            0,
-                          )
-                        }}
-                        إجمالي</span
-                      >
-                    </div>
-                    <div
-                      class="rental-status__track"
-                      role="img"
-                      aria-label="نسب حالات عروض البيع النشطة"
-                    >
-                      <span
-                        v-for="status in salesStatusCards"
-                        :key="status.key"
-                        :class="`rental-status__segment rental-status__segment--${status.tone}`"
-                        :style="{
-                          inlineSize: `${salesStatusPercent(status.key)}%`,
-                        }"
-                      />
-                    </div>
-                    <div class="rental-status__legend">
-                      <span
-                        v-for="status in salesStatusCards"
-                        :key="status.key"
-                      >
-                        <i :class="`legend-dot legend-dot--${status.tone}`" />
-                        {{ status.label }}
-                        <b class="money">{{ data.counts[status.key] }}</b>
-                      </span>
-                    </div>
-                  </div>
-                </template>
-                <EmptyState
-                  v-else
-                  class="sales-empty"
-                  icon="mdi-home-off-outline"
-                  title="لا توجد عروض بيع"
-                  text="أضف أول عرض عقاري ليظهر ملخص البيع هنا."
-                >
-                  <template #actions>
-                    <v-btn
-                      color="primary"
-                      prepend-icon="mdi-plus"
-                      @click="router.push('/properties/new')"
-                      >إضافة عرض</v-btn
-                    >
-                  </template>
-                </EmptyState>
-              </div>
-            </section>
-          </div>
-
-          <div class="dashboard-columns">
-            <section class="dal-panel">
-              <div class="dal-panel__header">
-                <span class="dal-section-title">آخر العروض</span
-                ><v-spacer /><v-btn
-                  size="x-small"
-                  variant="text"
-                  @click="router.push('/properties')"
-                  >عرض الكل</v-btn
-                >
-              </div>
-              <div class="dal-panel__body">
-                <EmptyState
-                  v-if="!data.latest.length"
-                  class="dal-empty"
-                  icon="mdi-home-plus-outline"
-                  title="لا توجد عروض بعد"
-                  text="أضف أول عرض ليظهر هنا."
-                />
-                <v-list v-else density="compact">
-                  <v-list-item
-                    v-for="property in data.latest.slice(0, 6)"
-                    :key="property.id"
-                    :title="`${property.code} — ${property.property_type}`"
-                    @click="openProperty(property.code)"
-                  >
-                    <template #subtitle
-                      >{{ property.governorate || "" }}
-                      {{ property.district || "" }} ·
-                      <span class="money">{{
-                        formatMoney(property.total_price)
-                      }}</span>
-                      د.ع · أضيف
-                      {{
-                        pluralizeDays(daysSince(String(property.created_at)))
-                      }}</template
-                    >
-                    <template #append
-                      ><StatusChip :status="property.status" size="x-small"
-                    /></template>
-                  </v-list-item>
-                </v-list>
-              </div>
-            </section>
-
-            <section class="dal-panel">
-              <div class="dal-panel__header">
-                <span class="dal-section-title">النشاط الأخير</span
-                ><span class="panel-note">آخر العمليات</span>
-              </div>
-              <div class="dal-panel__body">
-                <EmptyState
-                  v-if="!data.recent_activity.length"
-                  class="dal-empty"
-                  icon="mdi-history"
-                  title="لا يوجد نشاط بعد"
-                  text="ستظهر تعديلات المكتب هنا."
-                />
-                <v-list v-else density="compact">
-                  <v-list-item
-                    v-for="activity in data.recent_activity.slice(0, 6)"
-                    :key="activity.id"
-                    :title="`${actionLabel(activity.action)} ${activity.property_code || ''}`"
-                  >
-                    <template #prepend
-                      ><v-icon
-                        :icon="actionIcon(activity.action)"
-                        size="18"
-                        class="activity-icon"
-                    /></template>
-                    <template #subtitle
-                      >{{ activity.user_name || "النظام" }} ·
-                      <span class="money">{{
-                        when(activity.created_at)
-                      }}</span></template
-                    >
-                  </v-list-item>
-                </v-list>
-              </div>
-            </section>
-          </div>
-        </main>
-
-        <aside class="dashboard-side">
-          <section class="dal-panel mb-3">
-            <div class="dal-panel__header">
-              <span class="dal-section-title">تحتاج مراجعة</span
-              ><span v-if="data.needs_review.length" class="panel-note"
-                >{{ data.needs_review.length }} عرض</span
+              <v-tabs v-model="analysisDomain" color="primary" density="compact"
+                ><v-tab value="sales">عروض البيع</v-tab
+                ><v-tab value="rentals">الإيجارات</v-tab></v-tabs
               >
             </div>
-            <div class="dal-panel__body">
-              <EmptyState
-                v-if="!data.needs_review.length"
-                class="dal-empty"
-                icon="mdi-check-all"
-                title="كل العروض محدثة"
-                text="لا توجد عروض مضى على تحديثها أكثر من 30 يوماً."
-              />
-              <v-list v-else density="compact">
-                <v-list-item
-                  v-for="property in data.needs_review.slice(0, REVIEW_LIMIT)"
+            <v-window v-model="analysisDomain">
+              <v-window-item
+                v-for="domain in ['sales', 'rentals']"
+                :key="domain"
+                :value="domain"
+              >
+                <div class="analytics-grid">
+                  <section>
+                    <div class="chart-heading">
+                      <h3>العروض الجديدة</h3>
+                      <span>آخر 6 أشهر</span>
+                    </div>
+                    <OfferTrendChart
+                      :points="
+                        domain === 'sales'
+                          ? salesTrend
+                          : rentalTrend
+                      "
+                      :label="
+                        domain === 'sales'
+                          ? 'عروض البيع الجديدة'
+                          : 'الإيجارات الجديدة'
+                      "
+                    />
+                  </section>
+                  <section>
+                    <div class="chart-heading">
+                      <h3>توزيع أنواع العقارات</h3>
+                      <span>العروض غير المؤرشفة</span>
+                    </div>
+                    <DistributionChart
+                      :items="
+                        (domain === 'sales'
+                          ? data!.sales.by_type
+                          : data!.rentals.by_type
+                        ).map((item) => ({
+                          ...item,
+                          name: rentalTypeLabel(item.name),
+                        }))
+                      "
+                      :label="
+                        domain === 'sales'
+                          ? 'توزيع أنواع عقارات البيع غير المؤرشفة'
+                          : 'توزيع أنواع عقارات الإيجار غير المؤرشفة'
+                      "
+                    />
+                  </section>
+                </div>
+                <div class="financial-strip" v-if="domain === 'sales'">
+                  <div>
+                    <span>قيمة عروض البيع النشطة</span
+                    ><strong class="money"
+                      >{{
+                        formatMoney(data!.financial.total_value)
+                      }}
+                      د.ع</strong
+                    >
+                  </div>
+                  <div>
+                    <span>متوسط السعر</span
+                    ><strong class="money"
+                      >{{ formatMoney(data!.financial.avg_price) }} د.ع</strong
+                    >
+                  </div>
+                  <div>
+                    <span>العروض النشطة</span
+                    ><strong>{{
+                      formatNumber(
+                        data!.counts.total - data!.counts.archived,
+                        0,
+                      )
+                    }}</strong>
+                  </div>
+                </div>
+                <div class="financial-strip financial-strip--rentals" v-else>
+                  <div>
+                    <span>القيمة الشهرية للإيجارات</span
+                    ><strong class="money"
+                      >{{
+                        formatMoney(data!.rentals.financial.monthly_value)
+                      }}
+                      د.ع</strong
+                    >
+                  </div>
+                  <div>
+                    <span>متوسط الإيجار الشهري</span
+                    ><strong class="money"
+                      >{{
+                        formatMoney(data!.rentals.financial.avg_monthly_price)
+                      }}
+                      د.ع</strong
+                    >
+                  </div>
+                  <div>
+                    <span>إيجارات نشطة</span
+                    ><strong>{{
+                      formatNumber(data!.rentals.counts.active, 0)
+                    }}</strong>
+                  </div>
+                  <div>
+                    <span>القيمة الشهرية للمؤجر حالياً</span>
+                    <strong class="money"
+                      >{{
+                        formatMoney(
+                          data!.rentals.financial.rented_monthly_value,
+                        )
+                      }}
+                      د.ع</strong
+                    >
+                  </div>
+                </div>
+                <div class="status-legend">
+                  <span
+                    v-for="status in domain === 'sales'
+                      ? salesStatusCards
+                      : rentalStatusCards"
+                    :key="status.key"
+                    ><i :class="'status-dot status-dot--' + status.tone" />{{
+                      status.label
+                    }}
+                    <b>{{
+                      domain === "sales"
+                        ? data!.counts[
+                            status.key as
+                              | "available"
+                              | "reserved"
+                              | "negotiating"
+                              | "sold"
+                              | "rented"
+                          ]
+                        : data!.rentals.counts[
+                            status.key as
+                              | "available"
+                              | "reserved"
+                              | "negotiating"
+                              | "rented"
+                          ]
+                    }}</b></span
+                  ><v-spacer /><v-btn
+                    size="small"
+                    variant="text"
+                    append-icon="mdi-arrow-left"
+                    @click="
+                      router.push(
+                        domain === 'sales' ? '/properties' : '/rentals',
+                      )
+                    "
+                    >عرض الكل</v-btn
+                  >
+                </div>
+              </v-window-item>
+            </v-window>
+          </v-card>
+          <v-card variant="flat" border class="recent-offers">
+            <div class="section-heading">
+              <h2>آخر العروض العقارية</h2>
+              <v-btn
+                size="small"
+                variant="text"
+                append-icon="mdi-arrow-left"
+                @click="router.push('/properties')"
+                >عرض الكل</v-btn
+              >
+            </div>
+            <EmptyState
+              v-if="!data!.latest.length"
+              icon="mdi-home-plus-outline"
+              title="لا توجد عروض بعد"
+              text="أضف أول عرض ليظهر هنا."
+            />
+            <v-table v-else density="compact"
+              ><thead>
+                <tr>
+                  <th>العقار</th>
+                  <th>الموقع</th>
+                  <th>السعر الإجمالي</th>
+                  <th>الحالة</th>
+                  <th>تاريخ الإضافة</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="property in data!.latest.slice(0, 6)"
                   :key="property.id"
-                  :title="`${property.code} — ${property.governorate || ''}`"
-                  :subtitle="`آخر تحديث ${pluralizeDays(daysSince(String(property.updated_at)))}`"
-                  prepend-icon="mdi-clock-alert-outline"
-                  @click="openProperty(property.code)"
-                />
-              </v-list>
+                >
+                  <td>
+                    <button
+                      class="offer-link"
+                      @click="openProperty(property.code)"
+                    >
+                      <v-avatar
+                        color="primary"
+                        variant="tonal"
+                        rounded="lg"
+                        size="32"
+                        ><v-icon
+                          icon="mdi-home-city-outline"
+                          size="18" /></v-avatar
+                      ><span
+                        ><strong>{{
+                          property.name || property.property_type
+                        }}</strong
+                        ><small
+                          ><bdi>{{ property.code }}</bdi> ·
+                          {{ property.property_type }}</small
+                        ></span
+                      >
+                    </button>
+                  </td>
+                  <td>
+                    {{ property.governorate || "—"
+                    }}<small class="cell-subtitle">{{
+                      property.district
+                    }}</small>
+                  </td>
+                  <td>
+                    <span class="money">{{
+                      formatMoney(property.total_price)
+                    }}</span>
+                    د.ع
+                  </td>
+                  <td><StatusChip :status="property.status" /></td>
+                  <td>
+                    {{ pluralizeDays(daysSince(String(property.created_at))) }}
+                  </td>
+                  <td>
+                    <v-btn
+                      icon="mdi-chevron-left"
+                      size="x-small"
+                      variant="text"
+                      aria-label="فتح العرض"
+                      @click="openProperty(property.code)"
+                    />
+                  </td>
+                </tr></tbody
+            ></v-table>
+          </v-card>
+          <v-card variant="flat" border>
+            <div class="section-heading">
+              <h2>النشاط الأخير</h2>
+              <span class="muted-caption">آخر العمليات</span>
             </div>
-          </section>
-
-          <section class="dal-panel mb-3">
-            <div class="dal-panel__header">
-              <span class="dal-section-title">أكثر المحافظات نشاطاً</span>
-            </div>
-            <div class="dal-panel__body">
-              <RankedBarList
-                v-if="data.top_governorates.length"
-                :items="data.top_governorates"
-                @select="openProperty"
+            <EmptyState
+              v-if="!data!.recent_activity.length"
+              icon="mdi-history"
+              title="لا يوجد نشاط بعد"
+              text="ستظهر تعديلات المكتب هنا."
+            />
+            <v-list v-else density="compact" class="activity-list"
+              ><v-list-item
+                v-for="activity in data!.recent_activity.slice(0, 6)"
+                :key="activity.id"
+                :title="
+                  actionLabel(activity.action) +
+                  ' ' +
+                  (activity.property_code || '')
+                "
+                ><template #prepend
+                  ><v-avatar
+                    variant="tonal"
+                    color="primary"
+                    size="30"
+                    class="me-3"
+                    ><v-icon
+                      :icon="actionIcon(activity.action)"
+                      size="16" /></v-avatar></template
+                ><template #subtitle
+                  >{{ activity.user_name || "النظام" }} ·
+                  <span class="money">{{
+                    when(activity.created_at)
+                  }}</span></template
+                ></v-list-item
+              ></v-list
+            >
+          </v-card>
+        </div>
+        <aside class="dashboard-side">
+          <v-card variant="flat" border class="quick-search-card"
+            ><div class="section-heading">
+              <h2>الوصول السريع</h2>
+              <v-icon
+                icon="mdi-lightning-bolt-outline"
+                size="20"
+                color="primary"
               />
-              <EmptyState
+            </div>
+            <v-card-text>
+              <v-text-field
+                v-model="discoverQuery"
+                density="compact"
+                hide-details
+                clearable
+                prepend-inner-icon="mdi-magnify"
+                placeholder="الكود، المالك، المنطقة…"
+                aria-label="بحث سريع في العروض"
+                @keyup.enter="searchProperties"
+              />
+              <v-btn
+                variant="tonal"
+                color="primary"
+                block
+                class="mt-3"
+                prepend-icon="mdi-check-circle-outline"
+                @click="goAvailable"
+                >العروض المتاحة</v-btn
+              >
+              <v-btn
+                variant="text"
+                block
+                class="mt-2"
+                prepend-icon="mdi-format-list-bulleted"
+                @click="router.push('/properties')"
+                >كل العروض</v-btn
+              >
+            </v-card-text></v-card
+          >
+          <v-card
+            variant="flat"
+            border
+            :class="{ 'attention-card': overdueCount }"
+            ><div class="section-heading">
+              <h2>المتابعات</h2>
+              <v-chip v-if="overdueCount" size="x-small" color="error"
+                >{{ overdueCount }} متأخرة</v-chip
+              >
+            </div>
+            <EmptyState
+              v-if="!sortedReminders.length"
+              icon="mdi-bell-check-outline"
+              title="لا توجد متابعة مستحقة"
+              text="أضف متابعة من صفحة العرض لتظهر هنا في موعدها."
+            />
+            <v-list v-else density="compact"
+              ><v-list-item
+                v-for="reminder in sortedReminders.slice(0, 5)"
+                :key="reminder.id"
+                :title="
+                  reminder.property_code + ' — ' + (reminder.notes || 'متابعة')
+                "
+                :prepend-icon="
+                  isOverdue(reminder.scheduled_at)
+                    ? 'mdi-bell-alert-outline'
+                    : 'mdi-bell-outline'
+                "
+                :base-color="
+                  isOverdue(reminder.scheduled_at) ? 'error' : undefined
+                "
+                @click="openProperty(reminder.property_code)"
+                ><template #subtitle
+                  ><span
+                    v-if="isOverdue(reminder.scheduled_at)"
+                    class="text-error"
+                    >متأخر · </span
+                  ><span class="money">{{
+                    when(reminder.scheduled_at)
+                  }}</span></template
+                ></v-list-item
+              ></v-list
+            >
+          </v-card>
+          <v-card variant="flat" border
+            ><div class="section-heading">
+              <h2>تحتاج مراجعة</h2>
+              <v-chip v-if="data!.needs_review.length" size="x-small">{{
+                data!.needs_review.length
+              }}</v-chip>
+            </div>
+            <EmptyState
+              v-if="!data!.needs_review.length"
+              icon="mdi-check-all"
+              title="كل العروض محدثة"
+              text="لا توجد عروض مضى على تحديثها أكثر من 30 يوماً."
+            />
+            <v-list v-else density="compact"
+              ><v-list-item
+                v-for="property in data!.needs_review.slice(0, REVIEW_LIMIT)"
+                :key="property.id"
+                :title="property.code + ' — ' + (property.governorate || '')"
+                :subtitle="
+                  'آخر تحديث ' +
+                  pluralizeDays(daysSince(String(property.updated_at)))
+                "
+                prepend-icon="mdi-clock-outline"
+                @click="openProperty(property.code)"
+            /></v-list>
+          </v-card>
+          <v-card
+            v-for="(items, index) in [
+              data!.top_governorates,
+              data!.top_districts,
+            ]"
+            :key="index"
+            variant="flat"
+            border
+            ><div class="section-heading">
+              <h2>
+                {{
+                  index === 0 ? "أكثر المحافظات نشاطاً" : "أكثر المناطق نشاطاً"
+                }}
+              </h2>
+            </div>
+            <v-card-text
+              ><RankedBarList
+                v-if="items.length"
+                :items="items"
+                @select="openProperty" /><EmptyState
                 v-else
-                class="dal-empty"
-                icon="mdi-map-marker-off"
-                title="لا توجد بيانات مكانية"
-              />
-            </div>
-          </section>
-
-          <section class="dal-panel">
-            <div class="dal-panel__header">
-              <span class="dal-section-title">أكثر المناطق نشاطاً</span>
-            </div>
-            <div class="dal-panel__body">
-              <RankedBarList
-                v-if="data.top_districts.length"
-                :items="data.top_districts"
-                @select="openProperty"
-              />
-              <EmptyState
-                v-else
-                class="dal-empty"
-                icon="mdi-map-marker-off"
-                title="لا توجد بيانات مكانية"
-              />
-            </div>
-          </section>
+                icon="mdi-map-marker-off-outline"
+                title="لا توجد بيانات مكانية" /></v-card-text
+          ></v-card>
         </aside>
       </div>
     </template>
@@ -1137,446 +827,248 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.dashboard-state {
-  min-block-size: 280px;
-}
-.dashboard-loading {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-.dashboard-loading__chart {
-  grid-column: 1 / -1;
-  min-block-size: 260px;
-}
-.dashboard-intro {
+.dashboard-context {
   display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 4px 2px 2px;
-}
-.dashboard-intro h1 {
-  margin: 3px 0 0;
-  font-size: clamp(20px, 2vw, 28px);
-  line-height: 1.3;
-  letter-spacing: -0.02em;
-}
-.dashboard-intro p {
-  margin: 5px 0 0;
-  color: rgba(var(--v-theme-on-surface), 0.62);
-  font-size: 13px;
-}
-.dashboard-intro__eyebrow {
-  color: rgb(var(--v-theme-primary));
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-}
-.dashboard-intro__date {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: rgba(var(--v-theme-on-surface), 0.7);
-  font-size: 12px;
-  white-space: nowrap;
-}
-.dal-attention--urgent {
-  border-inline-start: 3px solid rgb(var(--v-theme-error));
-}
-.dal-discover {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   flex-wrap: wrap;
-  border: 1px solid rgb(var(--v-theme-border));
+  gap: 8px 16px;
+  justify-content: space-between;
+  color: var(--dal-muted);
+  font-size: calc(12px * var(--dal-font-scale));
+  margin-bottom: 16px;
 }
-.dal-discover__search {
-  flex: 1 1 340px;
-  min-width: 240px;
-  max-width: 650px;
-}
-.portfolio-strip {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(170px, 1.35fr);
-  border: 1px solid rgb(var(--v-theme-border));
-  background: rgb(var(--v-theme-surface));
-}
-.portfolio-strip__item {
-  display: flex;
+.dashboard-context > span {
+  display: inline-flex;
   align-items: center;
-  gap: 9px;
-  min-width: 0;
-  padding: 12px 14px;
-  border-inline-end: 1px solid rgb(var(--v-theme-border));
+  gap: 6px;
 }
-.portfolio-strip__item:last-child {
-  border-inline-end: 0;
-}
-.portfolio-strip__item > .v-icon {
-  color: rgb(var(--v-theme-primary));
-}
-.portfolio-strip__label,
-.rental-kpi__label {
-  color: rgba(var(--v-theme-on-surface), 0.58);
-  font-size: 11px;
-  white-space: nowrap;
-}
-.portfolio-strip__value {
-  margin-top: 2px;
-  font-size: 17px;
-  font-weight: 800;
-}
-.dashboard-layout {
+.dashboard-metrics {
   display: grid;
-  grid-template-columns: minmax(0, 1.75fr) minmax(290px, 0.85fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
+  margin-bottom: 20px;
+}
+.dashboard-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 20px;
   align-items: start;
 }
 .dashboard-main,
 .dashboard-side {
+  display: grid;
+  gap: 20px;
   min-width: 0;
 }
-.summary-boards {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  align-items: start;
-}
-.rental-board {
-  border-block-start: 3px solid rgb(var(--v-theme-primary));
-}
-.sales-board {
-  border-block-start: 3px solid rgb(var(--v-theme-secondary));
-}
-.rental-board__header {
-  align-items: start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-.rental-board__header h2 {
-  margin-top: 3px;
-}
-.sales-board__header {
-  align-items: start;
-  justify-content: space-between;
-  gap: 12px;
-}
-.sales-board__header h2 {
-  margin-top: 3px;
-}
-.panel-note {
-  color: rgba(var(--v-theme-on-surface), 0.56);
-  font-size: 11px;
-}
-.rental-kpis {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-.rental-kpi {
-  min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid rgb(var(--v-theme-border));
-  background: rgba(var(--v-theme-on-surface), 0.02);
-}
-.rental-kpi--accent {
-  border-inline-start: 3px solid rgb(var(--v-theme-primary));
-}
-.rental-kpi strong {
-  display: block;
-  margin-top: 5px;
-  font-size: 18px;
-  line-height: 1.2;
-}
-.rental-kpi small {
-  display: block;
-  margin-top: 4px;
-  color: rgba(var(--v-theme-on-surface), 0.54);
-  font-size: 11px;
-}
-.sales-kpis {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-.sales-kpi {
-  min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid rgb(var(--v-theme-border));
-  background: rgba(var(--v-theme-on-surface), 0.02);
-}
-.sales-kpi--accent {
-  border-inline-start: 3px solid rgb(var(--v-theme-secondary));
-}
-.sales-kpi span,
-.sales-value span {
-  display: block;
-  color: rgba(var(--v-theme-on-surface), 0.58);
-  font-size: 11px;
-}
-.sales-kpi strong {
-  display: block;
-  margin-top: 6px;
-  font-size: 18px;
-  line-height: 1.2;
-}
-.sales-kpi small {
-  display: block;
-  margin-top: 3px;
-  color: rgba(var(--v-theme-on-surface), 0.54);
-  font-size: 11px;
-}
-.sales-value {
+.analytics-heading,
+.section-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 12px;
-  padding: 12px 0;
-  border-block: 1px solid rgb(var(--v-theme-border));
+  padding: 16px 20px;
 }
-.sales-value strong {
-  display: block;
-  margin-top: 4px;
-  color: rgb(var(--v-theme-secondary));
-  font-size: 20px;
+.analytics-heading {
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--dal-stroke);
 }
-.sales-value > .v-icon {
-  color: rgb(var(--v-theme-secondary));
+.analytics-heading :deep(.v-tabs) {
+  flex: 0 0 auto;
 }
-.rental-chart-grid {
+.analytics-heading h2,
+.section-heading h2 {
+  font-size: calc(16px * var(--dal-font-scale));
+  font-weight: 600;
+}
+.analytics-heading p {
+  font-size: calc(11px * var(--dal-font-scale));
+  color: var(--dal-muted);
+  margin-top: 2px;
+}
+.analytics-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(230px, 0.85fr);
-  gap: 12px;
-  margin-top: 16px;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 24px;
+  padding: 20px;
 }
-.sales-chart-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(230px, 0.85fr);
-  gap: 12px;
-  margin-top: 16px;
-}
-.chart-key__dot--sales {
-  background: rgb(var(--v-theme-secondary));
-}
-.trend-chart__line--sales {
-  stroke: rgb(var(--v-theme-secondary));
-}
-.trend-chart__point--sales {
-  stroke: rgb(var(--v-theme-secondary));
-}
-.sales-chart-grid .type-bar__track span {
-  background: rgb(var(--v-theme-secondary));
-}
-.sales-empty {
-  min-block-size: 280px;
-}
-.chart-panel {
+.analytics-grid > section {
   min-width: 0;
-  padding: 12px;
-  border: 1px solid rgb(var(--v-theme-border));
 }
-.chart-panel__heading {
+.chart-heading {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: start;
-  gap: 12px;
-  margin-bottom: 8px;
+  gap: 8px;
 }
-.chart-panel h3 {
-  margin: 0;
-  font-size: 13px;
+.chart-heading h3 {
+  font-size: calc(13px * var(--dal-font-scale));
+  font-weight: 600;
 }
-.chart-panel__heading span {
-  color: rgba(var(--v-theme-on-surface), 0.55);
-  font-size: 11px;
+.chart-heading > span,
+.muted-caption {
+  color: var(--dal-muted);
+  font-size: calc(11px * var(--dal-font-scale));
 }
-.chart-key {
+.financial-strip {
+  display: grid;
+  grid-template-columns: 1.5fr 1.25fr 0.75fr;
+  border-block: 1px solid var(--dal-stroke);
+  padding: 16px 20px;
+  gap: 16px;
+}
+.financial-strip > div {
+  min-width: 0;
+  border-inline-end: 1px solid var(--dal-stroke);
+  padding-inline-end: 12px;
+}
+.financial-strip--rentals {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.financial-strip > div:last-child {
+  border: 0;
+}
+.financial-strip span {
+  display: block;
+  font-size: calc(11px * var(--dal-font-scale));
+  color: var(--dal-muted);
+}
+.financial-strip strong {
+  display: block;
+  font-size: calc(17px * var(--dal-font-scale));
+  font-weight: 700;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.status-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 8px 20px;
+  font-size: calc(11px * var(--dal-font-scale));
+  color: var(--dal-muted);
+}
+.status-legend > span {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.status-legend b {
+  color: rgb(var(--v-theme-on-surface));
+  font-variant-numeric: tabular-nums;
+}
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #599b87;
+}
+.status-dot--reserved {
+  background: #c27c3a;
+}
+.status-dot--negotiating {
+  background: #748da7;
+}
+.status-dot--sold,
+.status-dot--rented {
+  background: #a68775;
+}
+.recent-offers :deep(th) {
+  color: var(--dal-muted);
+  background: var(--dal-hover);
+  font-size: calc(11px * var(--dal-font-scale));
   white-space: nowrap;
 }
-.chart-key__dot {
-  display: inline-block;
-  inline-size: 7px;
-  block-size: 7px;
-  margin-inline-end: 5px;
-  border-radius: 50%;
-  background: rgb(var(--v-theme-primary));
+.recent-offers :deep(td) {
+  white-space: nowrap;
+  font-size: calc(12px * var(--dal-font-scale));
 }
-.trend-chart svg {
-  display: block;
-  inline-size: 100%;
-  block-size: 170px;
-  overflow: visible;
-}
-.trend-chart__grid {
-  stroke: rgba(var(--v-theme-on-surface), 0.1);
-  stroke-width: 1;
-  stroke-dasharray: 3 4;
-}
-.trend-chart__line {
-  fill: none;
-  stroke: rgb(var(--v-theme-primary));
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.trend-chart__point {
-  fill: rgb(var(--v-theme-surface));
-  stroke: rgb(var(--v-theme-primary));
-  stroke-width: 3;
-}
-.trend-chart__labels {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 3px;
-  text-align: center;
-}
-.trend-chart__labels span {
-  display: grid;
-  gap: 2px;
-  color: rgba(var(--v-theme-on-surface), 0.56);
-  font-size: 10px;
-}
-.trend-chart__labels b {
-  color: rgba(var(--v-theme-on-surface), 0.82);
-  font-size: 12px;
-}
-.chart-empty {
-  min-block-size: 180px;
-}
-.type-bars {
-  display: grid;
-  gap: 13px;
-  padding: 13px 0 3px;
-}
-.type-bar__meta {
+.offer-link {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 5px;
-  font-size: 12px;
-}
-.type-bar__meta b {
-  color: rgba(var(--v-theme-on-surface), 0.7);
-}
-.type-bar__track {
-  block-size: 7px;
-  overflow: hidden;
-  background: var(--dal-hover);
-}
-.type-bar__track span {
-  display: block;
-  block-size: 100%;
-  background: rgb(var(--v-theme-primary));
-  opacity: 0.74;
-}
-.rental-status {
-  margin-top: 16px;
-  padding-top: 13px;
-  border-top: 1px solid rgb(var(--v-theme-border));
-}
-.rental-status__head,
-.rental-status__legend {
-  display: flex;
-  justify-content: space-between;
   gap: 10px;
-  color: rgba(var(--v-theme-on-surface), 0.62);
-  font-size: 11px;
-}
-.rental-status__track {
-  display: flex;
-  block-size: 9px;
-  margin: 8px 0;
-  overflow: hidden;
-  background: var(--dal-hover);
-}
-.rental-status__segment {
-  min-inline-size: 0;
-}
-.rental-status__segment--available,
-.legend-dot--available {
-  background: #238b6e;
-}
-.rental-status__segment--reserved,
-.legend-dot--reserved {
-  background: #c58a28;
-}
-.rental-status__segment--negotiating,
-.legend-dot--negotiating {
-  background: #6574a8;
-}
-.rental-status__segment--rented,
-.legend-dot--rented {
-  background: #9a5d83;
-}
-.rental-status__segment--sold,
-.legend-dot--sold {
-  background: #9a5d83;
-}
-.rental-status__legend {
-  justify-content: start;
-  flex-wrap: wrap;
-}
-.rental-status__legend span {
-  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  text-align: start;
+  padding-block: 10px;
 }
-.legend-dot {
-  inline-size: 7px;
-  block-size: 7px;
-  border-radius: 50%;
+.offer-link strong {
+  font-size: calc(12px * var(--dal-font-scale));
+  font-weight: 600;
 }
-.dashboard-columns {
+.offer-link small,
+.cell-subtitle {
+  display: block;
+  font-size: calc(10px * var(--dal-font-scale));
+  color: var(--dal-muted);
+}
+.attention-card {
+  border-inline-start: 3px solid rgb(var(--v-theme-error));
+}
+.quick-search-card :deep(.v-card-text) {
+  padding-top: 0;
+}
+.dashboard-loading {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
 }
-.activity-icon {
-  color: rgb(var(--v-theme-primary));
+.dashboard-loading__chart {
+  grid-column: 1 / -1;
 }
-@media (max-width: 1250px) {
-  .portfolio-strip {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+.dashboard-side :deep(.v-empty-state) {
+  padding: 20px 16px;
+}
+.dashboard-side :deep(.v-empty-state__title) {
+  font-size: calc(13px * var(--dal-font-scale));
+}
+.dashboard-side :deep(.v-empty-state__text) {
+  font-size: calc(11px * var(--dal-font-scale));
+}
+@media (max-width: 1450px) {
+  .dashboard-workspace {
+    grid-template-columns: minmax(0, 1fr) 250px;
+    gap: 16px;
   }
-  .portfolio-strip__item:nth-child(3) {
-    border-inline-end: 0;
+  .analytics-grid {
+    gap: 16px;
+    padding: 16px;
   }
-  .portfolio-strip__item--value {
-    grid-column: span 3;
+  .dashboard-metrics :deep(.metric-card) {
+    gap: 12px;
+    padding: 16px;
+  }
+  .dashboard-metrics :deep(.metric-card__value) {
+    font-size: calc(24px * var(--dal-font-scale));
   }
 }
-@media (max-width: 1050px) {
-  .dashboard-layout,
-  .summary-boards,
-  .rental-chart-grid,
-  .sales-chart-grid {
+@media (max-width: 1100px) {
+  .dashboard-workspace {
     grid-template-columns: 1fr;
+  }
+  .dashboard-side {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dashboard-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 @media (max-width: 760px) {
-  .dashboard-intro,
-  .rental-board__header,
-  .sales-board__header {
-    align-items: start;
+  .analytics-heading {
+    align-items: flex-start;
     flex-direction: column;
+    gap: 8px;
   }
-  .portfolio-strip,
-  .rental-kpis,
-  .dashboard-columns {
+  .dashboard-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .portfolio-strip__item:nth-child(2n) {
-    border-inline-end: 0;
+  .analytics-grid,
+  .dashboard-side {
+    grid-template-columns: 1fr;
   }
-  .portfolio-strip__item--value {
-    grid-column: span 2;
+  .financial-strip {
+    grid-template-columns: 1fr;
   }
-}
-@media (prefers-reduced-motion: reduce) {
-  .trend-chart__line {
-    transition: none;
+  .financial-strip > div {
+    border: 0;
   }
 }
 </style>

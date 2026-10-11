@@ -7,7 +7,7 @@
  */
 import { statusColor, statusLabel } from "../../constants/domain";
 
-defineProps<{ status: string; size?: string }>();
+defineProps<{ status: string; size?: string; label?: string }>();
 </script>
 
 <template>
@@ -17,6 +17,7 @@ defineProps<{ status: string; size?: string }>();
     variant="tonal"
     label
   >
-    {{ statusLabel(status) }}
+    <v-icon icon="mdi-circle" size="6" class="me-2" />
+    {{ label ?? statusLabel(status) }}
   </v-chip>
 </template>

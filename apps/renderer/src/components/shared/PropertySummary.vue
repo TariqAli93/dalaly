@@ -216,22 +216,22 @@ const rows = computed(() => {
   padding-bottom: 8px;
 }
 .ps__code {
-  font-size: 15px;
+  font-size: calc(15px * var(--dal-font-scale));
   font-weight: 700;
 }
 .ps__type {
-  font-size: 12px;
+  font-size: calc(12px * var(--dal-font-scale));
   color: rgba(var(--v-theme-on-surface), 0.6);
 }
 .ps__price {
   padding: 10px 2px;
 }
 .ps__price-label {
-  font-size: 11.5px;
+  font-size: calc(11.5px * var(--dal-font-scale));
   color: rgba(var(--v-theme-on-surface), 0.6);
 }
 .ps__price-value {
-  font-size: 17px;
+  font-size: calc(17px * var(--dal-font-scale));
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -242,7 +242,7 @@ const rows = computed(() => {
   border-top: 1px solid var(--dal-stroke);
 }
 .ps__label {
-  font-size: 11.5px;
+  font-size: calc(11.5px * var(--dal-font-scale));
   color: rgba(var(--v-theme-on-surface), 0.6);
   margin-bottom: 2px;
 }
@@ -256,11 +256,11 @@ const rows = computed(() => {
 }
 .ps__call {
   display: inline-flex;
-  color: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-primary-text));
   text-decoration: none;
 }
 .ps__muted {
-  font-size: 12px;
+  font-size: calc(12px * var(--dal-font-scale));
   color: rgba(var(--v-theme-on-surface), 0.6);
 }
 .ps__grid {

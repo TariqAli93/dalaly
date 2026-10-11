@@ -3,7 +3,7 @@ import { onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import AppLayout from "../layouts/AppLayout.vue";
 import PropertiesTable from "../components/properties/PropertiesTable.vue";
-import PropertyDetailsDialog from "../components/properties/PropertyDetailsDialog.vue";
+
 import { listFavorites } from "../services/favorites.service";
 import { getErrorMessage } from "../services/api.service";
 import { useProperties } from "../composables/useProperties";
@@ -22,8 +22,6 @@ const { favoriteIds, loadFavoriteIds } = useFavorites();
 
 const items = ref<PropertyRecord[]>([]);
 const loading = ref(false);
-const detailsDialog = ref(false);
-const selected = ref<PropertyRecord | null>(null);
 
 async function load() {
   loading.value = true;
@@ -47,11 +45,9 @@ watch(
 );
 
 function view(property: PropertyRecord) {
-  selected.value = property;
-  detailsDialog.value = true;
+  void router.push(`/properties/${property.id}`);
 }
 function edit(property: PropertyRecord) {
-  detailsDialog.value = false;
   void router.push(`/properties/${property.id}/edit`);
 }
 function askDelete(property: PropertyRecord) {
@@ -62,7 +58,6 @@ function askDelete(property: PropertyRecord) {
     color: "error",
     onConfirm: async () => {
       await service.deleteProperty(property.id);
-      detailsDialog.value = false;
       await load();
       notifySuccess("تم حذف العرض.");
     },
@@ -76,7 +71,6 @@ function askArchive(property: PropertyRecord) {
     color: "warning",
     onConfirm: async () => {
       await service.archiveProperty(property.id);
-      detailsDialog.value = false;
       await load();
       notifySuccess("تمت الأرشفة.");
     },
@@ -90,7 +84,6 @@ function askRestore(property: PropertyRecord) {
     color: "success",
     onConfirm: async () => {
       await service.restoreProperty(property.id);
-      detailsDialog.value = false;
       await load();
       notifySuccess("تم الإرجاع.");
     },
@@ -114,14 +107,6 @@ onMounted(() => {
       @restore="askRestore"
       @delete="askDelete"
       @create="router.push('/properties/new')"
-    />
-    <PropertyDetailsDialog
-      v-model="detailsDialog"
-      :property="selected"
-      @edit="edit"
-      @archive="askArchive"
-      @restore="askRestore"
-      @delete="askDelete"
     />
   </AppLayout>
 </template>

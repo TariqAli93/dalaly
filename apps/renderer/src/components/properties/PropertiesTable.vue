@@ -26,8 +26,15 @@ const emit = defineEmits<{
   clearFilters: [];
 }>();
 
-// نقر الصف يحدّده لعرضه في Details pane — سلوك إضافي لا يغيّر أي حدث حالي.
+// نحافظ على حدث التحديد، ونفتح صفحة التفاصيل عند نقر الصف.
 // نتجاهل النقر على أزرار الإجراءات كي تبقى وظائفها كما هي.
+function onRowDbClick(event: MouseEvent, ctx: { item: PropertyRecord }) {
+  const target = event.target as HTMLElement | null;
+  if (target?.closest("button, a")) return;
+  emit("select", ctx.item);
+  emit("view", ctx.item);
+}
+
 function onRowClick(event: MouseEvent, ctx: { item: PropertyRecord }) {
   const target = event.target as HTMLElement | null;
   if (target?.closest("button, a")) return;
@@ -58,7 +65,7 @@ const headers = [
 
 <template>
   <!-- شبكة بيانات مكتبية: لوح بحدّ رفيع يملأ العرض، لا بطاقة. -->
-  <div class="dal-panel dal-grid">
+  <v-card variant="flat" class="dal-panel dal-grid">
     <v-skeleton-loader v-if="loading" type="table" />
     <!-- حالة فارغة مع فلاتر فعّالة: سبب واضح + إجراءات تصحيح -->
     <EmptyState
@@ -103,13 +110,16 @@ const headers = [
       density="compact"
       hover
       :row-props="rowProps"
+      @dblclick:row="onRowDbClick"
       @click:row="onRowClick"
     >
       <template #item.image="{ item }">
         <PropertyImages primary-only :property-id="item.id" />
       </template>
       <template #item.name="{ item }">
-        {{ item.name || `properties ${item.code}` }}
+        <router-link :to="`/properties/${item.id}`" class="record-link">{{
+          item.name || `عقار ${item.code}`
+        }}</router-link>
       </template>
       <template #item.neighborhood="{ item }">
         {{ neighborhoodOf(item) || "-" }}
@@ -141,29 +151,30 @@ const headers = [
         />
       </template>
     </v-data-table>
-  </div>
+  </v-card>
 </template>
 
 <style scoped>
 /* الجدول يملأ اللوح ويحمل زواياه؛ رأس ثابت الخلفية. */
 .dal-grid :deep(.v-table) {
-  border-radius: 0;
+  border-radius: 12px;
 }
 .dal-grid :deep(.v-data-table__th) {
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--dal-font-scale));
   font-weight: 700;
   white-space: nowrap;
   gap: 0.5rem;
 }
 .dal-grid :deep(.v-data-table__td) {
-  font-size: 13px;
+  font-size: calc(12px * var(--dal-font-scale));
+  white-space: nowrap;
 }
 .dal-grid :deep(tbody tr) {
   cursor: pointer;
 }
 /* الصف المحدد: خلفية خفيفة + شريط على الحافة الأمامية (يمين في RTL). */
 .dal-grid :deep(tr.dal-row--selected > td) {
-  background: var(--dal-active);
+  background: var(--dal-selection);
 }
 .dal-grid :deep(tr.dal-row--selected > td:first-child) {
   border-inline-start: 3px solid rgb(var(--v-theme-primary));

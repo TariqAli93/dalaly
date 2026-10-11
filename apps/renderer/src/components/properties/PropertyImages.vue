@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ListingImage from "../shared/ListingImage.vue";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import * as imagesService from "../../services/images.service";
 import { getErrorMessage } from "../../services/api.service";
@@ -20,12 +21,18 @@ const loading = ref(false);
 const uploading = ref(false);
 const pending = ref<Array<{ name: string; dataUrl: string }>>([]);
 const dragOver = ref(false);
+const activeImageId = ref<number | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
 
 let dragIndex = -1;
 
 const primaryImage = computed(
   () => images.value.find((i) => i.is_primary) ?? images.value[0] ?? null,
+);
+const activeImage = computed(
+  () =>
+    images.value.find((image) => image.id === activeImageId.value) ??
+    primaryImage.value,
 );
 
 function fileToDataUrl(file: File): Promise<string> {
@@ -167,7 +174,7 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
 </script>
 
 <template>
-  <div>
+  <div :class="{ 'gallery--thumbnail': primaryOnly }">
     <v-progress-linear
       v-if="loading"
       indeterminate
@@ -177,9 +184,9 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
 
     <!-- معرض الصور -->
     <div v-if="primaryImage" class="gallery">
-      <img
+      <ListingImage
         v-if="!primaryOnly"
-        :src="imageUrl(primaryImage)"
+        :src="imageUrl(activeImage!)"
         class="gallery-primary"
         alt="صورة العقار"
       />
@@ -188,18 +195,24 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
           v-for="(image, index) in images"
           :key="image.id"
           class="thumb-wrap"
-          :class="{ 'thumb-active': image.is_primary }"
+          :class="{ 'thumb-active': image.id === activeImage?.id }"
           :draggable="canManage"
           @dragstart="onDragStart(index)"
           @dragover.prevent
           @drop.prevent="onDropReorder(index)"
         >
-          <img
-            :src="imageUrl(image)"
-            class="thumb"
-            alt=""
-            @click="setPrimary(image)"
-          />
+          <button
+            type="button"
+            :aria-label="`عرض الصورة ${index + 1}`"
+            :aria-pressed="image.id === activeImage?.id"
+            @click="activeImageId = image.id"
+          >
+            <ListingImage
+              :src="imageUrl(image)"
+              class="thumb"
+              alt="صورة العقار"
+            />
+          </button>
           <div v-if="canManage" class="thumb-actions">
             <v-btn
               v-if="!image.is_primary"
@@ -234,7 +247,7 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
           @dragover.prevent
           @drop.prevent="onDropReorder(index)"
         >
-          <img
+          <ListingImage
             :src="imageUrl(image)"
             class="thumb small"
             alt=""
@@ -263,7 +276,20 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
         </div>
       </div>
     </div>
-    <v-empty-state v-else-if="!loading" icon="mdi-image-multiple-outline" />
+    <v-avatar
+      v-else-if="!loading && primaryOnly"
+      class="gallery-placeholder"
+      color="primary"
+      variant="tonal"
+      rounded="lg"
+      size="48"
+      ><v-icon icon="mdi-home-city-outline" size="22"
+    /></v-avatar>
+    <v-empty-state
+      v-else-if="!loading"
+      icon="mdi-image-multiple-outline"
+      title="لا توجد صور للعقار"
+    />
 
     <!-- منطقة الرفع -->
     <template v-if="canManage">
@@ -298,7 +324,7 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
         </div>
         <div class="thumbs">
           <div v-for="(item, index) in pending" :key="index" class="thumb-wrap">
-            <img :src="item.dataUrl" class="thumb" alt="" />
+            <ListingImage :src="item.dataUrl" class="thumb" alt="" />
             <div class="thumb-actions">
               <v-btn
                 icon="mdi-close"
@@ -329,9 +355,11 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
 <style scoped>
 .gallery-primary {
   width: 100%;
-  max-height: 360px;
-  object-fit: contain;
-  border-radius: 0px;
+  aspect-ratio: 4/3;
+  border-radius: 10px;
+  background: rgba(var(--v-theme-on-surface), 0.04);
+  object-fit: cover;
+  border-radius: 10px;
   background: rgba(var(--v-theme-on-surface), 0.04);
 }
 .thumbs {
@@ -343,7 +371,7 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
 .thumb-wrap {
   position: relative;
   border: 2px solid transparent;
-  border-radius: 0px;
+  border-radius: 8px;
   overflow: hidden;
   max-width: 120px;
   max-height: 100px;
@@ -360,7 +388,19 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
 }
 
 .thumb.small {
-  width: 100%;
+  width: 48px;
+  height: 40px;
+}
+.gallery--thumbnail .thumb-wrap {
+  border: 0;
+  border-radius: 6px;
+  margin-block: 6px;
+}
+.gallery--thumbnail {
+  width: 48px;
+}
+.gallery--thumbnail :deep(.v-progress-linear) {
+  width: 48px;
 }
 
 .thumb-actions {
@@ -375,8 +415,8 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
   width: 100%;
   margin-top: 14px;
   border: 2px dashed rgba(var(--v-theme-on-surface), 0.3);
-  border-radius: 0px;
-  padding: 20px;
+  border-radius: 8px;
+  padding: 12px;
   text-align: center;
   cursor: pointer;
   background: transparent;

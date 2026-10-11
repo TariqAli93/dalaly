@@ -36,11 +36,12 @@ const emit = defineEmits<{ close: [] }>();
   flex: 0 0 340px;
   width: 340px;
   align-self: flex-start;
-  border-inline-start: 1px solid var(--dal-stroke);
+  border: 1px solid var(--dal-stroke);
+  border-radius: 12px;
   background: rgb(var(--v-theme-surface));
   position: sticky;
-  top: 45px;
-  max-height: calc(100vh - 60px);
+  top: 80px;
+  max-height: calc(100dvh - 100px);
   overflow: auto;
 }
 .dal-md__scrim {
@@ -49,7 +50,7 @@ const emit = defineEmits<{ close: [] }>();
 @media (max-width: 1100px) {
   .dal-md__detail {
     position: fixed;
-    inset-block: 44px 0;
+    inset-block: 60px 0;
     inset-inline-start: 0;
     width: min(360px, 100%);
     max-height: none;
@@ -60,7 +61,7 @@ const emit = defineEmits<{ close: [] }>();
   .dal-md__scrim {
     display: block;
     position: fixed;
-    inset: 44px 0 0 0;
+    inset: 60px 0 0 0;
     z-index: 39;
     background: rgba(0, 0, 0, 0.32);
   }

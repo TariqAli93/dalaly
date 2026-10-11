@@ -5,7 +5,7 @@ import AppLayout from "../layouts/AppLayout.vue";
 import { getErrorMessage } from "../services/api.service";
 import * as remoteService from "../services/remote.service";
 import type { RemoteStatus } from "../services/remote.service";
-import { useThemeMode } from "../composables/useThemeMode";
+
 import { useAuth } from "../composables/useAuth";
 import { usePermissions } from "../composables/usePermissions";
 import { useSetup } from "../composables/useSetup";
@@ -16,9 +16,10 @@ import ChangePinDialog from "../components/auth/ChangePinDialog.vue";
 import BackupSettings from "../components/setup/BackupSettings.vue";
 import ScheduledBackupSettings from "../components/setup/ScheduledBackupSettings.vue";
 import * as companyService from "../services/company-settings.service";
+import AppearanceSettings from "../components/settings/AppearanceSettings.vue";
 
 const router = useRouter();
-const { isDark, toggle } = useThemeMode();
+
 const { currentUser, logout } = useAuth();
 const { can } = usePermissions();
 const { status } = useSetup();
@@ -26,6 +27,7 @@ const { notifySuccess, notifyError } = useSnackbar();
 const { setRefreshHandler } = useRefresh();
 const { idleMinutes, setIdleMinutes } = useIdleLock();
 
+const settingsTab = ref("appearance");
 const changePinOpen = ref(false);
 const idleOptions = [
   { title: "بدون قفل", value: 0 },
@@ -143,163 +145,204 @@ onMounted(() => {
 </script>
 
 <template>
-  <AppLayout title="الإعدادات">
-    <div class="settings-grid">
-      <v-card variant="flat" border>
-        <v-card-title>معلومات الشركة</v-card-title>
-        <v-card-text>
-          <div class="settings-grid settings-grid--company">
-            <v-text-field v-model="company.company_name" label="اسم الشركة" />
-            <v-text-field
-              v-model="company.phone_primary"
-              label="الهاتف الأساسي"
-            />
-            <v-text-field
-              v-model="company.phone_secondary"
-              label="هاتف إضافي"
-            />
-            <v-text-field v-model="company.email" label="البريد الإلكتروني" />
-            <v-text-field v-model="company.address" label="العنوان" />
-            <v-text-field
-              v-model="company.additional_contact"
-              label="معلومات اتصال إضافية"
-            />
-            <v-text-field
-              v-model="company.license_number"
-              label="رقم الإجازة أو الترخيص"
-            />
-          </div>
-          <v-file-input
-            v-model="companyLogo"
-            label="شعار الشركة"
-            accept="image/*"
-            class="mt-3"
-          />
-        </v-card-text>
-        <v-card-actions
-          ><v-spacer /><v-btn
-            v-if="can('settings.update')"
-            variant="tonal"
-            @click="uploadCompanyLogo"
-            >رفع الشعار</v-btn
-          ><v-btn
-            v-if="can('settings.update')"
-            color="primary"
-            :loading="companySaving"
-            @click="saveCompany"
-            >حفظ المعلومات</v-btn
-          ></v-card-actions
-        >
-      </v-card>
-
-      <v-card variant="flat" border>
-        <v-card-title>الأمان</v-card-title>
-        <v-card-text>
-          <div class="d-flex align-center justify-space-between ga-4 mb-4">
-            <div>
-              <div class="font-weight-bold">الرمز السري للدخول</div>
-              <div class="text-body-2 text-medium-emphasis">
-                غيّر رمز الدخول الخاص بك.
-              </div>
+  <AppLayout title="الإعدادات" subtitle="خصّص مساحة العمل وأدر إعدادات المكتب.">
+    <v-card variant="flat" border class="settings-navigation"
+      ><v-tabs v-model="settingsTab" color="primary"
+        ><v-tab value="appearance" prepend-icon="mdi-palette-outline"
+          >المظهر</v-tab
+        ><v-tab value="company" prepend-icon="mdi-office-building-outline"
+          >معلومات المكتب</v-tab
+        ><v-tab value="security" prepend-icon="mdi-shield-lock-outline"
+          >الأمان</v-tab
+        ><v-tab value="backups" prepend-icon="mdi-database-outline"
+          >النسخ الاحتياطي</v-tab
+        ><v-tab value="system" prepend-icon="mdi-information-outline"
+          >النظام والاتصال</v-tab
+        ></v-tabs
+      ></v-card
+    >
+    <v-window v-model="settingsTab" class="settings-workspace"
+      ><v-window-item value="appearance"><AppearanceSettings /></v-window-item
+      ><v-window-item value="company"
+        ><v-card variant="flat" border>
+          <v-card-title>معلومات الشركة</v-card-title>
+          <v-card-text>
+            <div class="settings-grid settings-grid--company">
+              <v-text-field v-model="company.company_name" label="اسم الشركة" />
+              <v-text-field
+                v-model="company.phone_primary"
+                label="الهاتف الأساسي"
+              />
+              <v-text-field
+                v-model="company.phone_secondary"
+                label="هاتف إضافي"
+              />
+              <v-text-field v-model="company.email" label="البريد الإلكتروني" />
+              <v-text-field v-model="company.address" label="العنوان" />
+              <v-text-field
+                v-model="company.additional_contact"
+                label="معلومات اتصال إضافية"
+              />
+              <v-text-field
+                v-model="company.license_number"
+                label="رقم الإجازة أو الترخيص"
+              />
             </div>
-            <v-btn
-              v-if="can('security.change_pin')"
+            <v-file-input
+              v-model="companyLogo"
+              label="شعار الشركة"
+              accept="image/*"
+              class="mt-3"
+            />
+          </v-card-text>
+          <v-card-actions
+            ><v-spacer /><v-btn
+              v-if="can('settings.update')"
               variant="tonal"
-              prepend-icon="mdi-form-textbox-password"
-              @click="changePinOpen = true"
-            >
-              تغيير الرمز السري
-            </v-btn>
-          </div>
-          <v-select
-            :model-value="idleMinutes"
-            :items="idleOptions"
-            label="تسجيل خروج تلقائي بعد خمول"
-            density="comfortable"
-            hide-details
-            class="mb-4"
-            @update:model-value="setIdleMinutes"
-          />
-          <v-btn
-            block
-            variant="tonal"
-            color="warning"
-            prepend-icon="mdi-lock-outline"
-            @click="lockNow"
+              @click="uploadCompanyLogo"
+              >رفع الشعار</v-btn
+            ><v-btn
+              v-if="can('settings.update')"
+              color="primary"
+              :loading="companySaving"
+              @click="saveCompany"
+              >حفظ المعلومات</v-btn
+            ></v-card-actions
           >
-            قفل الشاشة الآن
-          </v-btn>
-        </v-card-text>
-      </v-card>
-
-      <v-card variant="flat" border>
-        <v-card-title>الاتصال الخارجي</v-card-title>
-        <v-card-text>
-          <v-chip
-            class="mb-4"
-            :color="remoteStatus.running ? 'primary' : undefined"
-            variant="tonal"
-          >
-            {{ remoteStatus.running ? "يعمل" : "متوقف" }}
-          </v-chip>
-          <div v-if="remoteStatus.url" class="mb-3">
-            <div class="text-body-2 text-medium-emphasis">
-              رابط الاتصال الخارجي
+        </v-card></v-window-item
+      ><v-window-item value="security"
+        ><v-card variant="flat" border>
+          <v-card-title>الأمان</v-card-title>
+          <v-card-text>
+            <div class="d-flex align-center justify-space-between ga-4 mb-4">
+              <div>
+                <div class="font-weight-bold">الرمز السري للدخول</div>
+                <div class="text-body-2 text-medium-emphasis">
+                  غيّر رمز الدخول الخاص بك.
+                </div>
+              </div>
+              <v-btn
+                v-if="can('security.change_pin')"
+                variant="tonal"
+                prepend-icon="mdi-form-textbox-password"
+                @click="changePinOpen = true"
+              >
+                تغيير الرمز السري
+              </v-btn>
             </div>
-            <a :href="remoteStatus.url" target="_blank" rel="noreferrer">
-              {{ remoteStatus.url }}
-            </a>
-          </div>
-          <v-alert v-if="remoteStatus.message" variant="tonal">
-            {{ remoteStatus.message }}
-          </v-alert>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn
-            v-if="can('settings.update')"
-            color="primary"
-            prepend-icon="mdi-cloud-upload-outline"
-            @click="enableRemote"
-          >
-            تشغيل
-          </v-btn>
-          <v-btn
-            v-if="can('settings.update')"
-            variant="text"
-            prepend-icon="mdi-cloud-off-outline"
-            @click="disableRemote"
-          >
-            إيقاف
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-
-      <v-card variant="flat" border>
-        <v-card-title>النظام</v-card-title>
-        <v-list lines="two">
-          <v-list-item
-            title="الإصدار"
-            :subtitle="status?.app_version ?? '0.1.0'"
-            prepend-icon="mdi-information-outline"
-          />
-          <v-list-item
-            title="قاعدة البيانات"
-            subtitle="قاعدة بيانات محلية"
-            prepend-icon="mdi-database-outline"
-          />
-          <v-list-item
-            title="المستخدم"
-            :subtitle="currentUser?.username"
-            prepend-icon="mdi-account-outline"
-          />
-        </v-list>
-      </v-card>
-
-      <BackupSettings />
-      <!-- <ScheduledBackupSettings /> -->
-    </div>
-
-    <ChangePinDialog v-model="changePinOpen" />
-  </AppLayout>
+            <v-select
+              :model-value="idleMinutes"
+              :items="idleOptions"
+              label="تسجيل خروج تلقائي بعد خمول"
+              density="comfortable"
+              hide-details
+              class="mb-4"
+              @update:model-value="setIdleMinutes"
+            />
+            <v-btn
+              block
+              variant="tonal"
+              color="warning"
+              prepend-icon="mdi-lock-outline"
+              @click="lockNow"
+            >
+              قفل الشاشة الآن
+            </v-btn>
+          </v-card-text>
+        </v-card></v-window-item
+      ><v-window-item value="backups"><BackupSettings /></v-window-item
+      ><v-window-item value="system"
+        ><div class="settings-system-grid">
+          <v-card variant="flat" border>
+            <v-card-title>النظام</v-card-title>
+            <v-list lines="two">
+              <v-list-item
+                title="الإصدار"
+                :subtitle="status?.app_version ?? '0.1.0'"
+                prepend-icon="mdi-information-outline"
+              />
+              <v-list-item
+                title="قاعدة البيانات"
+                subtitle="قاعدة بيانات محلية"
+                prepend-icon="mdi-database-outline"
+              />
+              <v-list-item
+                title="المستخدم"
+                :subtitle="currentUser?.username"
+                prepend-icon="mdi-account-outline"
+              />
+            </v-list> </v-card
+          ><v-card variant="flat" border>
+            <v-card-title>الاتصال الخارجي</v-card-title>
+            <v-card-text>
+              <v-chip
+                class="mb-4"
+                :color="remoteStatus.running ? 'primary' : undefined"
+                variant="tonal"
+              >
+                {{ remoteStatus.running ? "يعمل" : "متوقف" }}
+              </v-chip>
+              <div v-if="remoteStatus.url" class="mb-3">
+                <div class="text-body-2 text-medium-emphasis">
+                  رابط الاتصال الخارجي
+                </div>
+                <a :href="remoteStatus.url" target="_blank" rel="noreferrer">
+                  {{ remoteStatus.url }}
+                </a>
+              </div>
+              <v-alert v-if="remoteStatus.message" variant="tonal">
+                {{ remoteStatus.message }}
+              </v-alert>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer />
+              <v-btn
+                v-if="can('settings.update')"
+                color="primary"
+                prepend-icon="mdi-cloud-upload-outline"
+                @click="enableRemote"
+              >
+                تشغيل
+              </v-btn>
+              <v-btn
+                v-if="can('settings.update')"
+                variant="text"
+                prepend-icon="mdi-cloud-off-outline"
+                @click="disableRemote"
+              >
+                إيقاف
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </div></v-window-item
+      ></v-window
+    >
+    <ChangePinDialog v-model="changePinOpen"
+  /></AppLayout>
 </template>
+<style scoped>
+.settings-navigation {
+  margin-bottom: 20px;
+}
+
+.settings-grid--company {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.settings-grid--company > :first-child,
+.settings-grid--company > :last-child {
+  grid-column: auto;
+}
+.settings-system-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) 1.2fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 760px) {
+  .settings-grid--company,
+  .settings-system-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

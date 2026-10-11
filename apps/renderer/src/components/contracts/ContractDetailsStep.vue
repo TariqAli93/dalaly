@@ -9,6 +9,7 @@ import type {
 import type { ContractType } from "./contract-form";
 
 const props = defineProps<{
+  section?: "information" | "assets" | "payments";
   contractType: ContractType;
   propertyIds: number[];
   rentalIds: number[];
@@ -50,6 +51,7 @@ function assetTitle(item: PropertyRecord | RentalRecord) {
 <template>
   <div class="details-grid">
     <v-select
+      v-if="!props.section || props.section === 'information'"
       :model-value="props.contractType"
       :items="[
         { title: 'عقد بيع', value: 'sale' },
@@ -59,7 +61,10 @@ function assetTitle(item: PropertyRecord | RentalRecord) {
       @update:model-value="emit('update:contractType', $event)"
     />
     <v-autocomplete
-      v-if="props.contractType === 'sale'"
+      v-if="
+        (!props.section || props.section === 'assets') &&
+        props.contractType === 'sale'
+      "
       :model-value="props.propertyIds"
       :items="props.properties"
       :item-title="assetTitle"
@@ -76,7 +81,10 @@ function assetTitle(item: PropertyRecord | RentalRecord) {
       @update:model-value="emit('update:propertyIds', $event)"
     />
     <v-autocomplete
-      v-else
+      v-if="
+        (!props.section || props.section === 'assets') &&
+        props.contractType !== 'sale'
+      "
       :model-value="props.rentalIds"
       :items="props.rentals"
       :item-title="assetTitle"
@@ -93,6 +101,7 @@ function assetTitle(item: PropertyRecord | RentalRecord) {
       @update:model-value="emit('update:rentalIds', $event)"
     />
     <v-select
+      v-if="!props.section || props.section === 'information'"
       :model-value="props.templateId"
       :items="props.templates"
       item-title="name"
@@ -102,29 +111,38 @@ function assetTitle(item: PropertyRecord | RentalRecord) {
       @update:model-value="emit('update:templateId', $event)"
     />
     <DateField
+      v-if="!props.section || props.section === 'information'"
       :model-value="props.contractDate"
       label="تاريخ العقد"
       @update:model-value="emit('update:contractDate', $event)"
     />
     <DateField
-      v-if="props.contractType === 'rental'"
+      v-if="
+        (!props.section || props.section === 'information') &&
+        props.contractType === 'rental'
+      "
       :model-value="props.startDate"
       label="تاريخ بدء الإيجار"
       @update:model-value="emit('update:startDate', $event)"
     />
     <DateField
-      v-if="props.contractType === 'rental'"
+      v-if="
+        (!props.section || props.section === 'information') &&
+        props.contractType === 'rental'
+      "
       :model-value="props.endDate"
       label="تاريخ انتهاء الإيجار"
       @update:model-value="emit('update:endDate', $event)"
     />
     <NumberField
+      v-if="!props.section || props.section === 'payments'"
       :model-value="props.amount"
       label="المبلغ الإجمالي"
       readonly
       prefix=""
     />
     <NumberField
+      v-if="!props.section || props.section === 'payments'"
       :model-value="props.paidAmount"
       label="المبلغ المدفوع"
       :min="0"
@@ -138,6 +156,7 @@ function assetTitle(item: PropertyRecord | RentalRecord) {
       @update:model-value="updatePaid"
     />
     <NumberField
+      v-if="!props.section || props.section === 'payments'"
       :model-value="props.remainingAmount"
       label="المبلغ المتبقي"
       readonly

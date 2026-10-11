@@ -201,11 +201,11 @@ const location = computed(() =>
   padding-bottom: 8px;
 }
 .ps__code {
-  font-size: 15px;
+  font-size: calc(15px * var(--dal-font-scale));
   font-weight: 700;
 }
 .ps__type {
-  font-size: 12px;
+  font-size: calc(12px * var(--dal-font-scale));
   color: rgba(var(--v-theme-on-surface), 0.6);
 }
 .ps__price {
@@ -213,12 +213,12 @@ const location = computed(() =>
 }
 .ps__price-label,
 .ps__label {
-  font-size: 11.5px;
+  font-size: calc(11.5px * var(--dal-font-scale));
   color: rgba(var(--v-theme-on-surface), 0.6);
   margin-bottom: 2px;
 }
 .ps__price-value {
-  font-size: 17px;
+  font-size: calc(17px * var(--dal-font-scale));
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -226,7 +226,7 @@ const location = computed(() =>
   flex-wrap: wrap;
 }
 .ps__period {
-  font-size: 13px;
+  font-size: calc(13px * var(--dal-font-scale));
   font-weight: 500;
   color: rgba(var(--v-theme-on-surface), 0.65);
 }
@@ -244,11 +244,11 @@ const location = computed(() =>
 }
 .ps__call {
   display: inline-flex;
-  color: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-primary-text));
   text-decoration: none;
 }
 .ps__muted {
-  font-size: 12px;
+  font-size: calc(12px * var(--dal-font-scale));
   color: rgba(var(--v-theme-on-surface), 0.6);
 }
 .ps__grid {

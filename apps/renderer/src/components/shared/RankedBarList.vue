@@ -68,7 +68,7 @@ const max = computed(() =>
   outline-offset: -2px;
 }
 .rbl__name {
-  font-size: 13px;
+  font-size: calc(13px * var(--dal-font-scale));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -87,7 +87,7 @@ const max = computed(() =>
   opacity: 0.55;
 }
 .rbl__count {
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--dal-font-scale));
   font-weight: 700;
   color: rgba(var(--v-theme-on-surface), 0.7);
   min-width: 20px;

@@ -14,17 +14,21 @@ const { t } = useI18n();
 
 const form = ref({ username: "admin", pin: "" });
 const loading = ref(false);
+const showPin = ref(false);
+const loginError = ref("");
 
 const required = (value: unknown) => Boolean(value) || t("common.required");
 
 async function submit() {
   loading.value = true;
+  loginError.value = "";
   try {
     await loginWithCredentials({ ...form.value });
     notifySuccess("تم تسجيل الدخول.");
     const redirect = (route.query.redirect as string) || "/";
     await router.replace(redirect);
   } catch (error) {
+    loginError.value = getErrorMessage(error);
     notifyError(getErrorMessage(error));
   } finally {
     loading.value = false;
@@ -34,7 +38,7 @@ async function submit() {
 
 <template>
   <v-form @submit.prevent="submit">
-    <div class="text-h6 mb-2">تسجيل الدخول</div>
+    <h1 class="login-title">تسجيل الدخول</h1>
     <div class="text-body-2 text-medium-emphasis mb-5">
       {{ t("auth.loginDescription") }}
     </div>
@@ -43,21 +47,46 @@ async function submit() {
       :label="t('common.username')"
       :rules="[required]"
       autofocus
+      prepend-inner-icon="mdi-account-outline"
+      autocomplete="username"
     />
     <v-text-field
       v-model="form.pin"
       :label="t('common.pin')"
-      type="password"
+      :type="showPin ? 'text' : 'password'"
       :rules="[required]"
+      prepend-inner-icon="mdi-lock-outline"
+      :append-inner-icon="showPin ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
+      :aria-label="t('common.pin')"
+      autocomplete="current-password"
+      @click:append-inner="showPin = !showPin"
     />
+    <v-alert
+      v-if="loginError"
+      type="error"
+      variant="tonal"
+      class="mb-4"
+      density="compact"
+      role="alert"
+      >{{ loginError }}</v-alert
+    >
     <v-btn
       block
       color="primary"
       type="submit"
       :loading="loading"
       prepend-icon="mdi-login"
+      height="42"
     >
-      دخول
+      تسجيل الدخول
     </v-btn>
   </v-form>
 </template>
+
+<style scoped>
+.login-title {
+  font-size: calc(26px * var(--dal-font-scale));
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+</style>

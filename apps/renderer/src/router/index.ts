@@ -17,6 +17,47 @@ declare module "vue-router" {
 
 const routes: RouteRecordRaw[] = [
   {
+    path: "/clients/:id",
+    alias: "/people/:id",
+    name: "person-details",
+    component: () => import("../pages/PersonDetailsPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "people.read",
+      titleKey: "routes.people",
+    },
+  },
+  {
+    path: "/properties/:id",
+    name: "property-details",
+    component: () => import("../pages/PropertyDetailsPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "properties.read",
+      titleKey: "routes.properties",
+    },
+  },
+  {
+    path: "/contracts/create",
+    name: "contract-create",
+    component: () => import("../pages/ContractFormPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "contracts.manage",
+      titleKey: "routes.contracts",
+    },
+  },
+  {
+    path: "/contracts/:id/edit",
+    name: "contract-edit",
+    component: () => import("../pages/ContractFormPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "contracts.manage",
+      titleKey: "routes.contracts",
+    },
+  },
+  {
     path: "/first-run",
     name: "first-run",
     component: () => import("../pages/FirstRunWizardPage.vue"),

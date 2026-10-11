@@ -72,7 +72,7 @@ const headers = [
 </script>
 
 <template>
-  <div class="dal-panel dal-grid">
+  <v-card variant="flat" class="dal-panel dal-grid">
     <v-skeleton-loader v-if="loading" type="table" />
     <EmptyState
       v-else-if="!rentals.length && hasFilters"
@@ -204,27 +204,28 @@ const headers = [
         </div>
       </template>
     </v-data-table>
-  </div>
+  </v-card>
 </template>
 
 <style scoped>
 .dal-grid :deep(.v-table) {
-  border-radius: 0;
+  border-radius: 12px;
 }
 .dal-grid :deep(.v-data-table__th) {
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--dal-font-scale));
   font-weight: 700;
   white-space: nowrap;
   gap: 0.5rem;
 }
 .dal-grid :deep(.v-data-table__td) {
-  font-size: 13px;
+  font-size: calc(12px * var(--dal-font-scale));
+  white-space: nowrap;
 }
 .dal-grid :deep(tbody tr) {
   cursor: pointer;
 }
 .dal-grid :deep(tr.dal-row--selected > td) {
-  background: var(--dal-active);
+  background: var(--dal-selection);
 }
 .dal-grid :deep(tr.dal-row--selected > td:first-child) {
   border-inline-start: 3px solid rgb(var(--v-theme-primary));
