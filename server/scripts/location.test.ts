@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildGoogleMapsUrl, coordinateNumber, googleMapsUrl, parseGoogleMapsUrl, validCoordinates } from "../src/shared/utils/google-maps-url.js";
+import { buildMapLink, coordinateNumber, mapLinkUrl, parseMapLink, parseGoogleMapsUrl, validCoordinates } from "../src/shared/utils/map-location.js";
 import { propertyPayloadSchema } from "../src/modules/properties/properties.schema.js";
 import { rentalPayloadSchema } from "../src/modules/rentals/rentals.schema.js";
 import { resolveMapLink } from "../src/modules/locations/map-link.service.js";
-import { safeExternalUrl, safeGoogleMapsUrl } from "../../apps/desktop/src/external-links.js";
+import { safeExternalUrl, safeMapLinkUrl } from "../../apps/desktop/src/external-links.js";
 
 const property = { property_type: "أرض", legal_type: "طابو ملك صرف", area_value: 100, area_unit: "متر", pricing_method: "سعر إجمالي مباشر", total_price: 1000000, owner_name: "اختبار", owner_phone: "07700000000" };
 const rental = { property_type: "house", area_value: 100, area_unit: "متر", rent_price: 250000, rent_period: "monthly", owner_name: "اختبار", owner_phone: "07700000000" };
@@ -18,7 +18,15 @@ test("Google URL coordinate formats, including pin precedence over viewport", ()
     "https://www.google.com/maps/place/Baghdad/@32,43,15z/data=!3m1!4b1!4m2!3d33.3152!4d44.3661",
     "https://www.google.com/maps/place/33.3152,44.3661",
   ]) assert.deepEqual(parseGoogleMapsUrl(url), { lat: 33.3152, lng: 44.3661 });
-  assert.deepEqual(parseGoogleMapsUrl(buildGoogleMapsUrl({ lat: -90, lng: 180 })), { lat: -90, lng: 180 });
+});
+
+test("OpenStreetMap links round-trip coordinates and prefer the saved pin", () => {
+  for (const point of [{ lat: -90, lng: 180 }, { lat: 0, lng: 0 }, { lat: 33.3152, lng: 44.3661 }])
+    assert.deepEqual(parseMapLink(buildMapLink(point)), point);
+  assert.deepEqual(parseMapLink("https://www.openstreetmap.org/?mlat=33.3152&mlon=44.3661#map=12/32/43"), { lat: 33.3152, lng: 44.3661 });
+  assert.deepEqual(parseMapLink("https://openstreetmap.org/#map=16/33.3152/44.3661"), { lat: 33.3152, lng: 44.3661 });
+  for (const value of ["https://openstreetmap.org/?mlat=33", "https://openstreetmap.org/?mlat=91&mlon=44", "https://openstreetmap.org/#map=16/abc/44", "https://openstreetmap.org/user/test", "https://openstreetmap.org.evil.test/?mlat=33&mlon=44"])
+    assert.equal(parseMapLink(value), null);
 });
 
 test("unresolved, malformed and untrusted links never fabricate a position", () => {
@@ -42,6 +50,8 @@ for (const [name, schema, base] of [["property", propertyPayloadSchema, property
     const valid = schema.parse({ ...base, latitude: "33.3152", longitude: "44.3661" });
     assert.equal(valid.latitude, 33.3152); assert.equal(valid.longitude, 44.3661);
     assert.equal(schema.parse({ ...base, latitude: null, longitude: null }).latitude, null);
+    assert.equal(schema.parse({ ...base, location_link: buildMapLink({ lat: 33, lng: 44 }) }).location_link, buildMapLink({ lat: 33, lng: 44 }));
+    assert.equal(schema.parse({ ...base, location_link: "https://www.google.com/maps?q=33,44" }).location_link, "https://www.google.com/maps?q=33,44");
   });
   test(`${name}: range, pair and unsafe URL validation`, () => {
     for (const change of [
@@ -49,6 +59,7 @@ for (const [name, schema, base] of [["property", propertyPayloadSchema, property
       { latitude: "abc", longitude: 0 }, { latitude: false, longitude: 0 },
       { latitude: 33 }, { latitude: null, longitude: 44 }, { longitude: null },
       { location_link: "javascript:alert(1)" }, { location_link: "https://www.google.com.evil.test/maps?q=1,2" },
+      { location_link: "https://openstreetmap.org.evil.test/" }, { location_link: "https://user:pass@openstreetmap.org/" },
     ]) assert.equal(schema.safeParse({ ...base, ...change }).success, false);
   });
 }
@@ -66,12 +77,15 @@ test("short links: validate each redirect, prevent SSRF and cap redirect loops",
   calls = 0;
   assert.equal(await resolveMapLink("https://evil.test/", redirect("https://www.google.com/maps?q=1,2") as typeof fetch), null);
   assert.equal(calls, 0);
+  assert.deepEqual(await resolveMapLink(buildMapLink({ lat: 33, lng: 44 }), redirect("https://evil.test") as typeof fetch), { lat: 33, lng: 44 });
+  assert.equal(calls, 0);
 });
 
-test("Electron link guards reject executable schemes and spoofed Google hosts", () => {
-  for (const url of ["javascript:alert(1)", "file:///C:/Windows/test.exe", "data:text/html,test", "https://user:pass@www.google.com/maps", "https://www.google.com.evil.test/maps", "https://www.google.com/url?q=evil", "https://127.0.0.1/maps"])
-    assert.equal(safeGoogleMapsUrl(url), null);
+test("Electron link guards reject executable schemes and spoofed mapping hosts", () => {
+  for (const url of ["javascript:alert(1)", "file:///C:/Windows/test.exe", "data:text/html,test", "https://user:pass@www.google.com/maps", "https://www.google.com.evil.test/maps", "https://www.google.com/url?q=evil", "https://127.0.0.1/maps", "https://www.openstreetmap.org.evil.test/", "https://user:pass@openstreetmap.org/", "https://openstreetmap.org:8443/", "http://openstreetmap.org/"])
+    assert.equal(safeMapLinkUrl(url), null);
   assert.equal(safeExternalUrl("file:///test"), null);
   const url = "https://www.google.com/maps?q=33,44";
-  assert.equal(safeGoogleMapsUrl(url), googleMapsUrl(url)?.href);
+  for (const value of [url, buildMapLink({ lat: 33, lng: 44 }), "https://www.openstreetmap.org/search?query=Baghdad"])
+    assert.equal(safeMapLinkUrl(value), mapLinkUrl(value)?.href);
 });

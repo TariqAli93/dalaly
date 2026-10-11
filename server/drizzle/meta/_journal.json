@@ -134,6 +134,20 @@
       "when": 1791676800000,
       "tag": "0018_listing_locations",
       "breakpoints": false
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791763200000,
+      "tag": "0019_contract_legal_visual_separation",
+      "breakpoints": false
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791849600000,
+      "tag": "0020_legal_content_workflow",
+      "breakpoints": false
     }
   ]
 }

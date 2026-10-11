@@ -118,7 +118,7 @@ Initial loading has a retry state; saved contracts navigate to their existing sn
 
 - The current property model has no coordinates, floor count, or property-to-property
   relationship. The map tab shows the actual address, a missing-coordinate state,
-  and an address-search action in Google Maps. It does not invent a marker or location.
+  and an address-search action in OpenStreetMap. It does not invent a marker or location.
 - Related-property tabs show an appropriate empty state when that relation is unavailable.
 - Notes are existing record fields, not an append-only note history. The timeline shows
   current notes and the record's actual update time. Editing uses the existing record

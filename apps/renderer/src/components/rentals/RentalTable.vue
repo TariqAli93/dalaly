@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { RENTAL_PROPERTY_LABELS } from "../../constants/domain";
 import { formatMoney } from "../../utils/format";
 import type { RentalRecord } from "../../types";
 import StatusChip from "../shared/StatusChip.vue";
@@ -29,13 +30,7 @@ const emit = defineEmits<{
 
 const { can } = usePermissions();
 
-const typeLabel: Record<string, string> = {
-  house: "بيت",
-  apartment: "شقة",
-  shop: "محل",
-  warehouse: "مخزن",
-  other: "أخرى",
-};
+const typeLabel = RENTAL_PROPERTY_LABELS;
 const periodLabel: Record<string, string> = {
   monthly: "شهري",
   semi_annual: "نصف سنوي",

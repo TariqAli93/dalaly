@@ -103,6 +103,20 @@ export type ContractTemplateRecord = {
   contract_type: "sale" | "rental";
   name: string;
   body: string;
+  template_code: string;
+  version: number;
+  layout_config: {
+    font: string;
+    font_size: number;
+    line_height: number;
+    margin_mm: number;
+    paragraph_spacing: number;
+    header_style: string;
+    border_style: string;
+    signature_style: string;
+    accent_color: string;
+  };
+  branding_config: { show_logo: boolean; watermark: boolean };
   is_active: boolean;
 };
 export type ContractRecord = {
@@ -121,6 +135,9 @@ export type ContractRecord = {
   payment_info: Record<string, unknown>;
   notes: string | null;
   generated_content: string | null;
+  generated_html: string | null;
+  legal_context: Record<string, string>;
+  optional_clause_codes: string[];
   generated_at: string | null;
   primary_person_name?: string | null;
   primary_party_role?: string | null;
@@ -146,6 +163,23 @@ export type PartySnapshot = {
   captured_at: string;
 };
 export type ContractBundle = {
+  legal_snapshot: {
+    content_hash: string;
+    document_model: { ready?: boolean; legacy?: boolean; warnings?: string[]; review_required?: boolean; review_reasons?: string[] };
+    legal_template_version: Array<{
+      id: number;
+      version: number;
+      property_type: string;
+      approval_status: string;
+    }>;
+    visual_snapshot: Record<string, unknown>;
+    review: {
+      content_hash: string;
+      reviewer: Record<string, unknown>;
+      reviewed_at: string;
+      comment: string;
+    } | null;
+  } | null;
   contract: ContractRecord;
   template: ContractTemplateRecord | null;
   parties: ContractPartyBundle[];
@@ -178,6 +212,9 @@ export type ContractBundle = {
   }>;
 };
 export type ContractValidation = {
+  legal_ready: boolean;
+  legal_warnings: string[];
+  optional_clauses: Array<{ code: string; title: string; asset_id: number }>;
   valid: boolean;
   issues: Array<{ code: string; message: string; path?: string }>;
   parties: Array<{

@@ -26,7 +26,7 @@ function saved(bundle: ContractBundle) {
   notifySuccess(
     editing.value
       ? "تم تحديث مسودة العقد."
-      : "تم إنشاء العقد وحفظ الحزمة التاريخية.",
+      : "تم حفظ مسودة العقد. يمكنك تصديرها أو متابعة اعتمادها من إجراءات العقد.",
   );
   void router.push({ path: "/contracts", query: { view: bundle.contract.id } });
 }
@@ -54,6 +54,7 @@ function saved(bundle: ContractBundle) {
       :key="route.fullPath"
       :model-value="true"
       :contract-id="contractId"
+      :initial-review="editing && route.query.step === 'review'"
       @saved="saved"
       @update:model-value="!$event && cancel()"
     />

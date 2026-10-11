@@ -1,3 +1,4 @@
+import { RENTAL_PROPERTY_LABELS } from "../constants/domain";
 import * as XLSX from "xlsx";
 import { statusLabel } from "../constants/domain";
 import { formatMoney, formatPlot } from "./format";
@@ -59,13 +60,7 @@ export async function exportPropertiesToXlsx(properties: PropertyRecord[]) {
 }
 
 export async function exportRentalsToXlsx(rentals: RentalRecord[]) {
-  const propertyTypeLabels: Record<string, string> = {
-    house: "بيت",
-    apartment: "شقة",
-    shop: "محل",
-    warehouse: "مخزن",
-    other: "أخرى",
-  };
+  const propertyTypeLabels = RENTAL_PROPERTY_LABELS;
   const rentPeriodLabels: Record<string, string> = {
     monthly: "شهري",
     semi_annual: "نصف سنوي",

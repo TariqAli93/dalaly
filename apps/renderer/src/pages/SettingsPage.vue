@@ -146,6 +146,14 @@ onMounted(() => {
 
 <template>
   <AppLayout title="الإعدادات" subtitle="خصّص مساحة العمل وأدر إعدادات المكتب.">
+    <v-btn
+      v-if="can('legal_content.read')"
+      to="/settings/legal-content"
+      prepend-icon="mdi-scale-balance"
+      class="mb-4"
+      variant="tonal"
+      >إدارة الصيغ القانونية</v-btn
+    >
     <v-card variant="flat" border class="settings-navigation"
       ><v-tabs v-model="settingsTab" color="primary"
         ><v-tab value="appearance" prepend-icon="mdi-palette-outline"

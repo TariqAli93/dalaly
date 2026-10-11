@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { RENTAL_PROPERTY_LABELS } from "../../constants/domain";
 import { onMounted, ref } from "vue";
 import type { RentalRecord, RentalImage } from "../../types";
 import * as rentals from "../../services/rentals.service";
@@ -7,13 +8,7 @@ import { formatMoney } from "../../utils/format";
 const props = defineProps<{ rental: RentalRecord; favorite?: boolean }>();
 const emit = defineEmits<{ view: [RentalRecord]; favorite: [RentalRecord] }>();
 const image = ref<RentalImage | null>(null);
-const typeLabel: Record<string, string> = {
-  house: "بيت",
-  apartment: "شقة",
-  shop: "محل",
-  warehouse: "مخزن",
-  other: "أخرى",
-};
+const typeLabel = RENTAL_PROPERTY_LABELS;
 const periodLabel: Record<string, string> = {
   monthly: "شهري",
   semi_annual: "نصف سنوي",

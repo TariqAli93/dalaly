@@ -26,3 +26,7 @@ export class ContractValidationError extends Error {
     this.name = "ContractValidationError";
   }
 }
+
+export class ForbiddenError extends Error {
+  readonly statusCode = 403;
+}

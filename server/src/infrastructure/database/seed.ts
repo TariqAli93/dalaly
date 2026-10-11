@@ -52,7 +52,6 @@ import {
   saveRentalImageToDisk,
 } from "../../modules/images/images.service.js";
 import { saveManagedFile } from "../../modules/documents/documents.storage.js";
-import { generateContract } from "../../modules/contracts/contracts.service.js";
 import { DATABASE_NAME_PATTERN } from "../../modules/setup/setup.schema.js";
 import { DuplicatePlotError } from "../../shared/errors.js";
 import {
@@ -885,7 +884,9 @@ async function seedContracts(customerIndex: CustomerIndex) {
         contractType: seed.contractType,
         rentalId: rental.id,
         templateId,
-        status: seed.status,
+        status: "draft",
+        generatedContent:
+          "مسودة تجريبية غير معتمدة. أنشئ عقداً جديداً بالصيغ القانونية المعتمدة قبل الإصدار.",
         contractDate: new Date(seed.startDate),
         startDate: new Date(seed.startDate),
         endDate: new Date(seed.endDate),
@@ -902,7 +903,6 @@ async function seedContracts(customerIndex: CustomerIndex) {
         role: party.role,
       })),
     );
-    await generateContract(contract.id);
     bump(created, "contracts");
     bump(created, "contract_parties");
   }

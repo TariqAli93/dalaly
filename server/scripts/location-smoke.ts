@@ -24,7 +24,7 @@ try {
     const connection = new URL(process.env.DATABASE_URL); connection.pathname = `/${name}`; process.env.DATABASE_URL = connection.href;
   } else { delete process.env.DATABASE_URL; process.env.DB_NAME = name; }
   process.env.APP_DATA_DIR = path.join(temporary, "data");
-  process.env.CORS_ORIGINS = "http://127.0.0.1:5189,http://127.0.0.1:5173";
+  process.env.CORS_ORIGINS = "http://127.0.0.1:5189,http://127.0.0.1:5173,null";
   process.env.ADMIN_USERNAME = "maps_test_admin"; process.env.ADMIN_PIN = "918273";
   const migrations = path.join(root, "server/drizzle");
   const oldMigrations = path.join(temporary, "drizzle");
@@ -69,6 +69,10 @@ try {
     assert.equal(edited.status, 200); assert.equal(edited.body.latitude, -90); assert.equal(edited.body.longitude, 180);
     const legacy = await api("PUT", `/${entity}/${located.body.id}`, base);
     assert.equal(legacy.body.latitude, -90); // Old clients must not erase the new fields.
+    const osmLink = "https://www.openstreetmap.org/?mlat=-90&mlon=180#map=16/-90/180";
+    const updatedLink = await api("PUT", `/${entity}/${located.body.id}`, { ...base, location_link: osmLink });
+    assert.equal(updatedLink.status, 200); assert.equal(updatedLink.body.location_link, osmLink);
+    assert.equal(updatedLink.body.latitude, -90); assert.equal(updatedLink.body.longitude, 180);
     const reopened = await api("GET", `/${entity}/${located.body.id}`);
     assert.equal(reopened.body.longitude, 180);
     const invalid = await api("PUT", `/${entity}/${located.body.id}`, { ...base, latitude: 91, longitude: 44 });
@@ -81,6 +85,7 @@ try {
     console.log(`PASS ${entity}: create, optional location, numeric output, edit, legacy update, reopen, invalid rejection, clear and database constraints`);
   }
   assert.equal((await api("POST", "/locations/resolve-map-link", { url: "https://www.google.com/maps?q=33.3152,44.3661" })).body.latitude, 33.3152);
+  assert.equal((await api("POST", "/locations/resolve-map-link", { url: "https://www.openstreetmap.org/?mlat=33.3152&mlon=44.3661" })).body.longitude, 44.3661);
   assert.equal((await api("POST", "/locations/resolve-map-link", { url: "https://127.0.0.1/private" })).status, 400);
   assert.equal((await api("POST", "/locations/resolve-map-link", { url: "https://www.google.com/maps/place/Baghdad" })).status, 422);
   assert.equal((await app.inject({ method: "POST", url: "/api/locations/resolve-map-link", payload: { url: "https://www.google.com/maps?q=1,2" } })).statusCode, 401);

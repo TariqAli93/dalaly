@@ -1,10 +1,31 @@
-export const PROPERTY_TYPES = ["أرض", "بيت", "مزرعة", "فيلا"] as const;
+export const PROPERTY_TYPES = [
+  "أرض",
+  "أرض سكنية",
+  "أرض زراعية",
+  "بيت",
+  "مزرعة",
+  "فيلا",
+  "شقة",
+  "بناية",
+  "عقار تجاري",
+  "مكتب",
+  "مخزن",
+  "أخرى",
+] as const;
 
 export const PROPERTY_TYPE_PREFIX: Record<PropertyType, string> = {
   أرض: "L",
+  "أرض سكنية": "L",
+  "أرض زراعية": "L",
   بيت: "H",
   مزرعة: "F",
   فيلا: "V",
+  شقة: "A",
+  بناية: "B",
+  "عقار تجاري": "C",
+  مكتب: "C",
+  مخزن: "W",
+  أخرى: "O",
 };
 
 export const LEGAL_TYPES = [
@@ -103,7 +124,14 @@ export const RENTAL_PROPERTY_TYPES = [
   "house",
   "apartment",
   "shop",
+  "office",
+  "land",
   "warehouse",
+  "residential_land",
+  "agricultural_land",
+  "commercial",
+  "building",
+  "villa",
   "other",
 ] as const;
 export const RENT_PERIODS = ["monthly", "semi_annual", "annual"] as const;

@@ -18,6 +18,7 @@ import { matchingRoutes } from "./modules/matching/matching.routes.js";
 import { documentsRoutes } from "./modules/documents/documents.routes.js";
 import { companySettingsRoutes } from "./modules/company-settings/company-settings.routes.js";
 import { contractsRoutes } from "./modules/contracts/contracts.routes.js";
+import { legalContentRoutes } from "./modules/contracts/legal-content.routes.js";
 import { favoritesRoutes } from "./modules/favorites/favorites.routes.js";
 import { followupsRoutes } from "./modules/followups/followups.routes.js";
 import { imagesRoutes } from "./modules/images/images.routes.js";
@@ -44,9 +45,12 @@ function localizedValidationMessage(issue: ZodError["issues"][number]) {
   return "القيمة المدخلة غير صالحة.";
 }
 
-export async function buildServer() {
+export async function buildServer(options: { logger?: boolean } = {}) {
   // bodyLimit مرفوع لدعم رفع صور العقارات عبر base64.
-  const app = Fastify({ logger: true, bodyLimit: 50 * 1024 * 1024 });
+  const app = Fastify({
+    logger: options.logger ?? true,
+    bodyLimit: 50 * 1024 * 1024,
+  });
 
   await app.register(cors, {
     origin: config.corsOrigins,
@@ -90,6 +94,13 @@ export async function buildServer() {
       });
     }
 
+    if (
+      error instanceof Error &&
+      "statusCode" in error &&
+      error.statusCode === 403
+    ) {
+      return reply.code(403).send({ message: error.message });
+    }
     app.log.error(error);
     return reply.code(500).send({
       code: "INTERNAL_ERROR",
@@ -124,6 +135,7 @@ export async function buildServer() {
   await app.register(documentsRoutes, { prefix: "/api/documents" });
   await app.register(companySettingsRoutes, { prefix: "/api/office" });
   await app.register(contractsRoutes, { prefix: "/api/contracts" });
+  await app.register(legalContentRoutes, { prefix: "/api/legal-content" });
   await app.register(locationsRoutes, { prefix: "/api/locations" });
   await app.register(favoritesRoutes, { prefix: "/api/favorites" });
   await app.register(backupRoutes, { prefix: "/api/backup" });

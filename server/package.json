@@ -24,7 +24,9 @@
     "test:runtime:spaces": "node scripts/runtime-smoke-spaces.mjs",
     "clean": "node scripts/clean-dist.mjs",
     "format": "npx prettier --write .",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:contracts": "tsx --test scripts/contracts-legal.test.ts",
+    "test:contracts:browser": "node scripts/contracts-browser.mjs"
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",

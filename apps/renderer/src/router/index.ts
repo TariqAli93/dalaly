@@ -195,6 +195,16 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/settings/legal-content",
+    name: "legal-content",
+    component: () => import("../pages/LegalContentPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "legal_content.read",
+      titleKey: "routes.settings",
+    },
+  },
+  {
     path: "/contract-templates",
     name: "contract-templates",
     component: () => import("../pages/ContractTemplatesPage.vue"),

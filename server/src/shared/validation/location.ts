@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { coordinateNumber, googleMapsUrl } from "../utils/google-maps-url.js";
+import { coordinateNumber, mapLinkUrl } from "../utils/map-location.js";
 
 function coordinate(limit: number) {
   return z.preprocess(
@@ -19,8 +19,8 @@ export const locationFields = {
     .optional()
     .transform((value) => (value === "" ? null : value))
     .refine(
-      (value) => !value || googleMapsUrl(value) !== null,
-      "أدخل رابط خرائط Google صالحاً وآمناً.",
+      (value) => !value || mapLinkUrl(value) !== null,
+      "أدخل رابط موقع صالحاً وآمناً من OpenStreetMap أو رابط Google سابقاً.",
     ),
 };
 

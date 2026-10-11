@@ -1,7 +1,15 @@
 import AdmZip from "adm-zip";
+import { randomUUID } from "node:crypto";
+import { sql } from "drizzle-orm";
+import { buildContractDocument } from "./contracts-document.service.js";
+import { documentHash, type ContractDocument } from "./legal-content.engine.js";
+import { legalError, requireLegalReviewer } from "./legal-content.service.js";
 import { and, asc, desc, eq, inArray, or } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import {
+  auditLogs,
+  contractLegalSnapshots,
+  legalContractTemplates,
   contractAssetSnapshots,
   contractAttachments,
   contractOfficeSnapshots,
@@ -23,6 +31,8 @@ import type {
   ContractPayload,
   ContractTemplatePayload,
 } from "./contracts.schema.js";
+
+type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 const ROLE_LABELS: Record<string, string> = {
   seller: "البائع",
@@ -53,7 +63,8 @@ function assetSourceType(payload: ContractPayload) {
   return payload.contract_type === "rental" ? "rental" : "property";
 }
 
-async function generateCode(executor: any = db) {
+async function generateCode(executor: Executor = db) {
+  await executor.execute(sql`select pg_advisory_xact_lock(192819)`);
   const [last] = await executor
     .select({ code: contracts.code })
     .from(contracts)
@@ -63,7 +74,9 @@ async function generateCode(executor: any = db) {
   return `CTR-${String(next).padStart(4, "0")}`;
 }
 
-export async function listTemplates(contractType?: "sale" | "rental" | "purchase") {
+export async function listTemplates(
+  contractType?: "sale" | "rental" | "purchase",
+) {
   const rows = await db
     .select()
     .from(contractTemplates)
@@ -85,7 +98,10 @@ export async function createTemplate(payload: ContractTemplatePayload) {
     .values({
       contractType: payload.contract_type,
       name: payload.name,
-      body: payload.body,
+      body: "{{document}}",
+      templateCode: `custom_${randomUUID()}`,
+      layoutConfig: payload.layout_config,
+      brandingConfig: payload.branding_config,
       isActive: payload.is_active,
     })
     .returning();
@@ -96,18 +112,27 @@ export async function updateTemplate(
   id: number,
   payload: ContractTemplatePayload,
 ) {
+  const [existing] = await db
+    .select()
+    .from(contractTemplates)
+    .where(eq(contractTemplates.id, id));
+  if (!existing) return null;
+  if (existing.contractType !== payload.contract_type)
+    throw legalError("لا يمكن تغيير نوع القالب المرئي.");
   const [row] = await db
     .update(contractTemplates)
     .set({
-      contractType: payload.contract_type,
       name: payload.name,
-      body: payload.body,
+      body: "{{document}}",
+      layoutConfig: payload.layout_config,
+      brandingConfig: payload.branding_config,
       isActive: payload.is_active,
+      version: sql`${contractTemplates.version} + 1`,
       updatedAt: new Date(),
     })
     .where(eq(contractTemplates.id, id))
     .returning();
-  return row ? api(row) : null;
+  return api(row);
 }
 
 async function bundle(id: number) {
@@ -149,7 +174,12 @@ async function bundle(id: number) {
     .where(eq(contractAttachments.contractId, id))
     .orderBy(contractAttachments.id);
 
+  const [legal] = await db
+    .select()
+    .from(contractLegalSnapshots)
+    .where(eq(contractLegalSnapshots.contractId, id));
   return {
+    legal_snapshot: legal ? api(legal) : null,
     contract: api(row.contract),
     template: row.template ? api(row.template) : null,
     parties: partyRows.map((item) => ({
@@ -248,9 +278,10 @@ export async function getContract(id: number) {
 async function requiredTypes(
   contractType: "sale" | "rental" | "purchase",
   role: string,
+  executor: Executor = db,
 ) {
   const scope = contractType === "rental" ? "rent" : "sale";
-  const types = await db
+  const types = await executor
     .select()
     .from(documentTypes)
     .where(
@@ -283,17 +314,20 @@ type ValidationParty = {
   inputIds: number[];
 };
 
-async function loadValidationData(payload: ContractPayload) {
+export async function loadValidationData(
+  payload: ContractPayload,
+  executor: Executor = db,
+) {
   const issues: Array<{ code: string; message: string; path?: string }> = [];
   const sourceType = assetSourceType(payload);
   const assetIds = selectedAssetIds(payload);
   const assetRows =
     sourceType === "property"
-      ? await db
+      ? await executor
           .select()
           .from(properties)
           .where(inArray(properties.id, assetIds))
-      : await db
+      : await executor
           .select()
           .from(rentals)
           .where(inArray(rentals.id, assetIds));
@@ -335,14 +369,14 @@ async function loadValidationData(payload: ContractPayload) {
 
   const template = payload.template_id
     ? (
-        await db
+        await executor
           .select()
           .from(contractTemplates)
           .where(eq(contractTemplates.id, payload.template_id))
           .limit(1)
       )[0]
     : (
-        await db
+        await executor
           .select()
           .from(contractTemplates)
           .where(
@@ -359,6 +393,16 @@ async function loadValidationData(payload: ContractPayload) {
           .orderBy(asc(contractTemplates.id))
           .limit(1)
       )[0];
+  if (
+    template &&
+    template.contractType !==
+      (payload.contract_type === "purchase" ? "sale" : payload.contract_type)
+  )
+    issues.push({
+      code: "template_type",
+      message: "القالب المرئي لا يطابق نوع العقد.",
+      path: "template_id",
+    });
   if (template && !template.isActive)
     issues.push({
       code: "template_inactive",
@@ -372,7 +416,7 @@ async function loadValidationData(payload: ContractPayload) {
       path: "template_id",
     });
 
-  const [office] = await db
+  const [office] = await executor
     .select()
     .from(officeProfiles)
     .where(eq(officeProfiles.id, 1))
@@ -386,7 +430,7 @@ async function loadValidationData(payload: ContractPayload) {
 
   const partyData: ValidationParty[] = [];
   for (const input of payload.parties) {
-    const [person] = await db
+    const [person] = await executor
       .select()
       .from(people)
       .where(eq(people.id, input.person_id))
@@ -405,7 +449,7 @@ async function loadValidationData(payload: ContractPayload) {
         message: `رقم هاتف ${person.fullName} غير موجود.`,
         path: `parties.${input.role}.phone_primary`,
       });
-    const docs = await db
+    const docs = await executor
       .select()
       .from(identityDocuments)
       .where(
@@ -424,7 +468,11 @@ async function loadValidationData(payload: ContractPayload) {
     const selectedTypeIds = new Set(
       selected.map((doc) => doc.documentTypeId).filter(Boolean),
     );
-    const required = await requiredTypes(payload.contract_type, input.role);
+    const required = await requiredTypes(
+      payload.contract_type,
+      input.role,
+      executor,
+    );
     for (const type of required) {
       if (!selectedTypeIds.has(type.id))
         issues.push({
@@ -451,14 +499,38 @@ async function loadValidationData(payload: ContractPayload) {
       inputIds: input.identity_document_ids,
     });
   }
-  return { asset, assets: assetRows, sourceType, totalAmount, template, office, partyData, issues };
+  return {
+    asset,
+    assets: assetRows,
+    sourceType,
+    totalAmount,
+    template,
+    office,
+    partyData,
+    issues,
+  };
 }
 
 export async function validateContract(payload: ContractPayload) {
   const loaded = await loadValidationData(payload);
+  const document = loaded.issues.length
+    ? null
+    : await buildContractDocument(
+        payload,
+        loaded,
+        buildRenderValues(payload, loaded),
+      );
+  if (payload.status !== "draft")
+    loaded.issues.push({
+      code: "review_required",
+      message: "احفظ مسودة ثم اطلب مراجعتها قانونياً قبل الإصدار.",
+    });
   return {
     valid: loaded.issues.length === 0,
     issues: loaded.issues,
+    legal_ready: document?.model.ready ?? false,
+    legal_warnings: document?.model.warnings ?? [],
+    optional_clauses: document?.optionalClauses ?? [],
     parties: loaded.partyData.map((item) => ({
       role: item.role,
       person: api(item.person),
@@ -469,7 +541,11 @@ export async function validateContract(payload: ContractPayload) {
 }
 
 function formatDate(value: unknown) {
-  return value ? new Date(String(value)).toLocaleDateString("ar-IQ") : "";
+  return value
+    ? new Date(String(value)).toLocaleDateString("ar-IQ", {
+        timeZone: "Asia/Baghdad",
+      })
+    : "";
 }
 
 function assetPlace(data: Record<string, unknown>) {
@@ -477,30 +553,33 @@ function assetPlace(data: Record<string, unknown>) {
     data.governorate,
     data.district,
     data.neighborhood,
-    data.address_details,
+    data.addressDetails ?? data.address_details,
   ]
     .filter(Boolean)
     .join("، ");
 }
 
-function renderTemplate(body: string, values: Record<string, string>) {
-  return body.replace(
-    /{{\s*([a-z0-9_.]+)\s*}}/gi,
-    (_match, key: string) => values[key] ?? "",
-  );
-}
-
-function buildRenderValues(
+export function buildRenderValues(
   payload: ContractPayload,
   loaded: Awaited<ReturnType<typeof loadValidationData>>,
 ) {
   const values: Record<string, string> = {
     "contract.type": payload.contract_type,
+    "contract.transaction_kind":
+      payload.legal_context.transaction_kind ??
+      (payload.contract_type === "rental" ? "lease" : "preliminary_sale"),
+    "contract.jurisdiction": payload.legal_context.jurisdiction,
+    "contract.registration_reference":
+      payload.legal_context.registration_reference,
+    "contract.intended_use": payload.legal_context.intended_use,
     "contract.date": formatDate(payload.contract_date ?? new Date()),
     "contract.amount": payload.amount == null ? "" : String(payload.amount),
     "contract.paid_amount": String(payload.paid_amount ?? 0),
     "contract.remaining_amount": String(
-      Math.max(0, Number(payload.amount ?? 0) - Number(payload.paid_amount ?? 0)),
+      Math.max(
+        0,
+        Number(payload.amount ?? 0) - Number(payload.paid_amount ?? 0),
+      ),
     ),
     "contract.start_date": formatDate(payload.start_date),
     "contract.end_date": formatDate(payload.end_date),
@@ -654,11 +733,15 @@ async function createSnapshots(
 export async function previewContract(payload: ContractPayload) {
   const loaded = await loadValidationData(payload);
   if (loaded.issues.length) throw new ContractValidationError(loaded.issues);
+  const result = await buildContractDocument(
+    payload,
+    loaded,
+    buildRenderValues(payload, loaded),
+  );
   return {
-    content: renderTemplate(
-      loaded.template!.body,
-      buildRenderValues(payload, loaded),
-    ),
+    content: result.content,
+    html: result.html,
+    document_model: result.model,
     template: api(loaded.template!),
     office: loaded.office ? api(loaded.office) : null,
     asset: loaded.asset ? api(loaded.asset) : null,
@@ -666,163 +749,308 @@ export async function previewContract(payload: ContractPayload) {
   };
 }
 
+async function saveDocumentSnapshot(
+  tx: any,
+  id: number,
+  result: Awaited<ReturnType<typeof buildContractDocument>>,
+  previousReview: unknown = null,
+) {
+  const hash = documentHash(result.model);
+  const review =
+    previousReview &&
+    (previousReview as { content_hash: string }).content_hash === hash
+      ? previousReview
+      : null;
+  await tx
+    .insert(contractLegalSnapshots)
+    .values({
+      contractId: id,
+      legalTemplateVersion: result.model.legal_versions,
+      approvedClauseSnapshot: result.model.sections.filter(
+        (s) => s.approval_status === "approved",
+      ),
+      documentModel: result.model,
+      visualSnapshot: result.visual,
+      contentHash: hash,
+      review,
+    })
+    .onConflictDoUpdate({
+      target: contractLegalSnapshots.contractId,
+      set: {
+        legalTemplateVersion: result.model.legal_versions,
+        approvedClauseSnapshot: result.model.sections.filter(
+          (s) => s.approval_status === "approved",
+        ),
+        documentModel: result.model,
+        visualSnapshot: result.visual,
+        contentHash: hash,
+        review,
+        createdAt: new Date(),
+      },
+    });
+}
+function contractValues(
+  payload: ContractPayload,
+  templateId: number,
+  content: string,
+  html: string,
+) {
+  return {
+    contractType: payload.contract_type,
+    propertyId:
+      assetSourceType(payload) === "property"
+        ? selectedAssetIds(payload)[0]
+        : null,
+    rentalId:
+      assetSourceType(payload) === "rental"
+        ? selectedAssetIds(payload)[0]
+        : null,
+    templateId,
+    status: "draft",
+    contractDate: payload.contract_date ?? new Date(),
+    startDate: payload.start_date ?? null,
+    endDate: payload.end_date ?? null,
+    amount: String(payload.amount),
+    paidAmount: String(payload.paid_amount),
+    paymentInfo: payload.payment_info,
+    notes: payload.notes,
+    legalContext: payload.legal_context,
+    optionalClauseCodes: payload.optional_clause_codes,
+    generatedContent: content,
+    generatedHtml: html,
+    generatedAt: new Date(),
+    updatedAt: new Date(),
+  };
+}
+function requireDraft(payload: ContractPayload) {
+  if (payload.status !== "draft")
+    throw legalError("احفظ مسودة ثم اطلب مراجعة محامٍ مؤهل قبل الإصدار.");
+}
 export async function createContract(payload: ContractPayload) {
-  const loaded = await loadValidationData(payload);
-  if (loaded.issues.length) throw new ContractValidationError(loaded.issues);
-  const content = renderTemplate(
-    loaded.template!.body,
-    buildRenderValues(payload, loaded),
+  requireDraft(payload);
+  const id = await db.transaction(
+    async (tx) => {
+      const loaded = await loadValidationData(payload, tx);
+      if (loaded.issues.length)
+        throw new ContractValidationError(loaded.issues);
+      const code = await generateCode(tx);
+      const result = await buildContractDocument(
+        payload,
+        loaded,
+        buildRenderValues(payload, loaded),
+        code,
+        tx,
+      );
+      const [row] = await tx
+        .insert(contracts)
+        .values({
+          code,
+          ...contractValues(
+            payload,
+            loaded.template!.id,
+            result.content,
+            result.html,
+          ),
+        })
+        .returning({ id: contracts.id });
+      await createSnapshots(tx, row.id, payload, loaded);
+      await saveDocumentSnapshot(tx, row.id, result);
+      return row.id;
+    },
+    { isolationLevel: "repeatable read" },
   );
-  const id = await db.transaction(async (tx) => {
+  return bundle(id);
+}
+export async function updateContract(id: number, payload: ContractPayload) {
+  requireDraft(payload);
+  const found = await db.transaction(
+    async (tx) => {
+      const [existing] = await tx
+        .select()
+        .from(contracts)
+        .where(eq(contracts.id, id))
+        .for("update");
+      if (!existing) return false;
+      if (existing.status !== "draft")
+        throw legalError("لا يمكن تعديل عقد صادر.");
+      const loaded = await loadValidationData(payload, tx);
+      if (loaded.issues.length)
+        throw new ContractValidationError(loaded.issues);
+      const result = await buildContractDocument(
+        payload,
+        loaded,
+        buildRenderValues(payload, loaded),
+        existing.code,
+        tx,
+      );
+      const [previous] = await tx
+        .select()
+        .from(contractLegalSnapshots)
+        .where(eq(contractLegalSnapshots.contractId, id));
+      await tx
+        .update(contracts)
+        .set(
+          contractValues(
+            payload,
+            loaded.template!.id,
+            result.content,
+            result.html,
+          ),
+        )
+        .where(eq(contracts.id, id));
+      await tx
+        .delete(contractAttachments)
+        .where(eq(contractAttachments.contractId, id));
+      await tx
+        .delete(partySnapshots)
+        .where(
+          inArray(
+            partySnapshots.contractPartyId,
+            tx
+              .select({ id: contractParties.id })
+              .from(contractParties)
+              .where(eq(contractParties.contractId, id)),
+          ),
+        );
+      await tx
+        .delete(contractParties)
+        .where(eq(contractParties.contractId, id));
+      await tx
+        .delete(contractOfficeSnapshots)
+        .where(eq(contractOfficeSnapshots.contractId, id));
+      await tx
+        .delete(contractAssetSnapshots)
+        .where(eq(contractAssetSnapshots.contractId, id));
+      await createSnapshots(tx, id, payload, loaded);
+      await saveDocumentSnapshot(tx, id, result, previous?.review);
+      return true;
+    },
+    { isolationLevel: "repeatable read" },
+  );
+  return found ? bundle(id) : null;
+}
+export async function reviewContract(
+  id: number,
+  actorId: number,
+  comment: string,
+  expectedHash: string,
+) {
+  await db.transaction(async (tx) => {
     const [row] = await tx
-      .insert(contracts)
-      .values({
-        code: await generateCode(tx),
-        contractType: payload.contract_type,
-        propertyId: selectedAssetIds(payload)[0] && assetSourceType(payload) === "property"
-          ? selectedAssetIds(payload)[0]
-          : null,
-        rentalId: selectedAssetIds(payload)[0] && assetSourceType(payload) === "rental"
-          ? selectedAssetIds(payload)[0]
-          : null,
-        templateId: loaded.template!.id,
-        status: payload.status,
-        contractDate: payload.contract_date ?? new Date(),
-        startDate: payload.start_date ?? null,
-        endDate: payload.end_date ?? null,
-        amount: payload.amount == null ? null : String(payload.amount),
-        paidAmount: String(payload.paid_amount ?? 0),
-        paymentInfo: payload.payment_info,
-        notes: payload.notes,
-        generatedContent: content,
-        generatedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .returning({ id: contracts.id });
-    await createSnapshots(tx, row.id, payload, loaded);
-    return row.id;
+      .select()
+      .from(contracts)
+      .where(eq(contracts.id, id))
+      .for("update");
+    if (!row || row.status !== "draft")
+      throw legalError("يمكن مراجعة مسودة محفوظة فقط.");
+    const [snapshot] = await tx
+      .select()
+      .from(contractLegalSnapshots)
+      .where(eq(contractLegalSnapshots.contractId, id));
+    const document = snapshot?.documentModel as ContractDocument | undefined;
+    if (!document?.ready || snapshot!.contentHash !== expectedHash)
+      throw legalError(
+        "تغيرت المسودة أو لا توجد بنود قانونية معتمدة منطبقة؛ أعد المعاينة والمراجعة.",
+      );
+    const reviewer = await requireLegalReviewer(actorId, tx);
+    const review = {
+      content_hash: snapshot!.contentHash,
+      reviewer,
+      reviewed_at: new Date().toISOString(),
+      comment,
+    };
+    await tx
+      .update(contractLegalSnapshots)
+      .set({ review })
+      .where(eq(contractLegalSnapshots.contractId, id));
+    await tx.insert(auditLogs).values({
+      entityType: "contract_legal_review",
+      entityId: id,
+      action: "approve_contract",
+      oldValue: snapshot!.review,
+      newValue: review,
+      userId: actorId,
+    });
   });
   return bundle(id);
 }
-
-export async function updateContract(id: number, payload: ContractPayload) {
-  const [existing] = await db
-    .select()
-    .from(contracts)
-    .where(eq(contracts.id, id))
-    .limit(1);
-  if (!existing) return null;
-  if (existing.status !== "draft")
-    throw new ContractValidationError([
-      { code: "immutable", message: "لا يمكن تعديل عقد صادر." },
-    ]);
-  const loaded = await loadValidationData(payload);
-  if (loaded.issues.length) throw new ContractValidationError(loaded.issues);
-  const content = renderTemplate(
-    loaded.template!.body,
-    buildRenderValues(payload, loaded),
-  );
+export async function issueContract(id: number, actorId?: number) {
   await db.transaction(async (tx) => {
+    const [row] = await tx
+      .select()
+      .from(contracts)
+      .where(eq(contracts.id, id))
+      .for("update");
+    if (!row) throw legalError("العقد غير موجود.");
+    if (row.status !== "draft") throw legalError("العقد صادر بالفعل.");
+    const [s] = await tx
+      .select()
+      .from(contractLegalSnapshots)
+      .where(eq(contractLegalSnapshots.contractId, id));
+    const model = s?.documentModel as ContractDocument | undefined;
+    const review = s?.review as {
+      content_hash?: string;
+      reviewer?: { user_id: number };
+    } | null;
+    if (!model?.ready || !row.generatedHtml)
+      throw legalError("يجب استخدام صيغ معتمدة وفعالة قبل الإصدار.");
+    const needsReview = Boolean(model!.data.additional_conditions.trim());
+    if (needsReview) {
+      if (review?.content_hash !== s?.contentHash || !review.reviewer?.user_id)
+        throw legalError("الشروط الاستثنائية تحتاج مراجعة مختصة قبل الإصدار.");
+      await requireLegalReviewer(review.reviewer.user_id, tx);
+    }
+    for (const version of model!.legal_versions) {
+      const [active] = await tx
+        .select()
+        .from(legalContractTemplates)
+        .where(eq(legalContractTemplates.id, version.id))
+        .for("share");
+      if (
+        !active ||
+        active.approvalStatus !== "approved" ||
+        active.publicationStatus !== "active"
+      )
+        throw legalError(
+          "تغير الإصدار الفعال؛ أعد تجهيز المسودة بالصيغ الحالية قبل الإصدار.",
+        );
+    }
     await tx
       .update(contracts)
       .set({
-        contractType: payload.contract_type,
-        propertyId: selectedAssetIds(payload)[0] && assetSourceType(payload) === "property"
-          ? selectedAssetIds(payload)[0]
-          : null,
-        rentalId: selectedAssetIds(payload)[0] && assetSourceType(payload) === "rental"
-          ? selectedAssetIds(payload)[0]
-          : null,
-        templateId: loaded.template!.id,
-        status: payload.status,
-        contractDate: payload.contract_date ?? new Date(),
-        startDate: payload.start_date ?? null,
-        endDate: payload.end_date ?? null,
-        amount: payload.amount == null ? null : String(payload.amount),
-        paidAmount: String(payload.paid_amount ?? 0),
-        paymentInfo: payload.payment_info,
-        notes: payload.notes,
-        generatedContent: content,
-        generatedAt: new Date(),
+        status: "active",
         updatedAt: new Date(),
+        generatedHtml: row.generatedHtml.replace(
+          /<aside data-draft="true">[\s\S]*?<\/aside>/,
+          "",
+        ),
+        generatedContent: row.generatedContent?.replace(
+          /^مسودة — (?:تخضع لمراجعة العقد|لم يتم إصدار العقد)\n\n/,
+          "",
+        ),
       })
       .where(eq(contracts.id, id));
-    await tx
-      .delete(contractAttachments)
-      .where(eq(contractAttachments.contractId, id));
-    await tx
-      .delete(partySnapshots)
-      .where(
-        inArray(
-          partySnapshots.contractPartyId,
-          tx
-            .select({ id: contractParties.id })
-            .from(contractParties)
-            .where(eq(contractParties.contractId, id)),
-        ),
-      );
-    await tx.delete(contractParties).where(eq(contractParties.contractId, id));
-    await tx
-      .delete(contractOfficeSnapshots)
-      .where(eq(contractOfficeSnapshots.contractId, id));
-    await tx
-      .delete(contractAssetSnapshots)
-      .where(eq(contractAssetSnapshots.contractId, id));
-    await createSnapshots(tx, id, payload, loaded);
+    await tx.insert(auditLogs).values({
+      entityType: "contract",
+      entityId: id,
+      action: "issue",
+      newValue: {
+        content_hash: s!.contentHash,
+        legal_versions: s!.legalTemplateVersion,
+        visual: s!.visualSnapshot,
+      },
+      userId: actorId ?? null,
+    });
   });
   return bundle(id);
 }
-
 export async function generateContract(id: number) {
   const existing = await bundle(id);
   if (!existing) return null;
-  if (!existing.contract.generated_content) {
-    const stored = existing.contract as Record<string, unknown>;
-    const payload: ContractPayload = {
-      contract_type: String(stored.contract_type) as ContractPayload["contract_type"],
-      property_id:
-        stored.property_id == null ? null : Number(stored.property_id),
-      rental_id: stored.rental_id == null ? null : Number(stored.rental_id),
-      property_ids: existing.assets
-        .filter((asset) => asset.source_type === "property")
-        .map((asset) => Number(asset.source_id)),
-      rental_ids: existing.assets
-        .filter((asset) => asset.source_type === "rental")
-        .map((asset) => Number(asset.source_id)),
-      template_id:
-        stored.template_id == null ? null : Number(stored.template_id),
-      status: String(stored.status) as ContractPayload["status"],
-      contract_date: new Date(String(stored.contract_date)),
-      start_date: stored.start_date
-        ? new Date(String(stored.start_date))
-        : null,
-      end_date: stored.end_date ? new Date(String(stored.end_date)) : null,
-      amount: stored.amount == null ? null : Number(stored.amount),
-      paid_amount:
-        stored.paid_amount == null ? 0 : Number(stored.paid_amount),
-      payment_info: (stored.payment_info ?? {}) as Record<string, unknown>,
-      notes: stored.notes == null ? null : String(stored.notes),
-      parties: existing.parties.map((party) => {
-        const row = party as Record<string, unknown>;
-        const person = row.person as Record<string, unknown>;
-        return {
-          person_id: Number(person.id),
-          role: String(row.role) as ContractPayload["parties"][number]["role"],
-          identity_document_ids: [],
-        };
-      }),
-    };
-    const preview = await previewContract(payload);
-    await db
-      .update(contracts)
-      .set({
-        generatedContent: preview.content,
-        generatedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(contracts.id, id));
-    return bundle(id);
-  }
+  if (!existing.contract.generated_content)
+    throw legalError(
+      "لا توجد وثيقة تاريخية محفوظة لهذا العقد. يلزم إنشاء مسودة جديدة بدلاً من إعادة بناء عقد سابق من بيانات حالية.",
+    );
   return existing;
 }
 

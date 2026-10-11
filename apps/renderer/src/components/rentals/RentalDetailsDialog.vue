@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { RENTAL_PROPERTY_LABELS } from "../../constants/domain";
 import { ref, watch } from "vue";
 import { statusColor, statusLabel } from "../../constants/domain";
 import { usePermissions } from "../../composables/usePermissions";
@@ -24,17 +25,13 @@ const emit = defineEmits<{
 const { can } = usePermissions();
 const tab = ref("details");
 const mapVisited = ref(false);
-watch(tab, (value) => { if (value === "map") mapVisited.value = true; });
+watch(tab, (value) => {
+  if (value === "map") mapVisited.value = true;
+});
 const auditLogs = ref<AuditLogRecord[]>([]);
 const auditLoading = ref(false);
 
-const typeLabel: Record<string, string> = {
-  house: "بيت",
-  apartment: "شقة",
-  shop: "محل",
-  warehouse: "مخزن",
-  other: "أخرى",
-};
+const typeLabel = RENTAL_PROPERTY_LABELS;
 const periodLabel: Record<string, string> = {
   monthly: "شهري",
   semi_annual: "نصف سنوي",
@@ -233,9 +230,18 @@ watch(
 
             <v-window-item value="images" />
             <v-window-item value="map">
-              <PropertyLocationView v-if="open && mapVisited" :active="tab === 'map'" :key="rental.id"
-                :latitude="rental.latitude" :longitude="rental.longitude" :location-link="rental.location_link"
-                :can-edit="can('rentals.update')" @edit="emit('edit', rental)" />
+              <PropertyLocationView
+                v-if="open && mapVisited"
+                :active="tab === 'map'"
+                :key="rental.id"
+                :property-name="rental.name || `عقار للإيجار ${rental.code}`"
+                :address="[rental.governorate, rental.district, rental.neighborhood, rental.address_details].filter(Boolean).join(' · ')"
+                :latitude="rental.latitude"
+                :longitude="rental.longitude"
+                :location-link="rental.location_link"
+                :can-edit="can('rentals.update')"
+                @edit="emit('edit', rental)"
+              />
             </v-window-item>
 
             <v-window-item

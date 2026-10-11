@@ -1,4 +1,5 @@
 ﻿<script setup lang="ts">
+import { RENTAL_PROPERTY_TYPES } from "../../constants/domain";
 import { computed, ref } from "vue";
 import { AREA_UNITS } from "../../constants/domain";
 import type { PersonRecord, RentalForm as RentalFormType } from "../../types";
@@ -21,13 +22,7 @@ const formRef = ref<{ validate: () => Promise<{ valid: boolean }> } | null>(
 const required = (value: unknown) => Boolean(value) || "هذا الحقل مطلوب";
 const positive = (value: unknown) =>
   Number(value) > 0 || "يجب أن تكون القيمة أكبر من صفر";
-const propertyTypes = [
-  { title: "بيت", value: "house" },
-  { title: "شقة", value: "apartment" },
-  { title: "محل", value: "shop" },
-  { title: "مخزن", value: "warehouse" },
-  { title: "أخرى", value: "other" },
-];
+const propertyTypes = RENTAL_PROPERTY_TYPES;
 const periods = [
   { title: "شهري", value: "monthly" },
   { title: "نصف سنوي", value: "semi_annual" },
@@ -106,7 +101,11 @@ defineExpose({ validate });
           class="mt-2"
           label="تفاصيل العنوان"
         />
-        <PropertyLocationEditor v-model:latitude="model.latitude" v-model:longitude="model.longitude" v-model:location-link="model.location_link" />
+        <PropertyLocationEditor
+          v-model:latitude="model.latitude"
+          v-model:longitude="model.longitude"
+          v-model:location-link="model.location_link"
+        />
         <v-divider class="my-4" />
         <div class="rental-form-grid">
           <NumberField

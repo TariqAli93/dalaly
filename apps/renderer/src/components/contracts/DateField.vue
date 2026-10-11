@@ -39,7 +39,11 @@ function update(value: unknown) {
 </script>
 
 <template>
-  <v-menu v-model="menu" :close-on-content-click="false" location="bottom start">
+  <v-menu
+    v-model="menu"
+    :close-on-content-click="false"
+    location="bottom start"
+  >
     <template #activator="{ props: menuProps }">
       <v-text-field
         v-bind="menuProps"
@@ -51,11 +55,15 @@ function update(value: unknown) {
         @click:clear="emit('update:modelValue', '')"
       />
     </template>
-    <v-date-picker
-      :model-value="props.modelValue || null"
-      hide-header
-      show-adjacent-months
-      @update:model-value="update"
-    />
+    <v-card class="w-100">
+      <v-date-picker
+        class="w-100"
+        :model-value="props.modelValue || null"
+        hide-header
+        show-adjacent-months
+        divided
+        @update:model-value="update"
+      />
+    </v-card>
   </v-menu>
 </template>

@@ -129,6 +129,12 @@ onBeforeUnmount(() => unsubscribe?.());
   background: transparent;
   color: #193638;
   font-family: Cairo, "Segoe UI", Tahoma, sans-serif;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-app-region: drag;
+  app-region: drag;
 }
 .splash-app :deep(.v-application__wrap) {
   min-height: 0;
@@ -139,7 +145,7 @@ onBeforeUnmount(() => unsubscribe?.());
   flex-direction: column;
   height: 100dvh;
   overflow: hidden;
-  padding: 6px;
+  padding: 0px;
   background: #f9fafb;
   border: 1px solid #e4e8ea;
 }
@@ -179,8 +185,10 @@ onBeforeUnmount(() => unsubscribe?.());
 }
 .feature-grid,
 .benefit-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding-inline: 20px;
 }
 .feature-grid {
   position: relative;
@@ -193,6 +201,7 @@ onBeforeUnmount(() => unsubscribe?.());
   align-items: center;
   text-align: center;
   gap: 5px;
+  padding: 6px 10px;
 }
 .feature-icon {
   display: grid;
@@ -224,15 +233,22 @@ onBeforeUnmount(() => unsubscribe?.());
   border-radius: 2px;
 }
 .information-panel {
-  flex: 0 0 68px;
   margin-top: 5px;
   color: #fff;
   border-radius: 11px !important;
-  display: grid;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  flex: 0 0 auto;
 }
 .benefit-grid {
-  padding: 5px 2px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding-inline: 20px;
+  padding-block: 6px;
+  width: 100%;
 }
 .benefit {
   gap: 7px;

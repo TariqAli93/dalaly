@@ -202,7 +202,11 @@ export const properties = pgTable(
     neighborhoodText: text("neighborhood_text"),
     addressDetails: text("address_details"),
     latitude: numeric("latitude", { precision: 10, scale: 8, mode: "number" }),
-    longitude: numeric("longitude", { precision: 11, scale: 8, mode: "number" }),
+    longitude: numeric("longitude", {
+      precision: 11,
+      scale: 8,
+      mode: "number",
+    }),
     locationLink: text("location_link"),
     ownerName: text("owner_name").notNull(),
     ownerPhone: text("owner_phone").notNull(),
@@ -239,7 +243,10 @@ export const properties = pgTable(
   },
   (table) => [
     index("idx_properties_status").on(table.status),
-    check("properties_location_range", sql`(${table.latitude} IS NULL AND ${table.longitude} IS NULL) OR (${table.latitude} IS NOT NULL AND ${table.longitude} IS NOT NULL AND ${table.latitude} BETWEEN -90 AND 90 AND ${table.longitude} BETWEEN -180 AND 180)`),
+    check(
+      "properties_location_range",
+      sql`(${table.latitude} IS NULL AND ${table.longitude} IS NULL) OR (${table.latitude} IS NOT NULL AND ${table.longitude} IS NOT NULL AND ${table.latitude} BETWEEN -90 AND 90 AND ${table.longitude} BETWEEN -180 AND 180)`,
+    ),
     index("idx_properties_type").on(table.propertyType),
     index("idx_properties_legal_type").on(table.legalType),
     index("idx_properties_area_unit").on(table.areaUnit),
@@ -302,7 +309,11 @@ export const rentals = pgTable(
     neighborhood: text("neighborhood"),
     addressDetails: text("address_details"),
     latitude: numeric("latitude", { precision: 10, scale: 8, mode: "number" }),
-    longitude: numeric("longitude", { precision: 11, scale: 8, mode: "number" }),
+    longitude: numeric("longitude", {
+      precision: 11,
+      scale: 8,
+      mode: "number",
+    }),
     locationLink: text("location_link"),
     ownerName: text("owner_name").notNull(),
     ownerPhone: text("owner_phone").notNull(),
@@ -324,7 +335,10 @@ export const rentals = pgTable(
   },
   (table) => [
     index("idx_rentals_status").on(table.status),
-    check("rentals_location_range", sql`(${table.latitude} IS NULL AND ${table.longitude} IS NULL) OR (${table.latitude} IS NOT NULL AND ${table.longitude} IS NOT NULL AND ${table.latitude} BETWEEN -90 AND 90 AND ${table.longitude} BETWEEN -180 AND 180)`),
+    check(
+      "rentals_location_range",
+      sql`(${table.latitude} IS NULL AND ${table.longitude} IS NULL) OR (${table.latitude} IS NOT NULL AND ${table.longitude} IS NOT NULL AND ${table.latitude} BETWEEN -90 AND 90 AND ${table.longitude} BETWEEN -180 AND 180)`,
+    ),
     index("idx_rentals_property_type").on(table.propertyType),
     index("idx_rentals_rent_period").on(table.rentPeriod),
     index("idx_rentals_rent_price").on(table.rentPrice),
@@ -643,6 +657,11 @@ export const contractTemplates = pgTable("contract_templates", {
   contractType: text("contract_type").notNull(),
   name: text("name").notNull(),
   body: text("body").notNull(),
+  templateCode: text("template_code").unique(),
+  version: integer("version").notNull().default(1),
+  layoutConfig: jsonb("layout_config").notNull().default({}),
+  brandingConfig: jsonb("branding_config").notNull().default({}),
+  legacyBody: text("legacy_body"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
@@ -683,6 +702,9 @@ export const contracts = pgTable(
     paymentInfo: jsonb("payment_info").notNull().default({}),
     notes: text("notes"),
     generatedContent: text("generated_content"),
+    generatedHtml: text("generated_html"),
+    legalContext: jsonb("legal_context").notNull().default({}),
+    optionalClauseCodes: jsonb("optional_clause_codes").notNull().default([]),
     generatedAt: timestamp("generated_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -699,6 +721,153 @@ export const contracts = pgTable(
     index("idx_contracts_dates").on(table.contractDate, table.endDate),
   ],
 );
+
+// A row is a complete legal revision. Editing creates a new row, never edits
+// approved wording. Existing contract_templates are visual templates only.
+export const legalReviewers = pgTable("legal_reviewers", {
+  userId: bigint("user_id", { mode: "number" })
+    .primaryKey()
+    .references(() => users.id),
+  lawyerName: text("lawyer_name").notNull(),
+  registrationNumber: text("registration_number").notNull(),
+  qualificationEvidence: text("qualification_evidence").notNull(),
+  verifiedBy: bigint("verified_by", { mode: "number" })
+    .notNull()
+    .references(() => users.id),
+  verifiedAt: timestamp("verified_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+export const legalContractTemplates = pgTable(
+  "legal_contract_templates",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    familyCode: text("family_code").notNull(),
+    contractType: text("contract_type").notNull(),
+    propertyType: text("property_type").notNull(),
+    jurisdiction: text("jurisdiction").notNull(),
+    transactionKind: text("transaction_kind").notNull(),
+    title: text("title").notNull(),
+    version: integer("version").notNull(),
+    approvalStatus: text("approval_status").notNull().default("draft"),
+    legalBasis: text("legal_basis").notNull().default(""),
+    applicabilityNotes: text("applicability_notes").notNull().default(""),
+    parentId: bigint("parent_id", { mode: "number" }),
+    basedOnId: bigint("based_on_id", { mode: "number" }),
+    changeKind: text("change_kind").notNull().default("new_legal"),
+    reviewRequired: boolean("review_required").notNull().default(true),
+    publicationStatus: text("publication_status")
+      .notNull()
+      .default("unpublished"),
+    isDefault: boolean("is_default").notNull().default(false),
+    targetAt: timestamp("target_at", { withTimezone: true }),
+    priority: integer("priority").notNull().default(1),
+    approvedBy: bigint("approved_by", { mode: "number" }).references(
+      () => users.id,
+    ),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    createdBy: bigint("created_by", { mode: "number" }).references(
+      () => users.id,
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("legal_template_revision_key").on(table.familyCode, table.version),
+  ],
+);
+
+export const legalContractClauses = pgTable(
+  "legal_contract_clauses",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    legalTemplateId: bigint("legal_template_id", { mode: "number" })
+      .notNull()
+      .references(() => legalContractTemplates.id),
+    clauseCode: text("clause_code").notNull(),
+    clauseTitle: text("clause_title").notNull(),
+    clauseContentAr: text("clause_content_ar").notNull(),
+    clauseOrder: integer("clause_order").notNull(),
+    isRequired: boolean("is_required").notNull().default(true),
+    conditionsJson: jsonb("conditions_json").notNull().default({}),
+    sourceClauseId: bigint("source_clause_id", { mode: "number" }),
+    version: integer("version").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("legal_clause_code_key").on(table.legalTemplateId, table.clauseCode),
+  ],
+);
+
+export const legalContentEvents = pgTable("legal_content_events", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  legalTemplateId: bigint("legal_template_id", { mode: "number" })
+    .notNull()
+    .references(() => legalContractTemplates.id),
+  action: text("action").notNull(),
+  actorId: bigint("actor_id", { mode: "number" }).references(() => users.id),
+  comment: text("comment").notNull(),
+  reviewerSnapshot: jsonb("reviewer_snapshot"),
+  details: jsonb("details").notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const legalTaskNotifications = pgTable(
+  "legal_task_notifications",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    legalTemplateId: bigint("legal_template_id", { mode: "number" })
+      .notNull()
+      .references(() => legalContractTemplates.id),
+    userId: bigint("user_id", { mode: "number" })
+      .notNull()
+      .references(() => users.id),
+    kind: text("kind").notNull(),
+    targetAt: timestamp("target_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    readAt: timestamp("read_at", { withTimezone: true }),
+  },
+  (table) => [
+    unique("legal_notice_once").on(
+      table.legalTemplateId,
+      table.userId,
+      table.kind,
+      table.targetAt,
+    ),
+  ],
+);
+
+export const contractLegalSnapshots = pgTable("contract_legal_snapshots", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  contractId: bigint("contract_id", { mode: "number" })
+    .notNull()
+    .unique()
+    .references(() => contracts.id, { onDelete: "cascade" }),
+  legalTemplateVersion: jsonb("legal_template_version").notNull(),
+  approvedClauseSnapshot: jsonb("approved_clause_snapshot").notNull(),
+  documentModel: jsonb("document_model").notNull(),
+  visualSnapshot: jsonb("visual_snapshot").notNull(),
+  contentHash: text("content_hash").notNull(),
+  review: jsonb("review"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
 export const contractParties = pgTable(
   "contract_parties",
@@ -761,25 +930,29 @@ export const contractOfficeSnapshots = pgTable("contract_office_snapshots", {
     .defaultNow(),
 });
 
-export const contractAssetSnapshots = pgTable("contract_asset_snapshots", {
-  id: bigserial("id", { mode: "number" }).primaryKey(),
-  contractId: bigint("contract_id", { mode: "number" })
-    .notNull()
-    .references(() => contracts.id, { onDelete: "cascade" }),
-  sourceType: text("source_type").notNull(),
-  sourceId: bigint("source_id", { mode: "number" }).notNull(),
-  data: jsonb("data").notNull().default({}),
-  capturedAt: timestamp("captured_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-}, (table) => [
-  unique("contract_asset_snapshots_source_key").on(
-    table.contractId,
-    table.sourceType,
-    table.sourceId,
-  ),
-  index("idx_contract_asset_snapshots_contract").on(table.contractId),
-]);
+export const contractAssetSnapshots = pgTable(
+  "contract_asset_snapshots",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    contractId: bigint("contract_id", { mode: "number" })
+      .notNull()
+      .references(() => contracts.id, { onDelete: "cascade" }),
+    sourceType: text("source_type").notNull(),
+    sourceId: bigint("source_id", { mode: "number" }).notNull(),
+    data: jsonb("data").notNull().default({}),
+    capturedAt: timestamp("captured_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("contract_asset_snapshots_source_key").on(
+      table.contractId,
+      table.sourceType,
+      table.sourceId,
+    ),
+    index("idx_contract_asset_snapshots_contract").on(table.contractId),
+  ],
+);
 
 export const contractAttachments = pgTable(
   "contract_attachments",

@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import GoogleMapPicker from "./GoogleMapPicker.vue";
+import PropertyLocationMap from "./PropertyLocationMap.vue";
 import {
-  buildGoogleMapsUrl,
-  googleMapsUrl,
+  buildMapLink,
+  mapLinkUrl,
   validCoordinates,
-} from "../../utils/googleMapsUrl";
+} from "../../utils/mapLocation";
 import { useSnackbar } from "../../composables/useSnackbar";
-import { openGoogleMaps } from "../../services/external-links.service";
+import { openMapLink } from "../../services/external-links.service";
 
 const props = withDefaults(
   defineProps<{
@@ -15,6 +15,7 @@ const props = withDefaults(
     longitude?: number | null;
     locationLink?: string | null;
     address?: string;
+    propertyName?: string;
     active?: boolean;
     canEdit?: boolean;
   }>(),
@@ -25,23 +26,23 @@ const { notifySuccess, notifyError } = useSnackbar();
 const point = computed(() => validCoordinates(props.latitude, props.longitude));
 const url = computed(() =>
   point.value
-    ? buildGoogleMapsUrl(point.value)
-    : (googleMapsUrl(props.locationLink ?? "")?.href ?? ""),
+    ? buildMapLink(point.value)
+    : (mapLinkUrl(props.locationLink ?? "")?.href ?? ""),
 );
 async function open() {
   try {
-    await openGoogleMaps(url.value);
+    await openMapLink(url.value);
   } catch {
-    notifyError("تعذر فتح خرائط Google.");
+    notifyError("تعذر فتح رابط الموقع.");
   }
 }
 async function searchAddress() {
   try {
-    await openGoogleMaps(
-      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(props.address + " العراق")}`,
+    await openMapLink(
+      `https://www.openstreetmap.org/search?query=${encodeURIComponent(props.address + " العراق")}`,
     );
   } catch {
-    notifyError("تعذر فتح خرائط Google.");
+    notifyError("تعذر فتح رابط الموقع.");
   }
 }
 async function copy() {
@@ -60,9 +61,11 @@ async function copy() {
     <v-card-text>
       <v-sheet v-if="address" class="text-body-2 mb-3">{{ address }}</v-sheet>
       <template v-if="point">
-        <GoogleMapPicker
+        <PropertyLocationMap
           :latitude="latitude"
           :longitude="longitude"
+          :property-name="propertyName"
+          :address="address"
           readonly
           :active="active"
           height="400px"
@@ -103,7 +106,7 @@ async function copy() {
           variant="text"
           prepend-icon="mdi-open-in-new"
           @click="searchAddress"
-          >البحث عن العنوان في خرائط Google</v-btn
+          >البحث عن العنوان في OpenStreetMap</v-btn
         >
       </v-sheet>
       <template v-if="url">
@@ -115,7 +118,7 @@ async function copy() {
         />
         <v-sheet class="d-flex flex-wrap ga-2">
           <v-btn color="primary" prepend-icon="mdi-map-marker" @click="open"
-            >فتح في خرائط Google</v-btn
+            >فتح في الخرائط</v-btn
           >
           <v-btn variant="tonal" prepend-icon="mdi-content-copy" @click="copy"
             >نسخ رابط الموقع</v-btn

@@ -12,7 +12,10 @@ import {
   updateContract,
   updateTemplate,
   validateContract,
+  reviewContract,
+  issueContract,
 } from "./contracts.service.js";
+import { z } from "zod";
 import {
   contractFiltersSchema,
   contractPayloadSchema,
@@ -25,6 +28,43 @@ function parseId(value: string) {
 }
 
 export const contractsRoutes: FastifyPluginAsync = async (app) => {
+  app.post(
+    "/:id/legal-review",
+    { preHandler: requirePermission("legal_content.approve") },
+    async (request) => {
+      const id = z.coerce
+        .number()
+        .int()
+        .positive()
+        .parse((request.params as { id: string }).id);
+      const input = z
+        .object({
+          comment: z.string().trim().min(10).max(5000),
+          content_hash: z.string().regex(/^[a-f0-9]{64}$/),
+        })
+        .strict()
+        .parse(request.body);
+      return reviewContract(
+        id,
+        request.user!.id,
+        input.comment,
+        input.content_hash,
+      );
+    },
+  );
+  app.post(
+    "/:id/issue",
+    { preHandler: requirePermission("contracts.manage") },
+    async (request) =>
+      issueContract(
+        z.coerce
+          .number()
+          .int()
+          .positive()
+          .parse((request.params as { id: string }).id),
+        request.user!.id,
+      ),
+  );
   app.get(
     "/templates",
     { preHandler: requirePermission("contracts.read") },

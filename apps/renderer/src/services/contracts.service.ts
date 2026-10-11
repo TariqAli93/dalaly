@@ -28,7 +28,7 @@ export function validateContract(payload: unknown) {
   });
 }
 export function previewContract(payload: unknown) {
-  return request<{ content: string }>("/contracts/preview", {
+  return request<{ content: string; html: string }>("/contracts/preview", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -66,4 +66,18 @@ export function updateTemplate(id: number, payload: unknown) {
     method: "PUT",
     body: JSON.stringify(payload),
   });
+}
+
+export function reviewContract(
+  id: number,
+  comment: string,
+  contentHash: string,
+) {
+  return request<ContractBundle>(`/contracts/${id}/legal-review`, {
+    method: "POST",
+    body: JSON.stringify({ comment, content_hash: contentHash }),
+  });
+}
+export function issueContract(id: number) {
+  return request<ContractBundle>(`/contracts/${id}/issue`, { method: "POST" });
 }

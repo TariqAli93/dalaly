@@ -1,6 +1,19 @@
 export const DIRECT_PRICE = "سعر إجمالي مباشر";
 
-export const PROPERTY_TYPES = ["أرض", "بيت", "مزرعة", "فيلا"];
+export const PROPERTY_TYPES = [
+  "أرض",
+  "أرض سكنية",
+  "أرض زراعية",
+  "بيت",
+  "مزرعة",
+  "فيلا",
+  "شقة",
+  "بناية",
+  "عقار تجاري",
+  "مكتب",
+  "مخزن",
+  "أخرى",
+];
 
 export const LEGAL_TYPES = [
   "طابو ملك صرف",
@@ -33,9 +46,19 @@ export const RENTAL_PROPERTY_TYPES = [
   { title: "بيت", value: "house" },
   { title: "شقة", value: "apartment" },
   { title: "محل", value: "shop" },
+  { title: "مكتب", value: "office" },
+  { title: "أرض غير محددة الاستخدام", value: "land" },
   { title: "مخزن", value: "warehouse" },
+  { title: "أرض سكنية", value: "residential_land" },
+  { title: "أرض زراعية / مزرعة", value: "agricultural_land" },
+  { title: "عقار تجاري", value: "commercial" },
+  { title: "بناية", value: "building" },
+  { title: "فيلا", value: "villa" },
   { title: "أخرى", value: "other" },
 ];
+
+export const RENTAL_PROPERTY_LABELS: Record<string, string> =
+  Object.fromEntries(RENTAL_PROPERTY_TYPES.map((t) => [t.value, t.title]));
 
 export type NavItem = {
   title: string;
@@ -145,7 +168,13 @@ export const CRM_NAV_ITEMS: NavItem[] = [
     permission: "contracts.read",
   },
   {
-    title: "قوالب العقود",
+    title: "إدارة الصيغ القانونية",
+    to: "/settings/legal-content",
+    icon: "mdi-scale-balance",
+    permission: "legal_content.read",
+  },
+  {
+    title: "قوالب العقود المرئية",
     to: "/contract-templates",
     icon: "mdi-file-edit-outline",
     permission: "contract_templates.manage",

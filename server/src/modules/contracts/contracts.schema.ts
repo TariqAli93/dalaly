@@ -1,9 +1,12 @@
 import { z } from "zod";
+import { legalContextSchema } from "./legal-content.schema.js";
+import { layoutSchema, brandingSchema } from "./contract-visual.engine.js";
 
 const optionalDate = z.coerce.date().optional().nullable();
 const optionalText = z
   .string()
   .trim()
+  .max(10000)
   .optional()
   .nullable()
   .transform((value) => value || null);
@@ -35,12 +38,8 @@ export const contractPayloadSchema = z
     // Singular ids remain accepted for old clients and old draft workflows.
     property_id: z.coerce.number().int().positive().optional().nullable(),
     rental_id: z.coerce.number().int().positive().optional().nullable(),
-    property_ids: z
-      .array(z.coerce.number().int().positive())
-      .default([]),
-    rental_ids: z
-      .array(z.coerce.number().int().positive())
-      .default([]),
+    property_ids: z.array(z.coerce.number().int().positive()).default([]),
+    rental_ids: z.array(z.coerce.number().int().positive()).default([]),
     template_id: z.coerce.number().int().positive().optional().nullable(),
     status: z.enum(CONTRACT_STATUSES).default("draft"),
     contract_date: optionalDate,
@@ -50,9 +49,34 @@ export const contractPayloadSchema = z
     paid_amount: z.coerce.number().nonnegative().default(0),
     payment_info: z.record(z.string(), z.unknown()).default({}),
     notes: optionalText,
+    legal_context: legalContextSchema.default({
+      jurisdiction: "iq_federal",
+      registration_reference: "",
+      intended_use: "",
+    }),
+    optional_clause_codes: z
+      .array(z.string().regex(/^[a-z][a-z0-9_]{0,79}$/))
+      .max(100)
+      .default([]),
     parties: z.array(contractPartyPayloadSchema).min(1),
   })
   .superRefine((value, ctx) => {
+    const kind = value.legal_context.transaction_kind;
+    if (kind && (value.contract_type === "rental") !== (kind === "lease"))
+      ctx.addIssue({
+        code: "custom",
+        path: ["legal_context"],
+        message: "نوع المعاملة القانونية لا يطابق نوع العقد.",
+      });
+    if (
+      kind === "registered_transfer_record" &&
+      !value.legal_context.registration_reference
+    )
+      ctx.addIssue({
+        code: "custom",
+        path: ["legal_context", "registration_reference"],
+        message: "مرجع التسجيل العقاري مطلوب لتوثيق تصرف مسجل.",
+      });
     const expectedRoles =
       value.contract_type === "sale" || value.contract_type === "purchase"
         ? ["seller", "buyer"]
@@ -135,7 +159,9 @@ export const contractFiltersSchema = z.object({
 export const contractTemplateSchema = z.object({
   contract_type: z.enum(BACKEND_CONTRACT_TYPES),
   name: z.string().trim().min(1),
-  body: z.string().min(1),
+  body: z.literal("{{document}}").default("{{document}}"),
+  layout_config: layoutSchema,
+  branding_config: brandingSchema,
   is_active: z.coerce.boolean().default(true),
 });
 

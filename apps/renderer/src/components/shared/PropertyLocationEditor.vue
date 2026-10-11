@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref } from "vue";
-import GoogleMapPicker from "./GoogleMapPicker.vue";
+import PropertyLocationMap from "./PropertyLocationMap.vue";
 import {
-  buildGoogleMapsUrl,
+  buildMapLink,
   coordinateNumber,
-  googleMapsUrl,
-  parseGoogleMapsUrl,
+  mapLinkUrl,
+  parseMapLink,
   validCoordinates,
   type Coordinates,
-} from "../../utils/googleMapsUrl";
+} from "../../utils/mapLocation";
 import { request, getErrorMessage } from "../../services/api.service";
 
 const latitude = defineModel<number | string | null>("latitude", {
@@ -43,7 +43,7 @@ function select(point: Coordinates) {
   cancelResolution();
   latitude.value = point.lat;
   longitude.value = point.lng;
-  link.value = buildGoogleMapsUrl(point);
+  link.value = buildMapLink(point);
 }
 function manual(value: string | number | null, axis: "latitude" | "longitude") {
   cancelResolution();
@@ -53,7 +53,7 @@ function manual(value: string | number | null, axis: "latitude" | "longitude") {
     axis === "latitude" ? value : latitude.value,
     axis === "longitude" ? value : longitude.value,
   );
-  link.value = point ? buildGoogleMapsUrl(point) : null;
+  link.value = point ? buildMapLink(point) : null;
 }
 function clear() {
   cancelResolution();
@@ -65,11 +65,11 @@ function inputLink(value: string | null) {
   cancelResolution();
   link.value = value;
   if (!value?.trim()) return;
-  if (!googleMapsUrl(value)) {
-    warning.value = "أدخل رابط HTTPS صالحاً من خرائط Google.";
+  if (!mapLinkUrl(value)) {
+    warning.value = "أدخل رابط HTTPS صالحاً من OpenStreetMap أو رابط Google سابقاً.";
     return;
   }
-  const point = parseGoogleMapsUrl(value);
+  const point = parseMapLink(value);
   if (point) {
     latitude.value = point.lat;
     longitude.value = point.lng;
@@ -130,17 +130,17 @@ onBeforeUnmount(cancelResolution);
         <v-col cols="12">
           <v-text-field
             :model-value="link"
-            label="رابط خرائط Google"
+            label="رابط الموقع"
             dir="ltr"
             :loading="resolving"
             maxlength="2048"
-            hint="الصق رابط الموقع، أو أدخل الإحداثيات، أو حدد الموقع على الخريطة."
+            hint="الصق رابط OpenStreetMap أو Google Maps، أو أدخل الإحداثيات، أو حدد الموقع على الخريطة."
             persistent-hint
             :rules="[
               (value: string | null) =>
                 !value ||
-                !!googleMapsUrl(value) ||
-                'أدخل رابط خرائط Google صالحاً وآمناً.',
+                !!mapLinkUrl(value) ||
+                'أدخل رابط موقع صالحاً وآمناً.',
             ]"
             @update:model-value="inputLink"
           />
@@ -170,7 +170,7 @@ onBeforeUnmount(cancelResolution);
           >مسح الموقع</v-btn
         >
       </v-sheet>
-      <GoogleMapPicker
+      <PropertyLocationMap
         v-if="showMap"
         v-model:latitude="latitude"
         v-model:longitude="longitude"

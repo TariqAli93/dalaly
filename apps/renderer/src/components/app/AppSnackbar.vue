@@ -6,6 +6,7 @@ const { state } = useSnackbar();
 
 <template>
   <v-snackbar
+    class="app-notification"
     v-model="state.show"
     :color="state.color"
     timeout="3600"
@@ -14,3 +15,10 @@ const { state } = useSnackbar();
     {{ state.text }}
   </v-snackbar>
 </template>
+
+<style scoped>
+/* This notification has no actions; it must not cover document controls. */
+.app-notification :deep(.v-snackbar__wrapper) {
+  pointer-events: none;
+}
+</style>

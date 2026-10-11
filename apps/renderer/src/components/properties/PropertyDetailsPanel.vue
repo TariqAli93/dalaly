@@ -271,6 +271,7 @@ watch(
           <v-window-item value="map">
             <PropertyLocationView v-if="mapVisited" :active="tab === 'map'" :key="property.id"
               :address="address"
+              :property-name="property.name || `عقار ${property.code}`"
               :latitude="property.latitude" :longitude="property.longitude" :location-link="property.location_link"
               :can-edit="can('properties.update')" @edit="emit('edit', property)" />
           </v-window-item>

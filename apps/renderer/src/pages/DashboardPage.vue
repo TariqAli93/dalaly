@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { RENTAL_PROPERTY_LABELS } from "../constants/domain";
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AppLayout from "../layouts/AppLayout.vue";
@@ -123,11 +124,8 @@ const salesStatusCards = [
 ] as const;
 
 const rentalTypeLabels: Record<string, string> = {
+  ...RENTAL_PROPERTY_LABELS,
   house: "دار",
-  apartment: "شقة",
-  shop: "محل",
-  warehouse: "مخزن",
-  other: "أخرى",
 };
 
 const loadedSubtitle = computed(() => {
@@ -422,11 +420,7 @@ onMounted(() => {
                       <span>آخر 6 أشهر</span>
                     </div>
                     <OfferTrendChart
-                      :points="
-                        domain === 'sales'
-                          ? salesTrend
-                          : rentalTrend
-                      "
+                      :points="domain === 'sales' ? salesTrend : rentalTrend"
                       :label="
                         domain === 'sales'
                           ? 'عروض البيع الجديدة'

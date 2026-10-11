@@ -3,6 +3,7 @@ import { useRouter } from "vue-router";
 import { useProperties } from "../../composables/useProperties";
 import { useAuth } from "../../composables/useAuth";
 import ThemeToggle from "./ThemeToggle.vue";
+import LegalNotificationsMenu from "./LegalNotificationsMenu.vue";
 
 // title/subtitle للعرض فقط (يمرّرهما AppLayout من عنوان الصفحة الحالي).
 const props = defineProps<{ title?: string; subtitle?: string }>();
@@ -60,6 +61,7 @@ async function onLogout() {
     />
 
     <ThemeToggle />
+    <LegalNotificationsMenu />
     <v-btn
       icon="mdi-refresh"
       variant="text"

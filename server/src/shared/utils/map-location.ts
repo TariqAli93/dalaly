@@ -79,6 +79,36 @@ export function parseGoogleMapsUrl(value: string): Coordinates | null {
   return segment ? pair(segment) : null;
 }
 
-export function buildGoogleMapsUrl(point: Coordinates): string {
-  return `https://www.google.com/maps/search/?api=1&query=${point.lat.toFixed(8)},${point.lng.toFixed(8)}`;
+export function mapLinkUrl(value: string): URL | null {
+  const legacy = googleMapsUrl(value);
+  if (legacy) return legacy;
+  if (value.length > 2048) return null;
+  try {
+    const url = new URL(value.trim());
+    if (
+      url.protocol === "https:" && !url.username && !url.password && !url.port &&
+      ["openstreetmap.org", "www.openstreetmap.org"].includes(url.hostname) &&
+      ["/", "/search", "/search/", "/directions", "/directions/"].includes(url.pathname)
+    ) return url;
+  } catch { /* Invalid URLs are rejected. */ }
+  return null;
+}
+
+export function parseMapLink(value: string): Coordinates | null {
+  const url = mapLinkUrl(value);
+  if (!url) return null;
+  if (!["openstreetmap.org", "www.openstreetmap.org"].includes(url.hostname))
+    return parseGoogleMapsUrl(value);
+  // A saved pin is more precise than the map viewport in the hash.
+  const lat = url.searchParams.get("mlat");
+  const lng = url.searchParams.get("mlon");
+  if (lat !== null || lng !== null) return validCoordinates(lat, lng);
+  const viewport = url.hash.match(/^#map=\d+(?:\.\d+)?\/([^/]+)\/([^/&]+)(?:&.*)?$/);
+  return viewport ? validCoordinates(viewport[1], viewport[2]) : null;
+}
+
+export function buildMapLink(point: Coordinates): string {
+  const lat = point.lat.toFixed(8);
+  const lng = point.lng.toFixed(8);
+  return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=16/${lat}/${lng}`;
 }

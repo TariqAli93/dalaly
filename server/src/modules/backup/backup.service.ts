@@ -13,6 +13,12 @@ import {
   officeProfiles,
   contractParties,
   contractTemplates,
+  legalReviewers,
+  legalContractTemplates,
+  legalContractClauses,
+  legalContentEvents,
+  legalTaskNotifications,
+  contractLegalSnapshots,
   contracts,
   people,
   districts,
@@ -125,6 +131,27 @@ const TABLE_SPECS = [
     table: contractTemplates,
     dates: ["createdAt", "updatedAt"],
   },
+  { name: "legal_reviewers", table: legalReviewers, dates: ["verifiedAt"] },
+  {
+    name: "legal_contract_templates",
+    table: legalContractTemplates,
+    dates: ["createdAt", "updatedAt", "approvedAt", "targetAt"],
+  },
+  {
+    name: "legal_contract_clauses",
+    table: legalContractClauses,
+    dates: ["createdAt", "updatedAt"],
+  },
+  {
+    name: "legal_content_events",
+    table: legalContentEvents,
+    dates: ["createdAt"],
+  },
+  {
+    name: "legal_task_notifications",
+    table: legalTaskNotifications,
+    dates: ["createdAt", "targetAt", "readAt"],
+  },
   {
     name: "contracts",
     table: contracts,
@@ -153,6 +180,11 @@ const TABLE_SPECS = [
     name: "contract_attachments",
     table: contractAttachments,
     dates: ["capturedAt"],
+  },
+  {
+    name: "contract_legal_snapshots",
+    table: contractLegalSnapshots,
+    dates: ["createdAt"],
   },
   { name: "audit_logs", table: auditLogs, dates: ["createdAt"] },
   { name: "app_settings", table: appSettings, dates: ["updatedAt"] },
@@ -195,12 +227,18 @@ const SCOPE_TABLES: Record<string, TableName[]> = {
     "identity_documents",
     "office_profiles",
     "contract_templates",
+    "legal_reviewers",
+    "legal_contract_templates",
+    "legal_contract_clauses",
+    "legal_content_events",
+    "legal_task_notifications",
     "contracts",
     "contract_parties",
     "party_snapshots",
     "contract_office_snapshots",
     "contract_asset_snapshots",
     "contract_attachments",
+    "contract_legal_snapshots",
   ],
 };
 
@@ -223,6 +261,11 @@ const SERIAL_TABLES = new Set<TableName>([
   "document_types",
   "identity_documents",
   "contract_templates",
+  "legal_contract_templates",
+  "legal_contract_clauses",
+  "legal_content_events",
+  "legal_task_notifications",
+  "contract_legal_snapshots",
   "contracts",
   "contract_parties",
   "party_snapshots",
@@ -492,7 +535,13 @@ function extractDocumentsFromZip(zip: AdmZip) {
 }
 
 export type RestoreScope =
-  "full" | "properties" | "images" | "users" | "settings" | "rentals" | "crm";
+  | "full"
+  | "properties"
+  | "images"
+  | "users"
+  | "settings"
+  | "rentals"
+  | "crm";
 
 /** يسترجع نسخة احتياطية من محتوى ZIP حسب النطاق المحدد. */
 export async function restoreBackup(
@@ -512,11 +561,27 @@ export async function restoreBackup(
       Record<string, unknown>[]
     >;
 
+    if (
+      (scope === "full" || scope === "crm") &&
+      !Object.hasOwn(database, "contract_legal_snapshots")
+    ) {
+      throw new Error(
+        "هذه النسخة تسبق فصل الصيغ القانونية. استرجعها في قاعدة منفصلة ثم حدّثها؛ لا يمكن استبدال السجل القانوني الحالي بها.",
+      );
+    }
     const tablesToRestore = SCOPE_TABLES[scope] ?? SCOPE_TABLES.full;
 
     await db.transaction(async (tx) => {
+      // Full/CRM restore is an explicit privileged replacement of historical
+      // bundles. Bypass guards only on this transaction's connection.
+      await tx.execute(sql`set local dalaly.restore = 'on'`);
       // حذف بترتيب عكسي (الابن قبل الأب) لتفادي قيود المفاتيح الأجنبية.
       for (const name of [...tablesToRestore].reverse()) {
+        if (
+          (scope === "settings" && name === "contract_templates") ||
+          (scope === "users" && name === "users")
+        )
+          continue;
         await tx.delete(specByName(name).table);
       }
       // إدراج بترتيب الأب قبل الابن.
@@ -526,7 +591,19 @@ export async function restoreBackup(
           coerceRow(row, spec.dates),
         );
         if (rows.length) {
-          await tx.insert(spec.table).values(rows as never);
+          if (
+            (scope === "settings" && name === "contract_templates") ||
+            (scope === "users" && name === "users")
+          ) {
+            for (const row of rows)
+              await tx
+                .insert(spec.table)
+                .values(row as never)
+                .onConflictDoUpdate({
+                  target: (spec.table as typeof users).id,
+                  set: row,
+                });
+          } else await tx.insert(spec.table).values(rows as never);
         }
       }
     });

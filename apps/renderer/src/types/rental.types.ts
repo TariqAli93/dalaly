@@ -1,5 +1,14 @@
 ﻿export type RentalPropertyType =
-  "house" | "apartment" | "shop" | "warehouse" | "other";
+  | "house"
+  | "apartment"
+  | "shop"
+  | "warehouse"
+  | "residential_land"
+  | "agricultural_land"
+  | "commercial"
+  | "building"
+  | "villa"
+  | "other";
 export type RentPeriod = "monthly" | "semi_annual" | "annual";
 export type RentalStatus =
   | "available"

@@ -1,6 +1,36 @@
 export const SUPER_ADMIN_ROLE = "Super Admin";
 
 export const SYSTEM_PERMISSIONS = [
+  {
+    key: "legal_content.publish",
+    name: "نشر الصيغ واعتماد التعديلات الإدارية",
+    module: "legal_content",
+  },
+  {
+    key: "legal_content.propose",
+    name: "اقتراح تعديلات الصيغ دون نشر",
+    module: "legal_content",
+  },
+  {
+    key: "legal_content.read",
+    name: "عرض الصيغ القانونية",
+    module: "legal_content",
+  },
+  {
+    key: "legal_content.manage",
+    name: "إدارة إصدارات الصيغ القانونية",
+    module: "legal_content",
+  },
+  {
+    key: "legal_content.approve",
+    name: "اعتماد الصيغ ومراجعة العقود",
+    module: "legal_content",
+  },
+  {
+    key: "legal_reviewers.manage",
+    name: "التحقق من أهلية المراجعين القانونيين",
+    module: "legal_content",
+  },
   { key: "properties.read", name: "قراءة العروض", module: "properties" },
   { key: "properties.create", name: "إضافة عروض", module: "properties" },
   { key: "properties.update", name: "تعديل عروض", module: "properties" },

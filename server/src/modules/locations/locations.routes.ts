@@ -2,7 +2,7 @@ import { type FastifyPluginAsync } from "fastify";
 import { requirePermission } from "../auth/auth.hooks.js";
 import { z } from "zod";
 import { resolveMapLink } from "./map-link.service.js";
-import { googleMapsUrl } from "../../shared/utils/google-maps-url.js";
+import { mapLinkUrl } from "../../shared/utils/map-location.js";
 import { seedIraqLocations } from "../../infrastructure/database/iraq-locations.seed.js";
 import {
   createDistrict,
@@ -32,7 +32,7 @@ function parseId(value: string) {
 export const locationsRoutes: FastifyPluginAsync = async (app) => {
   let resolvingLinks = 0;
   app.post("/resolve-map-link", async (request, reply) => {
-    const { url } = z.object({ url: z.string().max(2048).refine((value) => !!googleMapsUrl(value)) }).parse(request.body);
+    const { url } = z.object({ url: z.string().max(2048).refine((value) => !!mapLinkUrl(value)) }).parse(request.body);
     if (resolvingLinks >= 4) return reply.code(429).send({ message: "توجد طلبات كثيرة لحل روابط المواقع. أعد المحاولة بعد قليل." });
     resolvingLinks++;
     try {

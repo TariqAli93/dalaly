@@ -8,7 +8,9 @@ import {
   ipcMain,
 } from "electron";
 import log from "electron-log/main.js";
-import { safeExternalUrl, safeGoogleMapsUrl } from "./external-links.js";
+import { registerContractPdfExport } from "./contract-export.js";
+import { registerLegalNotifications } from "./legal-notifications.js";
+import { safeExternalUrl, safeMapLinkUrl } from "./external-links.js";
 import nodemailer from "nodemailer";
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
@@ -192,6 +194,18 @@ async function createWindow() {
     },
   });
 
+  // OSM treats packaged Electron as a native client: identify Dalaly explicitly.
+  // Keep Chromium's normal disk cache and do not invent a web Referer for file://.
+  mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
+    { urls: ["https://tile.openstreetmap.org/*"] },
+    (details, callback) => {
+      callback({ requestHeaders: {
+        ...details.requestHeaders,
+        "User-Agent": `Dalaly/${app.getVersion()} (Electron desktop; codel.dalaly.desktop)`,
+      } });
+    },
+  );
+
   // وعد جاهزية العرض لاستخدامه في تسلسل الإقلاع.
   mainReadyToShow = new Promise((resolve) => {
     mainWindow.once("ready-to-show", resolve);
@@ -199,7 +213,10 @@ async function createWindow() {
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     const safe = safeExternalUrl(url);
-    if (safe) void shell.openExternal(safe).catch((error) => log.warn("Could not open external link", error));
+    if (safe)
+      void shell
+        .openExternal(safe)
+        .catch((error) => log.warn("Could not open external link", error));
     return { action: "deny" };
   });
   mainWindow.webContents.on("will-navigate", (event, url) => {
@@ -207,7 +224,10 @@ async function createWindow() {
     if (url === current) return;
     event.preventDefault();
     const safe = safeExternalUrl(url);
-    if (safe) void shell.openExternal(safe).catch((error) => log.warn("Could not open external link", error));
+    if (safe)
+      void shell
+        .openExternal(safe)
+        .catch((error) => log.warn("Could not open external link", error));
   });
 
   if (viteUrl) {
@@ -319,12 +339,23 @@ function stopLocalApi() {
 // يحفظ DATABASE_URL الناتج عن /api/setup/initialize ليُستخدم في التشغيل القادم.
 // الخادم الحالي يكون قد أعاد تهيئة الـ pool حيّاً، لذا لا حاجة لإعادة تشغيله الآن.
 ipcMain.handle("maps:open-external", async (event, value) => {
-  if (!mainWindow || event.sender !== mainWindow.webContents || event.senderFrame !== mainWindow.webContents.mainFrame) return { ok: false };
-  const url = safeGoogleMapsUrl(value);
+  if (
+    !mainWindow ||
+    event.sender !== mainWindow.webContents ||
+    event.senderFrame !== mainWindow.webContents.mainFrame
+  )
+    return { ok: false };
+  const url = safeMapLinkUrl(value);
   if (!url) return { ok: false };
-  try { await shell.openExternal(url); return { ok: true }; }
-  catch { return { ok: false }; }
+  try {
+    await shell.openExternal(url);
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
 });
+
+registerLegalNotifications(() => mainWindow);
 
 ipcMain.handle("config:save-database-url", async (_event, databaseUrl) => {
   if (typeof databaseUrl !== "string" || !databaseUrl) {
@@ -355,46 +386,7 @@ ipcMain.handle("config:save-database", async (_event, input) => {
   return { ok: true };
 });
 
-// تصدير PDF فعلي من HTML عبر نافذة مخفية + حوار حفظ.
-ipcMain.handle("export:save-pdf", async (_event, input) => {
-  const html = input?.html;
-  const suggestedName = input?.suggestedName || "export.pdf";
-  if (typeof html !== "string" || !html) {
-    return { ok: false, message: "محتوى غير صالح." };
-  }
-
-  const saveResult = await dialog.showSaveDialog(mainWindow ?? undefined, {
-    title: "حفظ ملف بي دي إف",
-    defaultPath: suggestedName,
-    filters: [{ name: "ملف بي دي إف", extensions: ["pdf"] }],
-  });
-
-  if (saveResult.canceled || !saveResult.filePath) {
-    return { ok: false, canceled: true };
-  }
-
-  const pdfWindow = new BrowserWindow({
-    show: false,
-    webPreferences: { offscreen: true },
-  });
-
-  try {
-    await pdfWindow.loadURL(
-      `data:text/html;charset=utf-8,${encodeURIComponent(html)}`,
-    );
-    const data = await pdfWindow.webContents.printToPDF({
-      printBackground: true,
-      pageSize: "A4",
-    });
-    fs.writeFileSync(saveResult.filePath, data);
-    return { ok: true, path: saveResult.filePath };
-  } catch (error) {
-    log.error("PDF export failed", error);
-    return { ok: false, message: "تعذر إنشاء ملف بي دي إف." };
-  } finally {
-    pdfWindow.destroy();
-  }
-});
+registerContractPdfExport(() => mainWindow);
 
 ipcMain.handle("export:save-file", async (_event, input) => {
   const data = input?.data;
@@ -830,7 +822,7 @@ async function runStartup() {
     startScheduler();
   } catch (error) {
     clearTimeout(slowTimer);
-    // فشل فادح: نُبقي السبلاش ونحوّلها إلى شاشة خطأ (لا نُغلقها).
+    // فشل فادح: نُبقي السبلاش ونHowardها إلى شاشة خطأ (لا نُغلقها).
     log.error("Startup sequence failed", error);
     sendSplashProgress(SPLASH_STAGES.error);
   } finally {
@@ -839,6 +831,8 @@ async function runStartup() {
 }
 
 app.whenReady().then(() => {
+  if (process.platform === "win32")
+    app.setAppUserModelId(isPackaged ? "codel.dalaly.desktop" : process.execPath);
   // createApplicationMenu();
   createSplashWindow();
   void runStartup();

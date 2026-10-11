@@ -43,6 +43,7 @@ const NAV_ORDER = [
   "/purchase-requests",
   "/documents",
   "/contract-templates",
+  "/settings/legal-content",
   "/users",
   "/roles",
   "/locations",

@@ -12,11 +12,16 @@ export function safeExternalUrl(value) {
   }
 }
 
-export function safeGoogleMapsUrl(value) {
+export function safeMapLinkUrl(value) {
   const safe = safeExternalUrl(value);
   if (!safe) return null;
   const url = new URL(safe);
   if (url.protocol !== "https:" || url.port) return null;
+  if (
+    ["openstreetmap.org", "www.openstreetmap.org"].includes(url.hostname) &&
+    ["/", "/search", "/search/", "/directions", "/directions/"].includes(url.pathname)
+  ) return url.href;
+  // Previously saved Google links remain safe to open; there is no Google SDK.
   if (
     ["google.com", "www.google.com"].includes(url.hostname) &&
     /^\/maps(?:\/|$)/.test(url.pathname)

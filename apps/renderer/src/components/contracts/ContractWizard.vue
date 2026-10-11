@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import ContractDocumentPreview from "./ContractDocumentPreview.vue";
+import {
+  jurisdictions,
+  transactionKinds,
+} from "../../services/legal-content.service";
 import ContractDetailsStep from "./ContractDetailsStep.vue";
 import ContractReviewStep from "./ContractReviewStep.vue";
 import PersonDocuments from "./PersonDocuments.vue";
@@ -31,8 +36,9 @@ const props = withDefaults(
   defineProps<{
     modelValue: boolean;
     contractId?: number | null;
+    initialReview?: boolean;
   }>(),
-  { contractId: null },
+  { contractId: null, initialReview: false },
 );
 const emit = defineEmits<{
   "update:modelValue": [value: boolean];
@@ -49,6 +55,15 @@ const contractCode = ref("");
 const previewing = ref(false);
 const error = ref("");
 const preview = ref("");
+const previewHtml = ref("");
+const legalContext = ref({
+  jurisdiction: "iq_federal",
+  transaction_kind: "preliminary_sale",
+  registration_reference: "",
+  intended_use: "",
+});
+const optionalCodes = ref<string[]>([]);
+const paymentInfo = ref<Record<string, unknown>>({});
 const previewOpen = ref(false);
 const validation = ref<ContractValidation | null>(null);
 const people = ref<PersonRecord[]>([]);
@@ -173,6 +188,15 @@ function reset() {
   wizardStage.value = 1;
   error.value = "";
   preview.value = "";
+  previewHtml.value = "";
+  legalContext.value = {
+    jurisdiction: "iq_federal",
+    transaction_kind: "preliminary_sale",
+    registration_reference: "",
+    intended_use: "",
+  };
+  optionalCodes.value = [];
+  paymentInfo.value = {};
   previewOpen.value = false;
   validation.value = null;
   form.value = {
@@ -221,6 +245,16 @@ function hydrate(bundle: ContractBundle) {
   form.value.template_id = contract.template_id;
   form.value.status = contract.status;
   form.value.notes = contract.notes ?? "";
+  paymentInfo.value = { ...contract.payment_info };
+  legalContext.value = {
+    jurisdiction: "iq_federal",
+    transaction_kind:
+      contract.contract_type === "rental" ? "lease" : "preliminary_sale",
+    registration_reference: "",
+    intended_use: "",
+    ...contract.legal_context,
+  };
+  optionalCodes.value = contract.optional_clause_codes ?? [];
   for (const party of bundle.parties) {
     partyIds.value[party.role] = party.person_id;
     partyDocuments.value[party.role] = bundle.attachments
@@ -257,7 +291,8 @@ async function load() {
     rentals.value = loadedRentals;
     templates.value = loadedTemplates.filter(
       (item) =>
-        item.contract_type === "sale" || item.contract_type === "rental",
+        (item.contract_type === "sale" || item.contract_type === "rental") &&
+        item.is_active,
     );
     office.value = loadedOffice;
     if (existing) {
@@ -267,6 +302,11 @@ async function load() {
     }
     if (!form.value.template_id)
       form.value.template_id = currentTemplates.value[0]?.id ?? null;
+    if (existing && props.initialReview) {
+      step.value = 3;
+      wizardStage.value = 5;
+      await validate();
+    }
   } catch (cause) {
     loadFailed.value = true;
     error.value = getErrorMessage(cause);
@@ -277,6 +317,10 @@ async function load() {
 
 function onTypeChanged(value: ContractType) {
   form.value.contract_type = value;
+  legalContext.value.transaction_kind =
+    value === "rental" ? "lease" : "preliminary_sale";
+  optionalCodes.value = [];
+  paymentInfo.value = {};
   form.value.property_ids = [];
   form.value.rental_ids = [];
   form.value.amount = 0;
@@ -323,8 +367,13 @@ function payload() {
     end_date: form.value.end_date || null,
     amount: totalAmount.value,
     paid_amount: toNumber(form.value.paid_amount),
-    payment_info: { paid_amount: toNumber(form.value.paid_amount) },
+    payment_info: {
+      ...paymentInfo.value,
+      paid_amount: toNumber(form.value.paid_amount),
+    },
     notes: form.value.notes || null,
+    legal_context: legalContext.value,
+    optional_clause_codes: optionalCodes.value,
     parties: roleDefinitions.value.map((role) => ({
       person_id: partyIds.value[role.key],
       role: role.key,
@@ -402,6 +451,7 @@ async function showPreview() {
   try {
     const result = await contractsService.previewContract(payload());
     preview.value = result.content;
+    previewHtml.value = result.html;
     previewOpen.value = true;
   } catch (cause) {
     error.value = getErrorMessage(cause);
@@ -560,9 +610,43 @@ watch(
               v-if="stage.value === 1"
               v-model="form.notes"
               class="mt-3"
-              label="ملاحظات العقد"
+              label="الشروط الإضافية المتفق عليها (تتطلب مراجعة المحامي)"
               rows="2"
             />
+            <v-row v-if="stage.value === 1" class="mt-3">
+              <v-col cols="12" md="6"
+                ><v-select
+                  v-model="legalContext.jurisdiction"
+                  :items="jurisdictions"
+                  label="الاختصاص القانوني"
+              /></v-col>
+              <v-col cols="12" md="6"
+                ><v-select
+                  v-model="legalContext.transaction_kind"
+                  :items="
+                    transactionKinds.filter((k) =>
+                      form.contract_type === 'rental'
+                        ? k.value === 'lease'
+                        : k.value !== 'lease',
+                    )
+                  "
+                  label="نوع المعاملة القانونية"
+              /></v-col>
+              <v-col cols="12"
+                ><v-text-field
+                  v-model="legalContext.intended_use"
+                  label="الاستخدام المتفق عليه للعقار"
+              /></v-col>
+              <v-col
+                v-if="
+                  legalContext.transaction_kind === 'registered_transfer_record'
+                "
+                cols="12"
+                ><v-text-field
+                  v-model="legalContext.registration_reference"
+                  label="مرجع التسجيل العقاري (لا ينفذ التطبيق نقل ملكية)"
+              /></v-col>
+            </v-row>
             <div v-if="stage.value === 1" class="contract-metadata">
               <v-text-field
                 :model-value="contractCode || 'يُنشأ تلقائياً عند الحفظ'"
@@ -571,10 +655,7 @@ watch(
               /><v-select
                 v-model="form.status"
                 label="حالة العقد"
-                :items="[
-                  { title: 'مسودة', value: 'draft' },
-                  { title: 'صادر', value: 'active' },
-                ]"
+                :items="[{ title: 'مسودة', value: 'draft' }]"
               />
             </div>
             <div
@@ -635,6 +716,15 @@ watch(
           </v-stepper-window-item>
           <v-stepper-window-item :value="5">
             <h2 class="wizard-section-title">مراجعة العقد قبل الإصدار</h2>
+            <v-alert
+              v-if="props.initialReview"
+              type="info"
+              variant="tonal"
+              class="mb-3"
+              >تُجهّز هذه المعاينة باستخدام أحدث الصيغ المعتمدة والبيانات
+              الحالية. راجعها ثم احفظ المسودة للعودة إلى الاعتماد والتصدير.
+              تغيّر المحتوى يلغي المراجعة السابقة.</v-alert
+            >
             <ContractReviewStep
               :contract-label="
                 form.contract_type === 'sale' ? 'عقد بيع' : 'عقد إيجار'
@@ -678,12 +768,37 @@ watch(
               variant="tonal"
               class="mt-4"
             >
-              اكتملت متطلبات العقد ويمكن إصداره.
+              اكتملت بيانات المسودة. تستخدم الصيغة المعتمدة والفعالة للإصدار؛
+              تحتاج الشروط الحرة فقط مراجعة مختصة لبيانات العقد.
             </v-alert>
+            <v-alert
+              v-if="validation?.legal_warnings.length"
+              type="warning"
+              variant="tonal"
+              class="mt-3"
+              ><p v-for="warning in validation.legal_warnings" :key="warning">
+                {{ warning }}
+              </p></v-alert
+            >
+            <v-select
+              v-if="validation?.optional_clauses.length"
+              v-model="optionalCodes"
+              :items="
+                validation.optional_clauses.map((c) => ({
+                  title: c.title,
+                  value: c.code,
+                }))
+              "
+              label="البنود القانونية الاختيارية المنطبقة"
+              multiple
+              chips
+              class="mt-3"
+              @update:model-value="validate"
+            />
             <v-textarea
               v-model="form.notes"
               class="mt-4"
-              label="ملاحظات العقد"
+              label="الشروط الإضافية المتفق عليها (تتطلب مراجعة المحامي)"
               rows="2"
             />
           </v-stepper-window-item>
@@ -692,7 +807,9 @@ watch(
       <v-dialog v-model="previewOpen" max-width="850">
         <v-card>
           <v-card-title>معاينة العقد</v-card-title>
-          <v-card-text class="contract-preview">{{ preview }}</v-card-text>
+          <v-card-text
+            ><ContractDocumentPreview :html="previewHtml" :text="preview"
+          /></v-card-text>
           <v-card-actions
             ><v-spacer /><v-btn @click="previewOpen = false"
               >إغلاق</v-btn
@@ -741,7 +858,7 @@ watch(
         :disabled="!validation?.valid"
         @click="save"
       >
-        {{ props.contractId ? "حفظ التعديل" : "إنشاء العقد" }}
+        {{ props.contractId ? "حفظ تعديل المسودة" : "حفظ مسودة العقد" }}
       </v-btn>
     </v-card-actions>
   </v-card>

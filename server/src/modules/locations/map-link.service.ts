@@ -1,16 +1,16 @@
 import {
-  googleMapsUrl,
-  parseGoogleMapsUrl,
+  mapLinkUrl,
+  parseMapLink,
   type Coordinates,
-} from "../../shared/utils/google-maps-url.js";
+} from "../../shared/utils/map-location.js";
 
 export async function resolveMapLink(
   value: string,
   fetcher: typeof fetch = fetch,
 ): Promise<Coordinates | null> {
-  let url = googleMapsUrl(value);
+  let url = mapLinkUrl(value);
   if (!url) return null;
-  const embedded = parseGoogleMapsUrl(url.href);
+  const embedded = parseMapLink(url.href);
   if (embedded) return embedded;
   // Full coordinate-free links need manual selection; only short redirects are resolved.
   if (url.hostname !== "maps.app.goo.gl" && url.hostname !== "goo.gl")
@@ -26,9 +26,9 @@ export async function resolveMapLink(
     if (![301, 302, 303, 307, 308].includes(response.status)) return null;
     const redirect = response.headers.get("location");
     if (!redirect) return null;
-    url = googleMapsUrl(new URL(redirect, url).href);
+    url = mapLinkUrl(new URL(redirect, url).href);
     if (!url) return null;
-    const point = parseGoogleMapsUrl(url.href);
+    const point = parseMapLink(url.href);
     if (point) return point;
   }
   return null;

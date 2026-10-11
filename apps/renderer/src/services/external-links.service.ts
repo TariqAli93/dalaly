@@ -1,10 +1,10 @@
-import { googleMapsUrl } from "../utils/googleMapsUrl";
+import { mapLinkUrl } from "../utils/mapLocation";
 
-export async function openGoogleMaps(value: string) {
-  const url = googleMapsUrl(value);
+export async function openMapLink(value: string) {
+  const url = mapLinkUrl(value);
   if (!url) throw new Error("رابط الموقع غير صالح.");
-  if (window.dalalyConfig?.openGoogleMaps) {
-    const result = await window.dalalyConfig.openGoogleMaps(url.href);
+  if (window.dalalyConfig?.openMapLink) {
+    const result = await window.dalalyConfig.openMapLink(url.href);
     if (!result.ok) throw new Error("تعذر فتح الرابط.");
     return;
   }

@@ -21,13 +21,23 @@ export const electronPlatform: PlatformAdapter = {
 
   async exportPdf({ html, suggestedName }): Promise<SaveResult> {
     const api = bridge();
-    if (!api?.exportPdf) return { ok: false, canceled: true };
+    if (!api?.exportPdf)
+      return {
+        ok: false,
+        message:
+          "خدمة تصدير PDF غير متاحة. أعد تشغيل تطبيق سطح المكتب لتحديث خدماته.",
+      };
     return api.exportPdf({ html, suggestedName });
   },
 
   async saveFile({ data, suggestedName, title, filters }): Promise<SaveResult> {
     const api = bridge();
-    if (!api?.saveFile) return { ok: false, canceled: true };
+    if (!api?.saveFile)
+      return {
+        ok: false,
+        message:
+          "خدمة حفظ الملفات غير متاحة. أعد تشغيل تطبيق سطح المكتب لتحديث خدماته.",
+      };
     return api.saveFile({ data, suggestedName, title, filters });
   },
 

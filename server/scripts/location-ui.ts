@@ -5,27 +5,8 @@ import { fileURLToPath } from "node:url";
 import { chromium, expect } from "@playwright/test";
 import type { FastifyInstance } from "fastify";
 
-// This test double exercises API event wiring and lifecycle without billable Google requests.
-const mapsDouble = `
-window.__mapsTest = { maps: [], markers: [], listeners: [] };
-class MapDouble {
-  constructor(host, options) {
-    if (!(host instanceof HTMLElement)) throw new Error('Map host must be a DOM element');
-    this.host=host; this.options=options; this.events={}; window.__mapsTest.maps.push(this);
-  }
-  addListener(name, callback) { this.events[name]=callback; const listener={removed:false,remove:()=>{listener.removed=true;delete this.events[name]}}; window.__mapsTest.listeners.push(listener);return listener; }
-  setCenter(position){this.center=position} setZoom(zoom){this.zoom=zoom}
-}
-class AdvancedMarkerElement {
-  constructor(options){Object.assign(this,options);this.events={};window.__mapsTest.markers.push(this)}
-  addListener(name, callback){this.events[name]=callback;const listener={removed:false,remove:()=>{listener.removed=true;delete this.events[name]}};window.__mapsTest.listeners.push(listener);return listener}
-}
-window.google={maps:{Map:MapDouble,marker:{AdvancedMarkerElement},LatLng:class{},ColorScheme:{DARK:'DARK',LIGHT:'LIGHT'},
-  event:{trigger(){},clearInstanceListeners(target){target.events={}}},
-  importLibrary:async(name)=>name==='maps'?{Map:MapDouble}:{AdvancedMarkerElement}
-}};
-window.dalalyMapsReady();
-`;
+// Real Leaflet and DOM pointer events, with fixture tiles: no automated OSM traffic.
+export const fixtureTile = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aTWQAAAAASUVORK5CYII=", "base64");
 
 export async function verifyLocationUi(
   app: FastifyInstance, token: string, ids: Record<string, number>,
@@ -33,11 +14,10 @@ export async function verifyLocationUi(
 ) {
   const root = fileURLToPath(new URL("../../", import.meta.url));
   await app.listen({ host: "127.0.0.1", port: 0 });
-  const address = app.server.address();
-  assert.ok(address && typeof address !== "string");
+  const address = app.server.address(); assert.ok(address && typeof address !== "string");
   const vite = spawn(process.execPath, [path.join(root, "apps/renderer/node_modules/vite/bin/vite.js"), "--host", "127.0.0.1", "--port", "5189", "--strictPort", "--mode", "web-demo"], {
     cwd: path.join(root, "apps/renderer"), windowsHide: true, stdio: "pipe",
-    env: { ...process.env, VITE_API_BASE_URL: `http://127.0.0.1:${address.port}/api`, VITE_GOOGLE_MAPS_API_KEY: "ui-test-intercepted", VITE_GOOGLE_MAPS_MAP_ID: "ui-test-intercepted", VITE_WEB_DEMO: "false" },
+    env: { ...process.env, VITE_API_BASE_URL: `http://127.0.0.1:${address.port}/api`, VITE_WEB_DEMO: "false" },
   });
   let browser;
   let debugPage: import("@playwright/test").Page | undefined;
@@ -49,69 +29,86 @@ export async function verifyLocationUi(
     }
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, permissions: ["clipboard-read", "clipboard-write"] });
-    await context.addInitScript("window.__name = (fn) => fn;"); // tsx preserves nested callback names in serialized browser functions.
+    await context.addInitScript("window.__name = (fn) => fn;");
     await context.addInitScript((session) => { localStorage.setItem("dalaly.session", session); }, token);
-    const page = await context.newPage();
-    debugPage = page;
-    const errors: string[] = []; page.on("pageerror", (cause) => errors.push(cause.message));
-    let apiLoads = 0;
-    let failApi = false;
-    await page.route("https://maps.googleapis.com/maps/api/js?*", async (route) => {
-      apiLoads++;
-      if (failApi) { await route.abort(); return; }
-      await route.fulfill({ contentType: "application/javascript", body: mapsDouble });
+    let tileRequests = 0;
+    let failTiles = false;
+    const googleRequests: string[] = [];
+    context.on("request", (req) => { if (/maps\.googleapis\.com|maps\.gstatic\.com/.test(req.url())) googleRequests.push(req.url()); });
+    await context.route("https://tile.openstreetmap.org/**", async (route) => {
+      tileRequests++;
+      if (failTiles) await route.abort();
+      else await route.fulfill({ contentType: "image/png", body: fixtureTile, headers: { "cache-control": "public, max-age=604800" } });
     });
+    const page = await context.newPage(); debugPage = page;
+    const errors: string[] = []; page.on("pageerror", (cause) => errors.push(cause.message));
+    const lat = page.getByLabel("خط العرض", { exact: true });
+    const lng = page.getByLabel("خط الطول", { exact: true });
+    const link = page.getByLabel("رابط الموقع", { exact: true });
+    const map = page.getByRole("region", { name: "خريطة موقع العقار" });
+    const mapTab = page.getByRole("tab", { name: "الموقع على الخريطة" });
     await page.goto(`http://127.0.0.1:5189/#/properties/${ids.properties}`);
-    await expect(page.getByRole("tab", { name: "الموقع على الخريطة" })).toBeVisible({ timeout: 15000 });
-    await page.getByRole("tab", { name: "الموقع على الخريطة" }).click();
+    await expect(mapTab).toBeVisible({ timeout: 15000 });
+    await mapTab.click();
     await expect(page.getByText("لم يتم تحديد موقع لهذا العقار بعد", { exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "إضافة موقع العقار" })).toBeVisible();
-    assert.equal(apiLoads, 0);
+    assert.equal(tileRequests, 0);
     await page.getByRole("button", { name: "إضافة موقع العقار" }).click();
     await expect(page.getByLabel("اسم المالك", { exact: true })).toHaveValue("اختبار");
-    await page.getByLabel("خط العرض", { exact: true }).fill("33.3152");
-    await page.getByLabel("خط الطول", { exact: true }).fill("44.3661");
-    await expect(page.getByLabel("رابط خرائط Google", { exact: true })).toHaveValue(/33\.31520000,44\.36610000/);
+    await lat.fill("33.3152"); await lng.fill("44.3661");
+    await expect(link).toHaveValue(/openstreetmap\.org\/\?mlat=33\.31520000&mlon=44\.36610000/);
     await page.getByRole("button", { name: "تحديد الموقع على الخريطة" }).click();
-    await expect(page.getByRole("region", { name: "خريطة موقع العقار" })).toBeVisible();
-    await page.waitForFunction(() => (window as any).__mapsTest?.maps.length === 1);
-    assert.equal(apiLoads, 1);
-    await page.evaluate(() => {
-      const state = (window as any).__mapsTest;
-      state.maps.at(-1).events.click({ latLng: { toJSON: () => ({ lat: 34.1, lng: 45.2 }) } });
-    });
-    await expect(page.getByLabel("خط العرض", { exact: true })).toHaveValue("34.1");
-    await page.evaluate(() => {
-      const marker = (window as any).__mapsTest.markers.at(-1);
-      marker.position = { lat: 34.2, lng: 45.3 }; marker.events.dragend();
-    });
-    await expect(page.getByLabel("خط الطول", { exact: true })).toHaveValue("45.3");
-    await page.getByLabel("خط العرض", { exact: true }).fill("91");
+    await expect(map.locator(".leaflet-container")).toBeVisible();
+    await expect(map.locator(".leaflet-marker-icon")).toHaveClass(/leaflet-marker-draggable/);
+    await expect(map.locator(".leaflet-control-attribution")).toContainText("OpenStreetMap");
+    await expect.poll(() => tileRequests).toBeGreaterThan(0);
+    const tile = map.locator("img.leaflet-tile").first();
+    assert.equal(await tile.getAttribute("referrerpolicy"), "strict-origin-when-cross-origin");
+    await map.locator(".leaflet-container").click({ position: { x: 250, y: 140 } });
+    await expect(lat).not.toHaveValue("33.3152");
+    const clickedLng = await lng.inputValue();
+    const marker = map.locator(".leaflet-marker-icon");
+    const markerBox = await marker.boundingBox(); assert.ok(markerBox);
+    await page.mouse.move(markerBox.x + 12, markerBox.y + 15);
+    await page.mouse.down();
+    await page.mouse.move(markerBox.x + 90, markerBox.y + 55, { steps: 12 });
+    await page.mouse.up();
+    await expect(lng).not.toHaveValue(clickedLng);
+    assert.equal(await marker.evaluate((el) => (el as HTMLImageElement).naturalWidth), 25);
+    await lat.fill("91");
     await page.getByRole("button", { name: "حفظ", exact: true }).click();
-    await expect(page.getByLabel("خط العرض", { exact: true })).toHaveValue("91");
+    await expect(lat).toHaveValue("91");
     assert.equal((await api("GET", `/properties/${ids.properties}`)).body.latitude, null);
-    await page.getByLabel("رابط خرائط Google", { exact: true }).fill("https://www.google.com/maps?q=33.3152,44.3661");
-    await expect(page.getByLabel("خط العرض", { exact: true })).toHaveValue("33.3152");
+    await link.fill("https://www.google.com/maps?q=33.3152,44.3661");
+    await expect(lat).toHaveValue("33.3152");
+    const oldHost = await map.locator(".leaflet-container").elementHandle(); assert.ok(oldHost);
     await page.getByRole("button", { name: "حفظ", exact: true }).click();
     await expect(page).toHaveURL(/#\/properties$/);
     assert.equal((await api("GET", `/properties/${ids.properties}`)).body.longitude, 44.3661);
-    assert.equal(await page.evaluate(() => (window as any).__mapsTest.listeners.every((listener: any) => listener.removed)), true);
+    assert.equal(await oldHost.evaluate((el) => (el as any)._leaflet_id), undefined);
     await page.goto(`http://127.0.0.1:5189/?maps-test=details#/properties/${ids.properties}`);
-    await page.getByRole("tab", { name: "الموقع على الخريطة" }).click();
-    await page.waitForFunction(() => (window as any).__mapsTest?.maps.length === 1);
-    const readonlyMarker = await page.evaluate(() => (window as any).__mapsTest.markers.at(-1).gmpDraggable);
-    assert.equal(readonlyMarker, false);
-    const count = await page.evaluate(() => (window as any).__mapsTest.maps.length);
+    await mapTab.click();
+    await expect(map.locator(".leaflet-marker-icon")).toBeVisible();
+    await expect(map.locator(".leaflet-marker-icon")).not.toHaveClass(/leaflet-marker-draggable/);
+    await map.locator(".leaflet-marker-icon").click();
+    const savedProperty = (await api("GET", `/properties/${ids.properties}`)).body;
+    await expect(map.locator(".leaflet-popup-content")).toContainText(savedProperty.name || `عقار ${savedProperty.code}`);
+    const savedLatitude = await lat.inputValue();
+    await map.locator(".leaflet-container").click({ position: { x: 180, y: 140 } });
+    await expect(lat).toHaveValue(savedLatitude);
+    await map.getByRole("button", { name: "تكبير الخريطة", exact: true }).click();
+    const detailsHost = await map.locator(".leaflet-container").elementHandle(); assert.ok(detailsHost);
+    const mapId = await detailsHost.evaluate((el) => (el as any)._leaflet_id);
     await page.getByRole("tab", { name: "المعلومات الأساسية" }).click();
-    await page.getByRole("tab", { name: "الموقع على الخريطة" }).click();
-    assert.equal(await page.evaluate(() => (window as any).__mapsTest.maps.length), count);
+    await mapTab.click();
+    assert.equal(await detailsHost.evaluate((el) => (el as any)._leaflet_id), mapId);
+    await expect(map.locator(".leaflet-container")).toHaveCount(1);
     await page.evaluate(() => {
-      (window as any).dalalyConfig = { openGoogleMaps: async (url: string) => { (window as any).__openedMap = url; return { ok: true }; } };
+      (window as any).dalalyConfig = { openMapLink: async (url: string) => { (window as any).__openedMap = url; return { ok: true }; } };
     });
-    await page.getByRole("button", { name: "فتح في خرائط Google", exact: true }).click();
-    assert.match(await page.evaluate(() => (window as any).__openedMap), /33\.31520000,44\.36610000/);
+    await page.getByRole("button", { name: "فتح في الخرائط", exact: true }).click();
+    assert.match(await page.evaluate(() => (window as any).__openedMap), /openstreetmap\.org\/\?mlat=33\.31520000/);
     await page.getByRole("button", { name: "نسخ رابط الموقع", exact: true }).click();
-    assert.match(await page.evaluate(() => navigator.clipboard.readText()), /33\.31520000,44\.36610000/);
+    assert.match(await page.evaluate(() => navigator.clipboard.readText()), /mlon=44\.36610000/);
     await page.evaluate(() => window.dispatchEvent(new Event("offline")));
     await expect(page.getByText(/لا يوجد اتصال بالإنترنت/)).toBeVisible();
     assert.equal((await api("GET", `/properties/${ids.properties}`)).body.latitude, 33.3152);
@@ -119,39 +116,63 @@ export async function verifyLocationUi(
     await page.goto(`http://127.0.0.1:5189/?maps-test=rental#/rentals/${ids.rentals}/edit`);
     await expect(page.getByLabel("اسم المالك", { exact: true })).toHaveValue("اختبار");
     await page.getByRole("button", { name: "تحديد الموقع على الخريطة" }).click();
-    await page.waitForFunction(() => (window as any).__mapsTest?.maps.length === 1);
-    assert.deepEqual(await page.evaluate(() => (window as any).__mapsTest.maps.at(-1).options.center), { lat: 33.3152, lng: 44.3661 });
-    assert.equal(await page.evaluate(() => (window as any).__mapsTest.markers.at(-1).map), null);
-    await expect(page.getByLabel("خط العرض", { exact: true })).toHaveValue("");
-    await page.getByLabel("رابط خرائط Google", { exact: true }).fill("https://www.google.com/maps/@34.5,45.5,15z");
-    await expect(page.getByLabel("خط العرض", { exact: true })).toHaveValue("34.5");
+    await expect(map.locator(".leaflet-container")).toBeVisible();
+    await expect(map.locator(".leaflet-marker-icon")).toHaveCount(0);
+    await expect(lat).toHaveValue("");
+    const requested = await tile.getAttribute("src"); assert.ok(requested?.includes("/12/"));
+    await link.fill("https://www.openstreetmap.org/?mlat=34.5&mlon=45.5#map=15/32/43");
+    await expect(lat).toHaveValue("34.5");
     await page.getByRole("button", { name: "مسح الموقع", exact: true }).click();
-    await expect(page.getByLabel("خط العرض", { exact: true })).toHaveValue("");
-    await page.getByLabel("رابط خرائط Google", { exact: true }).fill("https://www.google.com/maps?q=34.5,45.5");
+    await expect(lat).toHaveValue(""); await expect(map.locator(".leaflet-marker-icon")).toHaveCount(0);
+    await link.fill("https://www.google.com/maps?q=34.5,45.5");
     await page.getByRole("button", { name: "حفظ", exact: true }).click();
     await expect(page).toHaveURL(/#\/rentals$/);
     assert.equal((await api("GET", `/rentals/${ids.rentals}`)).body.longitude, 45.5);
+    // Rental details live inside a Vuetify dialog and need their own resize/lifecycle check.
+    const savedRental = (await api("GET", `/rentals/${ids.rentals}`)).body;
+    await page.locator("tbody tr").filter({ hasText: savedRental.code }).getByTitle("عرض", { exact: true }).click();
+    await mapTab.click();
+    await expect(map.locator(".leaflet-marker-icon")).toBeVisible();
+    await expect(map.locator(".leaflet-marker-icon")).not.toHaveClass(/leaflet-marker-draggable/);
+    await map.locator(".leaflet-marker-icon").click();
+    await expect(map.locator(".leaflet-popup-content")).toContainText(savedRental.name || `عقار للإيجار ${savedRental.code}`);
+    const dialogHost = await map.locator(".leaflet-container").elementHandle(); assert.ok(dialogHost);
+    await page.getByRole("button", { name: "إغلاق التفاصيل", exact: true }).click();
+    await expect(map).toHaveCount(0);
+    assert.equal(await dialogHost.evaluate((el) => (el as any)._leaflet_id), undefined);
+    // Both new-listing forms start without a persisted Baghdad marker.
+    for (const entity of ["properties", "rentals"]) {
+      await page.goto(`http://127.0.0.1:5189/?maps-test=new-${entity}#/${entity}/new`);
+      await expect(lat).toHaveValue("");
+      await page.getByRole("button", { name: "تحديد الموقع على الخريطة" }).click();
+      await expect(map.locator(".leaflet-container")).toBeVisible();
+      await expect(map.locator(".leaflet-marker-icon")).toHaveCount(0);
+      await map.locator(".leaflet-container").click({ position: { x: 250, y: 140 } });
+      await expect(lat).not.toHaveValue("");
+      await expect(link).toHaveValue(/openstreetmap\.org/);
+      await page.getByRole("button", { name: "مسح الموقع", exact: true }).click();
+      await expect(lat).toHaveValue("");
+      await expect(map.locator(".leaflet-marker-icon")).toHaveCount(0);
+    }
     await page.evaluate(() => localStorage.setItem("dalaly.theme", "dalalyDark"));
     await page.goto(`http://127.0.0.1:5189/?maps-test=dark#/properties/${ids.properties}`);
-    await page.getByRole("tab", { name: "الموقع على الخريطة" }).click();
-    await page.waitForFunction(() => (window as any).__mapsTest?.maps.length === 1);
-    assert.equal(await page.evaluate(() => (window as any).__mapsTest.maps.at(-1).options.colorScheme), "DARK");
-    failApi = true;
+    await mapTab.click();
+    await expect(map).toHaveClass(/map-dark/);
+    await expect(map.locator(".leaflet-tile-pane")).toHaveCSS("filter", /brightness/);
+    failTiles = true;
     await page.goto(`http://127.0.0.1:5189/?maps-test=error#/properties/${ids.properties}`);
-    await page.getByRole("tab", { name: "الموقع على الخريطة" }).click();
-    await expect(page.getByText(/تعذر تحميل خرائط Google/)).toBeVisible();
-    failApi = false;
+    await mapTab.click();
+    await expect(page.getByText(/تعذر تحميل بعض أجزاء الخريطة/)).toBeVisible();
+    await expect(lat).toHaveValue("33.3152");
+    failTiles = false;
     await page.getByRole("button", { name: "إعادة المحاولة", exact: true }).click();
-    await page.waitForFunction(() => (window as any).__mapsTest?.maps.length === 1);
-    await page.evaluate(() => (window as any).gm_authFailure());
-    await expect(page.getByText(/تعذر التحقق من إعدادات خرائط Google/)).toBeVisible();
-    assert.deepEqual(errors, []);
-    console.log("PASS browser UI: lazy loader, map click/drag, manual/link input, invalid blocking, save/reopen, tab reuse, listener cleanup, readonly, bridge/copy, offline and both themes");
+    await expect(page.getByText(/تعذر تحميل بعض أجزاء الخريطة/)).toHaveCount(0);
+    await expect(map.locator(".leaflet-marker-icon")).toBeVisible();
+    assert.deepEqual(googleRequests, []); assert.deepEqual(errors, []);
+    console.log("PASS real Leaflet UI: click/drag, icons, attribution, manual/OSM/legacy links, save/reopen, invalid blocking, readonly popup, tab reuse, cleanup, bridge/copy, offline, themes and tile retry; zero Google API requests");
     await context.close();
   } catch (error) {
     if (debugPage && !debugPage.isClosed()) console.error("UI failure:", debugPage.url(), (await debugPage.locator("body").innerText()).slice(0, 2200));
     throw error;
-  } finally {
-    await browser?.close(); vite.kill();
-  }
+  } finally { await browser?.close(); vite.kill(); }
 }
