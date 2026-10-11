@@ -1,6 +1,7 @@
 ﻿import {
   bigint,
   bigserial,
+  check,
   boolean,
   index,
   integer,
@@ -12,6 +13,7 @@
   timestamp,
   unique,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
@@ -199,6 +201,9 @@ export const properties = pgTable(
     districtText: text("district_text"),
     neighborhoodText: text("neighborhood_text"),
     addressDetails: text("address_details"),
+    latitude: numeric("latitude", { precision: 10, scale: 8, mode: "number" }),
+    longitude: numeric("longitude", { precision: 11, scale: 8, mode: "number" }),
+    locationLink: text("location_link"),
     ownerName: text("owner_name").notNull(),
     ownerPhone: text("owner_phone").notNull(),
     ownerNotes: text("owner_notes"),
@@ -234,6 +239,7 @@ export const properties = pgTable(
   },
   (table) => [
     index("idx_properties_status").on(table.status),
+    check("properties_location_range", sql`(${table.latitude} IS NULL AND ${table.longitude} IS NULL) OR (${table.latitude} IS NOT NULL AND ${table.longitude} IS NOT NULL AND ${table.latitude} BETWEEN -90 AND 90 AND ${table.longitude} BETWEEN -180 AND 180)`),
     index("idx_properties_type").on(table.propertyType),
     index("idx_properties_legal_type").on(table.legalType),
     index("idx_properties_area_unit").on(table.areaUnit),
@@ -295,6 +301,9 @@ export const rentals = pgTable(
     district: text("district"),
     neighborhood: text("neighborhood"),
     addressDetails: text("address_details"),
+    latitude: numeric("latitude", { precision: 10, scale: 8, mode: "number" }),
+    longitude: numeric("longitude", { precision: 11, scale: 8, mode: "number" }),
+    locationLink: text("location_link"),
     ownerName: text("owner_name").notNull(),
     ownerPhone: text("owner_phone").notNull(),
     ownerNotes: text("owner_notes"),
@@ -315,6 +324,7 @@ export const rentals = pgTable(
   },
   (table) => [
     index("idx_rentals_status").on(table.status),
+    check("rentals_location_range", sql`(${table.latitude} IS NULL AND ${table.longitude} IS NULL) OR (${table.latitude} IS NOT NULL AND ${table.longitude} IS NOT NULL AND ${table.latitude} BETWEEN -90 AND 90 AND ${table.longitude} BETWEEN -180 AND 180)`),
     index("idx_rentals_property_type").on(table.propertyType),
     index("idx_rentals_rent_period").on(table.rentPeriod),
     index("idx_rentals_rent_price").on(table.rentPrice),

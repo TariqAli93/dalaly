@@ -150,7 +150,7 @@ onBeforeUnmount(() => unsubscribe?.());
 }
 .skyline {
   position: absolute;
-  inset: -6px -6px 0;
+  inset: 0;
   opacity: 0.84;
   pointer-events: none;
 }

@@ -475,6 +475,9 @@ async function normalizePayload(
       ? null
       : (payload.neighborhood_text ?? null),
     addressDetails: payload.address_details,
+    latitude: payload.latitude,
+    longitude: payload.longitude,
+    locationLink: payload.location_link,
     ownerPersonId: payload.owner_person_id ?? null,
     ownerName: payload.owner_name,
     ownerPhone: payload.owner_phone,

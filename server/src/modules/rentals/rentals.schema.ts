@@ -6,6 +6,8 @@ import {
   RENT_PERIODS,
 } from "../../shared/constants/domain.js";
 
+import { locationFields, refineLocation } from "../../shared/validation/location.js";
+
 const optionalText = z
   .string()
   .trim()
@@ -21,6 +23,7 @@ const optionalCount = z.coerce
 const optionalId = z.coerce.number().int().positive().optional().nullable();
 
 export const rentalPayloadSchema = z.object({
+  ...locationFields,
   name: optionalText,
   property_type: z.enum(RENTAL_PROPERTY_TYPES),
   rent_price: z.coerce.number().positive(),
@@ -46,7 +49,7 @@ export const rentalPayloadSchema = z.object({
   status: z.enum(RENTAL_STATUSES).default("available"),
   is_negotiable: z.coerce.boolean().default(false),
   notes: optionalText,
-});
+}).superRefine(refineLocation);
 
 export const rentalFiltersSchema = z.object({
   property_type: z.enum(RENTAL_PROPERTY_TYPES).optional(),

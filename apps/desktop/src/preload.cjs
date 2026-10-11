@@ -1,6 +1,8 @@
-import { contextBridge, ipcRenderer } from "electron";
+// Explicit CommonJS keeps preload loading synchronous in the ESM desktop package.
+const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("dalalyConfig", {
+  openGoogleMaps: (url) => ipcRenderer.invoke("maps:open-external", url),
   // يحفظ DATABASE_URL الناتج عن تهيئة النظام (First Run Wizard).
   saveDatabaseUrl: (databaseUrl) =>
     ipcRenderer.invoke("config:save-database-url", databaseUrl),

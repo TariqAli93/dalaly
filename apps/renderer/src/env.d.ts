@@ -8,6 +8,8 @@ declare module "*.vue" {
 
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string;
+  readonly VITE_GOOGLE_MAPS_API_KEY?: string;
+  readonly VITE_GOOGLE_MAPS_MAP_ID?: string;
   /** "true" في وضع web-demo فقط (pnpm dev:web) — لا يُفعَّل في نسخة سطح المكتب. */
   readonly VITE_WEB_DEMO?: string;
   /** "true" أثناء جلسات التصوير الآلي (Playwright). */
@@ -19,6 +21,7 @@ interface ImportMeta {
 }
 
 interface DalalyConfigBridge {
+  openGoogleMaps?: (url: string) => Promise<{ ok: boolean }>;
   saveDatabaseUrl: (
     databaseUrl: string,
   ) => Promise<{ ok: boolean; message?: string }>;

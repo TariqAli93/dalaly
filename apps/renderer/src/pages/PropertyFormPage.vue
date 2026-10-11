@@ -28,6 +28,9 @@ const people = ref<PersonRecord[]>([]);
 
 function defaultForm(): PropertyFormType {
   return {
+    latitude: null,
+    longitude: null,
+    location_link: null,
     name: "",
     property_type: "أرض",
     legal_type: "طابو ملك صرف",
@@ -69,6 +72,9 @@ function defaultForm(): PropertyFormType {
 
 function propertyToForm(p: PropertyRecord): PropertyFormType {
   return {
+    latitude: p.latitude ?? null,
+    longitude: p.longitude ?? null,
+    location_link: p.location_link ?? null,
     name: p.name ?? "",
     property_type: p.property_type,
     legal_type: p.legal_type,

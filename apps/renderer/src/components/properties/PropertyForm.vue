@@ -11,6 +11,7 @@ import {
 import { formatMoney, toNumber } from "../../utils/format";
 import type { PersonRecord, PropertyForm } from "../../types";
 import LocationSelects from "./LocationSelects.vue";
+import PropertyLocationEditor from "../shared/PropertyLocationEditor.vue";
 import NumberField from "../app/NumberField.vue";
 import { AMENITY_OPTIONS } from "../../utils/amenities";
 
@@ -110,6 +111,7 @@ defineExpose({ validate, computedTotal });
           class="w-100 mt-2"
           label="العنوان التفصيلي"
         />
+        <PropertyLocationEditor v-model:latitude="model.latitude" v-model:longitude="model.longitude" v-model:location-link="model.location_link" />
 
         <v-divider class="my-4" />
         <div class="form-grid">

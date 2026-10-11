@@ -8,6 +8,7 @@ import {
   ipcMain,
 } from "electron";
 import log from "electron-log/main.js";
+import { safeExternalUrl, safeGoogleMapsUrl } from "./external-links.js";
 import nodemailer from "nodemailer";
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
@@ -21,6 +22,13 @@ log.transports.console.level = "info";
 
 app.commandLine.appendSwitch("lang", "ar-IQ");
 app.setName("دلالي");
+// Honor Chromium's explicit profile switch for isolated packaged verification.
+const profileDirectory = app.commandLine.getSwitchValue("user-data-dir");
+if (profileDirectory) {
+  const resolvedProfileDirectory = path.resolve(profileDirectory);
+  fs.mkdirSync(resolvedProfileDirectory, { recursive: true });
+  app.setPath("userData", resolvedProfileDirectory);
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..", "..", "..");
@@ -180,7 +188,7 @@ async function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.join(__dirname, "preload.cjs"),
     },
   });
 
@@ -190,8 +198,16 @@ async function createWindow() {
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url);
+    const safe = safeExternalUrl(url);
+    if (safe) void shell.openExternal(safe).catch((error) => log.warn("Could not open external link", error));
     return { action: "deny" };
+  });
+  mainWindow.webContents.on("will-navigate", (event, url) => {
+    const current = mainWindow?.webContents.getURL();
+    if (url === current) return;
+    event.preventDefault();
+    const safe = safeExternalUrl(url);
+    if (safe) void shell.openExternal(safe).catch((error) => log.warn("Could not open external link", error));
   });
 
   if (viteUrl) {
@@ -302,6 +318,14 @@ function stopLocalApi() {
 
 // يحفظ DATABASE_URL الناتج عن /api/setup/initialize ليُستخدم في التشغيل القادم.
 // الخادم الحالي يكون قد أعاد تهيئة الـ pool حيّاً، لذا لا حاجة لإعادة تشغيله الآن.
+ipcMain.handle("maps:open-external", async (event, value) => {
+  if (!mainWindow || event.sender !== mainWindow.webContents || event.senderFrame !== mainWindow.webContents.mainFrame) return { ok: false };
+  const url = safeGoogleMapsUrl(value);
+  if (!url) return { ok: false };
+  try { await shell.openExternal(url); return { ok: true }; }
+  catch { return { ok: false }; }
+});
+
 ipcMain.handle("config:save-database-url", async (_event, databaseUrl) => {
   if (typeof databaseUrl !== "string" || !databaseUrl) {
     return { ok: false, message: "DATABASE_URL غير صالح." };
@@ -667,7 +691,7 @@ function createSplashWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
-      preload: path.join(__dirname, "splash-preload.js"),
+      preload: path.join(__dirname, "splash-preload.cjs"),
     },
   });
   const currentSplash = splashWindow;

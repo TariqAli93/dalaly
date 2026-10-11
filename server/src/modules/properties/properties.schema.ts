@@ -7,6 +7,8 @@ import {
   STATUSES,
 } from "../../shared/constants/domain.js";
 
+import { locationFields, refineLocation } from "../../shared/validation/location.js";
+
 const optionalText = z
   .string()
   .trim()
@@ -24,6 +26,7 @@ const optionalCount = z.coerce
 
 export const propertyPayloadSchema = z
   .object({
+    ...locationFields,
     name: optionalText,
     property_type: z.enum(PROPERTY_TYPES),
     legal_type: z.enum(LEGAL_TYPES),
@@ -66,6 +69,7 @@ export const propertyPayloadSchema = z
     amenities: z.record(z.string(), z.unknown()).default({}),
   })
   .superRefine((value, ctx) => {
+    refineLocation(value, ctx);
     if (
       value.pricing_method !== "سعر إجمالي مباشر" &&
       (!value.unit_price || value.unit_price <= 0)

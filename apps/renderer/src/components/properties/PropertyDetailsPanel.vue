@@ -12,7 +12,7 @@ import PropertyImages from "./PropertyImages.vue";
 import FollowupsTab from "./FollowupsTab.vue";
 import LinkedContracts from "../contracts/LinkedContracts.vue";
 import RecordNotes from "../shared/RecordNotes.vue";
-import EmptyState from "../shared/EmptyState.vue";
+import PropertyLocationView from "../shared/PropertyLocationView.vue";
 import { getErrorMessage } from "../../services/api.service";
 import { amenitiesText } from "../../utils/amenities";
 
@@ -28,24 +28,15 @@ const emit = defineEmits<{
 const { can } = usePermissions();
 
 const tab = ref("details");
+const mapVisited = ref(false);
+watch(tab, (value) => { if (value === "map") mapVisited.value = true; });
 const auditLogs = ref<AuditLogRecord[]>([]);
 const auditLoading = ref(false);
 const auditError = ref("");
-const address = computed(() =>
-  [
-    props.property.governorate || props.property.governorate_text,
-    props.property.city,
-    props.property.district || props.property.district_text,
-    neighborhoodOf(props.property),
-    props.property.address_details,
-  ]
-    .filter(Boolean)
-    .join(" · "),
-);
-const mapUrl = computed(
-  () =>
-    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address.value + " العراق")}`,
-);
+const address = computed(() => [
+  props.property.governorate || props.property.governorate_text, props.property.city,
+  props.property.district || props.property.district_text, neighborhoodOf(props.property), props.property.address_details,
+].filter(Boolean).join(" · "));
 const extraFields = computed(() =>
   [
     ["المدينة", props.property.city],
@@ -91,6 +82,7 @@ watch(
   () => props.property.id,
   (id) => {
     tab.value = "details";
+    mapVisited.value = false;
     void loadAudit(id);
   },
   { immediate: true },
@@ -276,28 +268,12 @@ watch(
 
           <v-window-item value="images" />
 
-          <v-window-item value="map"
-            ><v-card variant="flat" border
-              ><v-card-title>عنوان العقار</v-card-title
-              ><v-card-text
-                ><p>{{ address || "لم يُسجّل عنوان لهذا العقار." }}</p>
-                <EmptyState
-                  icon="mdi-map-marker-off-outline"
-                  title="الإحداثيات غير متوفرة"
-                  text="لا يمكن إظهار موضع دقيق دون إحداثيات مسجّلة. يمكنك البحث عن العنوان في خرائط Google."
-                /><v-btn
-                  v-if="address"
-                  :href="mapUrl"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  color="primary"
-                  variant="tonal"
-                  prepend-icon="mdi-open-in-new"
-                  >البحث عن العنوان في خرائط Google</v-btn
-                ></v-card-text
-              ></v-card
-            ></v-window-item
-          >
+          <v-window-item value="map">
+            <PropertyLocationView v-if="mapVisited" :active="tab === 'map'" :key="property.id"
+              :address="address"
+              :latitude="property.latitude" :longitude="property.longitude" :location-link="property.location_link"
+              :can-edit="can('properties.update')" @edit="emit('edit', property)" />
+          </v-window-item>
           <v-window-item value="notes"
             ><RecordNotes
               :notes="[

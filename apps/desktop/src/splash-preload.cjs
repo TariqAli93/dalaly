@@ -1,4 +1,5 @@
-import { contextBridge, ipcRenderer } from "electron";
+// Electron preloads use an explicit extension independent of package.json's type.
+const { contextBridge, ipcRenderer } = require("electron");
 
 // واجهة محدودة وآمنة لشاشة البدء فقط: استقبال التقدم وقراءة الإصدار.
 // لا نكشف ipcRenderer كاملاً، ولا نفعّل nodeIntegration.

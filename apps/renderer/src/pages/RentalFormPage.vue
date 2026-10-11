@@ -24,6 +24,9 @@ const { notifyError, notifySuccess } = useSnackbar();
 
 function empty(): RentalFormType {
   return {
+    latitude: null,
+    longitude: null,
+    location_link: null,
     name: "",
     property_type: "house",
     rent_price: "",
@@ -54,6 +57,9 @@ function empty(): RentalFormType {
 
 function toForm(item: RentalRecord): RentalFormType {
   return {
+    latitude: item.latitude ?? null,
+    longitude: item.longitude ?? null,
+    location_link: item.location_link ?? null,
     name: item.name ?? "",
     property_type: item.property_type,
     rent_price: item.rent_price,

@@ -10,6 +10,7 @@ import RentalExportMenu from "./RentalExportMenu.vue";
 import RentalImages from "./RentalImages.vue";
 import RentalFollowupsTab from "./RentalFollowupsTab.vue";
 import AuditLogList from "../properties/AuditLogList.vue";
+import PropertyLocationView from "../shared/PropertyLocationView.vue";
 
 const open = defineModel<boolean>({ required: true });
 const props = defineProps<{ rental: RentalRecord | null }>();
@@ -22,6 +23,8 @@ const emit = defineEmits<{
 
 const { can } = usePermissions();
 const tab = ref("details");
+const mapVisited = ref(false);
+watch(tab, (value) => { if (value === "map") mapVisited.value = true; });
 const auditLogs = ref<AuditLogRecord[]>([]);
 const auditLoading = ref(false);
 
@@ -59,6 +62,7 @@ watch(
   ([isOpen, id]) => {
     if (isOpen) {
       tab.value = "details";
+      mapVisited.value = false;
       if (id) void loadAudit(id);
     }
   },
@@ -90,6 +94,7 @@ watch(
 
       <v-tabs v-model="tab" color="primary">
         <v-tab value="details">التفاصيل</v-tab>
+        <v-tab value="map">الموقع على الخريطة</v-tab>
         <v-tab value="images">الصور</v-tab>
         <v-tab v-if="can('rentals.followups.read')" value="followups"
           >المتابعات</v-tab
@@ -227,6 +232,11 @@ watch(
             </v-window-item>
 
             <v-window-item value="images" />
+            <v-window-item value="map">
+              <PropertyLocationView v-if="open && mapVisited" :active="tab === 'map'" :key="rental.id"
+                :latitude="rental.latitude" :longitude="rental.longitude" :location-link="rental.location_link"
+                :can-edit="can('rentals.update')" @edit="emit('edit', rental)" />
+            </v-window-item>
 
             <v-window-item
               v-if="can('rentals.followups.read')"

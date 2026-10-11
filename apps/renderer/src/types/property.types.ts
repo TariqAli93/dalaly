@@ -35,6 +35,9 @@ export type PropertyStatus =
   | "custom";
 
 export type PropertyRecord = {
+  latitude: number | null;
+  longitude: number | null;
+  location_link: string | null;
   id: number;
   name: string | null;
   code: string;
@@ -84,6 +87,9 @@ export type PropertyRecord = {
 };
 
 export type PropertyForm = {
+  latitude: number | string | null;
+  longitude: number | string | null;
+  location_link: string | null;
   name: string;
   property_type: string;
   legal_type: string;

@@ -46,6 +46,9 @@ export type RentalImage = {
   created_at: string;
 };
 export type RentalRecord = {
+  latitude: number | null;
+  longitude: number | null;
+  location_link: string | null;
   id: number;
   image: string;
   name: string | null;
@@ -79,6 +82,9 @@ export type RentalRecord = {
   archived_at: string | null;
 };
 export type RentalForm = {
+  latitude: number | string | null;
+  longitude: number | string | null;
+  location_link: string | null;
   name: string;
   property_type: RentalPropertyType;
   rent_price: string | number;

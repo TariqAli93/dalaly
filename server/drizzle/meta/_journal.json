@@ -127,6 +127,13 @@
       "when": 1790938800000,
       "tag": "0017_contract_payments_multi_assets",
       "breakpoints": false
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791676800000,
+      "tag": "0018_listing_locations",
+      "breakpoints": false
     }
   ]
 }

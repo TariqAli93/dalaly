@@ -1,5 +1,8 @@
 import { type FastifyPluginAsync } from "fastify";
 import { requirePermission } from "../auth/auth.hooks.js";
+import { z } from "zod";
+import { resolveMapLink } from "./map-link.service.js";
+import { googleMapsUrl } from "../../shared/utils/google-maps-url.js";
 import { seedIraqLocations } from "../../infrastructure/database/iraq-locations.seed.js";
 import {
   createDistrict,
@@ -27,6 +30,18 @@ function parseId(value: string) {
 }
 
 export const locationsRoutes: FastifyPluginAsync = async (app) => {
+  let resolvingLinks = 0;
+  app.post("/resolve-map-link", async (request, reply) => {
+    const { url } = z.object({ url: z.string().max(2048).refine((value) => !!googleMapsUrl(value)) }).parse(request.body);
+    if (resolvingLinks >= 4) return reply.code(429).send({ message: "توجد طلبات كثيرة لحل روابط المواقع. أعد المحاولة بعد قليل." });
+    resolvingLinks++;
+    try {
+      const point = await resolveMapLink(url);
+      if (point) return { latitude: point.lat, longitude: point.lng };
+    } catch { /* Network failures must not prevent manual location entry. */ }
+    finally { resolvingLinks--; }
+    return reply.code(422).send({ message: "تعذر استخراج الإحداثيات من الرابط. أدخلها يدوياً أو حدد الموقع على الخريطة." });
+  });
   // القراءة متاحة لأي مستخدم مصادق (لازمة لنماذج العقار).
   app.get("/", async () => getLocations());
 
