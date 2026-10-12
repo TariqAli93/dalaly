@@ -72,6 +72,25 @@ export function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "حدث خطأ غير متوقع.";
 }
 
+export class ApiError extends Error {
+  readonly issues: Array<{
+    message: string;
+    path?: string | Array<string | number>;
+    code?: string;
+  }>;
+  constructor(
+    body: unknown,
+    readonly status: number,
+  ) {
+    super(formatApiError(body));
+    this.name = "ApiError";
+    this.issues =
+      body && typeof body === "object" && "issues" in body
+        ? ((body as { issues?: ApiError["issues"] }).issues ?? [])
+        : [];
+  }
+}
+
 /** طلب عام لا يتطلب توكن (الصحة، الإعداد، تسجيل الدخول). */
 export async function publicRequest<T>(
   path: string,
@@ -81,7 +100,7 @@ export async function publicRequest<T>(
   const body = await parseBody(response);
 
   if (!response.ok) {
-    throw new Error(formatApiError(body));
+    throw new ApiError(body, response.status);
   }
 
   return body as T;
@@ -101,7 +120,7 @@ export async function request<T>(
   }
 
   if (!response.ok) {
-    throw new Error(formatApiError(body));
+    throw new ApiError(body, response.status);
   }
 
   return body as T;

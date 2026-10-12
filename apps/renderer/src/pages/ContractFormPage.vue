@@ -24,17 +24,17 @@ function cancel() {
 function saved(bundle: ContractBundle) {
   finished.value = true;
   notifySuccess(
-    editing.value
-      ? "تم تحديث مسودة العقد."
-      : "تم حفظ مسودة العقد. يمكنك تصديرها أو متابعة اعتمادها من إجراءات العقد.",
+    bundle.contract.status === "draft"
+      ? "تم حفظ مسودة العقد."
+      : "تم إصدار العقد وحفظ نسخته التاريخية.",
   );
-  void router.push({ path: "/contracts", query: { view: bundle.contract.id } });
+  void router.push(`/contracts/${bundle.contract.id}/review`);
 }
 </script>
 <template>
   <AppLayout
     :title="editing ? 'تعديل عقد مسودة' : 'إنشاء عقد جديد'"
-    subtitle="بيانات العقد والعقار والأطراف والمستمسكات في مسار واحد."
+    subtitle="بيانات العقد والعقار والأطراف والمستمسكات في صفحة واحدة مع حفظ تلقائي."
   >
     <template #header-actions
       ><v-btn variant="text" prepend-icon="mdi-arrow-right" @click="cancel"

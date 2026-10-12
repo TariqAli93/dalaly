@@ -35,6 +35,9 @@ const NAV_ORDER = [
   "/rentals",
   "/people",
   "/contracts",
+  "/contracts/create",
+  "/contracts/review",
+  "/contracts/legal-templates",
   "/properties/new",
   "/rentals/new",
   "/favorites",
@@ -43,7 +46,6 @@ const NAV_ORDER = [
   "/purchase-requests",
   "/documents",
   "/contract-templates",
-  "/settings/legal-content",
   "/users",
   "/roles",
   "/locations",
@@ -95,38 +97,44 @@ async function onLogout() {
     <v-divider />
 
     <v-list nav density="compact">
-      <v-tooltip
-        v-for="item in orderedNav"
-        :key="item.to"
-        :text="item.title"
-        :disabled="!isRail"
-        location="start"
-      >
-        <template #activator="{ props }">
-          <v-list-item
-            v-bind="props"
-            :to="item.to"
-            :active="
-              $route.path === item.to ||
-              (item.to === '/people' && $route.path.startsWith('/clients/')) ||
-              (['/properties', '/contracts'].includes(item.to) &&
-                $route.path.startsWith(item.to + '/') &&
-                $route.path !== item.to + '/new')
-            "
-            :prepend-icon="item.icon"
-            :aria-label="item.title"
-            class="dal-nav-item"
-            :title="
-              item.to === '/'
-                ? 'لوحة التحكم'
-                : item.to === '/people'
-                  ? 'العملاء والأشخاص'
-                  : item.title
-            "
-            @click="go(item.to)"
-          />
-        </template>
-      </v-tooltip>
+      <template v-for="item in orderedNav" :key="item.to">
+        <v-list-subheader v-if="!isRail && item.to === '/contracts'"
+          >العقود</v-list-subheader
+        >
+        <v-tooltip :text="item.title" :disabled="!isRail" location="start">
+          <template #activator="{ props }">
+            <v-list-item
+              v-bind="props"
+              :to="item.to"
+              :active="
+                $route.path === item.to ||
+                (item.to === '/people' &&
+                  $route.path.startsWith('/clients/')) ||
+                (item.to === '/contracts/review' &&
+                  /^\/contracts\/\d+\/review$/.test($route.path)) ||
+                (item.to === '/contracts/legal-templates' &&
+                  $route.path === '/settings/legal-content') ||
+                (item.to === '/contracts/create' &&
+                  /^\/contracts\/\d+\/edit$/.test($route.path)) ||
+                (item.to === '/properties' &&
+                  $route.path.startsWith(item.to + '/') &&
+                  $route.path !== item.to + '/new')
+              "
+              :prepend-icon="item.icon"
+              :aria-label="item.title"
+              class="dal-nav-item"
+              :title="
+                item.to === '/'
+                  ? 'لوحة التحكم'
+                  : item.to === '/people'
+                    ? 'العملاء والأشخاص'
+                    : item.title
+              "
+              @click="go(item.to)"
+            />
+          </template>
+        </v-tooltip>
+      </template>
     </v-list>
 
     <template #append>

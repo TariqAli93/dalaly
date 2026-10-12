@@ -1,5 +1,6 @@
 import type { LegalRevisionPayload } from "./legal-content.schema.js";
 export const allowedKeys = [
+  "office.involvement",
   "contract.transaction_kind",
   "contract.jurisdiction",
   "contract.registration_reference",

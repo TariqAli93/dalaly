@@ -38,6 +38,27 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/contracts/review",
+    name: "contract-review",
+    component: () => import("../pages/ContractsPage.vue"),
+    props: { reviewMode: true },
+    meta: {
+      requiresAuth: true,
+      permission: "contracts.read",
+      titleKey: "routes.contracts",
+    },
+  },
+  {
+    path: "/contracts/:id/review",
+    name: "contract-review-details",
+    component: () => import("../pages/ContractReviewPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "contracts.read",
+      titleKey: "routes.contracts",
+    },
+  },
+  {
     path: "/contracts/create",
     name: "contract-create",
     component: () => import("../pages/ContractFormPage.vue"),
@@ -196,6 +217,7 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: "/settings/legal-content",
+    alias: "/contracts/legal-templates",
     name: "legal-content",
     component: () => import("../pages/LegalContentPage.vue"),
     meta: {

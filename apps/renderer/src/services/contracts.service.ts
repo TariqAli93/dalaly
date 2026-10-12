@@ -81,3 +81,52 @@ export function reviewContract(
 export function issueContract(id: number) {
   return request<ContractBundle>(`/contracts/${id}/issue`, { method: "POST" });
 }
+
+export function cancelContract(
+  id: number,
+  payload: { reason: string; cancellation_date: string; notes?: string },
+) {
+  return request<ContractBundle>(`/contracts/${id}/cancel`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function recordPrint(id: number, format: "print" | "pdf" | "docx") {
+  return request<ContractBundle>(`/contracts/${id}/print-record`, {
+    method: "POST",
+    body: JSON.stringify({ format }),
+  });
+}
+
+export function exportContractDocx(id: number) {
+  return request<{ filename: string; data: string }>(`/contracts/${id}/docx`);
+}
+
+export type SettlementInput = {
+  kind: "refund" | "retained_payment" | "remaining_obligation";
+  amount: number;
+  reference: string;
+  reason: string;
+  settlement_date: string;
+  request_id: string;
+};
+export function recordSettlement(id: number, payload: SettlementInput) {
+  return request<ContractBundle>(`/contracts/${id}/settlements`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateAgreementProcedure(id: number, payload: unknown) {
+  return request<import("../types/crm.types").AgreementFollowup>(
+    `/contracts/${id}/procedures`,
+    { method: "PUT", body: JSON.stringify(payload) },
+  );
+}
+export function attachAgreementProcedure(id: number, payload: unknown) {
+  return request<import("../types/crm.types").AgreementFollowup>(
+    `/contracts/${id}/procedures/attachments`,
+    { method: "POST", body: JSON.stringify(payload) },
+  );
+}

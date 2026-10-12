@@ -38,6 +38,7 @@ const idleOptions = [
 ];
 const company = ref({
   company_name: "",
+  owner_name: "",
   phone_primary: "",
   phone_secondary: "",
   email: "",
@@ -93,6 +94,7 @@ async function loadCompany() {
     const value = await companyService.getCompanySettings();
     company.value = {
       company_name: value.company_name,
+      owner_name: value.owner_name ?? "",
       phone_primary: value.phone_primary ?? "",
       phone_secondary: value.phone_secondary ?? "",
       email: value.email ?? "",
@@ -152,7 +154,7 @@ onMounted(() => {
       prepend-icon="mdi-scale-balance"
       class="mb-4"
       variant="tonal"
-      >إدارة الصيغ القانونية</v-btn
+      >إدارة صيغ العقود</v-btn
     >
     <v-card variant="flat" border class="settings-navigation"
       ><v-tabs v-model="settingsTab" color="primary"
@@ -176,7 +178,13 @@ onMounted(() => {
           <v-card-title>معلومات الشركة</v-card-title>
           <v-card-text>
             <div class="settings-grid settings-grid--company">
-              <v-text-field v-model="company.company_name" label="اسم الشركة" />
+              <v-text-field
+                v-model="company.company_name"
+                label="اسم المكتب"
+              /><v-text-field
+                v-model="company.owner_name"
+                label="اسم صاحب المكتب"
+              />
               <v-text-field
                 v-model="company.phone_primary"
                 label="الهاتف الأساسي"

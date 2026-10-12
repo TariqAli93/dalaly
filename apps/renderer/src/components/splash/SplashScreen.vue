@@ -133,8 +133,6 @@ onBeforeUnmount(() => unsubscribe?.());
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
-  -webkit-app-region: drag;
-  app-region: drag;
 }
 .splash-app :deep(.v-application__wrap) {
   min-height: 0;

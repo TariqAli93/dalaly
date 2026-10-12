@@ -17,6 +17,7 @@ export type LegalClause = {
 export type LegalRevision = {
   id: number;
   family_code: string;
+  wording_origin: "office_standard" | "specialist";
   contract_type: "sale" | "rental";
   property_type: string;
   jurisdiction: string;
@@ -35,6 +36,9 @@ export type LegalRevision = {
   publication_status: string;
   workflow_status: string;
   is_default: boolean;
+  is_system: boolean;
+  deleted_at: string | null;
+  deleted_by: number | null;
   target_at: string | null;
   priority: number;
   updated_at: string;
@@ -50,16 +54,11 @@ export type LegalEvent = {
   reviewer_snapshot: Record<string, unknown> | null;
   details: Record<string, unknown>;
 };
-export type Reviewer = {
-  user_id: number;
-  lawyer_name: string;
-  registration_number: string;
-  qualification_evidence: string;
-  is_active: boolean;
-  verified_by?: number;
-  verified_at?: string;
-};
 export const propertyScopes = [
+  {
+    title: "جميع أجناس العقارات — صيغة المكتب العامة",
+    value: "all_properties",
+  },
   { title: "مكتب", value: "office" },
   { title: "أرض غير محددة الاستخدام", value: "land" },
   { title: "بيت", value: "house" },
@@ -84,15 +83,15 @@ export const transactionKinds = [
 export const statusLabels: Record<string, string> = {
   draft: "مسودة",
   ready: "جاهزة للاعتماد",
-  specialist_review: "تحتاج مراجعة مختصة",
+  specialist_review: "بانتظار المراجعة",
   approved: "معتمدة",
-  active: "نشطة",
-  archived: "مؤرشفة",
+  active: "مفعلة",
+  archived: "غير مفعلة",
 };
 export const changeLabels: Record<string, string> = {
-  new_legal: "صيغة جديدة تحتاج مراجعة مختصة",
+  new_legal: "صيغة جديدة",
   administrative: "تعديل إداري على نص مراجع مسبقاً",
-  substantive: "تغيير قانوني جوهري يحتاج مراجعة مختصة",
+  substantive: "تغيير في الأحكام القانونية",
 };
 export const priorities = [
   { title: "عادية", value: 0 },
@@ -184,7 +183,12 @@ export function preview(
   contractId?: number,
   additionalConditions = "",
 ) {
-  return request<{ html: string; content: string }>("/legal-content/preview", {
+  return request<{
+    html: string;
+    content: string;
+    variables: Array<{ key: string; value: string }>;
+    rendered_clauses: Array<{ code: string; title: string; text: string }>;
+  }>("/legal-content/preview", {
     method: "POST",
     body: JSON.stringify({
       revision,
@@ -229,9 +233,6 @@ export function listLegalContent() {
 export function legalHistory() {
   return request<LegalEvent[]>("/legal-content/history");
 }
-export function listReviewers() {
-  return request<Reviewer[]>("/legal-content/reviewers");
-}
 export function saveRevision(id: number | null, payload: unknown) {
   return request<LegalRevision>(
     id ? `/legal-content/${id}/revisions` : "/legal-content",
@@ -244,9 +245,6 @@ export function decision(id: number, action: string, comment: string) {
     body: JSON.stringify({ action, comment }),
   });
 }
-export function verifyReviewer(payload: Reviewer) {
-  return request<Reviewer>("/legal-content/reviewers", {
-    method: "PUT",
-    body: JSON.stringify(payload),
-  });
+export function deleteTemplate(id: number) {
+  return request<{ ok: boolean }>(`/legal-content/${id}`, { method: "DELETE" });
 }

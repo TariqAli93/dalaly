@@ -7,6 +7,7 @@ const optionalText = z
   .transform((value) => value || null);
 export const companySettingsSchema = z.object({
   company_name: z.string().trim().default(""),
+  owner_name: optionalText,
   phone_primary: optionalText,
   phone_secondary: optionalText,
   email: optionalText,

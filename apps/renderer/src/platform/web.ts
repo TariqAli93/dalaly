@@ -69,6 +69,35 @@ export const webPlatform: PlatformAdapter = {
   name: "web-demo",
   isDesktop: false,
   supportsScheduledBackup: false,
+  async printDocument({ html }): Promise<SaveResult> {
+    const frame = document.createElement("iframe");
+    frame.setAttribute("sandbox", "allow-same-origin allow-modals");
+    frame.title = "مستند الطباعة";
+    frame.style.cssText =
+      "position:fixed;width:1px;height:1px;inset:0;border:0;opacity:0;pointer-events:none";
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(
+          () => reject(new Error("تعذر تجهيز الطباعة.")),
+          15000,
+        );
+        frame.onload = () => {
+          clearTimeout(timer);
+          resolve();
+        };
+        frame.srcdoc = html;
+        document.body.append(frame);
+      });
+      await frame.contentDocument?.fonts.ready;
+      frame.contentWindow?.focus();
+      frame.contentWindow?.print();
+      return { ok: true, fallback: true };
+    } catch {
+      return { ok: false, message: "تعذر فتح حوار الطباعة." };
+    } finally {
+      setTimeout(() => frame.remove(), 60000);
+    }
+  },
 
   async exportPdf({ html, suggestedName }): Promise<SaveResult> {
     // لا window.print() ولا نافذة منبثقة: كلاهما يحجب الواجهة أثناء التصوير.
@@ -81,10 +110,20 @@ export const webPlatform: PlatformAdapter = {
   async saveFile({ data, suggestedName }): Promise<SaveResult> {
     const buffer = new ArrayBuffer(data.byteLength);
     new Uint8Array(buffer).set(data);
+    const fileTypes: Record<string, string> = {
+      xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      pdf: "application/pdf",
+      png: "image/png",
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      webp: "image/webp",
+    };
+    const extension = suggestedName.split(".").pop()?.toLowerCase() ?? "";
     downloadBlob(
       suggestedName,
       buffer,
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      fileTypes[extension] ?? "application/octet-stream",
     );
     return { ok: true, fallback: true };
   },

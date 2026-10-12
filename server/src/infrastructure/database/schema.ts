@@ -1,6 +1,7 @@
 ﻿import {
   bigint,
   bigserial,
+  date,
   check,
   boolean,
   index,
@@ -159,6 +160,12 @@ export const people = pgTable(
     email: text("email"),
     address: text("address"),
     nationalId: text("national_id"),
+    governorate: text("governorate"),
+    district: text("district"),
+    neighborhood: text("neighborhood"),
+    alley: text("alley"),
+    houseNumber: text("house_number"),
+    residenceCardNumber: text("residence_card_number"),
     personType: text("person_type").notNull().default("individual"),
     status: text("status").notNull().default("active"),
     notes: text("notes"),
@@ -609,6 +616,7 @@ export const identityDocuments = pgTable(
       { onDelete: "set null" },
     ),
     documentName: text("document_name").notNull(),
+    documentSide: text("document_side").notNull().default("unspecified"),
     documentNumber: text("document_number"),
     filePath: text("file_path").notNull(),
     fileType: text("file_type").notNull(),
@@ -637,6 +645,7 @@ export const identityDocuments = pgTable(
 export const officeProfiles = pgTable("office_profiles", {
   id: integer("id").primaryKey().default(1),
   companyName: text("company_name").notNull().default(""),
+  ownerName: text("owner_name"),
   phonePrimary: text("phone_primary"),
   phoneSecondary: text("phone_secondary"),
   email: text("email"),
@@ -704,8 +713,19 @@ export const contracts = pgTable(
     generatedContent: text("generated_content"),
     generatedHtml: text("generated_html"),
     legalContext: jsonb("legal_context").notNull().default({}),
+    agreementDetails: jsonb("agreement_details").notNull().default({}),
     optionalClauseCodes: jsonb("optional_clause_codes").notNull().default([]),
     generatedAt: timestamp("generated_at", { withTimezone: true }),
+    issuedAt: timestamp("issued_at", { withTimezone: true }),
+    issuedBy: bigint("issued_by", { mode: "number" }).references(
+      () => users.id,
+    ),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    cancelledBy: bigint("cancelled_by", { mode: "number" }).references(
+      () => users.id,
+    ),
+    cancellationReason: text("cancellation_reason"),
+    cancellationNotes: text("cancellation_notes"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -745,6 +765,7 @@ export const legalContractTemplates = pgTable(
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
     familyCode: text("family_code").notNull(),
+    wordingOrigin: text("wording_origin").notNull().default("specialist"),
     contractType: text("contract_type").notNull(),
     propertyType: text("property_type").notNull(),
     jurisdiction: text("jurisdiction").notNull(),
@@ -762,6 +783,11 @@ export const legalContractTemplates = pgTable(
       .notNull()
       .default("unpublished"),
     isDefault: boolean("is_default").notNull().default(false),
+    isSystem: boolean("is_system").notNull().default(false),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedBy: bigint("deleted_by", { mode: "number" }).references(
+      () => users.id,
+    ),
     targetAt: timestamp("target_at", { withTimezone: true }),
     priority: integer("priority").notNull().default(1),
     approvedBy: bigint("approved_by", { mode: "number" }).references(
@@ -905,6 +931,8 @@ export const partySnapshots = pgTable("party_snapshots", {
   phoneSecondary: text("phone_secondary"),
   email: text("email"),
   address: text("address"),
+  residentialDetails: jsonb("residential_details").notNull().default({}),
+  residenceCardNumber: text("residence_card_number"),
   notes: text("notes"),
   capturedAt: timestamp("captured_at", { withTimezone: true })
     .notNull()
@@ -918,6 +946,7 @@ export const contractOfficeSnapshots = pgTable("contract_office_snapshots", {
     .unique()
     .references(() => contracts.id, { onDelete: "cascade" }),
   officeName: text("office_name").notNull(),
+  ownerName: text("owner_name"),
   logoFilePath: text("logo_file_path"),
   address: text("address"),
   phonePrimary: text("phone_primary"),
@@ -969,6 +998,7 @@ export const contractAttachments = pgTable(
       .references(() => identityDocuments.id, { onDelete: "restrict" }),
     documentType: text("document_type"),
     documentName: text("document_name").notNull(),
+    documentSide: text("document_side").notNull().default("unspecified"),
     documentNumber: text("document_number"),
     filePath: text("file_path").notNull(),
     fileType: text("file_type").notNull(),
@@ -1079,3 +1109,50 @@ export type BackupJob = typeof backupJobs.$inferSelect;
 export type NewBackupJob = typeof backupJobs.$inferInsert;
 export type BackupLog = typeof backupLogs.$inferSelect;
 export type AppSetting = typeof appSettings.$inferSelect;
+
+export const contractProcedures = pgTable(
+  "contract_procedures",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    contractId: bigint("contract_id", { mode: "number" })
+      .notNull()
+      .references(() => contracts.id),
+    stepKey: text("step_key").notNull(),
+    status: text("status").notNull().default("pending"),
+    completedOn: date("completed_on", { mode: "string" }),
+    reference: text("reference").notNull().default(""),
+    notes: text("notes").notNull().default(""),
+    updatedBy: bigint("updated_by", { mode: "number" }).references(
+      () => users.id,
+    ),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    unique("contract_procedures_contract_id_step_key_key").on(
+      t.contractId,
+      t.stepKey,
+    ),
+  ],
+);
+export const contractProcedureAttachments = pgTable(
+  "contract_procedure_attachments",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    contractId: bigint("contract_id", { mode: "number" })
+      .notNull()
+      .references(() => contracts.id),
+    stepKey: text("step_key").notNull(),
+    name: text("name").notNull(),
+    filePath: text("file_path").notNull(),
+    fileType: text("file_type").notNull(),
+    fileSize: bigint("file_size", { mode: "number" }).notNull(),
+    uploadedBy: bigint("uploaded_by", { mode: "number" }).references(
+      () => users.id,
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+);

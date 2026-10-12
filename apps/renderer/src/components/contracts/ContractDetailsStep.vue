@@ -7,6 +7,7 @@ import type {
   RentalRecord,
 } from "../../types";
 import type { ContractType } from "./contract-form";
+import { formatMoney } from "../../utils/format";
 
 const props = defineProps<{
   section?: "information" | "assets" | "payments";
@@ -23,6 +24,7 @@ const props = defineProps<{
   properties: PropertyRecord[];
   rentals: RentalRecord[];
   templates: ContractTemplateRecord[];
+  errors?: Record<string, string[]>;
 }>();
 const emit = defineEmits<{
   (event: "update:contractType", value: ContractType): void;
@@ -40,11 +42,11 @@ function updatePaid(value: string | number | null | undefined) {
 }
 
 function assetTitle(item: PropertyRecord | RentalRecord) {
-  return `${item.name || item.code} — ${
+  return `${item.name || item.code} — ${formatMoney(
     props.contractType === "sale"
       ? (item as PropertyRecord).total_price
-      : (item as RentalRecord).rent_price
-  }`;
+      : (item as RentalRecord).rent_price,
+  )}`;
 }
 </script>
 
@@ -70,6 +72,7 @@ function assetTitle(item: PropertyRecord | RentalRecord) {
       :item-title="assetTitle"
       item-value="id"
       label="العقار / العقارات"
+      :error-messages="props.errors?.assets"
       multiple
       chips
       closable-chips
@@ -90,6 +93,7 @@ function assetTitle(item: PropertyRecord | RentalRecord) {
       :item-title="assetTitle"
       item-value="id"
       label="العرض الإيجاري / العروض الإيجارية"
+      :error-messages="props.errors?.assets"
       multiple
       chips
       closable-chips
@@ -107,37 +111,61 @@ function assetTitle(item: PropertyRecord | RentalRecord) {
       item-title="name"
       item-value="id"
       label="قالب العقد"
+      :error-messages="props.errors?.template_id"
       clearable
       @update:model-value="emit('update:templateId', $event)"
     />
-    <DateField
-      v-if="!props.section || props.section === 'information'"
-      :model-value="props.contractDate"
-      label="تاريخ العقد"
-      @update:model-value="emit('update:contractDate', $event)"
-    />
-    <DateField
+    <div v-if="!props.section || props.section === 'information'">
+      <DateField
+        :model-value="props.contractDate"
+        label="تاريخ العقد"
+        @update:model-value="emit('update:contractDate', $event)"
+      />
+      <v-messages
+        :messages="props.errors?.contract_date"
+        color="error"
+        :active="!!props.errors?.contract_date?.length"
+      />
+    </div>
+    <div
       v-if="
         (!props.section || props.section === 'information') &&
         props.contractType === 'rental'
       "
-      :model-value="props.startDate"
-      label="تاريخ بدء الإيجار"
-      @update:model-value="emit('update:startDate', $event)"
-    />
-    <DateField
+    >
+      <DateField
+        :model-value="props.startDate"
+        label="تاريخ بدء الإيجار"
+        @update:model-value="emit('update:startDate', $event)"
+      />
+      <v-messages
+        :messages="props.errors?.start_date"
+        color="error"
+        :active="!!props.errors?.start_date?.length"
+      />
+    </div>
+    <div
       v-if="
         (!props.section || props.section === 'information') &&
         props.contractType === 'rental'
       "
-      :model-value="props.endDate"
-      label="تاريخ انتهاء الإيجار"
-      @update:model-value="emit('update:endDate', $event)"
-    />
+    >
+      <DateField
+        :model-value="props.endDate"
+        label="تاريخ انتهاء الإيجار"
+        @update:model-value="emit('update:endDate', $event)"
+      />
+      <v-messages
+        :messages="props.errors?.end_date"
+        color="error"
+        :active="!!props.errors?.end_date?.length"
+      />
+    </div>
     <NumberField
       v-if="!props.section || props.section === 'payments'"
       :model-value="props.amount"
       label="المبلغ الإجمالي"
+      :error-messages="props.errors?.amount"
       readonly
       prefix=""
     />
@@ -145,6 +173,7 @@ function assetTitle(item: PropertyRecord | RentalRecord) {
       v-if="!props.section || props.section === 'payments'"
       :model-value="props.paidAmount"
       label="المبلغ المدفوع"
+      :error-messages="props.errors?.paid_amount"
       :min="0"
       :rules="[
         (value: string | number | null) =>

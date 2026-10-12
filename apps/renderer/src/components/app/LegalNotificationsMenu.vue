@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, ref, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onMounted,
+  onBeforeUnmount,
+  onScopeDispose,
+  ref,
+  watch,
+} from "vue";
+import type { VMenu } from "vuetify/components";
 import { useRouter } from "vue-router";
 import { useAuth } from "../../composables/useAuth";
 import { usePermissions } from "../../composables/usePermissions";
@@ -15,6 +24,48 @@ const notices = ref<legal.LegalNotice[]>([]),
   refreshing = ref(false);
 const nativeNotifications = Boolean(window.dalalyConfig?.notifyLegalTask);
 const unread = computed(() => notices.value.filter((n) => !n.read_at));
+type NoticeLocation = Exclude<
+  NonNullable<InstanceType<typeof VMenu>["$props"]["locationStrategy"]>,
+  string
+>;
+// Keep this fixed-toolbar flyout in viewport coordinates. The connected RTL
+// strategy can place it outside the screen after dialog overlays close.
+const noticeLocation: NoticeLocation = (data, _props, styles) => {
+  const updateLocation = () => {
+    const target = data.target.value;
+    if (!target || Array.isArray(target) || !data.contentEl.value) return;
+    const box = target.getBoundingClientRect();
+    const viewportWidth = document.documentElement.clientWidth;
+    const viewportHeight = document.documentElement.clientHeight;
+    const width = Math.min(380, Math.max(0, viewportWidth - 24));
+    const start = data.isRtl.value ? box.left : box.right - width;
+    const left = Math.min(
+      Math.max(12, start),
+      Math.max(12, viewportWidth - width - 12),
+    );
+    const top = Math.max(12, box.bottom + 8);
+    styles.value = {
+      position: "fixed",
+      left: `${left}px`,
+      right: "auto",
+      top: `${top}px`,
+      width: `${width}px`,
+      maxWidth: `${width}px`,
+      maxHeight: `${Math.max(0, viewportHeight - top - 12)}px`,
+      overflowY: "auto",
+      transformOrigin: data.isRtl.value ? "top left" : "top right",
+    };
+  };
+  const stop = watch(
+    [data.target, data.contentEl, data.isRtl],
+    () => {
+      void nextTick(updateLocation);
+    },
+    { immediate: true },
+  );
+  onScopeDispose(stop);
+  return { updateLocation };
+};
 const preferenceKey = () =>
   `dalaly.legal-notifications.${currentUser.value?.id ?? 0}`;
 const groups = computed(() => {
@@ -117,6 +168,7 @@ onBeforeUnmount(() => {
     v-if="can('legal_content.read')"
     :close-on-content-click="false"
     location="bottom end"
+    :location-strategy="noticeLocation"
   >
     <template #activator="{ props }"
       ><v-btn
@@ -131,7 +183,11 @@ onBeforeUnmount(() => {
           color="warning"
           ><v-icon icon="mdi-bell-outline" /></v-badge></v-btn
     ></template>
-    <v-card width="380" max-height="520" class="legal-notices"
+    <v-card
+      width="380"
+      max-width="calc(100vw - 24px)"
+      max-height="520"
+      class="legal-notices"
       ><v-card-title class="text-subtitle-1"
         >تنبيهات الصيغ القانونية</v-card-title
       ><v-card-text class="py-0"

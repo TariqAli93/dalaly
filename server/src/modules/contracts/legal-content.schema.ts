@@ -112,13 +112,4 @@ export const legalDecisionSchema = z
     comment: z.string().trim().min(1).max(5000),
   })
   .strict();
-export const reviewerSchema = z
-  .object({
-    user_id: z.number().int().positive(),
-    lawyer_name: z.string().trim().min(3).max(200),
-    registration_number: z.string().trim().min(1).max(200),
-    qualification_evidence: z.string().trim().min(10).max(5000),
-    is_active: z.boolean(),
-  })
-  .strict();
 export type LegalRevisionPayload = z.infer<typeof legalRevisionSchema>;

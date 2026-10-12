@@ -5,15 +5,12 @@ import { ForbiddenError } from "../../shared/errors.js";
 import {
   legalDecisionSchema,
   legalRevisionSchema,
-  reviewerSchema,
 } from "./legal-content.schema.js";
 import {
   decideLegalRevision,
   legalHistory,
   listLegalContent,
-  listLegalReviewers,
   saveLegalRevision,
-  verifyReviewer,
   legalOptions,
   validateRevision,
   compareLegalRevisions,
@@ -21,6 +18,7 @@ import {
   scheduleLegalRevision,
   legalNotifications,
   readLegalNotification,
+  deleteLegalTemplate,
 } from "./legal-content.service.js";
 import { previewLegalRevision } from "./legal-preview.service.js";
 const idSchema = z.coerce.number().int().positive();
@@ -70,23 +68,6 @@ export const legalContentRoutes: FastifyPluginAsync = async (app) => {
         active.some((t) => t.id === r.legal_template_id),
       );
     },
-  );
-  app.get(
-    "/reviewers",
-    { preHandler: requirePermission("legal_content.read") },
-    async (req) => {
-      if (
-        !has(req, "legal_reviewers.manage") &&
-        !has(req, "legal_content.approve")
-      )
-        throw new ForbiddenError("ليست لديك صلاحية عرض إثبات أهلية المراجعين.");
-      return listLegalReviewers();
-    },
-  );
-  app.put(
-    "/reviewers",
-    { preHandler: requirePermission("legal_reviewers.manage") },
-    (req) => verifyReviewer(reviewerSchema.parse(req.body), req.user!.id),
   );
   app.post("/", { preHandler: propose }, async (req, reply) =>
     reply
@@ -173,6 +154,12 @@ export const legalContentRoutes: FastifyPluginAsync = async (app) => {
         req.user!.id,
       );
     },
+  );
+  app.delete(
+    "/:id",
+    { preHandler: requirePermission("legal_content.delete") },
+    (req) =>
+      deleteLegalTemplate(idSchema.parse((req.params as any).id), req.user!.id),
   );
   app.post("/:id/decision", async (req) =>
     decideLegalRevision(

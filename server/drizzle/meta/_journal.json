@@ -148,6 +148,20 @@
       "when": 1791849600000,
       "tag": "0020_legal_content_workflow",
       "breakpoints": false
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791936000000,
+      "tag": "0021_office_agreements",
+      "breakpoints": false
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792022400000,
+      "tag": "0022_contract_management",
+      "breakpoints": false
     }
   ]
 }

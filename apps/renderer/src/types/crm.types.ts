@@ -7,6 +7,12 @@ export type PersonRecord = {
   email: string | null;
   address: string | null;
   national_id: string | null;
+  governorate?: string | null;
+  district?: string | null;
+  neighborhood?: string | null;
+  alley?: string | null;
+  house_number?: string | null;
+  residence_card_number?: string | null;
   person_type: "individual" | "company" | "other";
   status: "active" | "inactive" | "archived";
   notes: string | null;
@@ -76,6 +82,7 @@ export type DocumentRecord = {
   document_type_name: string | null;
   document_name: string;
   document_number: string | null;
+  document_side?: string;
   file_path: string;
   file_type: string;
   file_size: number | null;
@@ -88,6 +95,7 @@ export type DocumentRecord = {
 export type CompanySettingsRecord = {
   id: number;
   company_name: string;
+  owner_name?: string | null;
   phone_primary: string | null;
   phone_secondary: string | null;
   email: string | null;
@@ -137,10 +145,21 @@ export type ContractRecord = {
   generated_content: string | null;
   generated_html: string | null;
   legal_context: Record<string, string>;
+  agreement_details?: AgreementDetails;
   optional_clause_codes: string[];
   generated_at: string | null;
   primary_person_name?: string | null;
   primary_party_role?: string | null;
+  property_name?: string | null;
+  party_names?: string[] | null;
+  created_at?: string;
+  updated_at?: string;
+  issued_at?: string | null;
+  issued_by?: number | null;
+  cancelled_at?: string | null;
+  cancelled_by?: number | null;
+  cancellation_reason?: string | null;
+  cancellation_notes?: string | null;
 };
 export type ContractPartyBundle = {
   id: number;
@@ -163,14 +182,61 @@ export type PartySnapshot = {
   captured_at: string;
 };
 export type ContractBundle = {
+  financial_followup?: {
+    paid_amount: number;
+    remaining_amount: number;
+    refunded_amount: number;
+    retained_amount: number;
+    obligation_amount: number;
+    unallocated_paid_amount: number;
+    unallocated_remaining_amount: number;
+  };
+  audit_history?: Array<{
+    id: number;
+    action: string;
+    user_name: string | null;
+    user_id: number | null;
+    created_at: string;
+    old_value: unknown;
+    new_value: unknown;
+  }>;
+  followup?: AgreementFollowup | null;
   legal_snapshot: {
     content_hash: string;
-    document_model: { ready?: boolean; legacy?: boolean; warnings?: string[]; review_required?: boolean; review_reasons?: string[] };
+    document_model: {
+      ready?: boolean;
+      legacy?: boolean;
+      warnings?: string[];
+      review_required?: boolean;
+      review_reasons?: string[];
+      data?: {
+        agreement_mode?: string;
+        title?: string;
+        additional_conditions?: string;
+        agreement_terms?: Array<{ label: string; value: string }>;
+        assets?: Array<{
+          id: number;
+          property_type: string;
+          details: Array<{ label: string; value: string }>;
+        }>;
+        financial?: Array<{ label: string; value: string }>;
+        dates?: Array<{ label: string; value: string }>;
+      };
+      title?: string;
+      sections?: Array<{
+        template_id: number;
+        title: string;
+        legal_basis: string;
+        applicability_notes: string;
+        clauses: Array<{ code: string; title: string; text: string }>;
+      }>;
+    };
     legal_template_version: Array<{
       id: number;
       version: number;
       property_type: string;
       approval_status: string;
+      name?: string;
     }>;
     visual_snapshot: Record<string, unknown>;
     review: {
@@ -223,4 +289,44 @@ export type ContractValidation = {
     documents: DocumentRecord[];
     selected_document_ids: number[];
   }>;
+};
+
+export type AgreementDetails = {
+  office_capacity: "broker" | "seller" | "buyer" | "lessor" | "lessee";
+  payment_terms: string;
+  transfer_due_date: string;
+  handover_conditions: string;
+  occupancy_conditions: string;
+  utilities_responsibilities: string;
+  rental_procedures_note: boolean;
+  police_station: string;
+  security_approval_reference: string;
+  identity_both_sides_required: boolean;
+  witnesses: Array<{ name: string }>;
+};
+export type AgreementProcedure = {
+  key: string;
+  step_key: string;
+  label: string;
+  optional?: boolean;
+  status: "pending" | "completed" | "not_applicable";
+  completed_on: string | null;
+  reference: string;
+  notes: string;
+  updated_at: string | null;
+  attachments: Array<{
+    id: number;
+    name: string;
+    file_type: string;
+    file_size: number;
+  }>;
+};
+export type AgreementFollowup = {
+  status:
+    | "draft"
+    | "issued_unsigned"
+    | "signed"
+    | "procedures_completed"
+    | "cancelled";
+  steps: AgreementProcedure[];
 };

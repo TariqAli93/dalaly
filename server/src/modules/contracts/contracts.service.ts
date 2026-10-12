@@ -1,9 +1,16 @@
 import AdmZip from "adm-zip";
+import {
+  residentialAddress,
+  residentialDetails,
+  partyDocumentNumbers,
+  identitySidesComplete,
+} from "./agreement-data.js";
+import { getAgreementFollowup } from "./agreement-followup.service.js";
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { buildContractDocument } from "./contracts-document.service.js";
 import { documentHash, type ContractDocument } from "./legal-content.engine.js";
-import { legalError, requireLegalReviewer } from "./legal-content.service.js";
+import { legalError } from "./legal-content.service.js";
 import { and, asc, desc, eq, inArray, or } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import {
@@ -23,6 +30,7 @@ import {
   people,
   properties,
   rentals,
+  users,
 } from "../../infrastructure/database/schema.js";
 import { ContractValidationError } from "../../shared/errors.js";
 import { toApiObject } from "../../shared/utils/case.js";
@@ -30,6 +38,12 @@ import type {
   ContractFilters,
   ContractPayload,
   ContractTemplatePayload,
+  ContractCancellation,
+  ContractSettlement,
+} from "./contracts.schema.js";
+import {
+  contractCancellationSchema,
+  contractSettlementSchema,
 } from "./contracts.schema.js";
 
 type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -178,9 +192,67 @@ async function bundle(id: number) {
     .select()
     .from(contractLegalSnapshots)
     .where(eq(contractLegalSnapshots.contractId, id));
+  const history = await db
+    .select({ entry: auditLogs, userName: users.displayName })
+    .from(auditLogs)
+    .leftJoin(users, eq(auditLogs.userId, users.id))
+    .where(
+      and(
+        eq(auditLogs.entityId, id),
+        inArray(auditLogs.entityType, [
+          "contract",
+          "contract_legal_review",
+          "contract_procedure",
+        ]),
+      ),
+    )
+    .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id));
+  const archived = archiveDocument(row.contract);
+  const financialRecords = history.filter(
+    ({ entry }) =>
+      entry.entityType === "contract" &&
+      entry.action === "financial_settlement",
+  );
+  const allocated = (kind: string) =>
+    financialRecords.reduce((sum, { entry }) => {
+      const value = entry.newValue as { kind?: string; amount?: number } | null;
+      return (
+        sum +
+        (value?.kind === kind ? Math.round(Number(value.amount) * 100) : 0)
+      );
+    }, 0) / 100;
+  const refunded = allocated("refund"),
+    retained = allocated("retained_payment"),
+    obligation = allocated("remaining_obligation");
+  const paid = Number(row.contract.paidAmount),
+    remaining = Math.max(0, Number(row.contract.amount) - paid);
   return {
+    followup: await getAgreementFollowup(id),
     legal_snapshot: legal ? api(legal) : null,
-    contract: api(row.contract),
+    contract: { ...api(row.contract), ...archived } as Record<string, unknown>,
+    audit_history: history.map(({ entry, userName }) => ({
+      ...api(entry),
+      user_name: userName ?? null,
+    })),
+    financial_followup: {
+      paid_amount: paid,
+      remaining_amount: remaining,
+      refunded_amount: refunded,
+      retained_amount: retained,
+      obligation_amount: obligation,
+      unallocated_paid_amount: Math.max(
+        0,
+        Math.round((paid - refunded - retained) * 100) / 100,
+      ),
+      unallocated_remaining_amount: Math.max(
+        0,
+        Math.round((remaining - obligation) * 100) / 100,
+      ),
+      records: financialRecords.map(({ entry, userName }) => ({
+        ...api(entry),
+        user_name: userName ?? null,
+      })),
+    },
     template: row.template ? api(row.template) : null,
     parties: partyRows.map((item) => ({
       ...api(item.party),
@@ -193,6 +265,40 @@ async function bundle(id: number) {
     asset: assets[0] ? api(assets[0]) : null,
     assets: assets.map(api),
     attachments: attachments.map(api),
+  };
+}
+
+function escapeHtml(value: string) {
+  return value.replace(
+    /[&<>"']/g,
+    (character) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        character
+      ]!,
+  );
+}
+
+// The original document and legal snapshot stay untouched. Every returned
+// printable archive is visibly marked, including historical cancelled rows.
+function archiveDocument(row: typeof contracts.$inferSelect) {
+  if (row.status !== "cancelled") return {};
+  const cancelledOn = row.cancelledAt
+    ? formatDate(row.cancelledAt)
+    : "غير مسجل تاريخياً";
+  const heading = `ملغى — نسخة أرشيفية | تاريخ الإلغاء: ${cancelledOn}`;
+  const notice =
+    "الإلغاء إجراء إداري داخل النظام ولا يلغي تلقائياً العلاقة القانونية أو التسجيل الرسمي. المدفوعات والتسوية المالية تُعالج بإجراء مستقل موثق.";
+  const banner = `<aside data-cancelled="true" style="border:3px solid #b42318;padding:12px;color:#b42318;font-weight:bold"><div>${escapeHtml(heading)}</div><div>${escapeHtml(row.cancellationReason ?? "")}</div><small>${escapeHtml(notice)}</small></aside><div aria-hidden="true" style="position:fixed;top:45%;left:10%;right:10%;text-align:center;color:#b42318;font-size:72px;opacity:.14;transform:rotate(-25deg);pointer-events:none;z-index:10">ملغى</div>`;
+  const originalHtml = row.generatedHtml ?? "";
+  const html = originalHtml
+    ? /<body[^>]*>/i.test(originalHtml)
+      ? originalHtml.replace(/<body[^>]*>/i, (body) => body + banner)
+      : banner + originalHtml
+    : `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><style>@page{size:A4;margin:18mm}body{font-family:Tahoma,Arial;white-space:pre-wrap}</style></head><body>${banner}<pre>${escapeHtml(row.generatedContent ?? "")}</pre></body></html>`;
+  return {
+    generated_html: html,
+    generated_content: `${heading}\n${row.cancellationReason ?? ""}\n${notice}\n\n${row.generatedContent ?? ""}`,
+    archive_copy: true,
   };
 }
 
@@ -248,24 +354,46 @@ export async function listContracts(filters: ContractFilters) {
     .orderBy(desc(contracts.updatedAt), desc(contracts.id));
   return Promise.all(
     rows.map(async (row) => {
-      const [party] = await db
-        .select({ person: people, role: contractParties.role })
+      const partyRows = await db
+        .select({
+          person: people,
+          snapshot: partySnapshots,
+          role: contractParties.role,
+        })
         .from(contractParties)
         .innerJoin(people, eq(contractParties.personId, people.id))
-        .where(
-          and(
-            eq(contractParties.contractId, row.id),
-            or(
-              eq(contractParties.role, "seller"),
-              eq(contractParties.role, "lessor"),
-            ),
-          ),
+        .leftJoin(
+          partySnapshots,
+          eq(partySnapshots.contractPartyId, contractParties.id),
         )
-        .limit(1);
+        .where(eq(contractParties.contractId, row.id))
+        .orderBy(contractParties.id);
+      const party = partyRows.find((item) =>
+        ["seller", "lessor"].includes(item.role),
+      );
+      const assets = await db
+        .select({ data: contractAssetSnapshots.data })
+        .from(contractAssetSnapshots)
+        .where(eq(contractAssetSnapshots.contractId, row.id))
+        .orderBy(contractAssetSnapshots.id);
+      const partyName = (item: (typeof partyRows)[number]) =>
+        item.snapshot
+          ? item.snapshot.fullName
+          : row.status === "draft"
+            ? item.person.fullName
+            : "غير محفوظ في العقد التاريخي";
       return {
         ...api(row),
-        primary_person_name: party?.person.fullName ?? null,
+        primary_person_name: party ? partyName(party) : null,
         primary_party_role: party?.role ?? null,
+        party_names: partyRows.map(partyName),
+        property_name: assets
+          .map(({ data }) => {
+            const asset = data as Record<string, unknown>;
+            return String(asset.name ?? asset.code ?? "");
+          })
+          .filter(Boolean)
+          .join("، "),
       };
     }),
   );
@@ -273,6 +401,19 @@ export async function listContracts(filters: ContractFilters) {
 
 export async function getContract(id: number) {
   return bundle(id);
+}
+
+export async function contractAttachmentFile(id: number, attachmentId: number) {
+  const [attachment] = await db
+    .select()
+    .from(contractAttachments)
+    .where(
+      and(
+        eq(contractAttachments.contractId, id),
+        eq(contractAttachments.id, attachmentId),
+      ),
+    );
+  return attachment ?? null;
 }
 
 async function requiredTypes(
@@ -295,14 +436,7 @@ async function requiredTypes(
       ),
     )
     .orderBy(asc(documentTypes.name));
-  const keys =
-    contractType !== "rental"
-      ? role === "seller"
-        ? ["national_id", "residence_card", "ownership_document"]
-        : ["national_id", "residence_card"]
-      : role === "lessee"
-        ? ["national_id", "residence_card", "security_approval"]
-        : ["national_id", "residence_card"];
+  const keys = ["national_id", "residence_card"];
   return types.filter((type) => keys.includes(type.key));
 }
 
@@ -428,6 +562,7 @@ export async function loadValidationData(
       path: "office",
     });
 
+  const allDocumentTypes = await executor.select().from(documentTypes);
   const partyData: ValidationParty[] = [];
   for (const input of payload.parties) {
     const [person] = await executor
@@ -443,7 +578,30 @@ export async function loadValidationData(
       });
       continue;
     }
-    if (!person.phonePrimary)
+    if (
+      person.personType === "individual" &&
+      person.fullName.trim().split(/\s+/).length < 4
+    )
+      issues.push({
+        code: "person_incomplete",
+        message: `أكمل الاسم الرباعي مع اللقب لـ ${person.fullName}.`,
+        path: `parties.${input.role}.full_name`,
+      });
+    if (
+      ![person.governorate, person.district, person.neighborhood].every(
+        Boolean,
+      ) ||
+      !person.address?.trim()
+    )
+      issues.push({
+        code: "address_missing",
+        message: `أكمل المحافظة والقضاء أو الناحية والمنطقة لعنوان ${person.fullName}.`,
+        path: `parties.${input.role}.address`,
+      });
+    if (
+      !person.phonePrimary ||
+      !/^[+0-9٠-٩۰-۹ ()-]{7,25}$/.test(person.phonePrimary)
+    )
       issues.push({
         code: "person_incomplete",
         message: `رقم هاتف ${person.fullName} غير موجود.`,
@@ -468,23 +626,54 @@ export async function loadValidationData(
     const selectedTypeIds = new Set(
       selected.map((doc) => doc.documentTypeId).filter(Boolean),
     );
+    if (
+      input.identity_document_ids.some(
+        (id) => !selected.some((d) => d.id === id),
+      )
+    )
+      issues.push({
+        code: "document_invalid",
+        message: "المستمسك المحدد لا يخص الطرف أو غير صالح.",
+        path: `parties.${input.role}.documents`,
+      });
+    const identityDocs = selected.filter((d) =>
+      ["national_id", "civil_id"].includes(
+        allDocumentTypes.find((t) => t.id === d.documentTypeId)?.key ?? "",
+      ),
+    );
+    const numbers = partyDocumentNumbers(person, selected, allDocumentTypes);
+    if (
+      payload.agreement_details.identity_both_sides_required &&
+      !identitySidesComplete(identityDocs, numbers.identity)
+    )
+      issues.push({
+        code: "identity_sides",
+        message: `أرفق وجهي الهوية لـ ${person.fullName}.`,
+        path: `parties.${input.role}.documents`,
+      });
+    if (!numbers.residence)
+      issues.push({
+        code: "residence_number",
+        message: `رقم بطاقة السكن غير موجود لـ ${person.fullName}.`,
+        path: `parties.${input.role}.documents`,
+      });
     const required = await requiredTypes(
       payload.contract_type,
       input.role,
       executor,
     );
     for (const type of required) {
-      if (!selectedTypeIds.has(type.id))
+      if (
+        !selectedTypeIds.has(type.id) &&
+        !(type.key === "national_id" && identityDocs.length)
+      )
         issues.push({
           code: "document_missing",
           message: `${type.name} غير موجود للمستخدم ${person.fullName}.`,
           path: `parties.${input.role}.documents`,
         });
     }
-    const identityNumber =
-      person.nationalId ??
-      selected.find((doc) => doc.documentNumber)?.documentNumber ??
-      null;
+    const identityNumber = numbers.identity;
     if (!identityNumber)
       issues.push({
         code: "identity_missing",
@@ -508,6 +697,7 @@ export async function loadValidationData(
     office,
     partyData,
     issues,
+    documentTypes: allDocumentTypes,
   };
 }
 
@@ -523,7 +713,7 @@ export async function validateContract(payload: ContractPayload) {
   if (payload.status !== "draft")
     loaded.issues.push({
       code: "review_required",
-      message: "احفظ مسودة ثم اطلب مراجعتها قانونياً قبل الإصدار.",
+      message: "احفظ مسودة الاتفاق أولاً ثم أصدر نسخة للطباعة والتوقيع.",
     });
   return {
     valid: loaded.issues.length === 0,
@@ -659,6 +849,7 @@ async function createSnapshots(
     .values({
       contractId,
       officeName: loaded.office?.companyName ?? "",
+      ownerName: loaded.office?.ownerName ?? null,
       logoFilePath: loaded.office?.logoFilePath ?? null,
       address: loaded.office?.address ?? null,
       phonePrimary: loaded.office?.phonePrimary ?? null,
@@ -695,14 +886,21 @@ async function createSnapshots(
     await tx.insert(partySnapshots).values({
       contractPartyId: party.id,
       fullName: data.person.fullName,
-      identityNumber:
-        data.person.nationalId ??
-        data.selected.find((doc) => doc.documentNumber)?.documentNumber ??
-        null,
+      identityNumber: partyDocumentNumbers(
+        data.person,
+        data.selected,
+        loaded.documentTypes,
+      ).identity,
       phonePrimary: data.person.phonePrimary,
       phoneSecondary: data.person.phoneSecondary,
       email: data.person.email,
-      address: data.person.address,
+      address: residentialAddress(data.person),
+      residentialDetails: residentialDetails(data.person),
+      residenceCardNumber: partyDocumentNumbers(
+        data.person,
+        data.selected,
+        loaded.documentTypes,
+      ).residence,
       notes: data.person.notes,
     });
     for (const doc of data.selected) {
@@ -721,6 +919,7 @@ async function createSnapshots(
         identityDocumentId: doc.id,
         documentType: type?.name ?? null,
         documentName: doc.documentName,
+        documentSide: doc.documentSide,
         documentNumber: doc.documentNumber,
         filePath: doc.filePath,
         fileType: doc.fileType,
@@ -815,6 +1014,7 @@ function contractValues(
     paymentInfo: payload.payment_info,
     notes: payload.notes,
     legalContext: payload.legal_context,
+    agreementDetails: payload.agreement_details,
     optionalClauseCodes: payload.optional_clause_codes,
     generatedContent: content,
     generatedHtml: html,
@@ -824,9 +1024,12 @@ function contractValues(
 }
 function requireDraft(payload: ContractPayload) {
   if (payload.status !== "draft")
-    throw legalError("احفظ مسودة ثم اطلب مراجعة محامٍ مؤهل قبل الإصدار.");
+    throw legalError("احفظ مسودة الاتفاق أولاً ثم أصدر نسخة للطباعة والتوقيع.");
 }
-export async function createContract(payload: ContractPayload) {
+export async function createContract(
+  payload: ContractPayload,
+  actorId?: number,
+) {
   requireDraft(payload);
   const id = await db.transaction(
     async (tx) => {
@@ -855,13 +1058,28 @@ export async function createContract(payload: ContractPayload) {
         .returning({ id: contracts.id });
       await createSnapshots(tx, row.id, payload, loaded);
       await saveDocumentSnapshot(tx, row.id, result);
+      await tx.insert(auditLogs).values({
+        entityType: "contract",
+        entityId: row.id,
+        action: "created",
+        newValue: {
+          code,
+          status: "draft",
+          content_hash: documentHash(result.model),
+        },
+        userId: actorId ?? null,
+      });
       return row.id;
     },
     { isolationLevel: "repeatable read" },
   );
   return bundle(id);
 }
-export async function updateContract(id: number, payload: ContractPayload) {
+export async function updateContract(
+  id: number,
+  payload: ContractPayload,
+  actorId?: number,
+) {
   requireDraft(payload);
   const found = await db.transaction(
     async (tx) => {
@@ -872,7 +1090,9 @@ export async function updateContract(id: number, payload: ContractPayload) {
         .for("update");
       if (!existing) return false;
       if (existing.status !== "draft")
-        throw legalError("لا يمكن تعديل عقد صادر.");
+        throw legalError(
+          "يمكن تعديل المسودات فقط؛ العقد الصادر أو الملغى محفوظ في السجل.",
+        );
       const loaded = await loadValidationData(payload, tx);
       if (loaded.issues.length)
         throw new ContractValidationError(loaded.issues);
@@ -923,6 +1143,17 @@ export async function updateContract(id: number, payload: ContractPayload) {
         .where(eq(contractAssetSnapshots.contractId, id));
       await createSnapshots(tx, id, payload, loaded);
       await saveDocumentSnapshot(tx, id, result, previous?.review);
+      await tx.insert(auditLogs).values({
+        entityType: "contract",
+        entityId: id,
+        action: "updated",
+        oldValue: {
+          content_hash: previous?.contentHash ?? null,
+          updated_at: existing.updatedAt,
+        },
+        newValue: { content_hash: documentHash(result.model), status: "draft" },
+        userId: actorId ?? null,
+      });
       return true;
     },
     { isolationLevel: "repeatable read" },
@@ -952,7 +1183,10 @@ export async function reviewContract(
       throw legalError(
         "تغيرت المسودة أو لا توجد بنود قانونية معتمدة منطبقة؛ أعد المعاينة والمراجعة.",
       );
-    const reviewer = await requireLegalReviewer(actorId, tx);
+    const [actor] = await tx.select().from(users).where(eq(users.id, actorId));
+    if (!actor?.isActive)
+      throw legalError("المستخدم المسؤول عن المراجعة غير فعال.");
+    const reviewer = { user_id: actor.id, display_name: actor.displayName };
     const review = {
       content_hash: snapshot!.contentHash,
       reviewer,
@@ -988,18 +1222,8 @@ export async function issueContract(id: number, actorId?: number) {
       .from(contractLegalSnapshots)
       .where(eq(contractLegalSnapshots.contractId, id));
     const model = s?.documentModel as ContractDocument | undefined;
-    const review = s?.review as {
-      content_hash?: string;
-      reviewer?: { user_id: number };
-    } | null;
     if (!model?.ready || !row.generatedHtml)
       throw legalError("يجب استخدام صيغ معتمدة وفعالة قبل الإصدار.");
-    const needsReview = Boolean(model!.data.additional_conditions.trim());
-    if (needsReview) {
-      if (review?.content_hash !== s?.contentHash || !review.reviewer?.user_id)
-        throw legalError("الشروط الاستثنائية تحتاج مراجعة مختصة قبل الإصدار.");
-      await requireLegalReviewer(review.reviewer.user_id, tx);
-    }
     for (const version of model!.legal_versions) {
       const [active] = await tx
         .select()
@@ -1019,6 +1243,8 @@ export async function issueContract(id: number, actorId?: number) {
       .update(contracts)
       .set({
         status: "active",
+        issuedAt: new Date(),
+        issuedBy: actorId ?? null,
         updatedAt: new Date(),
         generatedHtml: row.generatedHtml.replace(
           /<aside data-draft="true">[\s\S]*?<\/aside>/,
@@ -1044,6 +1270,206 @@ export async function issueContract(id: number, actorId?: number) {
   });
   return bundle(id);
 }
+
+export async function cancelContract(
+  id: number,
+  raw: ContractCancellation,
+  actorId: number,
+) {
+  const input = contractCancellationSchema.parse(raw);
+  await db.transaction(async (tx) => {
+    const [row] = await tx
+      .select()
+      .from(contracts)
+      .where(eq(contracts.id, id))
+      .for("update");
+    if (!row) throw legalError("العقد غير موجود.");
+    if (row.status === "cancelled")
+      throw legalError("العقد ملغى بالفعل؛ لا يمكن تكرار الإلغاء.");
+    if (!["active", "completed", "expired"].includes(row.status))
+      throw legalError("يمكن إلغاء عقد صادر فقط.");
+    if (!row.generatedContent && !row.generatedHtml)
+      throw legalError(
+        "لا توجد نسخة أصلية محفوظة للعقد؛ أكمل توثيق العقد التاريخي قبل الإلغاء.",
+      );
+    const [actor] = await tx.select().from(users).where(eq(users.id, actorId));
+    if (!actor?.isActive)
+      throw legalError("المستخدم المسؤول عن الإلغاء غير فعال.");
+    const contractDay = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Baghdad",
+    }).format(row.contractDate);
+    const cancellationDay = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Baghdad",
+    }).format(input.cancellation_date);
+    if (cancellationDay < contractDay)
+      throw new ContractValidationError([
+        {
+          code: "cancellation_date",
+          path: "cancellation_date",
+          message: "تاريخ الإلغاء لا يمكن أن يسبق تاريخ العقد.",
+        },
+      ]);
+    await tx
+      .update(contracts)
+      .set({
+        status: "cancelled",
+        cancelledAt: input.cancellation_date,
+        cancellationReason: input.reason,
+        cancellationNotes: input.notes ?? null,
+        cancelledBy: actorId,
+        updatedAt: new Date(),
+      })
+      .where(eq(contracts.id, id));
+    // Payments, occupancy, asset availability, documents and issued snapshots
+    // remain intact. Refunds/settlements and official legal effects require
+    // their own documented actions; cancellation never infers those effects.
+    await tx.insert(auditLogs).values({
+      entityType: "contract",
+      entityId: id,
+      action: "cancel",
+      oldValue: {
+        status: row.status,
+        paid_amount: row.paidAmount,
+        payment_info: row.paymentInfo,
+      },
+      newValue: {
+        status: "cancelled",
+        cancelled_at: input.cancellation_date.toISOString(),
+        cancellation_reason: input.reason,
+        cancellation_notes: input.notes ?? null,
+        cancelled_by: actorId,
+        financial_followup_required: Number(row.paidAmount) > 0,
+        administrative_cancellation: true,
+        asset_released: false,
+      },
+      userId: actorId,
+    });
+  });
+  return bundle(id);
+}
+
+export async function recordContractPrint(
+  id: number,
+  actorId: number,
+  format: "print" | "pdf" | "docx" = "print",
+) {
+  await db.transaction(async (tx) => {
+    const [row] = await tx
+      .select()
+      .from(contracts)
+      .where(eq(contracts.id, id))
+      .for("share");
+    if (!row) throw legalError("العقد غير موجود.");
+    if (!row.generatedHtml && !row.generatedContent)
+      throw legalError("لا توجد وثيقة محفوظة للطباعة أو التصدير.");
+    await tx.insert(auditLogs).values({
+      entityType: "contract",
+      entityId: id,
+      action: `${format}_requested`,
+      newValue: {
+        format,
+        archive_copy: row.status === "cancelled",
+        status: row.status,
+      },
+      userId: actorId,
+    });
+  });
+  return bundle(id);
+}
+
+export async function recordContractSettlement(
+  id: number,
+  raw: ContractSettlement,
+  actorId: number,
+) {
+  const input = contractSettlementSchema.parse(raw);
+  await db.transaction(async (tx) => {
+    const [row] = await tx
+      .select()
+      .from(contracts)
+      .where(eq(contracts.id, id))
+      .for("update");
+    if (!row || row.status !== "cancelled")
+      throw legalError("تسوية الإلغاء تسجل لعقد ملغى فقط.");
+    const [actor] = await tx.select().from(users).where(eq(users.id, actorId));
+    if (!actor?.isActive)
+      throw legalError("المستخدم المسؤول عن التسوية غير فعال.");
+    const history = await tx
+      .select()
+      .from(auditLogs)
+      .where(
+        and(
+          eq(auditLogs.entityType, "contract"),
+          eq(auditLogs.entityId, id),
+          eq(auditLogs.action, "financial_settlement"),
+        ),
+      );
+    const existing = history.find(
+      (entry) =>
+        (entry.newValue as { request_id?: string })?.request_id ===
+        input.request_id,
+    );
+    if (existing) {
+      const stored = existing.newValue as Record<string, unknown>;
+      if (
+        stored.kind !== input.kind ||
+        Number(stored.amount) !== input.amount ||
+        stored.reference !== input.reference ||
+        stored.reason !== input.reason ||
+        stored.settlement_date !== input.settlement_date.toISOString()
+      )
+        throw legalError(
+          "معرّف طلب التسوية مستخدم لإجراء مختلف؛ أعد تحميل السجل.",
+        );
+      return;
+    }
+    const requestedCents = Math.round(input.amount * 100);
+    const usedCents = history.reduce((sum, entry) => {
+      const value = entry.newValue as { kind?: string; amount?: number };
+      const samePool =
+        input.kind === "remaining_obligation"
+          ? value.kind === "remaining_obligation"
+          : ["refund", "retained_payment"].includes(value.kind ?? "");
+      return sum + (samePool ? Math.round(Number(value.amount) * 100) : 0);
+    }, 0);
+    const limitCents =
+      input.kind === "remaining_obligation"
+        ? Math.max(
+            0,
+            Math.round(Number(row.amount) * 100) -
+              Math.round(Number(row.paidAmount) * 100),
+          )
+        : Math.round(Number(row.paidAmount) * 100);
+    if (requestedCents + usedCents > limitCents)
+      throw new ContractValidationError([
+        {
+          code: "settlement_amount",
+          path: "amount",
+          message:
+            input.kind === "remaining_obligation"
+              ? "الالتزام المسجل يتجاوز المبلغ المتبقي غير المخصص."
+              : "الاسترداد والمبلغ المحتفظ به يتجاوزان المدفوع غير المخصص.",
+        },
+      ]);
+    await tx.insert(auditLogs).values({
+      entityType: "contract",
+      entityId: id,
+      action: "financial_settlement",
+      userId: actorId,
+      newValue: {
+        request_id: input.request_id,
+        kind: input.kind,
+        amount: input.amount,
+        reference: input.reference,
+        reason: input.reason,
+        settlement_date: input.settlement_date.toISOString(),
+        recorded_by: actorId,
+        financial_record_only: true,
+      },
+    });
+  });
+  return bundle(id);
+}
 export async function generateContract(id: number) {
   const existing = await bundle(id);
   if (!existing) return null;
@@ -1063,8 +1489,10 @@ function xmlEscape(value: string) {
     .replace(/'/g, "&apos;");
 }
 
-export async function contractDocx(id: number) {
-  const contract = await generateContract(id);
+export async function contractDocx(id: number, actorId?: number) {
+  const contract = actorId
+    ? await recordContractPrint(id, actorId, "docx")
+    : await generateContract(id);
   if (!contract) return null;
   const content = String(contract.contract.generated_content ?? "");
   const paragraphs = content
@@ -1090,7 +1518,7 @@ export async function contractDocx(id: number) {
   );
   zip.addFile("word/document.xml", Buffer.from(documentXml));
   return {
-    filename: `${contract.contract.code}.docx`,
+    filename: `${contract.contract.code}${contract.contract.status === "cancelled" ? "_ملغى" : contract.contract.status === "draft" ? "_مسودة" : ""}.docx`,
     data: zip.toBuffer().toString("base64"),
   };
 }

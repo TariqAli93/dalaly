@@ -7,7 +7,6 @@ import { usePermissions } from "../composables/usePermissions";
 import { useSnackbar } from "../composables/useSnackbar";
 import { getErrorMessage } from "../services/api.service";
 import * as legal from "../services/legal-content.service";
-import { listUsers } from "../services/users.service";
 const { can } = usePermissions(),
   { notifyError, notifySuccess } = useSnackbar(),
   route = useRoute();
@@ -56,7 +55,8 @@ const visible = computed(() =>
     (r) =>
       r.contract_type === tab.value &&
       (!propertyFilter.value || r.property_type === propertyFilter.value) &&
-      (!statusFilter.value || r.workflow_status === statusFilter.value),
+      (!statusFilter.value || r.workflow_status === statusFilter.value) &&
+      r.title.includes((search.value ?? "").trim()),
   ),
 );
 const statistics = computed(() => [
@@ -141,7 +141,7 @@ const taskGroups = computed(() => {
   for (const r of rows.value.filter((r) => r.approval_status === "pending")) {
     const key = [r.contract_type, r.property_type, r.review_required].join(":");
     const group = map.get(key) ?? {
-      title: `${r.contract_type === "rental" ? "إيجار" : "بيع"} · ${scopeLabel(r.property_type)} · ${r.review_required ? "مراجعة مختصة" : "اعتماد المدير"}`,
+      title: `${r.contract_type === "rental" ? "إيجار" : "بيع"} · ${scopeLabel(r.property_type)} · ${r.review_required ? "مراجعة النص" : "اعتماد المدير"}`,
       count: 0,
       overdue: 0,
       kind: r.contract_type,
@@ -184,21 +184,13 @@ const decisionOpen = ref(false),
 const scheduleOpen = ref(false),
   scheduleTarget = ref(""),
   schedulePriority = ref(1);
-const qualificationOpen = ref(false),
-  verified = ref(false),
-  reviewers = ref<legal.Reviewer[]>([]),
-  users = ref<Array<{ id: number; display_name: string }>>([]);
-const reviewer = ref<legal.Reviewer>({
-  user_id: 0,
-  lawyer_name: "",
-  registration_number: "",
-  qualification_evidence: "",
-  is_active: true,
-});
+const deleteOpen = ref(false),
+  deleteError = ref("");
 const headers = [
   { title: "اسم الصيغة", key: "title" },
   { title: "نوع العقد", key: "contract_type" },
   { title: "جنس العقار", key: "property_type" },
+  { title: "الفئة", key: "category" },
   { title: "الإصدار", key: "version" },
   { title: "الحالة", key: "workflow_status" },
   { title: "آخر تعديل", key: "updated_at" },
@@ -212,6 +204,7 @@ const eventNames: Record<string, string> = {
   publish: "تفعيل",
   default: "تحديد الافتراضي",
   archive: "إيقاف",
+  delete: "حذف الصيغة المخصصة",
   reject: "رفض",
   restore: "استعادة كإصدار جديد",
   schedule: "تعديل الموعد والأولوية",
@@ -238,8 +231,6 @@ async function load() {
       legal.legalHistory(),
       legal.options(),
     ]);
-    if (can("legal_reviewers.manage"))
-      reviewers.value = await legal.listReviewers();
     window.dispatchEvent(new Event("dalaly:legal-content-changed"));
   } catch (e) {
     notifyError(getErrorMessage(e));
@@ -428,24 +419,21 @@ function exportSource(row: legal.LegalRevision) {
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-async function openQualification() {
-  try {
-    if (can("users.read")) users.value = await listUsers();
-    qualificationOpen.value = true;
-  } catch (e) {
-    notifyError(getErrorMessage(e));
-  }
+function confirmDelete(row: legal.LegalRevision) {
+  selected.value = row;
+  deleteError.value = "";
+  deleteOpen.value = true;
 }
-async function saveReviewer() {
+async function removeTemplate() {
+  if (!selected.value) return;
   busy.value = true;
   try {
-    await legal.verifyReviewer(reviewer.value);
-    qualificationOpen.value = false;
-    verified.value = false;
+    await legal.deleteTemplate(selected.value.id);
+    deleteOpen.value = false;
     await load();
-    notifySuccess("سجل التحقق من أهلية المراجع.");
+    notifySuccess("أرشفت الصيغة وحفظت نسخ العقود السابقة.");
   } catch (e) {
-    notifyError(getErrorMessage(e));
+    deleteError.value = getErrorMessage(e);
   } finally {
     busy.value = false;
   }
@@ -454,8 +442,8 @@ onMounted(load);
 </script>
 <template>
   <AppLayout
-    title="إدارة الصيغ القانونية"
-    subtitle="إدارة وتخصيص الصيغ المعتمدة لعقود البيع والإيجار."
+    title="الصيغ القانونية"
+    subtitle="صيغ اتفاقات المكتب للبيع والإيجار، والبنود الاختيارية وسجل الإصدارات."
   >
     <template #header-actions
       ><v-btn
@@ -563,8 +551,9 @@ onMounted(load);
                 hide-details /></v-col
           ></v-row>
           <p class="text-caption text-medium-emphasis my-3">
-            العقود الاعتيادية تستخدم الصيغة النشطة دون مراجعة مستقلة. النصوص
-            الجديدة والتعديلات الجوهرية تتطلب مراجعة مختصة.
+            العقود الاعتيادية تستخدم الصيغة النشطة دون مراجعة مستقلة. الصيغ
+            الجديدة والتعديلات تمر بالتحقق والاعتماد من المستخدم المخول قبل
+            التفعيل.
           </p></v-card-text
         >
         <v-data-table
@@ -615,143 +604,187 @@ onMounted(load);
           ><template #item.property_type="{ item }">{{
             scopeLabel(item.property_type)
           }}</template>
+          <template #item.category="{ item }"
+            ><v-chip
+              size="small"
+              :color="item.is_system ? 'primary' : 'default'"
+              variant="tonal"
+              >{{ item.is_system ? "أساسية محمية" : "مخصصة" }}</v-chip
+            ><v-chip
+              v-if="item.is_default"
+              color="warning"
+              size="small"
+              class="ms-1"
+              >افتراضية</v-chip
+            ></template
+          >
           <template #item.workflow_status="{ item }"
             ><v-chip
               :color="color(item.workflow_status)"
               size="small"
               variant="tonal"
-              >{{ legal.statusLabels[item.workflow_status] }}</v-chip
-            ><v-icon
+              >{{
+                item.publication_status === "active" ? "مفعلة" : "غير مفعلة"
+              }}</v-chip
+            >
+            <p class="text-caption text-medium-emphasis mt-1">
+              {{ legal.statusLabels[item.workflow_status] }}
+            </p>
+            <v-icon
               v-if="item.is_default"
               icon="mdi-star-outline"
               size="16"
               class="ms-1"
-              title="الصيغة الافتراضية لهذا النطاق"
+              title="الصيغة الافتراضية لنوع العقد"
           /></template>
           <template #item.updated_at="{ item }"
             ><span class="text-caption">{{
               date(item.updated_at)
             }}</span></template
           >
-          <template #item.actions="{ item }"
-            ><div class="row-actions">
+          <template #item.actions="{ item }">
+            <div class="row-actions">
               <v-btn
                 icon="mdi-eye-outline"
                 variant="text"
                 size="small"
-                aria-label="معاينة"
-                title="معاينة"
+                aria-label="معاينة الصيغة"
+                title="معاينة الصيغة"
                 @click="editor(item, 'preview')"
-              /><v-btn
-                v-if="canEdit"
+              />
+              <v-btn
+                v-if="canEdit && !item.is_system"
                 icon="mdi-pencil-outline"
                 variant="text"
                 size="small"
-                aria-label="تعديل"
+                aria-label="تعديل الصيغة"
                 title="تعديل بإصدار جديد"
                 @click="editor(item, 'edit')"
-              /><v-btn
-                v-if="canEdit"
-                icon="mdi-content-copy"
-                variant="text"
-                size="small"
-                aria-label="نسخ"
-                title="نسخ"
-                @click="editor(item, 'copy')"
               />
-              <v-btn
-                v-if="item.approval_status === 'draft' && canEdit"
-                variant="text"
-                size="small"
-                @click="decide(item, 'submit')"
-                >إرسال للاعتماد</v-btn
-              >
-              <v-btn
-                v-if="
-                  ['draft', 'pending'].includes(item.approval_status) &&
-                  !item.review_required &&
-                  can('legal_content.publish')
-                "
-                variant="tonal"
-                color="primary"
-                size="small"
-                @click="decide(item, 'approve_publish')"
-                >اعتماد ونشر</v-btn
-              >
-              <v-btn
-                v-if="
-                  item.approval_status === 'pending' &&
-                  item.review_required &&
-                  can('legal_content.approve')
-                "
-                variant="tonal"
-                color="primary"
-                size="small"
-                @click="
-                  decide(
-                    item,
-                    can('legal_content.publish')
-                      ? 'approve_publish'
-                      : 'approve',
-                  )
-                "
-                >اعتماد المراجعة</v-btn
-              >
-              <v-btn
-                v-if="
-                  item.approval_status === 'approved' &&
-                  can('legal_content.publish')
-                "
-                variant="text"
-                size="small"
-                @click="
-                  decide(
-                    item,
-                    item.publication_status === 'active'
-                      ? 'archive'
-                      : 'publish',
-                  )
-                "
-                >{{
-                  item.publication_status === "active" ? "إيقاف" : "تفعيل"
-                }}</v-btn
-              >
-              <v-menu
-                ><template #activator="{ props }"
+              <v-menu>
+                <template #activator="{ props }"
                   ><v-btn
                     v-bind="props"
                     icon="mdi-dots-horizontal"
                     variant="text"
                     size="small"
-                    aria-label="المزيد من إجراءات الصيغة" /></template
-                ><v-list density="compact"
-                  ><v-list-item
-                    title="عرض الإصدارات"
-                    prepend-icon="mdi-history"
-                    @click="showVersions(item)" /><v-list-item
-                    title="تصدير الصيغة"
-                    prepend-icon="mdi-export"
-                    @click="exportSource(item)" /><v-list-item
+                    aria-label="إجراءات الصيغة"
+                /></template>
+                <v-list density="compact">
+                  <v-list-item
+                    v-if="canEdit"
+                    title="نسخ الصيغة"
+                    prepend-icon="mdi-content-copy"
+                    @click="editor(item, 'copy')"
+                  />
+                  <v-list-item
                     v-if="
-                      item.approval_status === 'approved' &&
+                      ['draft', 'pending'].includes(item.approval_status) &&
                       can('legal_content.publish')
                     "
-                    title="تحديد الصيغة الافتراضية"
+                    title="اعتماد وتفعيل"
+                    prepend-icon="mdi-check-circle-outline"
+                    @click="decide(item, 'approve_publish')"
+                  />
+                  <v-list-item
+                    v-if="item.approval_status === 'draft' && canEdit"
+                    title="إرسال للمراجعة"
+                    prepend-icon="mdi-send-outline"
+                    @click="decide(item, 'submit')"
+                  />
+                  <v-list-item
+                    v-if="
+                      item.approval_status === 'pending' &&
+                      can('legal_content.approve')
+                    "
+                    title="اعتماد المراجعة"
+                    prepend-icon="mdi-check-outline"
+                    @click="decide(item, 'approve')"
+                  />
+                  <v-list-item
+                    v-if="
+                      item.approval_status === 'approved' &&
+                      !rows.some(
+                        (row) =>
+                          row.family_code === item.family_code &&
+                          row.is_default,
+                      ) &&
+                      can('legal_content.publish')
+                    "
+                    :title="
+                      item.publication_status === 'active'
+                        ? 'إيقاف الصيغة'
+                        : 'تفعيل الصيغة'
+                    "
+                    prepend-icon="mdi-power"
+                    @click="
+                      decide(
+                        item,
+                        item.publication_status === 'active'
+                          ? 'archive'
+                          : 'publish',
+                      )
+                    "
+                  />
+                  <v-list-item
+                    v-if="
+                      item.approval_status === 'approved' &&
+                      !item.is_default &&
+                      can('legal_content.publish')
+                    "
+                    title="تعيين كافتراضية لنوع العقد"
                     prepend-icon="mdi-star-outline"
-                    @click="decide(item, 'default')" /><v-list-item
+                    @click="decide(item, 'default')"
+                  />
+                  <v-list-item
+                    title="طباعة تجريبية ومعاينة PDF"
+                    prepend-icon="mdi-printer-outline"
+                    @click="editor(item, 'preview')"
+                  />
+                  <v-list-item
+                    title="عرض الإصدارات"
+                    prepend-icon="mdi-history"
+                    @click="showVersions(item)"
+                  />
+                  <v-list-item
+                    title="تصدير الصيغة"
+                    prepend-icon="mdi-export"
+                    @click="exportSource(item)"
+                  />
+                  <v-list-item
                     v-if="can('legal_content.manage')"
                     title="الموعد والأولوية"
                     prepend-icon="mdi-calendar-clock-outline"
-                    @click="openSchedule(item)" /><v-list-item
+                    @click="openSchedule(item)"
+                  />
+                  <v-list-item
                     v-if="
                       item.approval_status === 'pending' &&
                       can('legal_content.approve')
                     "
                     title="رفض الطلب"
                     prepend-icon="mdi-close-circle-outline"
-                    @click="decide(item, 'reject')" /></v-list
-              ></v-menu></div
-          ></template>
+                    @click="decide(item, 'reject')"
+                  />
+                  <v-list-item
+                    v-if="
+                      can('legal_content.delete') &&
+                      !item.is_system &&
+                      !rows.some(
+                        (row) =>
+                          row.family_code === item.family_code &&
+                          row.is_default,
+                      )
+                    "
+                    title="حذف الصيغة"
+                    prepend-icon="mdi-delete-outline"
+                    base-color="error"
+                    @click="confirmDelete(item)"
+                  />
+                </v-list>
+              </v-menu>
+            </div>
+          </template>
         </v-data-table>
       </template>
       <v-card-text v-else-if="tab === 'clauses'"
@@ -920,18 +953,6 @@ onMounted(load);
         >
       </v-card-text>
     </v-card>
-    <div
-      v-if="can('legal_reviewers.manage')"
-      class="d-flex align-center ga-2 mt-4"
-    >
-      <v-icon icon="mdi-shield-check-outline" size="18" /><span
-        class="text-caption text-medium-emphasis"
-        >{{ reviewers.filter((r) => r.is_active).length }} حساب موثّق للمراجعة
-        الاستثنائية</span
-      ><v-spacer /><v-btn variant="text" size="small" @click="openQualification"
-        >إعداد المراجعة المختصة</v-btn
-      >
-    </div>
     <v-dialog v-model="editing" max-width="1500" persistent scrollable
       ><LegalRevisionEditor
         v-if="editing"
@@ -958,14 +979,14 @@ onMounted(load);
             "
             type="warning"
             variant="tonal"
-            >الصيغة جديدة أو تغير مضمونها. اعتمادها يتطلب حساب مراجع موثّق
-            الأهلية.</v-alert
+            >راجع النص والبنود قبل تفعيلها للعقود الجديدة. اتفاق المكتب لا يغني
+            عن إجراءات التصديق أو التسجيل الرسمية المطلوبة.</v-alert
           ><v-alert
             v-else-if="action === 'approve_publish'"
             type="info"
             variant="tonal"
-            >اعتماد إداري لنص مطابق للإصدار المراجع مسبقاً. سيصبح هذا الإصدار
-            فعالاً للعقود الجديدة.</v-alert
+            >سيصبح هذا الإصدار فعالاً للعقود الجديدة. تبقى الصيغ المستخدمة في
+            العقود السابقة محفوظة.</v-alert
           ><v-textarea
             v-model="comment"
             label="ملاحظة القرار"
@@ -1040,43 +1061,35 @@ onMounted(load);
         ></v-card
       ></v-dialog
     >
-    <v-dialog v-model="qualificationOpen" max-width="650"
-      ><v-card
-        ><v-card-title>توثيق أهلية المراجع المختص</v-card-title
-        ><v-card-text
-          ><v-autocomplete
-            v-if="users.length"
-            v-model="reviewer.user_id"
-            :items="users"
-            item-title="display_name"
-            item-value="id"
-            label="حساب المراجع" /><v-number-input
-            v-else
-            v-model="reviewer.user_id"
-            :min="1"
-            label="معرّف حساب المراجع" /><v-text-field
-            v-model="reviewer.lawyer_name"
-            label="اسم المحامي" /><v-text-field
-            v-model="reviewer.registration_number"
-            label="رقم التسجيل المهني" /><v-textarea
-            v-model="reviewer.qualification_evidence"
-            label="مرجع إثبات الأهلية وطريقة التحقق" /><v-switch
-            v-model="reviewer.is_active"
-            label="الأهلية فعالة" /><v-checkbox
-            v-model="verified"
-            label="تحققت من المستندات والأهلية المهنية للمراجع" /></v-card-text
-        ><v-card-actions
-          ><v-btn @click="qualificationOpen = false">إلغاء</v-btn
+    <v-dialog v-model="deleteOpen" max-width="560">
+      <v-card rounded="lg">
+        <v-card-title>حذف الصيغة</v-card-title>
+        <v-card-text>
+          <p class="mb-3">{{ selected?.title }}</p>
+          <v-alert type="warning" variant="tonal"
+            >ستؤرشف هذه الصيغة المخصصة وجميع إصداراتها ولن تظهر للعقود الجديدة.
+            تبقى النسخ القانونية المستخدمة في العقود السابقة محفوظة دون
+            تغيير.</v-alert
+          >
+          <v-alert
+            v-if="deleteError"
+            type="error"
+            variant="tonal"
+            class="mt-3"
+            >{{ deleteError }}</v-alert
+          >
+        </v-card-text>
+        <v-card-actions
+          ><v-btn :disabled="busy" @click="deleteOpen = false">رجوع</v-btn
           ><v-spacer /><v-btn
-            color="primary"
+            color="error"
             :loading="busy"
-            :disabled="!verified"
-            @click="saveReviewer"
-            >تسجيل التحقق</v-btn
+            @click="removeTemplate"
+            >تأكيد الأرشفة</v-btn
           ></v-card-actions
-        ></v-card
-      ></v-dialog
-    >
+        >
+      </v-card>
+    </v-dialog>
   </AppLayout>
 </template>
 <style scoped>

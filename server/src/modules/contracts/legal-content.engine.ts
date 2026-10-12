@@ -28,12 +28,18 @@ export type ContractDocument = {
     code: string;
     contract_type: string;
     title: string;
+    agreement_mode?: "office";
+    explanation?: string;
+    agreement_terms?: Array<{ label: string; value: string }>;
+    witnesses?: Array<{ name: string }>;
+    procedure_labels?: string[];
     office: Record<string, string>;
     parties: Array<{
       role: string;
       label: string;
       name: string;
       identity_number: string;
+      residence_card_number?: string;
       phone: string;
       address: string;
     }>;
@@ -55,6 +61,7 @@ export type ContractDocument = {
   };
   legal_versions: Array<{
     id: number;
+    name?: string;
     version: number;
     property_type: string;
     approval_status: string;
@@ -124,8 +131,12 @@ export function documentHash(document: ContractDocument) {
 }
 
 export function documentText(d: ContractDocument) {
+  const officeAgreement = d.data.agreement_mode === "office";
   const facts = (rows: Array<{ label: string; value: string }>) =>
-    rows.map((r) => `${r.label}: ${r.value}`).join("\n");
+    rows
+      .filter((r) => !officeAgreement || r.value.trim())
+      .map((r) => `${r.label}: ${r.value}`)
+      .join("\n");
   return [
     d.ready ? "" : "مسودة غير معتمدة — لا تصلح للإصدار",
     ...d.warnings,
@@ -133,6 +144,10 @@ export function documentText(d: ContractDocument) {
     d.data.code,
     d.data.office.name,
     d.data.office.address,
+    d.data.office.owner_name ? `صاحب المكتب: ${d.data.office.owner_name}` : "",
+    d.data.agreement_mode === "office"
+      ? `المكتب العقاري: ${d.data.office.role ?? "الوسيط"}`
+      : "",
     [d.data.office.phone, d.data.office.phone_secondary]
       .filter(Boolean)
       .join(" / "),
@@ -141,23 +156,34 @@ export function documentText(d: ContractDocument) {
       : "",
     ...d.data.parties.map(
       (p) =>
-        `${p.label}: ${p.name}\nرقم الهوية: ${p.identity_number}\nالهاتف: ${p.phone}\nالعنوان: ${p.address}`,
+        `${p.label}: ${p.name}\nرقم الهوية: ${p.identity_number}\nبطاقة السكن: ${p.residence_card_number ?? ""}\nالهاتف: ${p.phone}\nالعنوان: ${p.address}`,
     ),
     ...d.data.assets.map((a) => facts(a.details)),
     facts(d.data.financial),
     facts(d.data.dates),
+    facts(d.data.agreement_terms ?? []),
     ...d.sections.map((s) =>
       [
-        `${s.title} · الإصدار ${s.version} · ${s.approval_status === "approved" ? "معتمد" : "غير معتمد"}`,
+        officeAgreement
+          ? s.title
+          : `${s.title} · الإصدار ${s.version} · ${s.approval_status === "approved" ? "معتمد" : "غير معتمد"}`,
         ...s.clauses.map((c, i) => `${i + 1}. ${c.title}\n${c.text}`),
       ].join("\n"),
     ),
     d.data.additional_conditions
-      ? `شروط إضافية متفق عليها (تتطلب مراجعة العقد):\n${d.data.additional_conditions}`
+      ? `شروط إضافية متفق عليها:\n${d.data.additional_conditions}`
       : "",
+    d.data.explanation ?? "",
     "المستمسكات المستخدمة",
     ...d.data.attachments.map((a) => `${a.party}: ${a.name} ${a.number}`),
     ...d.data.parties.map((p) => `توقيع ${p.label}: ____________________`),
+    ...(d.data.witnesses ?? []).map(
+      (w) => `الشاهد: ${w.name} · التوقيع: ____________________`,
+    ),
+    "توقيع صاحب المكتب أو الموظف المخول والختم: ____________________",
+    ...(d.data.procedure_labels ?? []).map(
+      (label) => `متابعة: ${label} · التاريخ: __________ · المرجع: __________`,
+    ),
   ]
     .filter(Boolean)
     .join("\n\n");

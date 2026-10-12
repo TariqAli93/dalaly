@@ -22,6 +22,13 @@ app.setAppUserModelId('dalaly.contracts.test');
 dialog.showSaveDialog=async()=>globalThis.cancelPdf?{canceled:true}:{canceled:false,filePath:globalThis.pdfTarget};
 Notification.isSupported=()=>true;
 Notification.prototype.show=function(){globalThis.noticeCount=(globalThis.noticeCount??0)+1;};
+app.on('web-contents-created',(_event,contents)=>{
+ contents.print=(options,callback)=>{
+  globalThis.printOptions=options;
+  globalThis.printCount=(globalThis.printCount??0)+1;
+  callback(!globalThis.cancelPrint,globalThis.cancelPrint?'Print job cancelled':'');
+ };
+});
 let main;
 registerContractPdfExport(()=>main);
 registerLegalNotifications(()=>main);
@@ -51,6 +58,7 @@ await main.loadURL('data:text/html;charset=utf-8,<html lang="ar" dir="rtl"><body
     await page.waitForFunction(
       () =>
         !!window.dalalyConfig?.exportPdf &&
+        !!window.dalalyConfig?.printDocument &&
         !!window.dalalyConfig?.notifyLegalTask,
     );
     assert.equal(
@@ -66,6 +74,16 @@ await main.loadURL('data:text/html;charset=utf-8,<html lang="ar" dir="rtl"><body
       }),
     );
     assert.equal(invalid.ok, false);
+    const invalidPrint = await page.evaluate(() => window.dalalyConfig!.printDocument!({ html: "" }));
+    assert.equal(invalidPrint.ok, false);
+    const print = await page.evaluate((html) => window.dalalyConfig!.printDocument!({ html }), documents[0].html);
+    assert.equal(print.ok, true);
+    assert.deepEqual(await electron.evaluate(() => (globalThis as any).printOptions), { silent: false, printBackground: true, pageSize: "A4" });
+    await electron.evaluate(() => { (globalThis as any).cancelPrint = true; });
+    const cancelledPrint = await page.evaluate((html) => window.dalalyConfig!.printDocument!({ html }), documents[0].html);
+    assert.equal(cancelledPrint.canceled, true);
+    assert.equal(await electron.evaluate(() => (globalThis as any).printCount), 2);
+    assert.equal(await electron.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().some((window) => window.isVisible())), false);
     await electron.evaluate(() => {
       (globalThis as any).cancelPdf = true;
     });

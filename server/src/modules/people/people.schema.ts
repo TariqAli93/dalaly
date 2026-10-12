@@ -14,6 +14,13 @@ export const personPayloadSchema = z.object({
   email: optionalText,
   address: optionalText,
   national_id: optionalText,
+  governorate: optionalText,
+  district: optionalText,
+  neighborhood: optionalText,
+  alley: optionalText,
+  house_number: optionalText,
+  residence_card_number: optionalText,
+
   person_type: z.enum(["individual", "company", "other"]).default("individual"),
   status: z.enum(["active", "inactive", "archived"]).default("active"),
   notes: optionalText,

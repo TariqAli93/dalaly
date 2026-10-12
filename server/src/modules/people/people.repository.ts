@@ -15,6 +15,13 @@ function normalize(payload: PersonPayload): Omit<NewPerson, "code"> {
     email: payload.email,
     address: payload.address,
     nationalId: payload.national_id,
+    governorate: payload.governorate,
+    district: payload.district,
+    neighborhood: payload.neighborhood,
+    alley: payload.alley,
+    houseNumber: payload.house_number,
+    residenceCardNumber: payload.residence_card_number,
+
     personType: payload.person_type,
     status: payload.status,
     notes: payload.notes,

@@ -19,6 +19,10 @@ interface ImportMeta {
 }
 
 interface DalalyConfigBridge {
+  printDocument?: (input: {
+    html: string;
+    title: string;
+  }) => Promise<{ ok: boolean; canceled?: boolean; message?: string }>;
   notifyLegalTask?: (input: {
     title: string;
     body: string;

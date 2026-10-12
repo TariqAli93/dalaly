@@ -1,5 +1,11 @@
 import fs from "node:fs/promises";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { residentialAddress, partyDocumentNumbers } from "./agreement-data.js";
+import {
+  SALE_EXPLANATION,
+  RENTAL_PROCEDURES_NOTE,
+  proceduresFor,
+} from "./agreement.schema.js";
+import { and, asc, desc, eq, isNull, or } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import {
   legalContractTemplates,
@@ -126,13 +132,39 @@ export async function buildContractDocument(
             legalContractTemplates.contractType,
             payload.contract_type === "rental" ? "rental" : "sale",
           ),
-          eq(legalContractTemplates.propertyType, type),
+          or(
+            eq(legalContractTemplates.propertyType, type),
+            eq(legalContractTemplates.propertyType, "all_properties"),
+          ),
           eq(legalContractTemplates.jurisdiction, context.jurisdiction),
           eq(legalContractTemplates.transactionKind, context.transaction_kind),
+          isNull(legalContractTemplates.deletedAt),
         ),
       )
       .orderBy(desc(legalContractTemplates.version));
-    const approved = candidates.filter(
+    const exact = candidates.filter(
+      (r: typeof legalContractTemplates.$inferSelect) =>
+        r.propertyType === type,
+    );
+    const activeDefault = candidates.find(
+      (r: typeof legalContractTemplates.$inferSelect) =>
+        r.isDefault &&
+        r.approvalStatus === "approved" &&
+        r.publicationStatus === "active",
+    );
+    const applicable = activeDefault
+      ? [activeDefault]
+      : exact.some(
+            (r: typeof legalContractTemplates.$inferSelect) =>
+              r.approvalStatus === "approved" &&
+              r.publicationStatus === "active",
+          )
+        ? exact
+        : candidates.filter(
+            (r: typeof legalContractTemplates.$inferSelect) =>
+              r.propertyType === "all_properties",
+          );
+    const approved = applicable.filter(
       (r: typeof legalContractTemplates.$inferSelect) =>
         r.approvalStatus === "approved" && r.publicationStatus === "active",
     );
@@ -147,9 +179,8 @@ export async function buildContractDocument(
       );
       continue;
     }
-    const selected = (approved[0] ?? candidates[0]) as
-      | typeof legalContractTemplates.$inferSelect
-      | undefined;
+    const selected = (approved[0] ?? exact[0] ?? candidates[0]) as
+      typeof legalContractTemplates.$inferSelect | undefined;
     if (!selected) {
       warnings.push(
         `لا توجد صيغة قانونية مطابقة لجنس العقار ${type} ونوع المعاملة والاختصاص.`,
@@ -194,6 +225,10 @@ export async function buildContractDocument(
     };
     const assetValues = {
       ...values,
+      "office.involvement":
+        payload.agreement_details.office_capacity === "broker"
+          ? `وبوساطة مكتب ${loaded.office?.companyName ?? ""}`
+          : `وبحضور مكتب ${loaded.office?.companyName ?? ""} بصفته ${labels[payload.agreement_details.office_capacity]} ضمن الأطراف المبينة`,
       "property.code": String(asset.code ?? ""),
       "property.name": String(asset.name ?? ""),
       "property.type":
@@ -241,6 +276,7 @@ export async function buildContractDocument(
     sections.push(section);
     versions.push({
       id: selected.id,
+      name: selected.title,
       version: selected.version,
       property_type: type,
       approval_status: selected.approvalStatus,
@@ -282,26 +318,71 @@ export async function buildContractDocument(
     schema_version: 1,
     ready: warnings.length === 0,
     warnings,
-    review_required: Boolean(payload.notes?.trim()),
-    review_reasons: payload.notes?.trim()
-      ? ["الشروط الإضافية الحرة تتطلب مراجعة مختصة لهذا العقد."]
-      : [],
+    review_required: false,
+    review_reasons: [],
     legal_versions: versions,
     sections,
     data: {
       code,
       contract_type: payload.contract_type,
       title:
-        context.transaction_kind === "lease"
-          ? "عقد إيجار عقار"
-          : context.transaction_kind === "preliminary_sale"
-            ? "اتفاق أولي لبيع عقار — لا يمثل نقل ملكية مسجلاً"
-            : "توثيق بيانات تصرف مسجل — وفق مرجع التسجيل العقاري",
+        payload.contract_type === "rental"
+          ? "اتفاق إيجار عقار"
+          : "اتفاق بيع عقار",
+      agreement_mode: "office",
+      explanation:
+        payload.contract_type === "rental"
+          ? payload.agreement_details.rental_procedures_note
+            ? RENTAL_PROCEDURES_NOTE
+            : ""
+          : SALE_EXPLANATION,
+      agreement_terms: [
+        { label: "شروط الدفع", value: payload.agreement_details.payment_terms },
+        {
+          label: "الموعد المتفق عليه لاستكمال نقل الملكية",
+          value: payload.agreement_details.transfer_due_date
+            ? date(payload.agreement_details.transfer_due_date)
+            : "",
+        },
+        {
+          label: "شروط التسليم",
+          value: payload.agreement_details.handover_conditions,
+        },
+        ...(payload.contract_type === "rental"
+          ? [
+              {
+                label: "شروط الإشغال",
+                value: payload.agreement_details.occupancy_conditions,
+              },
+              {
+                label: "مسؤوليات الماء والكهرباء والخدمات",
+                value: payload.agreement_details.utilities_responsibilities,
+              },
+              {
+                label: "مركز الشرطة المعني عند الاقتضاء",
+                value: payload.agreement_details.police_station,
+              },
+              {
+                label: "بيانات الموافقة الأمنية أو السكنية المتاحة",
+                value: payload.agreement_details.security_approval_reference,
+              },
+            ]
+          : []),
+      ].filter((r) => r.value),
+      witnesses: payload.agreement_details.witnesses,
+      procedure_labels: proceduresFor(payload.contract_type).map(
+        (p) => p.label,
+      ),
       legal_context: context,
       additional_conditions: payload.notes ?? "",
       preview_values: previewValues,
       office: {
         name: loaded.office?.companyName ?? "",
+        owner_name: loaded.office?.ownerName ?? "",
+        role:
+          payload.agreement_details.office_capacity === "broker"
+            ? "الوسيط العقاري"
+            : `طرف بصفة ${labels[payload.agreement_details.office_capacity]}`,
         address: loaded.office?.address ?? "",
         phone: loaded.office?.phonePrimary ?? "",
         phone_secondary: loaded.office?.phoneSecondary ?? "",
@@ -314,12 +395,18 @@ export async function buildContractDocument(
         role: p.role,
         label: labels[p.role],
         name: p.person.fullName,
-        identity_number:
-          p.person.nationalId ??
-          p.selected.find((d) => d.documentNumber)?.documentNumber ??
-          "",
+        identity_number: partyDocumentNumbers(
+          p.person,
+          p.selected,
+          loaded.documentTypes,
+        ).identity,
+        residence_card_number: partyDocumentNumbers(
+          p.person,
+          p.selected,
+          loaded.documentTypes,
+        ).residence,
         phone: p.person.phonePrimary ?? "",
-        address: p.person.address ?? "",
+        address: residentialAddress(p.person),
       })),
       assets: assets.map((a) => ({
         id: Number(a.id),
@@ -339,6 +426,14 @@ export async function buildContractDocument(
             value: `${a.areaValue ?? ""} ${a.areaUnit ?? ""}`,
           },
           { label: "نوع السند", value: String(a.legalType ?? "") },
+          {
+            label: "وصف العقار",
+            value: String(a.description ?? a.notes ?? ""),
+          },
+          {
+            label: "تفاصيل الملكية المتاحة",
+            value: String(a.ownershipDetails ?? ""),
+          },
           { label: "المبلغ", value: money(a.totalPrice ?? a.rentPrice) },
           {
             label: "دورية الأجرة",
@@ -357,8 +452,22 @@ export async function buildContractDocument(
         ],
       })),
       financial: [
-        { label: "المبلغ الإجمالي", value: money(payload.amount) },
-        { label: "المدفوع", value: money(payload.paid_amount) },
+        {
+          label:
+            payload.contract_type === "rental"
+              ? assets.every((a) => a.rentPeriod === "monthly")
+                ? "الأجرة الشهرية المتفق عليها"
+                : "الأجرة المتفق عليها للدورية المبينة"
+              : "سعر البيع المتفق عليه",
+          value: money(payload.amount),
+        },
+        {
+          label:
+            payload.contract_type === "rental"
+              ? "الدفعة المقدمة"
+              : "المدفوع عند التوقيع",
+          value: money(payload.paid_amount),
+        },
         {
           label: "المتبقي",
           value: money(Number(payload.amount) - payload.paid_amount),
@@ -369,7 +478,7 @@ export async function buildContractDocument(
             .filter(([key]) => key !== "paid_amount")
             .map(
               ([key, value]) =>
-                `${({ schedule: "جدول الدفع", payment_method: "طريقة الدفع", notes: "تفاصيل" } as Record<string, string>)[key] ?? key}: ${typeof value === "object" ? JSON.stringify(value) : (({ annual: "سنوي", monthly: "شهري", semi_annual: "نصف سنوي" } as Record<string, string>)[String(value)] ?? String(value))}`,
+                `${({ schedule: "جدول الدفع", payment_method: "طريقة الدفع", notes: "تفاصيل", reference: "مرجع الدفع", reference_number: "رقم مرجع الدفع", method: "طريقة الدفع", date: "تاريخ الدفع" } as Record<string, string>)[key] ?? key}: ${typeof value === "object" ? JSON.stringify(value) : (({ annual: "سنوي", monthly: "شهري", semi_annual: "نصف سنوي" } as Record<string, string>)[String(value)] ?? String(value))}`,
             )
             .join("، "),
         },

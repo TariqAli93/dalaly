@@ -1,11 +1,10 @@
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
+import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import {
   legalContractTemplates as templates,
   legalContractClauses as clauses,
   legalContentEvents as events,
-  legalReviewers,
-  users,
   auditLogs,
   properties,
   rentals,
@@ -19,7 +18,6 @@ import {
 import {
   legalDecisionSchema,
   legalRevisionSchema,
-  reviewerSchema,
   type LegalRevisionPayload,
 } from "./legal-content.schema.js";
 import {
@@ -33,23 +31,6 @@ import { legalPropertyType } from "./legal-content.engine.js";
 
 export function legalError(message: string) {
   return new ContractValidationError([{ code: "legal_content", message }]);
-}
-export async function requireLegalReviewer(userId: number, tx: any = db) {
-  const [r] = await tx
-    .select({ reviewer: legalReviewers })
-    .from(legalReviewers)
-    .innerJoin(users, eq(users.id, legalReviewers.userId))
-    .where(
-      and(
-        eq(legalReviewers.userId, userId),
-        eq(legalReviewers.isActive, true),
-        eq(users.isActive, true),
-      ),
-    )
-    .limit(1);
-  if (!r)
-    throw legalError("يجب توثيق أهلية محامٍ عراقي فعال قبل الاعتماد القانوني.");
-  return toApiObject(r.reviewer);
 }
 export const scopeOf = (v: LegalRevisionPayload) =>
   and(
@@ -87,7 +68,7 @@ export function revisionPayload(
 type LegalRow = Record<string, any> & { clauses: Record<string, any>[] };
 async function fullRevision(id: number, tx: any = db): Promise<LegalRow> {
   const [row] = await tx.select().from(templates).where(eq(templates.id, id));
-  if (!row) throw legalError("الصيغة غير موجودة.");
+  if (!row || row.deletedAt) throw legalError("الصيغة غير موجودة أو حذفت.");
   const contents = await tx
     .select()
     .from(clauses)
@@ -116,10 +97,12 @@ export async function listLegalContent(
     db
       .select()
       .from(templates)
+      .where(isNull(templates.deletedAt))
       .orderBy(
         asc(templates.contractType),
         asc(templates.propertyType),
         desc(templates.version),
+        desc(templates.id),
       ),
     db
       .select()
@@ -148,48 +131,6 @@ export async function legalHistory() {
     toApiObject(r),
   );
 }
-export async function listLegalReviewers() {
-  return (await db.select().from(legalReviewers)).map((r) => toApiObject(r));
-}
-export async function verifyReviewer(
-  input: ReturnType<typeof reviewerSchema.parse>,
-  actorId: number,
-) {
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, input.user_id));
-  if (!user) throw legalError("حساب المراجع غير موجود.");
-  const values = {
-    userId: input.user_id,
-    lawyerName: input.lawyer_name,
-    registrationNumber: input.registration_number,
-    qualificationEvidence: input.qualification_evidence,
-    isActive: input.is_active,
-    verifiedBy: actorId,
-    verifiedAt: new Date(),
-  };
-  return db.transaction(async (tx) => {
-    const [old] = await tx
-      .select()
-      .from(legalReviewers)
-      .where(eq(legalReviewers.userId, input.user_id));
-    const [row] = await tx
-      .insert(legalReviewers)
-      .values(values)
-      .onConflictDoUpdate({ target: legalReviewers.userId, set: values })
-      .returning();
-    await tx.insert(auditLogs).values({
-      entityType: "legal_reviewer",
-      entityId: input.user_id,
-      action: "qualification",
-      oldValue: old ?? null,
-      newValue: row,
-      userId: actorId,
-    });
-    return toApiObject(row);
-  });
-}
 export async function validateRevision(
   input: LegalRevisionPayload,
   tx: any = db,
@@ -197,8 +138,14 @@ export async function validateRevision(
   const [base] = await tx
     .select()
     .from(templates)
-    .where(and(scopeOf(input), eq(templates.approvalStatus, "approved")))
-    .orderBy(desc(templates.version))
+    .where(
+      and(
+        scopeOf(input),
+        eq(templates.approvalStatus, "approved"),
+        isNull(templates.deletedAt),
+      ),
+    )
+    .orderBy(desc(templates.updatedAt), desc(templates.id))
     .limit(1);
   const baseline = base ? await fullRevision(base.id, tx) : null;
   const change_kind = !baseline
@@ -213,6 +160,10 @@ export async function validateRevision(
     review_required: change_kind !== "administrative",
     based_on_id: base?.id ?? null,
     baseline_version: base?.version ?? null,
+    wording_origin:
+      change_kind === "administrative"
+        ? (base?.wordingOrigin ?? "specialist")
+        : "specialist",
   };
 }
 export async function legalOptions(activeOnly = false) {
@@ -273,9 +224,14 @@ export async function saveLegalRevision(
 ) {
   return db.transaction(async (tx) => {
     await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`legal-default:${input.contract_type}`}))`,
+    );
+    await tx.execute(
       sql`select pg_advisory_xact_lock(hashtext(${[input.contract_type, input.property_type, input.jurisdiction, input.transaction_kind].join(":")}))`,
     );
     const previous = previousId ? await fullRevision(previousId, tx) : null;
+    if (previous?.is_system)
+      throw legalError("الصيغ الأساسية محمية؛ انسخ الصيغة لإنشاء صيغة مخصصة.");
     if (
       previous &&
       [
@@ -297,7 +253,9 @@ export async function saveLegalRevision(
     const [latest] = await tx
       .select()
       .from(templates)
-      .where(scopeOf(input))
+      .where(
+        previous ? eq(templates.familyCode, previous.family_code) : sql`false`,
+      )
       .orderBy(desc(templates.version))
       .limit(1);
     if (previous && latest?.id !== previous.id)
@@ -324,14 +282,7 @@ export async function saveLegalRevision(
     const [row] = await tx
       .insert(templates)
       .values({
-        familyCode:
-          latest?.familyCode ??
-          [
-            input.contract_type,
-            input.property_type,
-            input.jurisdiction,
-            input.transaction_kind,
-          ].join(":"),
+        familyCode: previous?.family_code ?? `custom:${randomUUID()}`,
         contractType: input.contract_type,
         propertyType: input.property_type,
         jurisdiction: input.jurisdiction,
@@ -340,9 +291,10 @@ export async function saveLegalRevision(
         version,
         legalBasis: input.legal_basis,
         applicabilityNotes: input.applicability_notes,
-        parentId: latest?.id ?? null,
+        parentId: previous?.id ?? null,
         basedOnId: check.based_on_id,
         changeKind: check.change_kind,
+        wordingOrigin: check.wording_origin,
         reviewRequired: check.review_required,
         targetAt: input.target_at ? new Date(input.target_at) : null,
         priority: input.priority,
@@ -386,6 +338,21 @@ export async function restoreLegalRevision(id: number, actorId: number) {
       revision_note: `استعادة الإصدار ${source.version} بإنشاء إصدار جديد`,
     },
     actorId,
+    source.is_system
+      ? undefined
+      : (
+          await db
+            .select()
+            .from(templates)
+            .where(
+              and(
+                eq(templates.familyCode, source.family_code),
+                isNull(templates.deletedAt),
+              ),
+            )
+            .orderBy(desc(templates.version))
+            .limit(1)
+        )[0]?.id,
   );
   await db.insert(events).values({
     legalTemplateId: Number(result.id),
@@ -430,6 +397,51 @@ export async function compareLegalRevisions(left: number, right: number) {
       legalTerms(revisionPayload(b, b.clauses)),
   };
 }
+export async function deleteLegalTemplate(id: number, actorId: number) {
+  return db.transaction(async (tx) => {
+    const row = await fullRevision(id, tx);
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`legal-default:${row.contract_type}`}))`,
+    );
+    const family = await tx
+      .select()
+      .from(templates)
+      .where(eq(templates.familyCode, row.family_code))
+      .for("update");
+    if (family.every((r) => r.deletedAt))
+      throw legalError("الصيغة حذفت مسبقاً؛ أعد تحميل الصفحة.");
+    if (family.some((r) => r.isSystem))
+      throw legalError("لا يمكن حذف الصيغ الأساسية المحمية من النظام.");
+    if (family.some((r) => r.isDefault))
+      throw legalError("لا يمكن حذف الصيغة الافتراضية؛ حدد بديلاً أولاً.");
+    const deletedAt = new Date();
+    await tx
+      .update(templates)
+      .set({
+        deletedAt,
+        deletedBy: actorId,
+        publicationStatus: "archived",
+        updatedAt: deletedAt,
+      })
+      .where(eq(templates.familyCode, row.family_code));
+    await tx.insert(events).values({
+      legalTemplateId: id,
+      actorId,
+      action: "delete",
+      comment: "أرشفة الصيغة المخصصة مع الحفاظ على إصدارات العقود السابقة",
+      details: { family_code: row.family_code },
+    });
+    await tx.insert(auditLogs).values({
+      entityType: "legal_template",
+      entityId: id,
+      action: "delete",
+      oldValue: row,
+      newValue: { deleted_at: deletedAt.toISOString() },
+      userId: actorId,
+    });
+    return { ok: true };
+  });
+}
 type Authority = { manage?: boolean; publish?: boolean; specialist?: boolean };
 export async function decideLegalRevision(
   id: number,
@@ -440,6 +452,9 @@ export async function decideLegalRevision(
   return db.transaction(async (tx) => {
     const row = await fullRevision(id, tx);
     await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`legal-default:${row.contract_type}`}))`,
+    );
+    await tx.execute(
       sql`select pg_advisory_xact_lock(hashtext(${[row.contract_type, row.property_type, row.jurisdiction, row.transaction_kind].join(":")}))`,
     );
     const [locked] = await tx
@@ -449,6 +464,8 @@ export async function decideLegalRevision(
       .for("update");
     row.approval_status = locked.approvalStatus;
     row.publication_status = locked.publicationStatus;
+    row.is_default = locked.isDefault;
+    if (locked.deletedAt) throw legalError("الصيغة حذفت؛ أعد تحميل الصفحة.");
     const action = input.action;
     const check = await validateRevision(revisionPayload(row, row.clauses), tx);
     const approval = action === "approve" || action === "approve_publish";
@@ -462,14 +479,10 @@ export async function decideLegalRevision(
       authority &&
       ((action === "submit" && !authority.manage) ||
         (publishing && !authority.publish) ||
-        (approval &&
-          (check.review_required
-            ? !authority.specialist
-            : !authority.publish)) ||
-        (action === "reject" && !authority.specialist))
+        (approval && !authority.specialist && !authority.publish) ||
+        (action === "reject" && !authority.specialist && !authority.publish))
     )
       throw new ForbiddenError("ليست لديك صلاحية تنفيذ هذه العملية.");
-    let reviewer: any = null;
     if (
       ["submit", "approve", "approve_publish", "publish", "default"].includes(
         action,
@@ -482,14 +495,6 @@ export async function decideLegalRevision(
     if (approval) {
       if (!["draft", "pending"].includes(row.approval_status))
         throw legalError("حالة الصيغة لا تسمح بالاعتماد.");
-      if (check.review_required || row.review_required) {
-        if (row.approval_status !== "pending")
-          throw legalError(
-            "التغيير الجوهري أو النص الجديد يتطلب إرسالاً للمراجعة المختصة.",
-          );
-        reviewer = await requireLegalReviewer(actorId, tx);
-      } else if (row.based_on_id !== check.based_on_id)
-        throw legalError("تغير الإصدار المعتمد؛ أنشئ إصداراً جديداً للمقارنة.");
     }
     if (
       ["publish", "default"].includes(action) &&
@@ -499,25 +504,28 @@ export async function decideLegalRevision(
     if (action === "reject") {
       if (row.approval_status !== "pending")
         throw legalError("يمكن رفض صيغة مقدمة للاعتماد فقط.");
-      reviewer = await requireLegalReviewer(actorId, tx);
     }
+    if (action === "archive" && row.is_default)
+      throw legalError("اختر صيغة افتراضية بديلة قبل إيقاف هذه الصيغة.");
     if (action === "archive" && row.approval_status !== "approved")
       throw legalError("يمكن إيقاف إصدار معتمد فقط.");
     const activating = ["approve_publish", "publish", "default"].includes(
       action,
     );
+    let replacingDefault = false;
     if (activating) {
       const old = await tx
         .select()
         .from(templates)
         .where(
           and(
-            scopeOf(revisionPayload(row, row.clauses)),
+            eq(templates.familyCode, row.family_code),
             eq(templates.publicationStatus, "active"),
           ),
         );
       for (const r of old) {
         if (r.id === id) continue;
+        replacingDefault ||= r.isDefault;
         await tx
           .update(templates)
           .set({
@@ -535,6 +543,18 @@ export async function decideLegalRevision(
         });
       }
     }
+    const makeDefault =
+      action === "default" || locked.isDefault || replacingDefault;
+    if (makeDefault)
+      await tx
+        .update(templates)
+        .set({ isDefault: false, updatedAt: new Date() })
+        .where(
+          and(
+            eq(templates.contractType, row.contract_type),
+            eq(templates.isDefault, true),
+          ),
+        );
     const [updated] = await tx
       .update(templates)
       .set({
@@ -546,18 +566,15 @@ export async function decideLegalRevision(
               : action === "reject"
                 ? "rejected"
                 : row.approval_status,
-        approvedBy: approval ? actorId : locked.approvedBy,
-        approvedAt: approval ? new Date() : locked.approvedAt,
+        // Preserve database timestamp precision when only changing workflow
+        // metadata; approval evidence must remain byte-for-byte unchanged.
+        ...(approval ? { approvedBy: actorId, approvedAt: new Date() } : {}),
         publicationStatus: activating
           ? "active"
           : action === "archive"
             ? "archived"
             : row.publication_status,
-        isDefault: activating
-          ? true
-          : action === "archive"
-            ? false
-            : locked.isDefault,
+        isDefault: action === "archive" ? false : makeDefault,
         updatedAt: new Date(),
         targetAt:
           action === "submit" && !locked.targetAt
@@ -571,7 +588,6 @@ export async function decideLegalRevision(
       action,
       actorId,
       comment: input.comment,
-      reviewerSnapshot: reviewer,
       details: {
         change_kind: check.change_kind,
         based_on_id: check.based_on_id,
@@ -595,7 +611,7 @@ export async function scheduleLegalRevision(
       .from(templates)
       .where(eq(templates.id, id))
       .for("update");
-    if (!old) throw legalError("الصيغة غير موجودة.");
+    if (!old || old.deletedAt) throw legalError("الصيغة غير موجودة.");
     const [row] = await tx
       .update(templates)
       .set({
@@ -630,6 +646,7 @@ export async function legalNotifications(
     .where(eq(templates.approvalStatus, "pending"));
   const eligible = tasks.filter(
     (r) =>
+      !r.deletedAt &&
       r.publicationStatus !== "archived" &&
       r.targetAt &&
       ((r.reviewRequired && specialist) ||

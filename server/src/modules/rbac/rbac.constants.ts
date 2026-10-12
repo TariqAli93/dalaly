@@ -2,6 +2,11 @@ export const SUPER_ADMIN_ROLE = "Super Admin";
 
 export const SYSTEM_PERMISSIONS = [
   {
+    key: "legal_content.delete",
+    name: "حذف الصيغ القانونية المخصصة",
+    module: "legal_content",
+  },
+  {
     key: "legal_content.publish",
     name: "نشر الصيغ واعتماد التعديلات الإدارية",
     module: "legal_content",
@@ -24,11 +29,6 @@ export const SYSTEM_PERMISSIONS = [
   {
     key: "legal_content.approve",
     name: "اعتماد الصيغ ومراجعة العقود",
-    module: "legal_content",
-  },
-  {
-    key: "legal_reviewers.manage",
-    name: "التحقق من أهلية المراجعين القانونيين",
     module: "legal_content",
   },
   { key: "properties.read", name: "قراءة العروض", module: "properties" },
@@ -126,6 +126,13 @@ export const SYSTEM_PERMISSIONS = [
   },
   { key: "contracts.read", name: "قراءة العقود", module: "contracts" },
   { key: "contracts.manage", name: "إدارة العقود", module: "contracts" },
+  { key: "contracts.issue", name: "إصدار العقود", module: "contracts" },
+  { key: "contracts.cancel", name: "إلغاء العقود", module: "contracts" },
+  {
+    key: "contracts.print",
+    name: "طباعة العقود وتصديرها",
+    module: "contracts",
+  },
   {
     key: "contract_templates.manage",
     name: "إدارة قوالب العقود",

@@ -38,9 +38,12 @@ export async function previewLegalRevision(
     "contract.amount": "١٬٠٠٠٬٠٠٠ د.ع",
     "contract.paid_amount": "٢٥٠٬٠٠٠ د.ع",
     "contract.remaining_amount": "٧٥٠٬٠٠٠ د.ع",
-    "contract.date": "١١‏/١٠‏/٢٠٢٦",
+    "contract.date": new Date().toLocaleDateString("ar-IQ", {
+      timeZone: "Asia/Baghdad",
+    }),
     "property.name": "عقار تجريبي",
     "office.name": "مكتب تجريبي",
+    "office.involvement": "وبوساطة مكتب تجريبي",
     "property.area_unit":
       input.property_type === "agricultural_land" ? "دونم" : "متر",
     "contract.jurisdiction": input.jurisdiction,
@@ -59,10 +62,11 @@ export async function previewLegalRevision(
   let data: ContractDocument["data"] = {
     code: "معاينة تجريبية",
     contract_type: input.contract_type,
+    agreement_mode: "office",
+    explanation:
+      "اتفاق المكتب العقاري لا يغني عن إجراءات التصديق أو التسجيل الرسمية المطلوبة.",
     title:
-      input.contract_type === "rental"
-        ? "عقد إيجار عقار"
-        : "اتفاق أولي لبيع عقار",
+      input.contract_type === "rental" ? "اتفاق إيجار عقار" : "اتفاق بيع عقار",
     office: {
       name: "مكتب تجريبي",
       address: "عنوان تجريبي",
@@ -142,7 +146,9 @@ export async function previewLegalRevision(
     )
       throw legalError("اختصاص العقد ومعاملته لا يطابقان نطاق الصيغة.");
     const asset = model.data.assets.find(
-      (a) => a.property_type === input.property_type,
+      (a) =>
+        input.property_type === "all_properties" ||
+        a.property_type === input.property_type,
     );
     const stored = model.data.preview_values?.find(
       (v) => v.asset_id === asset?.id,
@@ -208,5 +214,19 @@ export async function previewLegalRevision(
     layout_config: layoutSchema.parse(t.layoutConfig),
     branding_config: brandingSchema.parse(t.brandingConfig),
   };
-  return { ...renderVisual(model, visual), model };
+  const variableKeys = [
+    ...new Set(
+      input.clauses.flatMap((c) =>
+        [...c.clause_content_ar.matchAll(/{{\s*([^{}]+?)\s*}}/g)].map(
+          (m) => m[1],
+        ),
+      ),
+    ),
+  ];
+  return {
+    ...renderVisual(model, visual),
+    model,
+    rendered_clauses: rendered,
+    variables: variableKeys.map((key) => ({ key, value: values[key] ?? "" })),
+  };
 }

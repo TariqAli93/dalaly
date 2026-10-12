@@ -28,6 +28,8 @@ import {
   contractOfficeSnapshots,
   contractAssetSnapshots,
   contractAttachments,
+  contractProcedures,
+  contractProcedureAttachments,
   favoriteProperties,
   favoriteRentals,
   governorates,
@@ -135,7 +137,7 @@ const TABLE_SPECS = [
   {
     name: "legal_contract_templates",
     table: legalContractTemplates,
-    dates: ["createdAt", "updatedAt", "approvedAt", "targetAt"],
+    dates: ["createdAt", "updatedAt", "approvedAt", "targetAt", "deletedAt"],
   },
   {
     name: "legal_contract_clauses",
@@ -162,6 +164,8 @@ const TABLE_SPECS = [
       "createdAt",
       "updatedAt",
       "generatedAt",
+      "issuedAt",
+      "cancelledAt",
     ],
   },
   { name: "contract_parties", table: contractParties, dates: ["createdAt"] },
@@ -184,6 +188,16 @@ const TABLE_SPECS = [
   {
     name: "contract_legal_snapshots",
     table: contractLegalSnapshots,
+    dates: ["createdAt"],
+  },
+  {
+    name: "contract_procedures",
+    table: contractProcedures,
+    dates: ["updatedAt"],
+  },
+  {
+    name: "contract_procedure_attachments",
+    table: contractProcedureAttachments,
     dates: ["createdAt"],
   },
   { name: "audit_logs", table: auditLogs, dates: ["createdAt"] },
@@ -238,6 +252,8 @@ const SCOPE_TABLES: Record<string, TableName[]> = {
     "contract_office_snapshots",
     "contract_asset_snapshots",
     "contract_attachments",
+    "contract_procedures",
+    "contract_procedure_attachments",
     "contract_legal_snapshots",
   ],
 };
@@ -272,6 +288,8 @@ const SERIAL_TABLES = new Set<TableName>([
   "contract_office_snapshots",
   "contract_asset_snapshots",
   "contract_attachments",
+  "contract_procedures",
+  "contract_procedure_attachments",
   "audit_logs",
 ]);
 
@@ -535,13 +553,7 @@ function extractDocumentsFromZip(zip: AdmZip) {
 }
 
 export type RestoreScope =
-  | "full"
-  | "properties"
-  | "images"
-  | "users"
-  | "settings"
-  | "rentals"
-  | "crm";
+  "full" | "properties" | "images" | "users" | "settings" | "rentals" | "crm";
 
 /** يسترجع نسخة احتياطية من محتوى ZIP حسب النطاق المحدد. */
 export async function restoreBackup(

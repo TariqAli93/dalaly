@@ -55,6 +55,7 @@ export async function verifyContractsUi(
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({
       viewport: { width: 1500, height: 1100 },
+      reducedMotion: "reduce",
     });
     await context.addInitScript("window.__name = (fn) => fn;");
     await context.addInitScript((session) => {
@@ -88,7 +89,7 @@ export async function verifyContractsUi(
       .locator("tbody tr")
       .filter({ hasText: "صيغة اختبار commercial" })
       .first();
-    await row.getByRole("button", { name: "تعديل", exact: true }).click();
+    await row.getByRole("button", { name: "تعديل الصيغة", exact: true }).click();
     const editor = page.locator(".legal-editor");
     await expect(editor).toBeVisible();
     await page
@@ -155,28 +156,20 @@ export async function verifyContractsUi(
       headers: { authorization: "Bearer " + token },
     });
     let previousDesignId = templates.json()[0].id;
-    for (const design of templates.json()) {
-      await page
-        .getByRole("combobox", { name: "التصميم المرئي", exact: true })
-        .press("Enter");
+    // The first design is already rendered. Selecting an already-selected
+    // Vuetify option does not produce a preview request.
+    for (const design of templates.json().slice(1)) {
+      await editor.getByRole("combobox", { name: "التصميم المرئي", exact: true }).locator("..").click();
       const changed = previousDesignId !== design.id;
-      const response = changed
-        ? page.waitForResponse(
-            (r) =>
-              r.url().endsWith("/legal-content/preview") &&
-              r.request().method() === "POST" &&
-              r.request().postDataJSON().visual_id === design.id,
-          )
-        : null;
-      await page
-        .getByRole("option", { name: design.name, exact: true })
-        .click();
-      if (response) {
-        const result = await response;
-        assert.equal(result.status(), 200);
-        await expect(
-          page.locator('iframe[title="معاينة العقد العربي بحجم A4"]'),
-        ).toHaveAttribute("srcdoc", (await result.json()).html);
+      if (changed) {
+        const [response] = await Promise.all([
+          page.waitForResponse((response) => response.url().endsWith("/legal-content/preview") && response.request().method() === "POST" && Number(response.request().postDataJSON().visual_id) === Number(design.id)),
+          page.getByRole("option", { name: design.name, exact: true }).click(),
+        ]);
+        assert.equal(response.status(), 200);
+        await expect(editor.locator('iframe[title="معاينة العقد العربي بحجم A4"]')).toHaveAttribute("srcdoc", (await response.json()).html);
+      } else {
+        await page.getByRole("option", { name: design.name, exact: true }).click();
       }
       assert.equal(
         normalizeText(await previews.locator("body").innerText()),
@@ -200,9 +193,9 @@ export async function verifyContractsUi(
       .locator("tbody tr")
       .filter({ hasText: "صيغة اختبار من واجهة الإدارة" })
       .first();
-    await expect(published).toContainText("نشطة");
+    await expect(published).toContainText("مفعلة");
     await published
-      .getByRole("button", { name: "المزيد من إجراءات الصيغة" })
+      .getByRole("button", { name: "إجراءات الصيغة" })
       .click();
     await page.getByText("عرض الإصدارات", { exact: true }).click();
     await page
@@ -262,36 +255,42 @@ export async function verifyContractsUi(
     await page
       .getByRole("button", { name: "التحقق من الصيغة", exact: true })
       .click();
-    await expect(editor).toContainText("تغيير قانوني جوهري يحتاج مراجعة مختصة");
+    await expect(editor).toContainText("تغيير في الأحكام القانونية");
     await expect(
       editor.getByRole("button", { name: "اعتماد ونشر", exact: true }),
-    ).toBeDisabled();
+    ).toBeEnabled();
+    await page.getByLabel("اسم الصيغة", { exact: true }).fill("صيغة جوهرية من الواجهة");
     await page
       .getByRole("button", { name: "إرسال للاعتماد", exact: true })
       .click();
     await expect(editor).toHaveCount(0);
     await page.getByRole("tab", { name: "عقود الإيجار", exact: true }).click();
+    await page.getByLabel("البحث في الصيغ", { exact: true }).fill("صيغة جوهرية من الواجهة");
     const pending = page
       .locator(".v-data-table tbody tr")
-      .filter({ hasText: "تحتاج مراجعة مختصة" })
-      .filter({ hasText: approved.title })
+      .filter({ hasText: "بانتظار المراجعة" })
+      .filter({ hasText: "صيغة جوهرية من الواجهة" })
       .first();
     await expect(pending).toBeVisible();
     await expect(
       page.getByText("متابعة طلبات الاعتماد", { exact: true }),
     ).toBeVisible();
     await pending
-      .getByRole("button", { name: "المزيد من إجراءات الصيغة" })
+      .getByRole("button", { name: "إجراءات الصيغة" })
       .click();
     await page.getByText("الموعد والأولوية", { exact: true }).click();
     await page
       .getByLabel("الموعد المستهدف — توقيت بغداد", { exact: true })
       .fill("2026-10-11T10:00");
     await page.getByRole("button", { name: "حفظ الموعد", exact: true }).click();
+    // Wait for the closing dialog and its scroll lock to leave before opening
+    // another connected overlay in the command bar.
+    await expect(page.getByRole("dialog")).toHaveCount(0);
     await page
       .getByRole("button", { name: "تنبيهات الصيغ القانونية", exact: true })
       .click();
-    await expect(page.locator(".legal-notices")).toContainText(approved.title);
+    await expect(page.locator(".legal-notices")).toContainText("صيغة جوهرية من الواجهة");
+    await expect(page.locator(".legal-notices")).toBeInViewport();
     await page
       .getByRole("button", { name: "تعليم الكل كمقروء", exact: true })
       .click();
@@ -299,9 +298,8 @@ export async function verifyContractsUi(
       page.getByRole("button", { name: "تعليم الكل كمقروء", exact: true }),
     ).toBeDisabled();
     await page.keyboard.press("Escape");
-    await pending
-      .getByRole("button", { name: "اعتماد المراجعة", exact: true })
-      .click();
+    await pending.getByRole("button", { name: "إجراءات الصيغة", exact: true }).click();
+    await page.getByText("اعتماد وتفعيل", { exact: true }).click();
     await page
       .getByLabel("ملاحظة القرار", { exact: true })
       .fill("مراجعة صياغة جوهرية اختبارية في قاعدة مؤقتة");
@@ -311,10 +309,10 @@ export async function verifyContractsUi(
     await expect(pending).toHaveCount(0);
     const active = page
       .locator(".v-data-table tbody tr")
-      .filter({ hasText: approved.title })
-      .filter({ hasText: "نشطة" })
+      .filter({ hasText: "صيغة جوهرية من الواجهة" })
       .first();
-    await active.getByRole("button", { name: "إيقاف", exact: true }).click();
+    await active.getByRole("button", { name: "إجراءات الصيغة", exact: true }).click();
+    await page.getByText("إيقاف الصيغة", { exact: true }).click();
     await page
       .getByLabel("ملاحظة القرار", { exact: true })
       .fill("اختبار إيقاف صيغة معتمدة");
@@ -323,11 +321,12 @@ export async function verifyContractsUi(
       .click();
     const archived = page
       .locator(".v-data-table tbody tr")
-      .filter({ hasText: approved.title })
-      .filter({ hasText: "مؤرشفة" })
+      .filter({ hasText: "صيغة جوهرية من الواجهة" })
+      .filter({ hasText: "غير مفعلة" })
       .first();
     await expect(archived).toBeVisible();
-    await archived.getByRole("button", { name: "تفعيل", exact: true }).click();
+    await archived.getByRole("button", { name: "إجراءات الصيغة", exact: true }).click();
+    await page.getByText("تفعيل الصيغة", { exact: true }).click();
     await page
       .getByLabel("ملاحظة القرار", { exact: true })
       .fill("اختبار تفعيل صيغة معتمدة");
@@ -346,148 +345,67 @@ export async function verifyContractsUi(
     await expect(page.locator(".v-expansion-panel")).toHaveCount(12);
     await page.locator(".v-expansion-panel-title").first().click();
     await page.getByLabel("حجم الخط", { exact: true }).fill("16");
-    await page
-      .getByRole("button", { name: "حفظ التصميم", exact: true })
-      .click();
+    await page.getByLabel("حجم الخط", { exact: true }).press("Tab");
+    await Promise.all([
+      page.waitForResponse((response) => response.url().includes("/contracts/templates/") && response.request().method() === "PUT"),
+      page.getByRole("button", { name: "حفظ التصميم", exact: true }).click({ force: true }),
+    ]);
     await expect(
       page.getByText("تم حفظ إصدار مرئي جديد.", { exact: true }),
     ).toBeVisible();
-    // Keep export/approval controls inside a desktop-sized viewport even while
-    // the long document body is scrolled; unapproved drafts remain exportable.
+    // Review is a dedicated page. The primary controls remain visible on a
+    // smaller desktop viewport while exports live in the secondary menu.
     await page.setViewportSize({ width: 1000, height: 700 });
     for (const draft of unprepared) {
-      await page.goto(
-        `${origin}/?contract-test=unprepared-${draft.kind}#/contracts?view=${draft.id}`,
-      );
+      const saved = (await app.inject({ url: "/api/contracts/" + draft.id, headers: { authorization: "Bearer " + token } })).json();
+      assert.equal(saved.contract.status, "draft", JSON.stringify(draft));
+      assert.equal(saved.contract.contract_type, draft.kind, JSON.stringify(draft));
+      await page.goto(`${origin}/?contract-test=review-${draft.id}#/contracts/${draft.id}/review`);
+      await expect(page).toHaveURL(new RegExp(`#/contracts/${draft.id}/review$`));
       const toolbar = page.getByRole("toolbar", { name: "إجراءات العقد" });
       await expect(toolbar).toBeVisible();
-      await expect(
-        toolbar.getByRole("button", {
-          name: "مراجعة الشروط الاستثنائية",
-          exact: true,
-        }),
-      ).toHaveCount(0);
-      await expect(
-        toolbar.getByRole("button", {
-          name: "إصدار العقد المعتمد",
-          exact: true,
-        }),
-      ).toBeDisabled();
-      for (const name of ["تصدير PDF", "تصدير Word", "إصدار العقد المعتمد"]) {
-        const box = await toolbar
-          .getByRole("button", { name, exact: true })
-          .boundingBox();
-        assert(
-          box && box.y >= 0 && box.y + box.height <= 700,
-          `${name} must be in the viewport`,
-        );
-      }
-      const [printable] = await Promise.all([
-        page.waitForEvent("download"),
-        toolbar.getByRole("button", { name: "تصدير PDF", exact: true }).click(),
-      ]);
+      await expect(page.getByRole("tab", { name: "المعاينة", exact: true })).toBeVisible();
+      await expect(page.getByRole("tab", { name: "المعلومات", exact: true })).toBeVisible();
+      await expect(page.getByRole("tab", { name: "الشروط القانونية", exact: true })).toBeVisible();
+      await expect(page.getByRole("tab", { name: "سجل الإجراءات", exact: true })).toBeVisible();
+      await expect(page.getByText("اتفاق المكتب العقاري لا يغني", { exact: false })).toBeVisible();
+      const issue = toolbar.getByRole("button", { name: "حفظ وإصدار العقد", exact: true });
+      await expect(issue).toBeEnabled();
+      const box = await issue.boundingBox();
+      assert(box && box.y >= 0 && box.y + box.height <= 700, "Issue control must be in the viewport");
+      await toolbar.getByRole("button", { name: "المزيد من إجراءات العقد", exact: true }).click();
+      const [printable] = await Promise.all([page.waitForEvent("download"), page.getByText("تصدير PDF", { exact: true }).click()]);
       assert(printable.suggestedFilename().endsWith("_مسودة.print.html"));
-      assert(
-        (await fs.readFile((await printable.path())!, "utf8")).includes(
-          'data-draft="true"',
-        ),
-      );
-      await expect(
-        toolbar.getByRole("button", { name: "تصدير Word", exact: true }),
-      ).toBeEnabled();
-      const [word] = await Promise.all([
-        page.waitForEvent("download"),
-        toolbar
-          .getByRole("button", { name: "تصدير Word", exact: true })
-          .click(),
-      ]);
-      assert(word.suggestedFilename().endsWith("_مسودة.docx"));
-      assert(
-        (await fs.readFile((await word.path())!))
-          .subarray(0, 2)
-          .equals(Buffer.from("PK")),
-      );
-      await page
-        .getByRole("link", { name: "إدارة واعتماد الصيغ", exact: true })
-        .click();
-      await expect(
-        page.getByRole("tab", {
-          name: draft.kind === "rental" ? "عقود الإيجار" : "عقود البيع",
-        }),
-      ).toHaveAttribute("aria-selected", "true");
-      await expect(
-        page.locator("tbody tr").filter({ hasText: "house" }),
-      ).not.toHaveCount(0);
-      await page
-        .getByRole("link", { name: "العودة إلى العقد", exact: true })
-        .click();
-      await page
-        .getByRole("button", {
-          name: "تجهيز المسودة بالصيغ المعتمدة",
-          exact: true,
-        })
-        .click();
-      await expect(
-        page.getByRole("heading", {
-          name: "مراجعة العقد قبل الإصدار",
-          exact: true,
-        }),
-      ).toBeVisible();
-      await page
-        .getByRole("button", { name: "حفظ تعديل المسودة", exact: true })
-        .click();
-      await expect(
-        page.getByRole("button", {
-          name: "مراجعة الشروط الاستثنائية",
-          exact: true,
-        }),
-      ).toHaveCount(0);
-      await expect(
-        page.getByRole("button", { name: "إصدار العقد المعتمد", exact: true }),
-      ).toBeEnabled();
+      assert((await fs.readFile((await printable.path())!, "utf8")).includes('data-draft="true"'));
+      await toolbar.getByRole("button", { name: "المزيد من إجراءات العقد", exact: true }).click();
+      const [word] = await Promise.all([page.waitForEvent("download"), page.getByText("تصدير Word", { exact: true }).click()]);
+      assert(word.suggestedFilename().endsWith("_مسودة.docx"), word.suggestedFilename());
+      assert((await fs.readFile((await word.path())!)).subarray(0, 2).equals(Buffer.from("PK")));
       if (draft.kind === "rental") {
-        const current = await app.inject({
-          url: "/api/contracts/" + draft.id,
-          headers: { authorization: "Bearer " + token },
-        });
-        assert.equal(
-          current.json().contract.payment_info.schedule,
-          "جدول اختبار محفوظ",
-        );
+        const current = await app.inject({ url: "/api/contracts/" + draft.id, headers: { authorization: "Bearer " + token } });
+        assert.equal(current.json().contract.payment_info.schedule, "جدول اختبار محفوظ");
       }
-      await page
-        .getByRole("button", { name: "إصدار العقد المعتمد", exact: true })
-        .click();
-      await expect(
-        page.getByRole("button", {
-          name: "مراجعة الشروط الاستثنائية",
-          exact: true,
-        }),
-      ).toHaveCount(0);
-      await expect(
-        page
-          .frameLocator('iframe[title="معاينة العقد العربي بحجم A4"]')
-          .locator("[data-draft]"),
-      ).toHaveCount(0);
+      await issue.click();
+      await expect(page.frameLocator('iframe[title="معاينة العقد العربي بحجم A4"]').locator("[data-draft]")).toHaveCount(0);
+      await expect(page.getByRole("link", { name: "تعديل المسودة", exact: true })).toHaveCount(0);
+      await page.getByRole("tab", { name: "سجل الإجراءات", exact: true }).click();
+      await expect(page.getByText("إصدار العقد", { exact: true })).toBeVisible();
+      await expect(page.getByText("طلب تصدير PDF", { exact: true })).toBeVisible();
     }
-    await page.goto(
-      `${origin}/?contract-test=issue#/contracts?view=${draftId}`,
-    );
-    await page
-      .getByRole("button", { name: "مراجعة الشروط الاستثنائية", exact: true })
-      .click();
-    await page
-      .getByLabel("نتيجة مراجعة المحامي وأسباب انطباق الصيغ")
-      .fill("مراجعة واجهة اختبار فقط لبيانات العقد");
-    await page
-      .getByRole("button", { name: "تسجيل اعتماد العقد", exact: true })
-      .click();
-    await page
-      .getByRole("button", { name: "إصدار العقد المعتمد", exact: true })
-      .click();
-    await expect(
-      page.getByText("تم إصدار العقد وحفظ نسخته التاريخية.", { exact: true }),
-    ).toBeVisible();
+    await page.goto(`${origin}/?contract-test=exception-${draftId}#/contracts/${draftId}/review`);
+    await page.getByRole("button", { name: "حفظ وإصدار العقد", exact: true }).click();
+    await expect(page.getByText("تم إصدار العقد وحفظ نسخته التاريخية.", { exact: true })).toBeVisible();
+    await page.getByRole("tab", { name: "المعلومات", exact: true }).click();
+    await page.getByText("متابعة التوقيع والإجراءات اللاحقة", { exact: true }).click();
+    await expect(page.getByText("نسخة صادرة للطباعة والتوقيع — التوقيع غير مسجل", { exact: false })).toBeVisible();
+    const signingRow = page.getByRole("listitem").filter({ hasText: "تم توقيع الاتفاق" });
+    await signingRow.getByRole("button", { name: "تسجيل الإجراء", exact: true }).click();
+    await page.getByRole("radio", { name: "مكتمل", exact: true }).check();
+    const completedDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Baghdad", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    await page.getByLabel("تاريخ استكمال الإجراء", { exact: true }).fill(completedDate);
+    await page.getByRole("button", { name: "حفظ المتابعة", exact: true }).click();
+    await expect(page.getByText("اتفاق موقع — الإجراءات اللاحقة قيد المتابعة", { exact: false })).toBeVisible();
+    await page.getByRole("tab", { name: "المعاينة", exact: true }).click();
     const frame = page.frameLocator(
       'iframe[title="معاينة العقد العربي بحجم A4"]',
     );
@@ -536,6 +454,20 @@ export async function verifyContractsUi(
         errors,
         (await debugPage.locator("body").innerText()).slice(0, 3500),
       );
+      console.error("Notification menu bounds", await debugPage.locator(".legal-notices").evaluateAll((elements) => elements.map((element) => ({
+        bounds: element.getBoundingClientRect().toJSON(),
+        overlay: element.closest(".v-overlay__content")?.getAttribute("style"),
+        overlayBox: element.closest(".v-overlay")?.getBoundingClientRect().toJSON(),
+        overlayParent: element.closest(".v-overlay")?.parentElement?.outerHTML.slice(0, 500),
+        activator: document.querySelector('[aria-label="تنبيهات الصيغ القانونية"]')?.getBoundingClientRect().toJSON(),
+        rootBox: document.documentElement.getBoundingClientRect().toJSON(),
+        rootStyle: document.documentElement.getAttribute("style"),
+        rootScroll: { x: scrollX, y: scrollY },
+        pageZoom: { zoom: (document.body as HTMLElement & {currentCSSZoom?:number}).currentCSSZoom, css: getComputedStyle(document.body).zoom, dpr: devicePixelRatio, visual: visualViewport?.scale },
+        position: getComputedStyle(element.closest(".v-overlay__content")!).position,
+        transform: getComputedStyle(element.closest(".v-overlay__content")!).transform,
+        viewport: { width: innerWidth, height: innerHeight },
+      }))));
     }
     throw error;
   } finally {

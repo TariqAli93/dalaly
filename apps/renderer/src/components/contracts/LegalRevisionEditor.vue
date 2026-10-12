@@ -6,6 +6,7 @@ import { usePermissions } from "../../composables/usePermissions";
 import { useSnackbar } from "../../composables/useSnackbar";
 import { getErrorMessage } from "../../services/api.service";
 import ContractDocumentPreview from "./ContractDocumentPreview.vue";
+import { platform } from "../../platform";
 import type { ContractTemplateRecord, ContractRecord } from "../../types";
 const props = defineProps<{
   revision?: legal.LegalRevision | null;
@@ -42,12 +43,18 @@ if (props.mode === "copy") {
   form.value.title += " — نسخة";
   form.value.revision_note = "نسخ صيغة إلى إصدار جديد";
 }
+const previewTab = ref("print"),
+  renderedClauses = ref<Array<{ code: string; title: string; text: string }>>(
+    [],
+  ),
+  previewVariables = ref<Array<{ key: string; value: string }>>([]),
+  previewContent = ref("");
 const readonly = computed(() => props.mode === "preview");
 const legalLocked = computed(() =>
   Boolean(
     props.revision?.based_on_id ||
-      props.revision?.approval_status === "approved" ||
-      selectedBase.value,
+    props.revision?.approval_status === "approved" ||
+    selectedBase.value,
   ),
 );
 const substantive = ref(false),
@@ -216,6 +223,9 @@ async function refreshPreview() {
     );
     if (current === generation) {
       previewHtml.value = response.html;
+      previewContent.value = response.content;
+      renderedClauses.value = response.rendered_clauses;
+      previewVariables.value = response.variables;
       previewError.value = "";
     }
   } catch (e) {
@@ -263,6 +273,29 @@ async function validate() {
     busy.value = false;
   }
 }
+async function sampleOutput(pdf = false) {
+  if (!previewHtml.value) return;
+  busy.value = true;
+  try {
+    const result = pdf
+      ? await platform.exportPdf({
+          html: previewHtml.value,
+          text: previewContent.value,
+          title: "معاينة الصيغة القانونية",
+          suggestedName: `معاينة_${form.value.title}.pdf`,
+        })
+      : await platform.printDocument({
+          html: previewHtml.value,
+          title: "طباعة تجريبية للصيغة القانونية",
+        });
+    if (!result.ok && !result.canceled)
+      notifyError(result.message ?? "تعذر إخراج المعاينة.");
+  } catch (e) {
+    notifyError(getErrorMessage(e));
+  } finally {
+    busy.value = false;
+  }
+}
 async function save(action?: string) {
   busy.value = true;
   let stored = false;
@@ -275,10 +308,6 @@ async function save(action?: string) {
     if (action) {
       result.value = await legal.validate(input);
       if (!result.value.valid) return;
-      if (action === "approve_publish" && result.value.review_required) {
-        notifyError("هذا التغيير يحتاج إرسالاً للمراجعة المختصة.");
-        return;
-      }
     }
     const row = await legal.saveRevision(
       props.mode === "edit" ? (props.revision?.id ?? null) : null,
@@ -424,12 +453,12 @@ onBeforeUnmount(() => {
           variant="tonal"
           density="compact"
           class="mb-4"
-          >أي تغيير في الأحكام أو ترتيبها أو شروط تطبيقها سيحتاج مراجعة مختصة
-          قبل النشر.</v-alert
+          >راجع الأحكام وشروط تطبيقها قبل النشر. اتفاق المكتب لا يغني عن إجراءات
+          التصديق أو التسجيل الرسمية المطلوبة.</v-alert
         >
         <v-textarea
           v-model="form.legal_basis"
-          label="الأساس القانوني والمراجع"
+          label="مصدر الصيغة والمراجع عند الحاجة"
           :readonly="locked"
           rows="2"
           auto-grow
@@ -645,7 +674,7 @@ onBeforeUnmount(() => {
           ></v-row>
           <p class="text-caption text-medium-emphasis">
             هدف إداري: تعديل شكلي خلال ٥ دقائق واعتماد المدير خلال يوم عمل. تحدد
-            مهلة المراجعة المختصة حسب طبيعة التغيير.
+            مهلة مراجعة النص داخل المكتب حسب طبيعة التغيير.
           </p>
         </template>
         <v-alert
@@ -697,7 +726,57 @@ onBeforeUnmount(() => {
         <v-alert v-if="previewError" type="info" variant="tonal" class="mb-3">{{
           previewError
         }}</v-alert>
-        <ContractDocumentPreview v-if="previewHtml" :html="previewHtml" />
+        <v-tabs
+          v-model="previewTab"
+          density="compact"
+          color="primary"
+          class="mb-3"
+        >
+          <v-tab value="raw">النص والمتغيرات</v-tab
+          ><v-tab value="variables">بيانات المتغيرات</v-tab
+          ><v-tab value="rendered">النص بعد الاستبدال</v-tab
+          ><v-tab value="print">الشكل المطبوع</v-tab>
+        </v-tabs>
+        <v-sheet
+          v-if="previewTab === 'raw'"
+          class="raw-clauses"
+          border
+          rounded="lg"
+        >
+          <section
+            v-for="(clause, i) in [...form.clauses].sort(
+              (a, b) => a.clause_order - b.clause_order,
+            )"
+            :key="clause.clause_code"
+            class="pa-3"
+          >
+            <h4>{{ i + 1 }}. {{ clause.clause_title }}</h4>
+            <p class="legal-text">{{ clause.clause_content_ar }}</p>
+          </section>
+        </v-sheet>
+        <v-data-table
+          v-else-if="previewTab === 'variables'"
+          :items="previewVariables"
+          :headers="[
+            { title: 'المتغير', key: 'key' },
+            { title: 'القيمة المستخدمة', key: 'value' },
+          ]"
+          density="compact"
+          :items-per-page="10"
+          ><template #item.key="{ item }"
+            ><code dir="ltr" v-text="'{{' + item.key + '}}'" /></template
+        ></v-data-table>
+        <v-sheet v-else-if="previewTab === 'rendered'" border rounded="lg">
+          <section
+            v-for="(clause, i) in renderedClauses"
+            :key="clause.code"
+            class="pa-3"
+          >
+            <h4>{{ i + 1 }}. {{ clause.title }}</h4>
+            <p class="legal-text">{{ clause.text }}</p>
+          </section>
+        </v-sheet>
+        <ContractDocumentPreview v-else-if="previewHtml" :html="previewHtml" />
         <v-sheet v-else class="preview-empty" border rounded
           ><v-icon icon="mdi-file-document-outline" size="40" />
           <p>أدخل اسم الصيغة والبنود لعرض معاينة العقد.</p></v-sheet
@@ -711,8 +790,8 @@ onBeforeUnmount(() => {
                 rows="2"
               />
               <p class="text-caption">
-                للمعاينة فقط. الشروط الحرة في العقد الفعلي تحتاج مراجعة مختصة
-                قبل إصداره.
+                للمعاينة فقط. تظهر الشروط الحرة في العقد الفعلي دون اشتراط محامٍ
+                موثّق. راجعها مع الأطراف قبل الإصدار.
               </p></v-expansion-panel-text
             ></v-expansion-panel
           ></v-expansion-panels
@@ -724,7 +803,17 @@ onBeforeUnmount(() => {
       ><v-btn :disabled="busy" @click="emit('close')">{{
         readonly ? "إغلاق" : "إلغاء"
       }}</v-btn
-      ><v-spacer /><template v-if="!readonly"
+      ><v-spacer /><v-btn
+        :disabled="!previewHtml || busy"
+        prepend-icon="mdi-printer-outline"
+        @click="sampleOutput()"
+        >طباعة تجريبية</v-btn
+      ><v-btn
+        :disabled="!previewHtml || busy"
+        prepend-icon="mdi-file-pdf-box"
+        @click="sampleOutput(true)"
+        >تصدير PDF</v-btn
+      ><template v-if="!readonly"
         ><v-btn :disabled="busy" variant="text" @click="validate"
           >التحقق من الصيغة</v-btn
         ><v-btn :disabled="busy" variant="tonal" @click="save()"
@@ -735,7 +824,6 @@ onBeforeUnmount(() => {
           v-if="can('legal_content.publish')"
           :loading="busy"
           color="primary"
-          :disabled="!!result?.review_required"
           @click="save('approve_publish')"
           >اعتماد ونشر</v-btn
         ></template
@@ -744,6 +832,15 @@ onBeforeUnmount(() => {
   </v-card>
 </template>
 <style scoped>
+.legal-text {
+  white-space: pre-wrap;
+  line-height: 2;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+.raw-clauses code {
+  direction: ltr;
+}
 .legal-editor {
   max-height: calc(100dvh - 48px);
 }

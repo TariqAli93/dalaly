@@ -31,6 +31,7 @@ export async function updateCompanySettings(payload: CompanySettingsPayload) {
     .update(officeProfiles)
     .set({
       companyName: payload.company_name,
+      ownerName: payload.owner_name,
       phonePrimary: payload.phone_primary,
       phoneSecondary: payload.phone_secondary,
       email: payload.email,

@@ -45,6 +45,7 @@ export interface PlatformAdapter {
     title: string;
     text: string;
   }): Promise<SaveResult>;
+  printDocument(input: { html: string; title: string }): Promise<SaveResult>;
 
   saveFile(input: {
     data: Uint8Array;
