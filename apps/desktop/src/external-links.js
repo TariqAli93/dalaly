@@ -19,8 +19,11 @@ export function safeMapLinkUrl(value) {
   if (url.protocol !== "https:" || url.port) return null;
   if (
     ["openstreetmap.org", "www.openstreetmap.org"].includes(url.hostname) &&
-    ["/", "/search", "/search/", "/directions", "/directions/"].includes(url.pathname)
-  ) return url.href;
+    ["/", "/search", "/search/", "/directions", "/directions/"].includes(
+      url.pathname,
+    )
+  )
+    return url.href;
   // Previously saved Google links remain safe to open; there is no Google SDK.
   if (
     ["google.com", "www.google.com"].includes(url.hostname) &&

@@ -5,6 +5,7 @@ import { config } from "./infrastructure/config.js";
 import {
   ContractValidationError,
   DuplicatePlotError,
+  DocumentError,
 } from "./shared/errors.js";
 import { getSetupStatus } from "./infrastructure/database/health.js";
 import { registerAuthHook } from "./modules/auth/auth.hooks.js";
@@ -53,7 +54,16 @@ export async function buildServer(options: { logger?: boolean } = {}) {
   });
 
   await app.register(cors, {
-    origin: config.corsOrigins,
+    origin: (origin, callback) => {
+      // file:// renderers have a null origin. Only an Electron-managed backend
+      // (identified by its per-launch internal token) enables that origin.
+      callback(
+        null,
+        !origin ||
+          config.corsOrigins.includes(origin) ||
+          (origin === "null" && Boolean(config.internalToken)),
+      );
+    },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
@@ -94,6 +104,7 @@ export async function buildServer(options: { logger?: boolean } = {}) {
       });
     }
 
+    if (error instanceof DocumentError) return reply.code(error.statusCode).send({ message: error.message });
     if (
       error instanceof Error &&
       "statusCode" in error &&

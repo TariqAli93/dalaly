@@ -28,10 +28,13 @@ export function validateContract(payload: unknown) {
   });
 }
 export function previewContract(payload: unknown) {
-  return request<{ content: string; html: string }>("/contracts/preview", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  return request<{ content: string; html: string; docx_data: string }>(
+    "/contracts/preview",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 export function createContract(payload: unknown) {
   return request<ContractBundle>("/contracts", {
@@ -55,19 +58,6 @@ export function listTemplates(contractType?: "sale" | "rental") {
     `/contracts/templates${contractType ? `?contract_type=${contractType}` : ""}`,
   );
 }
-export function createTemplate(payload: unknown) {
-  return request<ContractTemplateRecord>("/contracts/templates", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}
-export function updateTemplate(id: number, payload: unknown) {
-  return request<ContractTemplateRecord>(`/contracts/templates/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(payload),
-  });
-}
-
 export function reviewContract(
   id: number,
   comment: string,
@@ -102,6 +92,54 @@ export function recordPrint(id: number, format: "print" | "pdf" | "docx") {
 export function exportContractDocx(id: number) {
   return request<{ filename: string; data: string }>(`/contracts/${id}/docx`);
 }
+export const previewDocument = (id: number) =>
+  request<{ data: string; filename: string }>(
+    `/contracts/${id}/document-preview`,
+  );
+export const previewPdf = (id: number) =>
+  request<{ data: string }>(`/contracts/${id}/pdf-preview`);
+export const exportContractPdf = (id: number) =>
+  request<{ data: string; filename: string }>(`/contracts/${id}/pdf`);
+export const previewDraftPdf = (payload: unknown) =>
+  request<{ data: string }>("/contracts/preview-pdf", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+export const defaultFormulation = (kind: "sale" | "rental") =>
+  request<{
+    id: number;
+    content: string;
+    title: string;
+    version: number;
+  } | null>(`/contracts/formulation?contract_type=${kind}`);
+export const templateFile = (id: number) =>
+  request<{ data: string; filename: string }>(
+    `/contracts/templates/${id}/file`,
+  );
+export const inspectTemplate = (filename: string, data: string) =>
+  request<{ variables: string[]; text: string; hash: string }>(
+    "/contracts/templates/inspect",
+    { method: "POST", body: JSON.stringify({ filename, data }) },
+  );
+export const templatePdf = (filename: string, data: string) =>
+  request<{ data: string }>("/contracts/templates/preview-pdf", {
+    method: "POST",
+    body: JSON.stringify({ filename, data }),
+  });
+export const importTemplate = (
+  id: number,
+  filename: string,
+  data: string,
+  version: number,
+) =>
+  request<ContractTemplateRecord>(`/contracts/templates/${id}/import`, {
+    method: "POST",
+    body: JSON.stringify({ filename, data, version }),
+  });
+export const restoreTemplate = (id: number) =>
+  request<ContractTemplateRecord>(`/contracts/templates/${id}/restore`, {
+    method: "POST",
+  });
 
 export type SettlementInput = {
   kind: "refund" | "retained_payment" | "remaining_obligation";

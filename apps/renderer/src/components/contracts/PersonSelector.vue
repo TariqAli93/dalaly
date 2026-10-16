@@ -48,28 +48,34 @@ function saved(person: PersonRecord) {
         "
     /></template>
   </v-autocomplete>
-  <v-sheet v-if="selected" class="mb-3 pa-3" border rounded>
-    <div>{{ selected.full_name }}</div>
-    <div class="text-body-2">
-      {{ selected.phone_primary || "الهاتف غير مسجل" }} ·
-      {{ selected.national_id || "الهوية غير مسجلة" }}
-    </div>
-    <div class="text-body-2">
-      {{
-        [
-          selected.governorate,
-          selected.district,
-          selected.neighborhood,
-          selected.address,
-        ]
-          .filter(Boolean)
-          .join("، ") || "عنوان السكن غير مسجل"
-      }}
+  <v-sheet
+    v-if="selected"
+    class="mb-3 pa-3 flex! justify-between align-center"
+    border
+    rounded
+  >
+    <div>
+      <div>{{ selected.full_name }}</div>
+      <div class="text-body-2">
+        {{ selected.phone_primary || "الهاتف غير مسجل" }} ·
+        {{ selected.national_id || "الهوية غير مسجلة" }}
+      </div>
+      <div class="text-body-2">
+        {{
+          [
+            selected.governorate,
+            selected.district,
+            selected.neighborhood,
+            selected.address,
+          ]
+            .filter(Boolean)
+            .join("، ") || "عنوان السكن غير مسجل"
+        }}
+      </div>
     </div>
     <v-btn
       v-if="can('people.update')"
-      size="small"
-      variant="text"
+      color="warning"
       prepend-icon="mdi-account-edit-outline"
       @click="
         editing = selected;

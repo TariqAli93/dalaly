@@ -186,7 +186,7 @@ export const CRM_NAV_ITEMS: NavItem[] = [
     permission: "legal_content.read",
   },
   {
-    title: "قوالب العقود المرئية",
+    title: "قوالب العقود",
     to: "/contract-templates",
     icon: "mdi-file-edit-outline",
     permission: "contract_templates.manage",

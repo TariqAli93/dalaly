@@ -1,16 +1,11 @@
 import { type FastifyPluginAsync } from "fastify";
-import { config } from "../../infrastructure/config.js";
-import {
-  getDatabaseStartupState,
-  tableExists,
-  validateDatabaseConnection,
-} from "../../infrastructure/database/health.js";
+import { getSetupStatus } from "../../infrastructure/database/health.js";
+import { createFirstAdmin, SetupError } from "../setup/setup.service.js";
+import { requireLocalSetup } from "../setup/setup.security.js";
 import { requirePermission } from "./auth.hooks.js";
 import {
-  adminExists,
   changePin,
   cleanupExpiredSessions,
-  createAdmin,
   login,
   logout,
 } from "./auth.service.js";
@@ -21,65 +16,23 @@ import {
 } from "./auth.schema.js";
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
-  app.get("/setup-status", async () => {
-    const dbConnected = await validateDatabaseConnection();
-    if (!dbConnected) {
-      return {
-        api_running: true,
-        app_version: config.appVersion,
-        db_connected: false,
-        migrations_ok: false,
-        users_table_exists: false,
-        admin_exists: false,
-      };
-    }
+  app.get("/setup-status", async () => getSetupStatus());
 
-    const usersTableExists = await tableExists("users");
-    if (!usersTableExists) {
-      return {
-        api_running: true,
-        app_version: config.appVersion,
-        db_connected: true,
-        migrations_ok: false,
-        users_table_exists: false,
-        admin_exists: false,
-      };
-    }
-
-    const startupState = getDatabaseStartupState();
-
-    return {
-      api_running: true,
-      app_version: config.appVersion,
-      db_connected: true,
-      migrations_ok: startupState.migrationsOk,
-      users_table_exists: true,
-      admin_exists: await adminExists(),
-    };
-  });
-
-  app.post("/setup-admin", async (request, reply) => {
-    if (!(await validateDatabaseConnection())) {
-      return reply.code(503).send({ message: "قاعدة البيانات غير متصلة." });
-    }
-
-    if (!(await tableExists("users"))) {
-      return reply.code(503).send({
-        message: "قاعدة البيانات غير جاهزة. تعذر العثور على جدول المستخدمين.",
-      });
-    }
-
-    const exists = await adminExists();
-    if (exists) {
-      return reply
-        .code(409)
-        .send({ message: "تم إنشاء مستخدم المدير مسبقاً." });
-    }
-
-    const payload = setupAdminSchema.parse(request.body);
-    const user = await createAdmin(payload.username, payload.pin);
-    return reply.code(201).send({ user });
-  });
+  app.post(
+    "/setup-admin",
+    { preHandler: requireLocalSetup },
+    async (request, reply) => {
+      const payload = setupAdminSchema.parse(request.body);
+      try {
+        const user = await createFirstAdmin(payload.username, payload.pin);
+        return reply.code(201).send({ user });
+      } catch (error) {
+        if (error instanceof SetupError)
+          return reply.code(error.statusCode).send({ message: error.message });
+        throw error;
+      }
+    },
+  );
 
   app.post("/login", async (request, reply) => {
     await cleanupExpiredSessions();

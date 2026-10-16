@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 import { conditionSchema } from "./legal-content.schema.js";
 
+export const DOCUMENT_PROCEDURE_NOTE =
+  "تُملأ وفق الإجراءات المنجزة فعلاً. طباعة هذا الاتفاق لا تثبت اكتمالها.";
+
 export type LegalSection = {
   asset_id: number;
   property_type: string;
@@ -20,6 +23,7 @@ export type LegalSection = {
 };
 export type ContractDocument = {
   schema_version: 1;
+  document_file_hash?: string;
   ready: boolean;
   warnings: string[];
   review_required?: boolean;
@@ -46,6 +50,7 @@ export type ContractDocument = {
     assets: Array<{
       id: number;
       property_type: string;
+      image_data_uri?: string;
       details: Array<{ label: string; value: string }>;
     }>;
     financial: Array<{ label: string; value: string }>;
@@ -60,6 +65,7 @@ export type ContractDocument = {
     }>;
   };
   legal_versions: Array<{
+    source?: "formulation";
     id: number;
     name?: string;
     version: number;

@@ -35,6 +35,10 @@ import {
   attachAgreementProcedure,
   updateAgreementProcedure,
 } from "../src/modules/contracts/agreement-followup.service.js";
+import { seedDocumentDefaults } from "../src/modules/contracts/document-defaults.js";
+import { DEFAULT_DOCX } from "../src/modules/contracts/default-docx.assets.js";
+import { inspectDocx } from "../src/modules/contracts/docx.engine.js";
+import { createBackup, restoreBackup } from "../src/modules/backup/backup.service.js";
 
 test("cancellation requires an explicit date and reason and rejects actor spoofing", () => {
   const cancellation_date = new Date().toISOString().slice(0, 10);
@@ -75,6 +79,11 @@ test("contract issue, archive printing, cancellation rollback and API permission
     const { markMigrationsSucceeded } = await import("../src/infrastructure/database/health.js");
     markMigrationsSucceeded(migrations);
     await seedSystemRbac();
+    await seedDocumentDefaults();
+    await db.insert(tables.documentTypes).values([
+      { key: "national_id", name: "البطاقة الوطنية", transactionScope: "general", isRequired: true },
+      { key: "residence_card", name: "بطاقة السكن", transactionScope: "general", isRequired: true },
+    ]).onConflictDoNothing();
     const actor = await createAdmin("lifecycle_admin", "1234");
     await db.insert(tables.officeProfiles).values({ id: 1, companyName: "مكتب اختبار العقود", phonePrimary: "07700000000", address: "بغداد" }).onConflictDoUpdate({ target: tables.officeProfiles.id, set: { companyName: "مكتب اختبار العقود", phonePrimary: "07700000000", address: "بغداد" } });
     const parties = await db.insert(tables.people).values([
@@ -98,12 +107,78 @@ test("contract issue, archive printing, cancellation rollback and API permission
     let issuedId = 0;
     let originalDocument: Record<string, unknown> = {};
 
+    await t.test("formulation CRUD, import, defaults and template replacement preserve issued files and seeds", async () => {
+      const api = async (method: "GET" | "POST" | "PUT" | "DELETE", url: string, payload?: any, expected = 200) => {
+        const response = await app!.inject({ method, url: `/api${url}`, headers, payload });
+        assert.equal(response.statusCode, expected, response.body);
+        return response.json();
+      };
+      const initial = await api("GET", "/legal-content/formulations");
+      assert.equal(initial.length, 2);
+      assert(initial.every((row: any) => row.is_default));
+      const original = initial.find((row: any) => row.contract_type === "sale");
+      await api("PUT", `/legal-content/formulations/${original.id}`, { title: original.title, contract_type: "sale", content: original.content + "\nتعديل مكتب محفوظ.", version: original.version });
+      await seedDocumentDefaults();
+      const afterSeed = (await api("GET", "/legal-content/formulations")).find((row: any) => row.id === original.id);
+      assert(afterSeed.content.includes("تعديل مكتب محفوظ"));
+      assert.equal((await api("GET", "/contracts/templates")).length, 2);
+      const imported = await api("POST", "/legal-content/formulations/import", { filename: "صيغة مكتب.txt", data: Buffer.from("اتفق {{seller_name}} مع {{buyer_name}}. المدفوع {{paid_amount}} والمتبقي {{remaining_amount}}.").toString("base64") });
+      const custom = await api("POST", "/legal-content/formulations", { ...imported, contract_type: "sale" }, 201);
+      const edited = await api("PUT", `/legal-content/formulations/${custom.id}`, { title: custom.title, contract_type: "sale", content: custom.content + "\nبند إضافي محفوظ.", version: custom.version });
+      await api("PUT", `/legal-content/formulations/${custom.id}`, { title: custom.title, contract_type: "sale", content: custom.content, version: custom.version }, 409);
+      const copied = await api("POST", `/legal-content/formulations/${custom.id}/copy`);
+      assert.equal(copied.content, edited.content);
+      await api("POST", `/legal-content/formulations/${custom.id}/default`);
+      await seedDocumentDefaults();
+      const selected = (await api("GET", "/legal-content/formulations")).filter((row: any) => row.contract_type === "sale" && row.is_default);
+      assert.equal(selected.length, 1); assert.equal(selected[0].id, custom.id);
+      const template = (await api("GET", "/contracts/templates")).find((row: any) => row.contract_type === "sale");
+      const archive = new AdmZip(Buffer.from(DEFAULT_DOCX.sale, "base64"));
+      archive.updateFile("word/document.xml", Buffer.from(archive.readAsText("word/document.xml").replace("اتفاق بيع عقار", "قالب المكتب الخاص")));
+      const customDocx = archive.toBuffer().toString("base64");
+      await api("POST", "/contracts/templates/inspect", { filename: "مكتب.docx", data: customDocx });
+      await api("POST", `/contracts/templates/${template.id}/import`, { filename: "مكتب.docx", data: customDocx, version: template.version });
+      const customDraft = await createContract({ ...sale, formulation_override: "نص خاص بهذا العقد: {{seller_name}}، المبلغ {{contract_amount}} والمدفوع {{paid_amount}}." }, actor.id);
+      const id = Number(customDraft!.contract.id);
+      const issued = await issueContract(id, actor.id);
+      const file = await contractDocx(id);
+      assert(file);
+      const text = inspectDocx(Buffer.from(file.data, "base64")).text;
+      assert(text.includes("قالب المكتب الخاص"));
+      assert(text.includes(parties[0].fullName)); assert(text.includes("نص خاص بهذا العقد")); assert(text.includes("1000"));
+      assert(!text.includes("{{"));
+      assert.equal(issued!.legal_snapshot!.formulation_snapshot && (issued!.legal_snapshot!.formulation_snapshot as any).id, custom.id);
+      await api("POST", "/legal-content/formulations/restore", { contract_type: "sale" });
+      await api("POST", `/contracts/templates/${template.id}/restore`);
+      await api("DELETE", `/legal-content/formulations/${custom.id}`);
+      await api("DELETE", `/legal-content/formulations/${copied.id}`);
+      await db.update(tables.people).set({ fullName: "اسم معدل بعد إصدار اختبار الوثيقة" }).where(eq(tables.people.id, parties[0].id));
+      assert.equal((await contractDocx(id))!.data, file.data);
+      assert.deepEqual((await getContract(id))!.legal_snapshot, issued!.legal_snapshot);
+      await assert.rejects(() => db.update(tables.contractLegalSnapshots).set({ docxData: "tampered" }).where(eq(tables.contractLegalSnapshots.contractId, id)));
+      await db.update(tables.people).set({ fullName: parties[0].fullName }).where(eq(tables.people.id, parties[0].id));
+      assert.equal((await api("GET", "/legal-content/formulations")).length, 2);
+      assert.equal((await api("GET", `/contracts/templates/${template.id}/file`)).data, DEFAULT_DOCX.sale);
+      await api("POST", "/legal-content/formulations/import", { filename: "bad.txt", data: Buffer.from("{{bad_key}}").toString("base64") }, 400);
+      assert.equal((await app!.inject({ method: "POST", url: "/api/legal-content", headers, payload: {} })).statusCode, 404);
+    });
+
+    await t.test("backup restore includes formulation data, template files and immutable DOCX snapshots", async () => {
+      const existing = await db.select().from(tables.contractLegalSnapshots);
+      const backup = await createBackup("manual");
+      await restoreBackup(await fs.readFile(backup.file_path), "full");
+      assert.deepEqual(await db.select().from(tables.contractLegalSnapshots), existing);
+      assert.equal((await db.select().from(tables.legalFormulations)).filter(row => !row.deletedAt).length, 2);
+      auth.token = (await login("lifecycle_admin", "1234"))!.token;
+      headers.authorization = `Bearer ${auth.token}`;
+    });
+
     await t.test("sale/rental previews and issue work without a lawyer, and retain snapshots", async () => {
       for (const payload of [sale, lease]) {
         const preview = await previewContract(payload);
         assert.equal(preview.document_model.ready, true);
         assert(preview.html.includes('dir="rtl"'));
-        assert(preview.html.includes("@page{size:A4"));
+        assert.match(preview.html, /@page\s*\{\s*size:\s*A4/);
         assert(preview.content.includes(payload.notes!));
         const draft = await createContract(payload, actor.id);
         assert(draft);

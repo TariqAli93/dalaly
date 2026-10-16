@@ -13,6 +13,7 @@ import {
   officeProfiles,
   contractParties,
   contractTemplates,
+  legalFormulations,
   legalReviewers,
   legalContractTemplates,
   legalContractClauses,
@@ -134,6 +135,7 @@ const TABLE_SPECS = [
     dates: ["createdAt", "updatedAt"],
   },
   { name: "legal_reviewers", table: legalReviewers, dates: ["verifiedAt"] },
+  { name: "legal_formulations", table: legalFormulations, dates: ["createdAt", "updatedAt", "deletedAt"] },
   {
     name: "legal_contract_templates",
     table: legalContractTemplates,

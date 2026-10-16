@@ -112,6 +112,11 @@ export type ContractTemplateRecord = {
   name: string;
   body: string;
   template_code: string;
+  docx_file_path?: string;
+  docx_file_name?: string;
+  docx_hash?: string;
+  docx_variables?: string[];
+  is_default?: boolean;
   version: number;
   layout_config: {
     font: string;
@@ -145,6 +150,7 @@ export type ContractRecord = {
   generated_content: string | null;
   generated_html: string | null;
   legal_context: Record<string, string>;
+  formulation_override?: string | null;
   agreement_details?: AgreementDetails;
   optional_clause_codes: string[];
   generated_at: string | null;
@@ -202,6 +208,10 @@ export type ContractBundle = {
   }>;
   followup?: AgreementFollowup | null;
   legal_snapshot: {
+    docx_data?: string;
+    docx_hash?: string;
+    document_template_snapshot?: { id: number; version: number; name: string; hash: string };
+    formulation_snapshot?: { id: number; title: string; version: number; content: string; rendered_content: string };
     content_hash: string;
     document_model: {
       ready?: boolean;

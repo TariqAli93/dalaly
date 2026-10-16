@@ -5,6 +5,7 @@ type Stage = { progress?: number; message?: string; isError?: boolean };
 type SplashAPI = {
   onProgress: (callback: (stage: Stage) => void) => () => void;
   getVersion: () => Promise<string>;
+  getProgress: () => Promise<Stage>;
   retry: () => Promise<void>;
   openLogs: () => Promise<void>;
   quit: () => Promise<void>;
@@ -52,6 +53,10 @@ async function retry() {
 }
 onMounted(() => {
   unsubscribe = api?.onProgress(receive);
+  void api
+    ?.getProgress()
+    .then(receive)
+    .catch(() => undefined);
   void api
     ?.getVersion()
     .then((value) => {

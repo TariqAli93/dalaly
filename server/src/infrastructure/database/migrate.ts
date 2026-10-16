@@ -2,7 +2,7 @@ import { pool } from "./pool.js";
 import { runDatabaseMigrations } from "./run-migrations.js";
 
 async function main() {
-  await runDatabaseMigrations();
+  await runDatabaseMigrations(undefined, { bootstrapAdmin: true });
   console.log("Database migration complete.");
   await pool.end();
 }

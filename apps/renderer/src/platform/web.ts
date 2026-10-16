@@ -69,6 +69,10 @@ export const webPlatform: PlatformAdapter = {
   name: "web-demo",
   isDesktop: false,
   supportsScheduledBackup: false,
+  async printPdf({ data }) {
+    downloadBlob("contract.pdf", Uint8Array.from(atob(data), char => char.charCodeAt(0)), "application/pdf");
+    return { ok: true, fallback: true };
+  },
   async printDocument({ html }): Promise<SaveResult> {
     const frame = document.createElement("iframe");
     frame.setAttribute("sandbox", "allow-same-origin allow-modals");

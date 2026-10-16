@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { documentText, type ContractDocument } from "./legal-content.engine.js";
+import { renderReferenceVisual } from "./contract-reference.design.js";
 
 export const layoutSchema = z
   .object({
@@ -28,7 +29,7 @@ export type VisualSnapshot = {
   template_code: string;
   name: string;
   version: number;
-  renderer_version: 1;
+  renderer_version: 1 | 2;
   layout_config: z.infer<typeof layoutSchema>;
   branding_config: z.infer<typeof brandingSchema>;
 };
@@ -44,6 +45,20 @@ export const htmlEscape = (value: unknown) =>
 // No legal strings or user HTML/CSS live here. Every design renders the same
 // complete document model. Store the HTML as well as this visual configuration.
 export function renderVisual(d: ContractDocument, v: VisualSnapshot) {
+  if (v.renderer_version === 1) return renderLegacyVisual(d, v);
+  return {
+    content: `مسودة — لم يتم إصدار العقد\n\n${documentText(d)}`,
+    html: renderReferenceVisual(
+      d,
+      layoutSchema.parse(v.layout_config),
+      brandingSchema.parse(v.branding_config),
+      htmlEscape,
+    ),
+  };
+}
+
+// Version 1 remains available for old snapshots; new documents use version 2.
+function renderLegacyVisual(d: ContractDocument, v: VisualSnapshot) {
   const l = layoutSchema.parse(v.layout_config),
     b = brandingSchema.parse(v.branding_config);
   const e = htmlEscape,

@@ -7,7 +7,10 @@ import {
   STATUSES,
 } from "../../shared/constants/domain.js";
 
-import { locationFields, refineLocation } from "../../shared/validation/location.js";
+import {
+  locationFields,
+  refineLocation,
+} from "../../shared/validation/location.js";
 
 const optionalText = z
   .string()

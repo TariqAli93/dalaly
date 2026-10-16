@@ -3,10 +3,14 @@ export type SetupStatus = {
   app_version?: string;
   db_configured: boolean;
   db_connected: boolean;
-  database_exists: boolean;
+  database_exists: boolean | null;
   migrations_ok: boolean;
   users_table_exists: boolean;
   admin_exists: boolean;
+  startup_state: "CHECKING" | "SETUP_REQUIRED" | "READY" | "ERROR";
+  startup_reason: string;
+  connection_error: string | null;
+  admin_setup_allowed: boolean;
 };
 
 export type DatabaseSetupInput = {

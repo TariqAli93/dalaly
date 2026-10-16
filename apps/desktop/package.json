@@ -32,6 +32,7 @@
     "productName": "دلالي",
     "asar": true,
     "compression": "normal",
+    "beforePack": "./src/verify-document-renderer.cjs",
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -66,7 +67,9 @@
         "from": "../../tools",
         "to": "tools",
         "filter": [
-          "**/*"
+          "**/*",
+          "!.document-renderer-setup/**",
+          "!libreoffice/*.msi"
         ]
       }
     ],

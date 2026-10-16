@@ -12,6 +12,7 @@ const publicPaths = new Set([
   "/api/setup/status",
   "/api/setup/test-postgres",
   "/api/setup/initialize",
+  "/api/setup/recover",
   "/api/backup/internal-run",
   "/api/auth/setup-status",
   "/api/auth/setup-admin",

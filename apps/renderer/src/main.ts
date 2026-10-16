@@ -2,7 +2,7 @@ import "@mdi/font/css/materialdesignicons.css";
 import "vuetify/styles";
 import "./styles.css";
 
-import { createApp } from "vue";
+import { createApp, nextTick } from "vue";
 import { createVuetify } from "vuetify";
 import * as components from "vuetify/components";
 import * as directives from "vuetify/directives";
@@ -16,6 +16,7 @@ import {
 } from "./composables/useAppearance";
 import { setUnauthorizedHandler } from "./services/api.service";
 import { useAuth } from "./composables/useAuth";
+import { useSetup } from "./composables/useSetup";
 
 initializeAppearance();
 const vuetify = createVuetify({
@@ -79,4 +80,23 @@ router.afterEach((to) => {
     : i18n.global.t("common.appName");
 });
 
-createApp(App).use(i18n).use(vuetify).use(router).mount("#app");
+const app = createApp(App).use(i18n).use(vuetify).use(router);
+async function mountApplication() {
+  try {
+    await router.isReady();
+    app.mount("#app");
+    await nextTick();
+    const { startupState, status } = useSetup();
+    await window.dalalyConfig?.rendererReady?.({
+      startup_state: startupState.value,
+      startup_reason: status.value?.startup_reason,
+    });
+  } catch (error) {
+    console.error("Renderer startup failed", error);
+    await window.dalalyConfig?.rendererReady?.({
+      startup_state: "ERROR",
+      startup_reason: "RENDERER_FAILED",
+    });
+  }
+}
+void mountApplication();

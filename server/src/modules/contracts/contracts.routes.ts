@@ -3,14 +3,12 @@ import { requirePermission } from "../auth/auth.hooks.js";
 import {
   contractDocx,
   createContract,
-  createTemplate,
   generateContract,
   getContract,
   listContracts,
   listTemplates,
   previewContract,
   updateContract,
-  updateTemplate,
   validateContract,
   reviewContract,
   issueContract,
@@ -31,11 +29,18 @@ import { resolveManagedFile } from "../documents/documents.storage.js";
 import {
   contractFiltersSchema,
   contractPayloadSchema,
-  contractTemplateSchema,
   contractCancellationSchema,
   contractPrintRecordSchema,
   contractSettlementSchema,
 } from "./contracts.schema.js";
+import { decodeUpload, inspectDocx } from "./docx.engine.js";
+import {
+  templateUpload,
+  templateDocx,
+  replaceDocxTemplate,
+} from "./docx-templates.service.js";
+import { officeRenderer, renderDocxPdf } from "./docx-render.service.js";
+import { selectedFormulation } from "./document-generation.service.js";
 
 function parseId(value: string) {
   const id = Number(value);
@@ -44,6 +49,119 @@ function parseId(value: string) {
 
 export const contractsRoutes: FastifyPluginAsync = async (app) => {
   const params = z.object({ id: z.coerce.number().int().positive() });
+  const templatePermission = requirePermission("contract_templates.manage");
+  app.get(
+    "/document-renderer",
+    { preHandler: requirePermission("contracts.read") },
+    async () => ({
+      available: Boolean(await officeRenderer()),
+      engine: "LibreOffice",
+    }),
+  );
+  app.get(
+    "/formulation",
+    { preHandler: requirePermission("contracts.read") },
+    async (req) => {
+      const kind = z
+        .object({ contract_type: z.enum(["sale", "rental"]) })
+        .parse(req.query).contract_type;
+      const row = await selectedFormulation(kind);
+      return row
+        ? {
+            id: row.id,
+            title: row.title,
+            content: row.content,
+            version: row.version,
+          }
+        : null;
+    },
+  );
+  app.post("/templates/inspect", { preHandler: templatePermission }, (req) => {
+    const input = templateUpload.parse(req.body);
+    return inspectDocx(decodeUpload(input.data), true);
+  });
+  app.post(
+    "/templates/preview-pdf",
+    { preHandler: templatePermission },
+    async (req) => {
+      const input = templateUpload.parse(req.body);
+      const buffer = decodeUpload(input.data);
+      inspectDocx(buffer, true);
+      return { data: (await renderDocxPdf(buffer)).toString("base64") };
+    },
+  );
+  app.post("/templates/:id/import", { preHandler: templatePermission }, (req) =>
+    replaceDocxTemplate(
+      params.parse(req.params).id,
+      templateUpload.parse(req.body),
+      req.user!.id,
+    ),
+  );
+  app.post(
+    "/templates/:id/restore",
+    { preHandler: templatePermission },
+    (req) =>
+      replaceDocxTemplate(params.parse(req.params).id, null, req.user!.id),
+  );
+  app.get(
+    "/templates/:id/file",
+    { preHandler: templatePermission },
+    async (req) => {
+      const { row, buffer } = await templateDocx(params.parse(req.params).id);
+      return { filename: row.docxFileName, data: buffer.toString("base64") };
+    },
+  );
+  app.post(
+    "/preview-pdf",
+    { preHandler: requirePermission("contracts.manage") },
+    async (req) => {
+      const preview = await previewContract(
+        contractPayloadSchema.parse(req.body),
+      );
+      return {
+        data: (
+          await renderDocxPdf(Buffer.from(preview.docx_data, "base64"))
+        ).toString("base64"),
+      };
+    },
+  );
+  app.get(
+    "/:id/document-preview",
+    { preHandler: requirePermission("contracts.read") },
+    async (req) => {
+      const output = await contractDocx(params.parse(req.params).id);
+      return output;
+    },
+  );
+  app.get(
+    "/:id/pdf",
+    { preHandler: requirePermission("contracts.print") },
+    async (req) => {
+      const id = params.parse(req.params).id;
+      const output = await contractDocx(id);
+      if (!output) return null;
+      const pdf = await renderDocxPdf(Buffer.from(output.data, "base64"));
+      await recordContractPrint(id, req.user!.id, "pdf");
+      return {
+        filename: output.filename.replace(/\.docx$/i, ".pdf"),
+        data: pdf.toString("base64"),
+      };
+    },
+  );
+  app.get(
+    "/:id/pdf-preview",
+    { preHandler: requirePermission("contracts.read") },
+    async (req) => {
+      const output = await contractDocx(params.parse(req.params).id);
+      return output
+        ? {
+            data: (
+              await renderDocxPdf(Buffer.from(output.data, "base64"))
+            ).toString("base64"),
+          }
+        : null;
+    },
+  );
   app.get(
     "/:id/procedures",
     { preHandler: requirePermission("contracts.read") },
@@ -184,28 +302,6 @@ export const contractsRoutes: FastifyPluginAsync = async (app) => {
         contract_type?: "sale" | "rental" | "purchase";
       };
       return listTemplates(query.contract_type);
-    },
-  );
-  app.post(
-    "/templates",
-    { preHandler: requirePermission("contract_templates.manage") },
-    async (request, reply) =>
-      reply
-        .code(201)
-        .send(await createTemplate(contractTemplateSchema.parse(request.body))),
-  );
-  app.put(
-    "/templates/:id",
-    { preHandler: requirePermission("contract_templates.manage") },
-    async (request, reply) => {
-      const id = parseId((request.params as { id: string }).id);
-      if (!id)
-        return reply.code(400).send({ message: "معرّف القالب غير صحيح." });
-      const row = await updateTemplate(
-        id,
-        contractTemplateSchema.parse(request.body),
-      );
-      return row ?? reply.code(404).send({ message: "قالب العقد غير موجود." });
     },
   );
   app.get(

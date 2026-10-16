@@ -13,6 +13,7 @@
   text,
   timestamp,
   unique,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -671,6 +672,11 @@ export const contractTemplates = pgTable("contract_templates", {
   layoutConfig: jsonb("layout_config").notNull().default({}),
   brandingConfig: jsonb("branding_config").notNull().default({}),
   legacyBody: text("legacy_body"),
+  docxFilePath: text("docx_file_path"),
+  docxFileName: text("docx_file_name"),
+  docxHash: text("docx_hash"),
+  docxVariables: jsonb("docx_variables").notNull().default([]),
+  isDefault: boolean("is_default").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
@@ -678,7 +684,22 @@ export const contractTemplates = pgTable("contract_templates", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, table => [uniqueIndex("docx_template_default_type").on(table.contractType).where(sql`${table.isDefault} AND ${table.docxFilePath} IS NOT NULL AND ${table.isActive}`)]);
+
+export const legalFormulations = pgTable("legal_formulations", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  systemKey: text("system_key").unique(),
+  sourceLegacyId: bigint("source_legacy_id", { mode: "number" }).unique(),
+  contractType: text("contract_type").notNull(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  version: integer("version").notNull().default(1),
+  isDefault: boolean("is_default").notNull().default(false),
+  legacyMetadata: jsonb("legacy_metadata"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, table => [uniqueIndex("legal_formulation_default_type").on(table.contractType).where(sql`${table.isDefault} AND ${table.deletedAt} IS NULL`), check("legal_formulations_contract_type_check", sql`${table.contractType} IN ('sale', 'rental', 'general')`)]);
 
 export const contracts = pgTable(
   "contracts",
@@ -715,6 +736,7 @@ export const contracts = pgTable(
     legalContext: jsonb("legal_context").notNull().default({}),
     agreementDetails: jsonb("agreement_details").notNull().default({}),
     optionalClauseCodes: jsonb("optional_clause_codes").notNull().default([]),
+    formulationOverride: text("formulation_override"),
     generatedAt: timestamp("generated_at", { withTimezone: true }),
     issuedAt: timestamp("issued_at", { withTimezone: true }),
     issuedBy: bigint("issued_by", { mode: "number" }).references(
@@ -888,6 +910,10 @@ export const contractLegalSnapshots = pgTable("contract_legal_snapshots", {
   approvedClauseSnapshot: jsonb("approved_clause_snapshot").notNull(),
   documentModel: jsonb("document_model").notNull(),
   visualSnapshot: jsonb("visual_snapshot").notNull(),
+  docxData: text("docx_data"),
+  docxHash: text("docx_hash"),
+  documentTemplateSnapshot: jsonb("document_template_snapshot"),
+  formulationSnapshot: jsonb("formulation_snapshot"),
   contentHash: text("content_hash").notNull(),
   review: jsonb("review"),
   createdAt: timestamp("created_at", { withTimezone: true })

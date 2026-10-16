@@ -8,20 +8,18 @@ import { _electron } from "@playwright/test";
 // stay hidden; native dialogs and notification display are intercepted only in
 // this isolated harness, without starting another API or touching user data.
 export async function verifyElectronContracts(
-  documents: Array<{ html: string; code: string }>,
+  documents: Array<{ html: string; code: string; pdf?: string }>,
   temporary: string,
+  outputDirectory?: string,
 ) {
   const root = fileURLToPath(new URL("../../", import.meta.url));
   const harness = path.join(temporary, "contracts-electron.mjs");
-  const source = `import {app,BrowserWindow,dialog,Notification} from 'electron';
+  const source = `import {app,BrowserWindow,dialog} from 'electron';
 import {registerContractPdfExport} from ${JSON.stringify(pathToFileURL(path.join(root, "apps/desktop/src/contract-export.js")).href)};
-import {registerLegalNotifications} from ${JSON.stringify(pathToFileURL(path.join(root, "apps/desktop/src/legal-notifications.js")).href)};
 app.setPath('userData',${JSON.stringify(path.join(temporary, "electron-profile"))});
 app.whenReady().then(async()=>{
 app.setAppUserModelId('dalaly.contracts.test');
 dialog.showSaveDialog=async()=>globalThis.cancelPdf?{canceled:true}:{canceled:false,filePath:globalThis.pdfTarget};
-Notification.isSupported=()=>true;
-Notification.prototype.show=function(){globalThis.noticeCount=(globalThis.noticeCount??0)+1;};
 app.on('web-contents-created',(_event,contents)=>{
  contents.print=(options,callback)=>{
   globalThis.printOptions=options;
@@ -31,7 +29,7 @@ app.on('web-contents-created',(_event,contents)=>{
 });
 let main;
 registerContractPdfExport(()=>main);
-registerLegalNotifications(()=>main);
+
 main=new BrowserWindow({show:false,webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:false,preload:${JSON.stringify(path.join(root, "apps/desktop/src/preload.cjs"))}}});
 await main.loadURL('data:text/html;charset=utf-8,<html lang="ar" dir="rtl"><body>اختبار تصدير العقود</body></html>');
 });
@@ -59,7 +57,7 @@ await main.loadURL('data:text/html;charset=utf-8,<html lang="ar" dir="rtl"><body
       () =>
         !!window.dalalyConfig?.exportPdf &&
         !!window.dalalyConfig?.printDocument &&
-        !!window.dalalyConfig?.notifyLegalTask,
+        !!window.dalalyConfig?.printPdf,
     );
     assert.equal(
       await electron.evaluate(({ BrowserWindow }) =>
@@ -97,7 +95,7 @@ await main.loadURL('data:text/html;charset=utf-8,<html lang="ar" dir="rtl"><body
     await electron.evaluate(() => {
       (globalThis as any).cancelPdf = false;
     });
-    const output = path.join(root, "test-results/contracts-legal");
+    const output = outputDirectory ?? path.join(root, "test-results/contracts-legal");
     await fs.mkdir(output, { recursive: true });
     for (const document of documents) {
       const target = path.join(output, `electron_${document.code}.pdf`);
@@ -120,25 +118,17 @@ await main.loadURL('data:text/html;charset=utf-8,<html lang="ar" dir="rtl"><body
         Math.abs(Number(size[1]) - 595) < 2 &&
           Math.abs(Number(size[2]) - 842) < 2,
       );
+      if (document.pdf) {
+        await electron.evaluate(() => { (globalThis as any).cancelPrint = false; });
+        const printed = await page.evaluate(data => window.dalalyConfig!.printPdf!({ data, title: "اختبار PDF من DOCX" }), document.pdf);
+        assert.equal(printed.ok, true);
+        assert.deepEqual(await electron.evaluate(() => (globalThis as any).printOptions), { silent: false, printBackground: true });
+        await electron.evaluate(() => { (globalThis as any).cancelPrint = true; });
+        assert.equal((await page.evaluate(data => window.dalalyConfig!.printPdf!({ data, title: "إلغاء طباعة PDF" }), document.pdf)).canceled, true);
+      }
     }
-    const notice = await page.evaluate(() =>
-      window.dalalyConfig!.notifyLegalTask!({
-        title: "اختبار تنبيه",
-        body: "طلبات تحتاج إجراء",
-      }),
-    );
-    assert.equal(notice.ok, true);
-    const repeat = await page.evaluate(() =>
-      window.dalalyConfig!.notifyLegalTask!({
-        title: "اختبار تنبيه",
-        body: "طلبات تحتاج إجراء",
-      }),
-    );
-    assert.equal(repeat.ok, false);
-    assert.equal(
-      await electron.evaluate(() => (globalThis as any).noticeCount),
-      1,
-    );
+    const invalidPdf = await page.evaluate(() => window.dalalyConfig!.printPdf!({ data: "invalid", title: "اختبار" }));
+    assert.equal(invalidPdf.ok, false);
   } finally {
     await electron.close();
   }

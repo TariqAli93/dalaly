@@ -8,13 +8,17 @@ import {
   applyMigrations,
   getMigrationsFolder,
 } from "../../infrastructure/database/run-migrations.js";
-import { reconfigurePool } from "../../infrastructure/database/pool.js";
 import {
-  adminExists,
-  createAdmin,
-  getUserByUsername,
-} from "../auth/auth.service.js";
-import { assignSuperAdminRole, seedSystemRbac } from "../rbac/rbac.service.js";
+  getActivePoolConfig,
+  reconfigurePool,
+} from "../../infrastructure/database/pool.js";
+import {
+  installationInitialized,
+  markInstallationInitialized,
+} from "../../infrastructure/database/setup-marker.js";
+import { prepareDatabase } from "../../infrastructure/database/startup.js";
+import { hashPin } from "../auth/crypto.js";
+import { SUPER_ADMIN_ROLE } from "../rbac/rbac.constants.js";
 import {
   DATABASE_NAME_PATTERN,
   type InitializeInput,
@@ -30,6 +34,31 @@ type AdminConnectionInput = {
 
 const ADMIN_DATABASE = "postgres";
 const CONNECTION_TIMEOUT_MS = 5000;
+let setupInProgress = false;
+
+export class SetupError extends Error {
+  constructor(
+    message: string,
+    readonly statusCode = 409,
+  ) {
+    super(message);
+  }
+}
+
+export async function withSetupOperation<T>(
+  operation: () => Promise<T>,
+): Promise<T> {
+  if (setupInProgress)
+    throw new SetupError(
+      "عملية إعداد أخرى قيد التنفيذ. انتظر ثم أعد المحاولة.",
+    );
+  setupInProgress = true;
+  try {
+    return await operation();
+  } finally {
+    setupInProgress = false;
+  }
+}
 
 export function isValidDatabaseName(name: string) {
   return DATABASE_NAME_PATTERN.test(name);
@@ -43,6 +72,8 @@ function createAdminPool(input: AdminConnectionInput) {
     password: input.adminPassword,
     database: ADMIN_DATABASE,
     connectionTimeoutMillis: CONNECTION_TIMEOUT_MS,
+    query_timeout: 15000,
+    statement_timeout: 15000,
   });
 }
 
@@ -81,9 +112,20 @@ export async function testPostgresConnection(input: TestPostgresInput) {
 
 /**
  * يُنشئ قاعدة البيانات (إن لم تكن موجودة)، يعيد تهيئة الـ pool، يشغّل
- * migrations، يبذر صلاحيات النظام، وينشئ أول Super Admin. العملية idempotent.
+ * migrations، يبذر صلاحيات النظام، وينشئ أول Super Admin لتثبيت جديد فقط.
  */
 export async function initializeSystem(input: InitializeInput) {
+  return withSetupOperation(() => initializeNewSystem(input));
+}
+
+async function initializeNewSystem(input: InitializeInput) {
+  const current = await getSetupStatus();
+  if (current.startup_state === "CHECKING")
+    throw new SetupError(
+      "فحص قاعدة البيانات قيد التنفيذ. أعد المحاولة بعد اكتماله.",
+    );
+  if (current.db_connected && !current.admin_setup_allowed)
+    throw new SetupError("النظام الحالي مهيأ مسبقاً. استخدم استرداد التهيئة.");
   if (!isValidDatabaseName(input.databaseName)) {
     throw new Error("اسم قاعدة البيانات غير صالح.");
   }
@@ -92,7 +134,24 @@ export async function initializeSystem(input: InitializeInput) {
   const adminPool = createAdminPool(input);
   let databaseCreated = false;
   try {
-    if (!(await databaseExists(adminPool, input.databaseName))) {
+    const exists = await databaseExists(adminPool, input.databaseName);
+    if (exists) {
+      // Inspect the target before changing the active connection or running SQL.
+      const target = new pg.Client({
+        connectionString: buildConnectionString(input),
+        connectionTimeoutMillis: CONNECTION_TIMEOUT_MS,
+        query_timeout: 5000,
+      });
+      try {
+        await target.connect();
+        if (await installationInitialized(target))
+          throw new SetupError(
+            "هذا النظام مهيأ مسبقاً. استخدم استرداد التهيئة دون إنشاء مدير جديد.",
+          );
+      } finally {
+        await target.end().catch(() => undefined);
+      }
+    } else {
       // لا يمكن استخدام parameterized query لاسم القاعدة في CREATE DATABASE،
       // لذا نعتمد على التحقق الصارم من الاسم أعلاه.
       await adminPool.query(`CREATE DATABASE "${input.databaseName}"`);
@@ -110,16 +169,15 @@ export async function initializeSystem(input: InitializeInput) {
   let migrationsFolder: string | null = null;
   try {
     migrationsFolder = getMigrationsFolder();
-    await applyMigrations(migrationsFolder);
-    await seedSystemRbac();
+    await applyMigrations(migrationsFolder, { initialize: true });
     markMigrationsSucceeded(migrationsFolder);
   } catch (error) {
     markMigrationsFailed(error, migrationsFolder);
     throw error;
   }
 
-  // 4) إنشاء أول Super Admin (idempotent: لا ينشئ تكراراً).
-  const admin = await ensureFirstAdmin(
+  // 4) إنشاء أول Super Admin، مع قفل ومعاملة تمنعان إعادة إنشاء المدير.
+  const admin = await createInitialAdmin(
     input.firstAdminUsername,
     input.firstAdminPin,
   );
@@ -132,29 +190,88 @@ export async function initializeSystem(input: InitializeInput) {
     admin: {
       username: admin.username,
       // يُعرض الـ PIN مرة واحدة فقط، وفقط عند إنشاء مستخدم جديد فعلاً.
-      pin: admin.created ? input.firstAdminPin : null,
+      pin: input.firstAdminPin,
     },
   };
 }
 
 /**
- * ينشئ أول مدير إن لم يكن موجوداً. إذا وُجد مستخدم بنفس الاسم يضمن ربطه
- * بدور Super Admin فقط (بدون تكرار).
+ * ينشئ المدير في معاملة واحدة فقط لتثبيت جديد، دون ترقية أي مستخدم موجود.
  */
-async function ensureFirstAdmin(username: string, pin: string) {
-  const existing = await getUserByUsername(username);
-  if (existing) {
-    await assignSuperAdminRole(existing.id);
-    return { username: existing.username, created: false as const };
+async function createInitialAdmin(username: string, pin: string) {
+  const client = new pg.Client(getActivePoolConfig());
+  try {
+    await client.connect();
+    await client.query("begin");
+    await client.query("select pg_advisory_xact_lock(734126, 1)");
+    if (await installationInitialized(client))
+      throw new SetupError(
+        "تم إعداد النظام مسبقاً. لا يمكن إعادة إنشاء المدير من الإعداد العام.",
+      );
+    const roles = await client.query("select id from roles where name = $1", [
+      SUPER_ADMIN_ROLE,
+    ]);
+    if (!roles.rows[0])
+      throw new SetupError("أكمل استرداد تهيئة قاعدة البيانات أولاً.", 503);
+    const result = await client.query(
+      "insert into users (username, display_name, pin_hash) values ($1, $1, $2) returning id, username, display_name, is_active",
+      [username, await hashPin(pin)],
+    );
+    const user = result.rows[0];
+    await client.query(
+      "insert into user_roles (user_id, role_id) values ($1, $2)",
+      [user.id, roles.rows[0].id],
+    );
+    await markInstallationInitialized(client);
+    await client.query("commit");
+    return {
+      id: Number(user.id),
+      username: user.username as string,
+      displayName: user.display_name as string,
+      isActive: user.is_active as boolean,
+    };
+  } catch (error) {
+    await client.query("rollback").catch(() => undefined);
+    throw error;
+  } finally {
+    await client.end().catch(() => undefined);
   }
+}
 
-  // إذا كان هناك أي مستخدم آخر بالفعل، فالنظام مهيأ مسبقاً؛ لا ننشئ مديراً جديداً.
-  if (await adminExists()) {
-    return { username, created: false as const };
-  }
+export async function createFirstAdmin(username: string, pin: string) {
+  return withSetupOperation(async () => {
+    const status = await getSetupStatus();
+    if (
+      status.startup_state !== "SETUP_REQUIRED" ||
+      !status.migrations_ok ||
+      !status.users_table_exists
+    )
+      throw new SetupError(
+        "قاعدة البيانات غير جاهزة لإنشاء المستخدم الأول.",
+        503,
+      );
+    return createInitialAdmin(username, pin);
+  });
+}
 
-  const user = await createAdmin(username, pin);
-  return { username: user.username, created: true as const };
+export async function recoverSystem() {
+  return withSetupOperation(async () => {
+    const status = await getSetupStatus();
+    if (
+      !status.db_configured ||
+      !status.db_connected ||
+      status.database_exists !== true
+    )
+      throw new SetupError("تعذر الاتصال بقاعدة البيانات الحالية.", 503);
+    await prepareDatabase();
+    const recovered = await getSetupStatus();
+    if (!recovered.migrations_ok)
+      throw new SetupError(
+        "تعذر استرداد التهيئة. تحقق من ملفات الهجرة وسجلات الخادم.",
+        503,
+      );
+    return recovered;
+  });
 }
 
 export { getSetupStatus };

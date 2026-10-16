@@ -28,40 +28,45 @@ const navItems = computed(() =>
 // وضع الأيقونات فقط يُفعّل تلميحات التنقّل.
 const isRail = computed(() => rail.value && mdAndUp.value);
 
-// قائمة مسطّحة تحفظ ترتيب الروابط الحالي وشروط صلاحياتها.
-const NAV_ORDER = [
-  "/",
-  "/properties",
-  "/rentals",
-  "/people",
-  "/contracts",
-  "/contracts/create",
-  "/contracts/review",
-  "/contracts/legal-templates",
-  "/properties/new",
-  "/rentals/new",
-  "/favorites",
-  "/rental-favorites",
-  "/rental-requests",
-  "/purchase-requests",
-  "/documents",
-  "/contract-templates",
-  "/users",
-  "/roles",
-  "/locations",
-  "/settings",
-  "/help",
+const SECTION_PATHS = [
+  { title: "الرئيسية", paths: ["/"] },
+  {
+    title: "إدارة العقارات",
+    paths: [
+      "/properties",
+      "/rentals",
+      "/people",
+      "/properties/new",
+      "/rentals/new",
+      "/favorites",
+      "/rental-favorites",
+      "/purchase-requests",
+      "/rental-requests",
+    ],
+  },
+  {
+    title: "المعاملات",
+    paths: ["/contracts", "/contracts/create", "/contracts/review"],
+  },
+  {
+    title: "المستندات",
+    paths: ["/contracts/legal-templates", "/contract-templates", "/documents"],
+  },
+  {
+    title: "النظام",
+    paths: ["/settings", "/users", "/roles", "/locations", "/help"],
+  },
 ];
-
-const orderedNav = computed(() =>
-  NAV_ORDER.flatMap((path) =>
-    navItems.value.filter((item) => item.to === path),
-  ),
+const sections = computed(() =>
+  SECTION_PATHS.map((section) => ({
+    title: section.title,
+    items: section.paths.flatMap((path) =>
+      navItems.value.filter((item) => item.to === path),
+    ),
+  })).filter((section) => section.items.length),
 );
-
 function go(to: string) {
   if (!mdAndUp.value) drawer.value = false;
-  void router.push(to);
 }
 
 async function onLogout() {
@@ -97,43 +102,46 @@ async function onLogout() {
     <v-divider />
 
     <v-list nav density="compact">
-      <template v-for="item in orderedNav" :key="item.to">
-        <v-list-subheader v-if="!isRail && item.to === '/contracts'"
-          >العقود</v-list-subheader
-        >
-        <v-tooltip :text="item.title" :disabled="!isRail" location="start">
-          <template #activator="{ props }">
-            <v-list-item
-              v-bind="props"
-              :to="item.to"
-              :active="
-                $route.path === item.to ||
-                (item.to === '/people' &&
-                  $route.path.startsWith('/clients/')) ||
-                (item.to === '/contracts/review' &&
-                  /^\/contracts\/\d+\/review$/.test($route.path)) ||
-                (item.to === '/contracts/legal-templates' &&
-                  $route.path === '/settings/legal-content') ||
-                (item.to === '/contracts/create' &&
-                  /^\/contracts\/\d+\/edit$/.test($route.path)) ||
-                (item.to === '/properties' &&
-                  $route.path.startsWith(item.to + '/') &&
-                  $route.path !== item.to + '/new')
-              "
-              :prepend-icon="item.icon"
-              :aria-label="item.title"
-              class="dal-nav-item"
-              :title="
-                item.to === '/'
-                  ? 'لوحة التحكم'
-                  : item.to === '/people'
-                    ? 'العملاء والأشخاص'
-                    : item.title
-              "
-              @click="go(item.to)"
-            />
-          </template>
-        </v-tooltip>
+      <template v-for="(section, index) in sections" :key="section.title">
+        <v-divider v-if="index" class="my-2" />
+        <v-list-subheader v-if="!isRail" class="dal-nav-section">{{
+          section.title
+        }}</v-list-subheader>
+        <template v-for="item in section.items" :key="item.to">
+          <v-tooltip :text="item.title" :disabled="!isRail" location="start">
+            <template #activator="{ props }">
+              <v-list-item
+                v-bind="props"
+                :to="item.to"
+                :active="
+                  $route.path === item.to ||
+                  (item.to === '/people' &&
+                    $route.path.startsWith('/clients/')) ||
+                  (item.to === '/contracts/review' &&
+                    /^\/contracts\/\d+\/review$/.test($route.path)) ||
+                  (item.to === '/contracts/legal-templates' &&
+                    $route.path === '/settings/legal-content') ||
+                  (item.to === '/contracts/create' &&
+                    /^\/contracts\/\d+\/edit$/.test($route.path)) ||
+                  (item.to === '/properties' &&
+                    $route.path.startsWith(item.to + '/') &&
+                    $route.path !== item.to + '/new')
+                "
+                :prepend-icon="item.icon"
+                :aria-label="item.title"
+                class="dal-nav-item"
+                :title="
+                  item.to === '/'
+                    ? 'لوحة التحكم'
+                    : item.to === '/people'
+                      ? 'العملاء والأشخاص'
+                      : item.title
+                "
+                @click="go(item.to)"
+              />
+            </template>
+          </v-tooltip>
+        </template>
       </template>
     </v-list>
 
@@ -174,3 +182,18 @@ async function onLogout() {
     </template>
   </v-navigation-drawer>
 </template>
+
+<style scoped>
+.dal-nav-section {
+  min-height: 28px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgb(var(--v-theme-on-sidebar));
+  opacity: 0.75;
+  letter-spacing: 0;
+}
+.dal-nav-item {
+  min-height: 36px;
+  font-size: 13px;
+}
+</style>

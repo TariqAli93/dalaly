@@ -111,7 +111,11 @@ defineExpose({ validate, computedTotal });
           class="w-100 mt-2"
           label="العنوان التفصيلي"
         />
-        <PropertyLocationEditor v-model:latitude="model.latitude" v-model:longitude="model.longitude" v-model:location-link="model.location_link" />
+        <PropertyLocationEditor
+          v-model:latitude="model.latitude"
+          v-model:longitude="model.longitude"
+          v-model:location-link="model.location_link"
+        />
 
         <v-divider class="my-4" />
         <div class="form-grid">

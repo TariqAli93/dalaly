@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld("splashAPI", {
     return () => ipcRenderer.removeListener("splash:progress", handler);
   },
   getVersion: () => ipcRenderer.invoke("splash:get-version"),
+  getProgress: () => ipcRenderer.invoke("splash:get-progress"),
   // أزرار شاشة الخطأ.
   retry: () => ipcRenderer.invoke("splash:retry"),
   openLogs: () => ipcRenderer.invoke("splash:open-logs"),

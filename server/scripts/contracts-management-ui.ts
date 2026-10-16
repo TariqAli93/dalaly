@@ -64,7 +64,7 @@ export async function verifyContractsManagementUi(app: FastifyInstance, token: s
       await page!.getByRole("option").filter({ hasText: text }).first().click();
       await combo.press("Escape");
     };
-    const frame = () => page!.frameLocator('iframe[title="معاينة العقد العربي بحجم A4"]');
+    const frame = () => page!.frameLocator('iframe[title="معاينة ملف DOCX"]');
 
     const created: Array<{ id: number; code: string; kind: string }> = [];
     for (const kind of ["sale", "rental"]) {
@@ -175,11 +175,13 @@ export async function verifyContractsManagementUi(app: FastifyInstance, token: s
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.getByText(`${rental.code} · إيجار`, { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "تأكيد الإلغاء", exact: true })).toHaveCount(0);
-    const rentalPrint = page.waitForResponse((response) => response.url().endsWith(`/contracts/${rental.id}/print-record`) && response.request().method() === "POST");
+    if ((await api("GET", "/contracts/document-renderer")).available) {
+    const rentalPrint = page.waitForResponse((response) => response.url().endsWith(`/contracts/${rental.id}/print-record`) && response.request().method() === "POST", { timeout: 60000 });
     await page.getByRole("button", { name: "طباعة", exact: true }).click();
     const printResult = await rentalPrint;
     assert.equal(printResult.status(), 200);
     assert.equal((await printResult.json()).contract.id, rental.id);
+    }
     assert.deepEqual(cancelRequests, []);
     assert.equal((await api("GET", `/contracts/${sale.id}`)).contract.status, "active");
     assert.equal((await api("GET", `/contracts/${rental.id}`)).contract.status, "active");
@@ -187,8 +189,8 @@ export async function verifyContractsManagementUi(app: FastifyInstance, token: s
     page.off("request", watchCancellation);
     await page.goto(`${origin}/#/contracts/${sale.id}/review`);
     await expect(page.getByRole("tab")).toHaveCount(4);
-    await page.getByRole("button", { name: "تكبير المعاينة", exact: true }).click();
-    await expect(page.getByRole("button", { name: "إعادة حجم المعاينة", exact: true })).toContainText("110%");
+    await page.getByRole("button", { name: "تكبير", exact: true }).click();
+    await expect(page.locator(".v-toolbar").filter({ hasText: "معاينة DOCX" })).toContainText("110%");
     await page.getByRole("tab", { name: "المعلومات", exact: true }).click();
     await expect(page.getByText("المستمسكات المحفوظة", { exact: true })).toBeVisible();
     await expect(page.getByText("المتبقي:", { exact: false })).toBeVisible();
@@ -199,15 +201,17 @@ export async function verifyContractsManagementUi(app: FastifyInstance, token: s
     await page.getByRole("tab", { name: "سجل الإجراءات", exact: true }).click();
     await expect(page.getByText("إصدار العقد", { exact: true })).toBeVisible();
     await page.screenshot({ path: path.join(output, "review-history.png"), fullPage: true });
+    if ((await api("GET", "/contracts/document-renderer")).available) {
     await page.getByRole("button", { name: "طباعة", exact: true }).click();
-    await expect.poll(async () => (await api("GET", `/contracts/${sale.id}`)).audit_history.some((entry: any) => entry.action === "print_requested")).toBe(true);
+    await expect.poll(async () => (await api("GET", `/contracts/${sale.id}`)).audit_history.some((entry: any) => entry.action === "print_requested"), { timeout: 60000 }).toBe(true);
     await page.getByRole("button", { name: "المزيد من إجراءات العقد", exact: true }).click();
-    const downloadWait = page.waitForEvent("download");
+    const downloadWait = page.waitForEvent("download", { timeout: 60000 });
     await page.getByText("تصدير PDF", { exact: true }).click();
     const download = await downloadWait;
-    assert(download.suggestedFilename().endsWith(".print.html"));
-    await download.saveAs(path.join(output, "issued-print.html"));
+    assert(download.suggestedFilename().endsWith(".pdf"));
+    await download.saveAs(path.join(output, "issued-document.pdf"));
     assert((await api("GET", `/contracts/${sale.id}`)).audit_history.some((entry: any) => entry.action === "pdf_requested"));
+    }
     await page.getByRole("button", { name: "إلغاء العقد", exact: true }).click();
     await page.getByRole("button", { name: "تأكيد الإلغاء", exact: true }).click();
     await expect(page.getByText("سبب الإلغاء مطلوب (ثلاثة أحرف على الأقل).", { exact: true })).toBeVisible();
@@ -216,7 +220,8 @@ export async function verifyContractsManagementUi(app: FastifyInstance, token: s
     await page.screenshot({ path: path.join(output, "cancel-confirmation.png"), fullPage: true });
     await page.getByRole("button", { name: "تأكيد الإلغاء", exact: true }).click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
-    await expect(frame().locator('[data-cancelled="true"]')).toBeVisible();
+    await page.getByRole("tab", { name: "المعاينة", exact: true }).click();
+    await expect(frame().locator('body')).toContainText("ملغى — نسخة أرشيفية");
     await expect(page.getByRole("button", { name: "إلغاء العقد", exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "طباعة أرشيفية", exact: true })).toBeVisible();
     await page.screenshot({ path: path.join(output, "cancelled-archive.png"), fullPage: true });
@@ -251,62 +256,66 @@ export async function verifyContractsManagementUi(app: FastifyInstance, token: s
     await expect(saleRow).toContainText(fixtures.ownerName);
     await page.screenshot({ path: path.join(output, "review-list.png"), fullPage: true });
 
-    const formulas = await api("GET", "/legal-content");
-    const base = formulas.find((row: any) => row.contract_type === "sale" && row.is_default);
-    assert(base);
-    const title = "صيغة إدارة اختبار مخصصة";
-    const custom = await api("POST", "/legal-content", {
-      contract_type: base.contract_type, property_type: base.property_type, jurisdiction: base.jurisdiction, transaction_kind: base.transaction_kind,
-      title, legal_basis: base.legal_basis, applicability_notes: base.applicability_notes, revision_note: "إنشاء نسخة اختبار الإدارة", priority: 1,
-      clauses: base.clauses.map((clause: any) => ({ clause_code: clause.clause_code, clause_title: clause.clause_title, clause_content_ar: clause.clause_content_ar, clause_order: clause.clause_order, is_required: clause.is_required, conditions_json: clause.conditions_json, source_clause_id: clause.id })),
-    });
-    await api("POST", `/legal-content/${custom.id}/decision`, { action: "approve_publish", comment: "تفعيل صيغة اختبار الإدارة" });
-    await page.goto(`${origin}/?management-test=legal-templates#/contracts/legal-templates`);
-    await page.getByRole("tab", { name: "عقود البيع", exact: true }).click();
+    await page.goto(`${origin}/?management-test=formulations#/contracts/legal-templates`);
+    await expect(page.getByRole("tab", { name: "الكل", exact: true })).toBeVisible();
+    const title = "صيغة اختبار الواجهة المباشرة";
+    await page.getByRole("button", { name: "إضافة صيغة", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page.getByLabel("عنوان الصيغة", { exact: true }).fill(title);
+    await page.getByLabel("محتوى الصيغة", { exact: true }).fill("اتفق {{seller_name}} مع {{buyer_name}} على المبلغ {{contract_amount}}.");
+    const savingFormulation = page.waitForResponse(response => response.url().endsWith("/legal-content/formulations") && response.request().method() === "POST");
+    await page.keyboard.press("Control+s");
+    const formulation = await (await savingFormulation).json();
+    await expect(page.locator(".formulation-editor")).toContainText("تم الحفظ");
     await page.getByLabel("البحث في الصيغ", { exact: true }).fill(title);
-    const customRow = page.locator("tbody tr").filter({ hasText: title }).first();
-    await expect(customRow).toContainText("مخصصة");
-    await customRow.getByRole("button", { name: "معاينة الصيغة", exact: true }).click();
-    const editor = page.locator(".legal-editor");
-    await expect(editor).toBeVisible();
-    await page.getByRole("tab", { name: "النص والمتغيرات", exact: true }).click();
-    await expect(editor.locator(".raw-clauses")).toContainText("{{");
-    await page.getByRole("tab", { name: "بيانات المتغيرات", exact: true }).click();
-    await expect(editor.locator("code").first()).toContainText("{{");
-    await page.getByRole("tab", { name: "الشكل المطبوع", exact: true }).click();
-    await expect(frame().locator("html")).toHaveAttribute("dir", "rtl");
-    await page.screenshot({ path: path.join(output, "legal-template-preview.png"), fullPage: true });
-    await page.getByRole("button", { name: "إغلاق", exact: true }).click();
-    const selectDefault = async (row: any) => {
-      await row.getByRole("button", { name: "إجراءات الصيغة", exact: true }).click();
-      await page!.getByText("تعيين كافتراضية لنوع العقد", { exact: true }).click();
-      await page!.getByLabel("ملاحظة القرار", { exact: true }).fill("تحديد الصيغة الافتراضية للاختبار");
-      const deciding = page!.waitForResponse((response) => /\/legal-content\/\d+\/decision$/.test(response.url()) && response.request().method() === "POST");
-      await page!.getByRole("button", { name: "تسجيل القرار", exact: true }).click();
-      const decision = await deciding;
-      assert.equal(decision.status(), 200, `${decision.url()}: ${await decision.text()}`);
-      await expect(page!.getByRole("dialog")).toHaveCount(0);
-    };
-    await selectDefault(customRow);
-    await expect(customRow).toContainText("افتراضية");
-    const usedDraft = await api("POST", "/contracts", fixtures.sale);
-    const usedIssued = await api("POST", `/contracts/${usedDraft.contract.id}/issue`, {});
-    assert(usedIssued.legal_snapshot.legal_template_version.some((version: any) => version.id === custom.id));
-    await customRow.getByRole("button", { name: "إجراءات الصيغة", exact: true }).click();
-    await expect(page.getByText("حذف الصيغة", { exact: true })).toHaveCount(0);
-    await page.keyboard.press("Escape");
-    await page.getByLabel("البحث في الصيغ", { exact: true }).fill(base.title);
-    const baseRow = page.locator("tbody tr").filter({ hasText: base.title }).filter({ hasText: "العراق الاتحادي" }).first();
-    await expect(baseRow).toContainText("أساسية محمية");
-    await selectDefault(baseRow);
-    await page.getByLabel("البحث في الصيغ", { exact: true }).fill(title);
-    await customRow.getByRole("button", { name: "إجراءات الصيغة", exact: true }).click();
-    await page.getByText("حذف الصيغة", { exact: true }).click();
-    await expect(page.getByText("ستؤرشف هذه الصيغة المخصصة وجميع إصداراتها ولن تظهر للعقود الجديدة. تبقى النسخ القانونية المستخدمة في العقود السابقة محفوظة دون تغيير.", { exact: true })).toBeVisible();
-    await page.screenshot({ path: path.join(output, "legal-template-delete.png"), fullPage: true });
-    await page.getByRole("button", { name: "تأكيد الأرشفة", exact: true }).click();
-    await expect(customRow).toHaveCount(0);
-    assert.deepEqual((await api("GET", `/contracts/${usedDraft.contract.id}`)).legal_snapshot.document_model, usedIssued.legal_snapshot.document_model);
+    const formulationRow = page.locator(".formulation-list .v-list-item").filter({ hasText: title });
+    await formulationRow.getByRole("button", { name: "تعيين افتراضية", exact: true }).click();
+    await expect(formulationRow.getByRole("button", { name: "الصيغة الافتراضية", exact: true })).toBeVisible();
+    await formulationRow.click();
+    await page.getByLabel("محتوى الصيغة", { exact: true }).fill("نص معدل {{seller_name}} مع {{buyer_name}}، المتبقي {{remaining_amount}}.");
+    await page.keyboard.press("Control+s");
+    await expect(page.locator(".formulation-editor")).toContainText("تم الحفظ");
+    await page.screenshot({ path: path.join(output, "formulations-inline.png"), fullPage: true });
+    await formulationRow.getByRole("button", { name: "إجراءات الصيغة", exact: true }).click();
+    await page.getByText("نسخ", { exact: true }).click();
+    await expect(page.getByLabel("عنوان الصيغة", { exact: true })).toHaveValue(`${title} · نسخة`);
+    await page.locator('input[type="file"]').setInputFiles({ name: "نص مستورد.txt", mimeType: "text/plain", buffer: Buffer.from("صيغة مستوردة {{seller_name}}") });
+    await expect(page.getByLabel("عنوان الصيغة", { exact: true })).toHaveValue("نص مستورد");
+    await page.getByRole("button", { name: "حفظ", exact: true }).click();
+    await expect(page.locator(".formulation-editor")).toContainText("تم الحفظ");
+    await page.getByLabel("البحث في الصيغ", { exact: true }).fill("نص مستورد");
+    const importedRow = page.locator(".formulation-list .v-list-item").filter({ hasText: "نص مستورد" });
+    await importedRow.getByRole("button", { name: "إجراءات الصيغة", exact: true }).click();
+    await page.getByText("حذف", { exact: true }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "حذف", exact: true }).click();
+    await expect(importedRow).toHaveCount(0);
+    await api("POST", "/legal-content/formulations/restore", { contract_type: "sale" });
+    await api("DELETE", `/legal-content/formulations/${formulation.id}`);
+    await page.goto(`${origin}/?management-test=docx-templates#/contract-templates`);
+    await expect(page.getByText("قالب عقد البيع", { exact: true }).first()).toBeVisible();
+    await page.locator(".v-card").filter({ has: page.getByText("قالب عقد البيع", { exact: true }) }).first().click();
+    await expect(frame().locator("body")).toContainText("{{legal_formulation}}");
+    const templateFile = await fs.readFile(path.join(root, "server/assets/contracts/sale.docx"));
+    await page.locator('input[type="file"]').setInputFiles({ name: "قالب مكتب.docx", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", buffer: templateFile });
+    await expect(page.getByRole("button", { name: "حفظ واستخدام", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "حفظ واستخدام", exact: true }).click();
+    await expect(page.getByRole("button", { name: "حفظ واستخدام", exact: true })).toHaveCount(0);
+    await page.screenshot({ path: path.join(output, "docx-template-preview.png"), fullPage: true });
+    const sidebar = page.locator(".dal-nav-drawer");
+    if ((await sidebar.getAttribute("class"))?.includes("v-navigation-drawer--rail")) await page.getByRole("button", { name: "طيّ أو فتح قائمة التنقل", exact: true }).click();
+    await expect(sidebar).not.toHaveClass(/v-navigation-drawer--rail/);
+    await expect.poll(async () => Math.round((await sidebar.boundingBox())!.width)).toBe(224);
+    assert.equal(await sidebar.locator(".v-list-group,.v-expansion-panel").count(), 0);
+    for (const section of ["الرئيسية", "إدارة العقارات", "المعاملات", "المستندات", "النظام"]) await expect(sidebar.getByText(section, { exact: true }).first()).toBeVisible();
+    await page.screenshot({ path: path.join(output, "sidebar-sections.png"), fullPage: true });
+    await page.getByRole("button", { name: "طيّ أو فتح قائمة التنقل", exact: true }).click();
+    await expect(sidebar).toHaveClass(/v-navigation-drawer--rail/);
+    await expect.poll(async () => Math.round((await sidebar.boundingBox())!.width)).toBe(64);
+    await sidebar.getByRole("link", { name: "الصيغ القانونية", exact: true }).hover();
+    await expect(page.getByRole("tooltip").filter({ hasText: "الصيغ القانونية" })).toBeVisible();
+    await page.getByRole("button", { name: "التبديل إلى الوضع الداكن", exact: true }).click();
+    await expect(page.locator(".v-application")).toHaveClass(/v-theme--dalalyDark/);
+    await page.screenshot({ path: path.join(output, "sidebar-dark-rail.png"), fullPage: true });
     assert.deepEqual(errors, []);
     await fs.rm(path.join(output, "failure.png"), { force: true });
     await context.close();

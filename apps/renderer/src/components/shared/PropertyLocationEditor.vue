@@ -66,7 +66,8 @@ function inputLink(value: string | null) {
   link.value = value;
   if (!value?.trim()) return;
   if (!mapLinkUrl(value)) {
-    warning.value = "أدخل رابط HTTPS صالحاً من OpenStreetMap أو رابط Google سابقاً.";
+    warning.value =
+      "أدخل رابط HTTPS صالحاً من OpenStreetMap أو رابط Google سابقاً.";
     return;
   }
   const point = parseMapLink(value);

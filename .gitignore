@@ -18,3 +18,5 @@ playwright-report
 *.webm
 source-assets
 tests
+tools/libreoffice/
+tools/.document-renderer-setup/

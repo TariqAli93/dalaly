@@ -1,195 +1,87 @@
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
-import { requirePermission } from "../auth/auth.hooks.js";
 import { z } from "zod";
-import { ForbiddenError } from "../../shared/errors.js";
+import { requirePermission } from "../auth/auth.hooks.js";
+import { DOCUMENT_VARIABLES } from "./docx.engine.js";
 import {
-  legalDecisionSchema,
-  legalRevisionSchema,
-} from "./legal-content.schema.js";
-import {
-  decideLegalRevision,
-  legalHistory,
-  listLegalContent,
-  saveLegalRevision,
-  legalOptions,
-  validateRevision,
-  compareLegalRevisions,
-  restoreLegalRevision,
-  scheduleLegalRevision,
-  legalNotifications,
-  readLegalNotification,
-  deleteLegalTemplate,
-} from "./legal-content.service.js";
-import { previewLegalRevision } from "./legal-preview.service.js";
-const idSchema = z.coerce.number().int().positive();
-const has = (req: FastifyRequest, key: string) =>
-  req.user!.permissions.some((p) => p.key === key);
-const edits = (req: FastifyRequest) =>
-  has(req, "legal_content.manage") || has(req, "legal_content.propose");
-const administrative = (req: FastifyRequest) =>
-  edits(req) ||
-  has(req, "legal_content.approve") ||
-  has(req, "legal_content.publish");
-function revisionInput(req: FastifyRequest) {
-  const input = legalRevisionSchema.parse(req.body);
-  if (!has(req, "legal_content.manage")) input.priority = 1;
-  return input;
-}
-const propose = async (req: FastifyRequest, reply: FastifyReply) => {
-  if (!edits(req))
-    return reply.code(403).send({ message: "ليست لديك صلاحية اقتراح تعديل." });
-};
+  formulationInput,
+  listFormulations,
+  saveFormulation,
+  deleteFormulation,
+  copyFormulation,
+  defaultFormulation,
+  restoreFormulations,
+  importFormulation,
+} from "./formulations.service.js";
+const id = (req: FastifyRequest) =>
+  z.object({ id: z.coerce.number().int().positive() }).parse(req.params).id;
+const anyPermission =
+  (...keys: string[]) =>
+  async (req: FastifyRequest, reply: FastifyReply) => {
+    if (!req.user?.permissions.some((p) => keys.includes(p.key)))
+      return reply
+        .code(403)
+        .send({ message: "ليست لديك صلاحية تنفيذ هذه العملية." });
+  };
 export const legalContentRoutes: FastifyPluginAsync = async (app) => {
-  app.get("/", { preHandler: requirePermission("legal_content.read") }, (req) =>
-    listLegalContent(
-      !edits(req) &&
-        !has(req, "legal_content.approve") &&
-        !has(req, "legal_content.publish"),
+  const read = requirePermission("legal_content.read");
+  const edit = anyPermission("legal_content.manage", "legal_content.propose");
+  const publish = anyPermission(
+    "legal_content.manage",
+    "legal_content.publish",
+  );
+  app.get("/formulations", { preHandler: read }, listFormulations);
+  app.get("/variables", { preHandler: read }, () =>
+    DOCUMENT_VARIABLES.filter(
+      (v) =>
+        ![
+          "legal_formulation",
+          "additional_conditions",
+          "assets_summary",
+          "parties_summary",
+          "agreement_terms",
+          "witnesses",
+          "office_role",
+        ].includes(v),
     ),
   );
-  app.get(
-    "/options",
-    { preHandler: requirePermission("legal_content.read") },
-    (req) => legalOptions(!administrative(req)),
-  );
-  app.get(
-    "/history",
-    { preHandler: requirePermission("legal_content.read") },
-    async (req) => {
-      const rows = await legalHistory();
-      if (
-        edits(req) ||
-        has(req, "legal_content.approve") ||
-        has(req, "legal_content.publish")
-      )
-        return rows;
-      const active = await listLegalContent(true);
-      return rows.filter((r) =>
-        active.some((t) => t.id === r.legal_template_id),
-      );
-    },
-  );
-  app.post("/", { preHandler: propose }, async (req, reply) =>
-    reply
-      .code(201)
-      .send(await saveLegalRevision(revisionInput(req), req.user!.id)),
-  );
-  app.post("/:id/revisions", { preHandler: propose }, async (req, reply) =>
+  app.post("/formulations", { preHandler: edit }, async (req, reply) =>
     reply
       .code(201)
       .send(
-        await saveLegalRevision(
-          revisionInput(req),
-          req.user!.id,
-          idSchema.parse((req.params as any).id),
-        ),
+        await saveFormulation(formulationInput.parse(req.body), req.user!.id),
       ),
   );
-  app.post("/validate", { preHandler: propose }, (req) =>
-    validateRevision(legalRevisionSchema.parse(req.body)),
-  );
-  app.post(
-    "/preview",
-    { preHandler: requirePermission("legal_content.read") },
-    (req) => {
-      const body = z
-        .object({
-          revision: legalRevisionSchema,
-          visual_id: z.number().int().positive(),
-          contract_id: z.number().int().positive().optional(),
-          additional_conditions: z.string().max(20000).default(""),
-        })
-        .strict()
-        .parse(req.body);
-      if (body.contract_id && !has(req, "contracts.read"))
-        throw Object.assign(new Error("ليست لديك صلاحية عرض بيانات العقود."), {
-          statusCode: 403,
-        });
-      return previewLegalRevision(
-        body.revision,
-        body.visual_id,
-        body.contract_id,
-        body.additional_conditions,
-      );
-    },
-  );
-  app.get(
-    "/compare",
-    { preHandler: requirePermission("legal_content.read") },
-    async (req) => {
-      const q = z.object({ left: idSchema, right: idSchema }).parse(req.query);
-      if (!administrative(req)) {
-        const active = await listLegalContent(true);
-        if (![q.left, q.right].every((id) => active.some((r) => r.id === id)))
-          throw new ForbiddenError("يمكن عرض الإصدارات النشطة فقط.");
-      }
-      return compareLegalRevisions(q.left, q.right);
-    },
-  );
-  app.post("/:id/restore", { preHandler: propose }, async (req, reply) =>
-    reply
-      .code(201)
-      .send(
-        await restoreLegalRevision(
-          idSchema.parse((req.params as any).id),
-          req.user!.id,
-        ),
-      ),
-  );
-  app.patch(
-    "/:id/schedule",
-    { preHandler: requirePermission("legal_content.manage") },
-    (req) => {
-      const b = z
-        .object({
-          target_at: z.iso.datetime({ offset: true }).nullable(),
-          priority: z.number().int().min(0).max(2),
-        })
-        .strict()
-        .parse(req.body);
-      return scheduleLegalRevision(
-        idSchema.parse((req.params as any).id),
-        b.target_at,
-        b.priority,
-        req.user!.id,
-      );
-    },
+  app.put("/formulations/:id", { preHandler: edit }, (req) =>
+    saveFormulation(formulationInput.parse(req.body), req.user!.id, id(req)),
   );
   app.delete(
-    "/:id",
+    "/formulations/:id",
     { preHandler: requirePermission("legal_content.delete") },
-    (req) =>
-      deleteLegalTemplate(idSchema.parse((req.params as any).id), req.user!.id),
+    (req) => deleteFormulation(id(req), req.user!.id),
   );
-  app.post("/:id/decision", async (req) =>
-    decideLegalRevision(
-      idSchema.parse((req.params as any).id),
-      legalDecisionSchema.parse(req.body),
+  app.post("/formulations/:id/copy", { preHandler: edit }, (req) =>
+    copyFormulation(id(req), req.user!.id),
+  );
+  app.post("/formulations/:id/default", { preHandler: publish }, (req) =>
+    defaultFormulation(id(req), req.user!.id),
+  );
+  app.post("/formulations/restore", { preHandler: publish }, (req) =>
+    restoreFormulations(
       req.user!.id,
-      {
-        manage: edits(req),
-        publish: has(req, "legal_content.publish"),
-        specialist: has(req, "legal_content.approve"),
-      },
+      z
+        .object({ contract_type: z.enum(["sale", "rental"]) })
+        .strict()
+        .parse(req.body).contract_type,
     ),
   );
-  app.get(
-    "/notifications",
-    { preHandler: requirePermission("legal_content.read") },
-    (req) =>
-      legalNotifications(
-        req.user!.id,
-        has(req, "legal_content.publish"),
-        has(req, "legal_content.approve"),
-      ),
-  );
-  app.post(
-    "/notifications/:id/read",
-    { preHandler: requirePermission("legal_content.read") },
-    (req) =>
-      readLegalNotification(
-        idSchema.parse((req.params as any).id),
-        req.user!.id,
-      ),
-  );
+  app.post("/formulations/import", { preHandler: edit }, (req) => {
+    const input = z
+      .object({
+        filename: z.string().min(1).max(255),
+        data: z.string().max(17 * 1024 * 1024),
+      })
+      .strict()
+      .parse(req.body);
+    return importFormulation(input.filename, input.data);
+  });
 };

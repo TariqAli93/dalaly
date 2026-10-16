@@ -104,16 +104,12 @@ function assetTitle(item: PropertyRecord | RentalRecord) {
       ]"
       @update:model-value="emit('update:rentalIds', $event)"
     />
-    <v-select
+    <v-text-field
       v-if="!props.section || props.section === 'information'"
-      :model-value="props.templateId"
-      :items="props.templates"
-      item-title="name"
-      item-value="id"
+      :model-value="props.templates.find(t => t.id === props.templateId)?.name ?? 'القالب الافتراضي'"
       label="قالب العقد"
       :error-messages="props.errors?.template_id"
-      clearable
-      @update:model-value="emit('update:templateId', $event)"
+      hint="يُستخدم قالب DOCX المناسب تلقائياً." persistent-hint readonly
     />
     <div v-if="!props.section || props.section === 'information'">
       <DateField

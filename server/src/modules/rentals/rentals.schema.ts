@@ -6,7 +6,10 @@ import {
   RENT_PERIODS,
 } from "../../shared/constants/domain.js";
 
-import { locationFields, refineLocation } from "../../shared/validation/location.js";
+import {
+  locationFields,
+  refineLocation,
+} from "../../shared/validation/location.js";
 
 const optionalText = z
   .string()
@@ -22,34 +25,36 @@ const optionalCount = z.coerce
   .nullable();
 const optionalId = z.coerce.number().int().positive().optional().nullable();
 
-export const rentalPayloadSchema = z.object({
-  ...locationFields,
-  name: optionalText,
-  property_type: z.enum(RENTAL_PROPERTY_TYPES),
-  rent_price: z.coerce.number().positive(),
-  rent_period: z.enum(RENT_PERIODS),
-  area_value: z.coerce.number().positive(),
-  area_unit: z.enum(AREA_UNITS),
-  floors_count: optionalCount,
-  rooms_count: optionalCount,
-  bathrooms_count: optionalCount,
-  amenities: z.record(z.string(), z.unknown()).default({}),
-  other_details: optionalText,
-  governorate_id: optionalId,
-  district_id: optionalId,
-  neighborhood_id: optionalId,
-  governorate: optionalText,
-  district: optionalText,
-  neighborhood: optionalText,
-  address_details: optionalText,
-  owner_person_id: optionalId,
-  owner_name: z.string().trim().min(1),
-  owner_phone: z.string().trim().min(1),
-  owner_notes: optionalText,
-  status: z.enum(RENTAL_STATUSES).default("available"),
-  is_negotiable: z.coerce.boolean().default(false),
-  notes: optionalText,
-}).superRefine(refineLocation);
+export const rentalPayloadSchema = z
+  .object({
+    ...locationFields,
+    name: optionalText,
+    property_type: z.enum(RENTAL_PROPERTY_TYPES),
+    rent_price: z.coerce.number().positive(),
+    rent_period: z.enum(RENT_PERIODS),
+    area_value: z.coerce.number().positive(),
+    area_unit: z.enum(AREA_UNITS),
+    floors_count: optionalCount,
+    rooms_count: optionalCount,
+    bathrooms_count: optionalCount,
+    amenities: z.record(z.string(), z.unknown()).default({}),
+    other_details: optionalText,
+    governorate_id: optionalId,
+    district_id: optionalId,
+    neighborhood_id: optionalId,
+    governorate: optionalText,
+    district: optionalText,
+    neighborhood: optionalText,
+    address_details: optionalText,
+    owner_person_id: optionalId,
+    owner_name: z.string().trim().min(1),
+    owner_phone: z.string().trim().min(1),
+    owner_notes: optionalText,
+    status: z.enum(RENTAL_STATUSES).default("available"),
+    is_negotiable: z.coerce.boolean().default(false),
+    notes: optionalText,
+  })
+  .superRefine(refineLocation);
 
 export const rentalFiltersSchema = z.object({
   property_type: z.enum(RENTAL_PROPERTY_TYPES).optional(),

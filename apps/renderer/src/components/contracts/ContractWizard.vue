@@ -2,7 +2,10 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import DateField from "./DateField.vue";
 import ContractDocumentPreview from "./ContractDocumentPreview.vue";
-import { jurisdictions } from "../../services/legal-content.service";
+const jurisdictions = [
+  { title: "العراق الاتحادي", value: "iq_federal" },
+  { title: "إقليم كوردستان", value: "iq_kurdistan" },
+];
 import ContractDetailsStep from "./ContractDetailsStep.vue";
 import ContractReviewStep from "./ContractReviewStep.vue";
 import PersonDocuments from "./PersonDocuments.vue";
@@ -63,6 +66,22 @@ const error = ref(""),
   preview = ref(""),
   previewHtml = ref("");
 const previewOpen = ref(false);
+const previewDocx = ref("");
+const previewPayload = ref<unknown>(null);
+const formulationOverride = ref<string | null>(null);
+const defaultWording = ref("");
+let wordingRequest = 0;
+async function loadWording() {
+  const request = ++wordingRequest;
+  try {
+    const row = await contractsService.defaultFormulation(
+      form.value.contract_type,
+    );
+    if (request === wordingRequest) defaultWording.value = row?.content ?? "";
+  } catch (cause) {
+    if (request === wordingRequest) error.value = getErrorMessage(cause);
+  }
+}
 const validation = ref<ContractValidation | null>(null);
 const applicableClauses = ref<ContractValidation["optional_clauses"]>([]);
 const apiIssues = ref<Array<{ message: string; path?: string }>>([]);
@@ -84,7 +103,11 @@ const legalContext = ref({
 function emptyAgreementDetails() {
   return {
     office_capacity: "broker" as
-      "broker" | "seller" | "buyer" | "lessor" | "lessee",
+      | "broker"
+      | "seller"
+      | "buyer"
+      | "lessor"
+      | "lessee",
     payment_terms: "",
     transfer_due_date: "",
     handover_conditions: "",
@@ -281,6 +304,7 @@ function payload() {
       paid_amount: toNumber(form.value.paid_amount),
     },
     notes: form.value.notes || null,
+    formulation_override: formulationOverride.value,
     legal_context: legalContext.value,
     agreement_details: {
       ...agreementDetails.value,
@@ -324,6 +348,7 @@ function cacheDraft() {
         savedAt: new Date().toISOString(),
         form: form.value,
         legalContext: legalContext.value,
+        formulationOverride: formulationOverride.value,
         agreementDetails: agreementDetails.value,
         witnessNames: witnessNames.value,
         optionalCodes: optionalCodes.value,
@@ -360,6 +385,8 @@ function reset() {
   apiIssues.value = [];
   preview.value = "";
   previewHtml.value = "";
+  previewDocx.value = "";
+  formulationOverride.value = null;
   previewOpen.value = false;
   validation.value = null;
   applicableClauses.value = [];
@@ -407,6 +434,7 @@ function hydrate(bundle: ContractBundle) {
   form.value.paid_amount = contract.paid_amount ?? 0;
   form.value.template_id = contract.template_id;
   form.value.notes = contract.notes ?? "";
+  formulationOverride.value = contract.formulation_override ?? null;
   paymentInfo.value = { ...contract.payment_info };
   legalContext.value = {
     jurisdiction: "iq_federal",
@@ -440,6 +468,10 @@ function serverUpdatedAt(bundle: ContractBundle) {
   );
 }
 function restoreCachedValues(cached: Record<string, unknown>) {
+  formulationOverride.value =
+    typeof cached.formulationOverride === "string"
+      ? cached.formulationOverride
+      : null;
   form.value = {
     ...emptyForm(),
     ...(cached.form as typeof form.value),
@@ -540,8 +572,9 @@ async function load() {
       draftMessage.value =
         "استُعيدت بيانات العقد غير المكتمل المحفوظة على هذا الجهاز.";
     }
-    if (!form.value.template_id)
+    if (!currentTemplates.value.some((t) => t.id === form.value.template_id))
       form.value.template_id = currentTemplates.value[0]?.id ?? null;
+    await loadWording();
     await nextTick();
   } catch (cause) {
     loadFailed.value = true;
@@ -552,6 +585,8 @@ async function load() {
 }
 function onTypeChanged(value: ContractType) {
   form.value.contract_type = value;
+  formulationOverride.value = null;
+  void loadWording();
   legalContext.value.transaction_kind =
     value === "rental" ? "lease" : "preliminary_sale";
   agreementDetails.value.office_capacity = "broker";
@@ -723,6 +758,8 @@ async function showPreview() {
     }
     preview.value = document.content;
     previewHtml.value = document.html;
+    previewDocx.value = document.docx_data;
+    previewPayload.value = snapshot;
     previewOpen.value = true;
   } catch (cause) {
     captureError(cause);
@@ -805,6 +842,7 @@ watch(
   [
     form,
     legalContext,
+    formulationOverride,
     agreementDetails,
     witnessNames,
     optionalCodes,
@@ -1131,6 +1169,24 @@ onBeforeUnmount(() => {
               {{ message }}
             </div></v-alert
           >
+          <v-textarea
+            :model-value="formulationOverride ?? defaultWording"
+            label="نص الصيغة لهذا العقد"
+            hint="يمكن تعديل النص قبل الإصدار. المتغيرات تُملأ تلقائياً، وتبقى الصيغة الأصلية محفوظة."
+            persistent-hint
+            variant="outlined"
+            rows="6"
+            auto-grow
+            class="mt-4"
+            @update:model-value="formulationOverride = $event || null"
+          />
+          <v-btn
+            v-if="formulationOverride !== null"
+            variant="tonal"
+            color="primary"
+            @click="formulationOverride = null"
+            >استخدام الصيغة الافتراضية</v-btn
+          >
           <v-alert
             v-if="validation?.legal_warnings.length"
             type="warning"
@@ -1186,6 +1242,8 @@ onBeforeUnmount(() => {
           ><v-card-title>معاينة العقد قبل الإصدار</v-card-title
           ><v-card-text
             ><ContractDocumentPreview
+              :docx-data="previewDocx"
+              :load-pdf="() => contractsService.previewDraftPdf(previewPayload)"
               :html="previewHtml"
               :text="preview" /></v-card-text
           ><v-card-actions

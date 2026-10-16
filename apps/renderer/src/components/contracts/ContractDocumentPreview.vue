@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref } from "vue";
-defineProps<{ html?: string | null; text?: string | null }>();
+import DocxDocumentPreview from "./DocxDocumentPreview.vue";
+defineProps<{ html?: string | null; text?: string | null; docxData?: string; loadPdf?: () => Promise<{ data: string }> }>();
 const zoom = ref(1);
 </script>
 <template>
-  <v-sheet v-if="html" class="document-viewer" border rounded>
+  <DocxDocumentPreview v-if="docxData" :data="docxData" :load-pdf="loadPdf" />
+  <v-sheet v-else-if="html" class="document-viewer" border rounded>
     <v-toolbar density="compact" color="transparent" aria-label="حجم المعاينة">
       <v-toolbar-title class="text-body-2">معاينة A4</v-toolbar-title>
       <v-btn

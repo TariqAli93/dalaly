@@ -5,12 +5,12 @@ const result = spawnSync(
   [
     fileURLToPath(import.meta.resolve("tsx/cli")),
     "--test",
-    "scripts/contracts-legal.test.ts",
+    "scripts/contracts-lifecycle.test.ts",
   ],
   {
     stdio: "inherit",
     windowsHide: true,
-    env: { ...process.env, CONTRACT_BROWSER_TEST: "1" },
+    env: { ...process.env, CONTRACT_MANAGEMENT_BROWSER_TEST: "1" },
   },
 );
 process.exit(result.status ?? 1);

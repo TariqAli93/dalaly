@@ -30,3 +30,8 @@ export class ContractValidationError extends Error {
 export class ForbiddenError extends Error {
   readonly statusCode = 403;
 }
+export class DocumentError extends Error {
+  constructor(message: string, readonly statusCode: 400 | 409 | 422 | 503 = 400) {
+    super(message); this.name = "DocumentError";
+  }
+}

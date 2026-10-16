@@ -1,21 +1,19 @@
 import fs from "node:fs/promises";
+import { legalWording, generateDocumentFile } from "./document-generation.service.js";
+import { sha256 } from "./docx.engine.js";
 import { residentialAddress, partyDocumentNumbers } from "./agreement-data.js";
 import {
   SALE_EXPLANATION,
   RENTAL_PROCEDURES_NOTE,
   proceduresFor,
 } from "./agreement.schema.js";
-import { and, asc, desc, eq, isNull, or } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import {
-  legalContractTemplates,
-  legalContractClauses,
   documentTypes,
 } from "../../infrastructure/database/schema.js";
 import { resolveManagedFile } from "../documents/documents.storage.js";
+import { snapshotAssetImages } from "./contract-asset-images.js";
 import {
-  conditionsMatch,
-  interpolateLegalText,
   legalPropertyType,
   type ContractDocument,
 } from "./legal-content.engine.js";
@@ -61,19 +59,6 @@ const propertyLabels: Record<string, string> = {
   other: "أخرى",
   shop: "محل",
   office: "مكتب",
-};
-const fields: Record<string, string> = {
-  legal_type: "legalType",
-  plot_number: "plotNumber",
-  plot_letter: "plotLetter",
-  subdistrict_number: "subdistrictNumber",
-  subdistrict_name: "subdistrictName",
-  mahalla: "mahalla",
-  alley: "alley",
-  house_number: "houseNumber",
-  area_unit: "areaUnit",
-  area_value: "areaValue",
-  rent_period: "rentPeriod",
 };
 const fieldLabels: Record<string, string> = {
   plotNumber: "رقم القطعة",
@@ -121,172 +106,18 @@ export async function buildContractDocument(
   );
   const previewValues: NonNullable<ContractDocument["data"]["preview_values"]> =
     [];
-  for (const asset of assets) {
-    const type = legalPropertyType(asset);
-    const candidates = await executor
-      .select()
-      .from(legalContractTemplates)
-      .where(
-        and(
-          eq(
-            legalContractTemplates.contractType,
-            payload.contract_type === "rental" ? "rental" : "sale",
-          ),
-          or(
-            eq(legalContractTemplates.propertyType, type),
-            eq(legalContractTemplates.propertyType, "all_properties"),
-          ),
-          eq(legalContractTemplates.jurisdiction, context.jurisdiction),
-          eq(legalContractTemplates.transactionKind, context.transaction_kind),
-          isNull(legalContractTemplates.deletedAt),
-        ),
-      )
-      .orderBy(desc(legalContractTemplates.version));
-    const exact = candidates.filter(
-      (r: typeof legalContractTemplates.$inferSelect) =>
-        r.propertyType === type,
-    );
-    const activeDefault = candidates.find(
-      (r: typeof legalContractTemplates.$inferSelect) =>
-        r.isDefault &&
-        r.approvalStatus === "approved" &&
-        r.publicationStatus === "active",
-    );
-    const applicable = activeDefault
-      ? [activeDefault]
-      : exact.some(
-            (r: typeof legalContractTemplates.$inferSelect) =>
-              r.approvalStatus === "approved" &&
-              r.publicationStatus === "active",
-          )
-        ? exact
-        : candidates.filter(
-            (r: typeof legalContractTemplates.$inferSelect) =>
-              r.propertyType === "all_properties",
-          );
-    const approved = applicable.filter(
-      (r: typeof legalContractTemplates.$inferSelect) =>
-        r.approvalStatus === "approved" && r.publicationStatus === "active",
-    );
-    const familyCodes = new Set(
-      approved.map(
-        (r: typeof legalContractTemplates.$inferSelect) => r.familyCode,
-      ),
-    );
-    if (familyCodes.size > 1) {
-      warnings.push(
-        `يوجد أكثر من نطاق قانوني معتمد للعقار ${asset.code}؛ يلزم تحديد الصيغة.`,
-      );
-      continue;
-    }
-    const selected = (approved[0] ?? exact[0] ?? candidates[0]) as
-      typeof legalContractTemplates.$inferSelect | undefined;
-    if (!selected) {
-      warnings.push(
-        `لا توجد صيغة قانونية مطابقة لجنس العقار ${type} ونوع المعاملة والاختصاص.`,
-      );
-      continue;
-    }
-    if (
-      selected.approvalStatus !== "approved" ||
-      selected.publicationStatus !== "active"
-    )
-      warnings.push(
-        `الصيغة ${selected.title}، الإصدار ${selected.version} تحتاج اعتماداً وتفعيلاً.`,
-      );
-    const rows = await executor
-      .select()
-      .from(legalContractClauses)
-      .where(eq(legalContractClauses.legalTemplateId, selected.id))
-      .orderBy(
-        asc(legalContractClauses.clauseOrder),
-        asc(legalContractClauses.clauseCode),
-      );
-    const section: ContractDocument["sections"][number] = {
-      asset_id: Number(asset.id),
-      property_type: type,
-      template_id: selected.id,
-      version: selected.version,
-      approval_status: selected.approvalStatus,
-      title: selected.title,
-      legal_basis: selected.legalBasis,
-      applicability_notes: selected.applicabilityNotes,
-      clauses: [],
-    };
-    const facts = {
-      legal_type: asset.legalType,
-      area_unit: asset.areaUnit,
-      rent_period: asset.rentPeriod,
-      intended_use: context.intended_use,
-      amount: payload.amount,
-      paid_amount: payload.paid_amount,
-      remaining_amount: Number(payload.amount) - payload.paid_amount,
-      registration_reference: context.registration_reference,
-    };
-    const assetValues = {
-      ...values,
-      "office.involvement":
-        payload.agreement_details.office_capacity === "broker"
-          ? `وبوساطة مكتب ${loaded.office?.companyName ?? ""}`
-          : `وبحضور مكتب ${loaded.office?.companyName ?? ""} بصفته ${labels[payload.agreement_details.office_capacity]} ضمن الأطراف المبينة`,
-      "property.code": String(asset.code ?? ""),
-      "property.name": String(asset.name ?? ""),
-      "property.type":
-        propertyLabels[String(asset.propertyType)] ??
-        String(asset.propertyType ?? ""),
-      "property.area": `${asset.areaValue ?? ""} ${asset.areaUnit ?? ""}`,
-      "property.price": String(asset.totalPrice ?? asset.rentPrice ?? ""),
-      "property.address": place(asset),
-      ...Object.fromEntries(
-        Object.entries(fields).map(([key, field]) => [
-          `property.${key}`,
-          String(asset[field] ?? ""),
-        ]),
-      ),
-    };
-    previewValues.push({
-      asset_id: Number(asset.id),
-      values: assetValues,
-      facts,
-    });
-    for (const c of rows as Array<typeof legalContractClauses.$inferSelect>) {
-      try {
-        if (!conditionsMatch(c.conditionsJson, facts)) continue;
-        if (!c.isRequired) {
-          optionalClauses.push({
-            code: c.clauseCode,
-            title: c.clauseTitle,
-            asset_id: Number(asset.id),
-          });
-          if (!payload.optional_clause_codes.includes(c.clauseCode)) continue;
-        }
-        section.clauses.push({
-          code: c.clauseCode,
-          title: c.clauseTitle,
-          text: interpolateLegalText(c.clauseContentAr, assetValues),
-          version: c.version,
-          required: c.isRequired,
-        });
-      } catch (error) {
-        warnings.push(`${c.clauseTitle}: ${(error as Error).message}`);
-      }
-    }
-    if (!section.clauses.some((c) => c.required))
-      warnings.push(`لا توجد بنود إلزامية منطبقة على العقار ${asset.code}.`);
-    sections.push(section);
-    versions.push({
-      id: selected.id,
-      name: selected.title,
-      version: selected.version,
-      property_type: type,
-      approval_status: selected.approvalStatus,
-      approved_by: selected.approvedBy,
-      approved_at: selected.approvedAt?.toISOString() ?? null,
-    });
-  }
-  for (const c of payload.optional_clause_codes)
-    if (!optionalClauses.some((o) => o.code === c))
-      warnings.push(`البند الإضافي ${c} غير منطبق على بيانات العقد.`);
+  const multiValues = { ...values, "property.address": assets.map(place).filter(Boolean).join("؛ "), "office.owner_name": loaded.office?.ownerName ?? "", "office.involvement": payload.agreement_details.office_capacity === "broker" ? `وبوساطة مكتب ${loaded.office?.companyName ?? ""}` : `وبحضور مكتب ${loaded.office?.companyName ?? ""} بصفته ${labels[payload.agreement_details.office_capacity]}` };
+  const wording = await legalWording(payload.contract_type, multiValues, payload.formulation_override, executor);
+  sections.push({
+    asset_id: Number(assets[0]?.id ?? 0), property_type: "all_properties",
+    template_id: wording.row.id, version: wording.row.version, approval_status: "approved",
+    title: wording.row.title, legal_basis: "", applicability_notes: "",
+    clauses: [{ code: "formulation", title: wording.row.title, text: wording.text, version: wording.row.version, required: true }],
+  });
+  versions.push({ source: "formulation", id: wording.row.id, name: wording.row.title,
+    version: wording.row.version, property_type: "all_properties", approval_status: "approved", approved_by: null, approved_at: null });
+  const formulationSnapshot = { id: wording.row.id, title: wording.row.title, contract_type: wording.row.contractType,
+    version: wording.row.version, content: wording.source, rendered_content: wording.text, hash: sha256(wording.source) };
   let logo = "";
   if (loaded.office?.logoFilePath) {
     const extension = loaded.office.logoFilePath
@@ -314,6 +145,11 @@ export async function buildContractDocument(
     } else warnings.push("يجب أن يكون شعار العقد بصيغة PNG أو JPEG أو WebP.");
   }
   const types = await executor.select().from(documentTypes);
+  const assetImages = await snapshotAssetImages(
+    payload.contract_type,
+    assets.map((asset) => Number(asset.id)),
+    executor,
+  );
   const model: ContractDocument = {
     schema_version: 1,
     ready: warnings.length === 0,
@@ -411,6 +247,9 @@ export async function buildContractDocument(
       assets: assets.map((a) => ({
         id: Number(a.id),
         property_type: legalPropertyType(a),
+        ...(assetImages.has(Number(a.id))
+          ? { image_data_uri: assetImages.get(Number(a.id)) }
+          : {}),
         details: [
           { label: "العقار", value: String(a.name ?? a.code ?? "") },
           { label: "رمز العقار", value: String(a.code ?? "") },
@@ -512,9 +351,11 @@ export async function buildContractDocument(
     template_code: t.templateCode ?? "",
     name: t.name,
     version: t.version,
-    renderer_version: 1,
+    renderer_version: payload.contract_type === "purchase" ? 1 : 2,
     layout_config: layoutSchema.parse(t.layoutConfig),
     branding_config: brandingSchema.parse(t.brandingConfig),
   };
-  return { model, visual, optionalClauses, ...renderVisual(model, visual) };
+  const file = await generateDocumentFile(t, model, multiValues);
+  model.document_file_hash = file.docxHash;
+  return { model, visual, optionalClauses, formulationSnapshot, ...file, ...renderVisual(model, visual) };
 }

@@ -1,8 +1,28 @@
 import { BrowserWindow, dialog, ipcMain } from "electron";
 import fs from "node:fs";
 import log from "electron-log/main.js";
+import os from "node:os";
+import path from "node:path";
 
 export function registerContractPdfExport(getMainWindow) {
+  ipcMain.handle("export:print-pdf", async (_event, input) => {
+    if (typeof input?.data !== "string" || input.data.length > 85 * 1024 * 1024 || !/^[A-Za-z0-9+/]*={0,2}$/.test(input.data))
+      return { ok: false, message: "ملف PDF غير صالح." };
+    const data = Buffer.from(input.data, "base64");
+    if (!data.subarray(0, 5).equals(Buffer.from("%PDF-"))) return { ok: false, message: "ملف PDF غير صالح." };
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "dalaly-print-"));
+    const file = path.join(directory, "contract.pdf");
+    const printWindow = new BrowserWindow({ show: false, webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true } });
+    try {
+      fs.writeFileSync(file, data);
+      await printWindow.loadFile(file);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return await new Promise(resolve => printWindow.webContents.print({ silent: false, printBackground: true }, (ok, reason) => resolve(ok ? { ok: true } : /cancel/i.test(reason || "") ? { ok: false, canceled: true } : { ok: false, message: "تعذرت طباعة PDF." })));
+    } catch (error) {
+      log.error("PDF printing failed", error);
+      return { ok: false, message: "تعذرت طباعة PDF." };
+    } finally { printWindow.destroy(); fs.rmSync(directory, { recursive: true, force: true }); }
+  });
   ipcMain.handle("export:print-document", async (_event, input) => {
     if (typeof input?.html !== "string" || !input.html)
       return { ok: false, message: "محتوى الطباعة غير صالح." };

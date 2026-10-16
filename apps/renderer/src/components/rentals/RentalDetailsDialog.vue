@@ -235,7 +235,16 @@ watch(
                 :active="tab === 'map'"
                 :key="rental.id"
                 :property-name="rental.name || `عقار للإيجار ${rental.code}`"
-                :address="[rental.governorate, rental.district, rental.neighborhood, rental.address_details].filter(Boolean).join(' · ')"
+                :address="
+                  [
+                    rental.governorate,
+                    rental.district,
+                    rental.neighborhood,
+                    rental.address_details,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')
+                "
                 :latitude="rental.latitude"
                 :longitude="rental.longitude"
                 :location-link="rental.location_link"

@@ -86,11 +86,19 @@ export function mapLinkUrl(value: string): URL | null {
   try {
     const url = new URL(value.trim());
     if (
-      url.protocol === "https:" && !url.username && !url.password && !url.port &&
+      url.protocol === "https:" &&
+      !url.username &&
+      !url.password &&
+      !url.port &&
       ["openstreetmap.org", "www.openstreetmap.org"].includes(url.hostname) &&
-      ["/", "/search", "/search/", "/directions", "/directions/"].includes(url.pathname)
-    ) return url;
-  } catch { /* Invalid URLs are rejected. */ }
+      ["/", "/search", "/search/", "/directions", "/directions/"].includes(
+        url.pathname,
+      )
+    )
+      return url;
+  } catch {
+    /* Invalid URLs are rejected. */
+  }
   return null;
 }
 
@@ -103,7 +111,9 @@ export function parseMapLink(value: string): Coordinates | null {
   const lat = url.searchParams.get("mlat");
   const lng = url.searchParams.get("mlon");
   if (lat !== null || lng !== null) return validCoordinates(lat, lng);
-  const viewport = url.hash.match(/^#map=\d+(?:\.\d+)?\/([^/]+)\/([^/&]+)(?:&.*)?$/);
+  const viewport = url.hash.match(
+    /^#map=\d+(?:\.\d+)?\/([^/]+)\/([^/&]+)(?:&.*)?$/,
+  );
   return viewport ? validCoordinates(viewport[1], viewport[2]) : null;
 }
 

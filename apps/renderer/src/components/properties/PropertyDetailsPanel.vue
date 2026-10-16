@@ -29,14 +29,23 @@ const { can } = usePermissions();
 
 const tab = ref("details");
 const mapVisited = ref(false);
-watch(tab, (value) => { if (value === "map") mapVisited.value = true; });
+watch(tab, (value) => {
+  if (value === "map") mapVisited.value = true;
+});
 const auditLogs = ref<AuditLogRecord[]>([]);
 const auditLoading = ref(false);
 const auditError = ref("");
-const address = computed(() => [
-  props.property.governorate || props.property.governorate_text, props.property.city,
-  props.property.district || props.property.district_text, neighborhoodOf(props.property), props.property.address_details,
-].filter(Boolean).join(" · "));
+const address = computed(() =>
+  [
+    props.property.governorate || props.property.governorate_text,
+    props.property.city,
+    props.property.district || props.property.district_text,
+    neighborhoodOf(props.property),
+    props.property.address_details,
+  ]
+    .filter(Boolean)
+    .join(" · "),
+);
 const extraFields = computed(() =>
   [
     ["المدينة", props.property.city],
@@ -269,11 +278,18 @@ watch(
           <v-window-item value="images" />
 
           <v-window-item value="map">
-            <PropertyLocationView v-if="mapVisited" :active="tab === 'map'" :key="property.id"
+            <PropertyLocationView
+              v-if="mapVisited"
+              :active="tab === 'map'"
+              :key="property.id"
               :address="address"
               :property-name="property.name || `عقار ${property.code}`"
-              :latitude="property.latitude" :longitude="property.longitude" :location-link="property.location_link"
-              :can-edit="can('properties.update')" @edit="emit('edit', property)" />
+              :latitude="property.latitude"
+              :longitude="property.longitude"
+              :location-link="property.location_link"
+              :can-edit="can('properties.update')"
+              @edit="emit('edit', property)"
+            />
           </v-window-item>
           <v-window-item value="notes"
             ><RecordNotes

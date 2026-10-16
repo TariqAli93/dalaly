@@ -9,14 +9,15 @@ import {
 } from "electron";
 import log from "electron-log/main.js";
 import { registerContractPdfExport } from "./contract-export.js";
-import { registerLegalNotifications } from "./legal-notifications.js";
 import { safeExternalUrl, safeMapLinkUrl } from "./external-links.js";
+import { fetchJson, pollApiHealth, withDeadline } from "./startup.js";
 import nodemailer from "nodemailer";
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
 log.initialize();
 log.transports.file.level = "info";
@@ -54,9 +55,11 @@ const rendererIndex = isDev
   ? path.join(rootDir, "apps", "renderer", "dist", "index.html")
   : path.join(process.resourcesPath, "renderer", "dist", "index.html");
 
-const migrationsDir = isDev
-  ? path.join(rootDir, "server", "drizzle")
-  : path.join(process.resourcesPath, "server", "drizzle");
+const migrationsDir =
+  process.env.DRIZZLE_MIGRATIONS_DIR ||
+  (isDev
+    ? path.join(rootDir, "server", "drizzle")
+    : path.join(process.resourcesPath, "server", "drizzle"));
 
 // مسار ملف الإعدادات المحلي الذي يخزّن DATABASE_URL بعد First Run Wizard.
 const configPath = path.join(app.getPath("userData"), "config.json");
@@ -68,6 +71,9 @@ let serverProcess = null;
 let mainWindow = null;
 let splashWindow = null;
 let mainReadyToShow = null;
+let rendererReady = null;
+let resolveRendererReady = null;
+let startupState = "CHECKING";
 let scheduleTimer = null;
 let startupInFlight = false;
 
@@ -79,7 +85,11 @@ const SLOW_AFTER_MS = 8000; // بعدها نُظهر حالة "يستغرق وق
 const SPLASH_STAGES = {
   start: { progress: 6, message: "جارِ تهيئة التطبيق…" },
   backend: { progress: 40, message: "جارِ تشغيل الخادم المحلي…" },
-  database: { progress: 66, message: "جارِ تشغيل قاعدة البيانات…" },
+  database: { progress: 66, message: "جارِ فحص قاعدة البيانات والتهيئة…" },
+  setup: {
+    progress: 72,
+    message: "يلزم إعداد النظام. جارِ فتح معالج الإعداد…",
+  },
   ui: { progress: 86, message: "جارِ تحميل الواجهة…" },
   ready: { progress: 100, message: "التطبيق جاهز" },
   // slow/error لا يحملان progress كي لا يتحرّك الشريط للخلف أو للأمام.
@@ -174,7 +184,7 @@ function buildDatabaseUrl(input) {
   return `postgres://${username}:${password}@${host}:${port}/${database}`;
 }
 
-async function createWindow() {
+async function createWindow(initialPath = "/") {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.destroy();
   mainWindow = new BrowserWindow({
     width: 1320,
@@ -189,7 +199,7 @@ async function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
       preload: path.join(__dirname, "preload.cjs"),
     },
   });
@@ -199,16 +209,28 @@ async function createWindow() {
   mainWindow.webContents.session.webRequest.onBeforeSendHeaders(
     { urls: ["https://tile.openstreetmap.org/*"] },
     (details, callback) => {
-      callback({ requestHeaders: {
-        ...details.requestHeaders,
-        "User-Agent": `Dalaly/${app.getVersion()} (Electron desktop; codel.dalaly.desktop)`,
-      } });
+      callback({
+        requestHeaders: {
+          ...details.requestHeaders,
+          "User-Agent": `Dalaly/${app.getVersion()} (Electron desktop; codel.dalaly.desktop)`,
+        },
+      });
     },
   );
 
   // وعد جاهزية العرض لاستخدامه في تسلسل الإقلاع.
   mainReadyToShow = new Promise((resolve) => {
     mainWindow.once("ready-to-show", resolve);
+  });
+  rendererReady = new Promise((resolve) => {
+    resolveRendererReady = resolve;
+  });
+  mainWindow.webContents.once("render-process-gone", (_event, details) => {
+    log.error("Startup renderer exited", details);
+    resolveRendererReady?.({
+      startup_state: "ERROR",
+      startup_reason: "RENDERER_FAILED",
+    });
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -231,7 +253,9 @@ async function createWindow() {
   });
 
   if (viteUrl) {
-    await mainWindow.loadURL(viteUrl);
+    const url = new URL(viteUrl);
+    url.hash = initialPath;
+    await mainWindow.loadURL(url.href);
     return;
   }
 
@@ -240,14 +264,21 @@ async function createWindow() {
     throw new Error(`Renderer not found: ${rendererIndex}`);
   }
 
-  await mainWindow.loadFile(rendererIndex);
+  await mainWindow.loadFile(rendererIndex, { hash: initialPath });
 }
 
 function startLocalApi() {
   if (serverProcess) return;
 
-  const command = isDev ? "pnpm" : process.execPath;
-  const args = isDev ? ["tsx", "watch", "src/index.ts"] : [serverEntry];
+  const command = process.execPath;
+  // Resolve the installed runtime directly: startup must not depend on a shell
+  // or Corepack trying to download a package manager while offline.
+  const args = isDev
+    ? [
+        createRequire(path.join(serverDir, "package.json")).resolve("tsx/cli"),
+        "src/index.ts",
+      ]
+    : [serverEntry];
 
   if (!isDev && !fs.existsSync(serverEntry)) {
     log.error("Local API entry not found", { serverEntry });
@@ -273,15 +304,14 @@ function startLocalApi() {
 
   serverProcess = spawn(command, args, {
     cwd: serverDir,
-    // shell:false في الإنتاج لتجنّب مشاكل المسارات التي تحتوي فراغات (مثل
-    // C:\Users\Futer House\...). shell مطلوب فقط في التطوير لتشغيل pnpm.cmd.
-    shell: isDev && process.platform === "win32",
+    // Direct runtime invocation also handles paths containing spaces offline.
+    shell: false,
     windowsHide: true,
     stdio: isDev ? "inherit" : ["ignore", "pipe", "pipe"],
     env: {
       ...process.env,
       DATABASE_URL: databaseUrl,
-      ELECTRON_RUN_AS_NODE: isDev ? undefined : "1",
+      ELECTRON_RUN_AS_NODE: "1",
       API_HOST: apiHost,
       API_PORT: apiPort,
       // كل المسارات تُمرَّر عبر متغيرات بيئة جاهزة (path.join) بلا تحليل نصوص.
@@ -289,6 +319,7 @@ function startLocalApi() {
       APP_DATA_DIR: appDataDir,
       IMAGES_DIR: path.join(appDataDir, "images", "properties"),
       BACKUP_DIR: path.join(appDataDir, "backups"),
+      LIBREOFFICE_PATH: process.env.LIBREOFFICE_PATH || path.join(isDev ? rootDir : process.resourcesPath, "tools", "libreoffice", "program", "soffice.exe"),
       INTERNAL_TOKEN: internalToken,
     },
   });
@@ -305,30 +336,78 @@ function startLocalApi() {
     log.error("Local API exited", { code, signal });
     serverProcess = null;
   });
+  serverProcess.on("error", (error) => {
+    log.error("Local API failed to start", error);
+    serverProcess = null;
+  });
 }
 
 // يفحص جاهزية الخادم المحلي عبر /api/health ويعيد كائن الصحة أو null عند
 // الفشل. لا يغيّر تشغيل Fastify؛ مجرّد استطلاع لنقطة الصحة الحالية.
 async function waitForApiHealth(timeoutMs = 25000) {
-  const startedAt = Date.now();
-
-  while (Date.now() - startedAt < timeoutMs) {
-    try {
-      const response = await fetch(`${apiUrl}/api/health`);
-      if (response.ok) {
-        const health = await response.json().catch(() => null);
-        log.info("Local API health check passed", health);
-        return health ?? { ok: true };
-      }
-    } catch {
-      // الخادم لم يجهز بعد؛ نُعيد المحاولة.
-    }
-    await new Promise((resolve) => setTimeout(resolve, 350));
-  }
-
-  log.error("Local API health check timed out", { apiUrl });
-  return null;
+  return pollApiHealth(`${apiUrl}/api/health`, timeoutMs, () =>
+    sendSplashProgress(SPLASH_STAGES.database),
+  );
 }
+
+function trustedMainSender(event) {
+  return (
+    mainWindow &&
+    !mainWindow.isDestroyed() &&
+    event.sender === mainWindow.webContents &&
+    event.senderFrame === mainWindow.webContents.mainFrame
+  );
+}
+
+function transitionStartup(state, reason) {
+  if (startupState !== state)
+    log.info("Startup state transition", {
+      from: startupState,
+      to: state,
+      reason,
+    });
+  startupState = state;
+}
+
+ipcMain.handle("startup:get-health", async (event) => {
+  if (!trustedMainSender(event)) throw new Error("Invalid startup sender");
+  const { status, body } = await fetchJson(`${apiUrl}/api/health`);
+  if (status !== 200) throw new Error("STARTUP_BACKEND");
+  transitionStartup(body.startup_state, body.startup_reason);
+  return body;
+});
+ipcMain.handle("startup:renderer-ready", (event, health) => {
+  if (!trustedMainSender(event)) return;
+  if (!["READY", "SETUP_REQUIRED", "ERROR"].includes(health?.startup_state))
+    return;
+  resolveRendererReady?.(health);
+});
+const setupPaths = new Set([
+  "/setup/status",
+  "/setup/test-postgres",
+  "/setup/initialize",
+  "/setup/recover",
+  "/auth/setup-admin",
+]);
+ipcMain.handle("setup:request", async (event, input) => {
+  if (!trustedMainSender(event) || !setupPaths.has(input?.path))
+    throw new Error("Invalid setup request");
+  return fetchJson(
+    `${apiUrl}/api${input.path}`,
+    {
+      method: input.path === "/setup/status" ? "GET" : "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Dalaly-Internal-Token": internalToken,
+      },
+      body:
+        input.path === "/setup/status"
+          ? undefined
+          : JSON.stringify(input.body ?? {}),
+    },
+    60000,
+  );
+});
 
 function stopLocalApi() {
   if (serverProcess && !serverProcess.killed) {
@@ -355,10 +434,13 @@ ipcMain.handle("maps:open-external", async (event, value) => {
   }
 });
 
-registerLegalNotifications(() => mainWindow);
 
-ipcMain.handle("config:save-database-url", async (_event, databaseUrl) => {
-  if (typeof databaseUrl !== "string" || !databaseUrl) {
+ipcMain.handle("config:save-database-url", async (event, databaseUrl) => {
+  if (
+    !trustedMainSender(event) ||
+    typeof databaseUrl !== "string" ||
+    !databaseUrl
+  ) {
     return { ok: false, message: "DATABASE_URL غير صالح." };
   }
 
@@ -682,7 +764,7 @@ function createSplashWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
       preload: path.join(__dirname, "splash-preload.cjs"),
     },
   });
@@ -738,6 +820,7 @@ function closeSplashWindow() {
 }
 
 ipcMain.handle("splash:get-version", () => app.getVersion());
+ipcMain.handle("splash:get-progress", () => lastSplashStage);
 // أزرار شاشة الخطأ.
 ipcMain.handle("splash:retry", () => {
   void runStartup();
@@ -762,41 +845,33 @@ async function waitForApplicationReady() {
     throw new Error("STARTUP_BACKEND");
   }
 
-  // قاعدة بيانات مهيّأة مسبقاً لكنها غير متصلة/فشلت هجرتها = خطأ فادح.
-  // أول تشغيل (بلا databaseUrl) حالة صحيحة تُكمل إلى معالج الإعداد.
-  const config = readAppConfig();
-  if (
-    config.databaseUrl &&
-    (health.db_connected === false || health.migrations_ok === false)
-  ) {
-    throw new Error("STARTUP_DATABASE");
-  }
+  transitionStartup(health.startup_state, health.startup_reason);
+  if (health.startup_state === "ERROR") throw new Error(health.startup_reason);
   sendSplashProgress(SPLASH_STAGES.database);
-
-  await createWindow(); // النافذة الرئيسية مخفية والمحتوى يُحمَّل.
-  sendSplashProgress(SPLASH_STAGES.ui);
-
-  // ننتظر جاهزية عرض النافذة فعلاً (مع حدّ أقصى للأمان كي لا تعلق).
-  let readinessTimer;
-  try {
-    await Promise.race([
-      mainReadyToShow,
-      new Promise((_, reject) => {
-        readinessTimer = setTimeout(
-          () => reject(new Error("STARTUP_RENDERER_TIMEOUT")),
-          6000,
-        );
-      }),
-    ]);
-  } finally {
-    clearTimeout(readinessTimer);
-  }
+  const setupRequired = health.startup_state === "SETUP_REQUIRED";
+  sendSplashProgress(setupRequired ? SPLASH_STAGES.setup : SPLASH_STAGES.ui);
+  // ready-to-show only confirms the first paint. Vue confirms completed router
+  // navigation separately, so the splash never closes over a blank router-view.
+  await withDeadline(
+    (async () => {
+      await createWindow(setupRequired ? "/setup" : "/");
+      const [, rendererHealth] = await Promise.all([
+        mainReadyToShow,
+        rendererReady,
+      ]);
+      if (rendererHealth?.startup_state === "ERROR")
+        throw new Error(rendererHealth.startup_reason);
+    })(),
+    20000,
+    "STARTUP_RENDERER_TIMEOUT",
+  );
 }
 
 // تسلسل الإقلاع القابل لإعادة التشغيل (زر إعادة المحاولة).
 async function runStartup() {
   if (startupInFlight) return;
   startupInFlight = true;
+  transitionStartup("CHECKING", "RETRY");
 
   // إعادة الشاشة إلى وضع التحميل (يُخفي شاشة الخطأ إن كانت ظاهرة).
   if (splashWindow && !splashWindow.isDestroyed()) splashWindow.setOpacity(1);
@@ -822,9 +897,22 @@ async function runStartup() {
     startScheduler();
   } catch (error) {
     clearTimeout(slowTimer);
-    // فشل فادح: نُبقي السبلاش ونHowardها إلى شاشة خطأ (لا نُغلقها).
     log.error("Startup sequence failed", error);
-    sendSplashProgress(SPLASH_STAGES.error);
+    transitionStartup(
+      "ERROR",
+      error instanceof Error ? error.message : "STARTUP_FAILED",
+    );
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.destroy();
+    mainWindow = null;
+    sendSplashProgress({
+      ...SPLASH_STAGES.error,
+      message:
+        error?.message === "DATABASE_CONNECTION"
+          ? "تعذر الاتصال بخادم قاعدة البيانات. تحقق من تشغيل PostgreSQL ثم أعد المحاولة."
+          : error?.message?.startsWith("STARTUP_RENDERER")
+            ? "تعذر تحميل الواجهة. أعد المحاولة أو افتح السجلات لمعرفة السبب."
+            : "تعذر تشغيل الخادم المحلي أو اكتمال التهيئة. أعد المحاولة أو افتح السجلات.",
+    });
   } finally {
     startupInFlight = false;
   }
@@ -832,15 +920,17 @@ async function runStartup() {
 
 app.whenReady().then(() => {
   if (process.platform === "win32")
-    app.setAppUserModelId(isPackaged ? "codel.dalaly.desktop" : process.execPath);
+    app.setAppUserModelId(
+      isPackaged ? "codel.dalaly.desktop" : process.execPath,
+    );
   // createApplicationMenu();
   createSplashWindow();
   void runStartup();
 
   app.on("activate", async () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      await createWindow();
-      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
+      createSplashWindow();
+      void runStartup();
     }
   });
 });

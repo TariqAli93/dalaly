@@ -85,6 +85,17 @@ const canCancel = computed(
     ),
 );
 const model = computed(() => bundle.value?.legal_snapshot?.document_model);
+const docxPreview = ref("");
+let documentVersion = 0;
+watch(() => [contract.value?.id, contract.value?.status, bundle.value?.legal_snapshot?.docx_hash], async () => {
+  const request = ++documentVersion;
+  docxPreview.value = "";
+  if (!contract.value?.id || !bundle.value?.legal_snapshot?.docx_data) return;
+  try {
+    const output = await service.previewDocument(contract.value.id);
+    if (request === documentVersion) docxPreview.value = output.data;
+  } catch (cause) { if (request === documentVersion) error.value = getErrorMessage(cause); }
+});
 const date = (value?: string | null) =>
   value
     ? new Date(value).toLocaleString("ar-IQ", { timeZone: "Asia/Baghdad" })
@@ -346,6 +357,20 @@ async function output(format: "print" | "pdf" | "docx") {
       if (currentOperation(id, version, operation)) bundle.value = refreshed;
       return;
     }
+    if (bundle.value?.legal_snapshot?.docx_data) {
+      const document = await service.exportContractPdf(id);
+      if (!currentOperation(id, version, operation)) return;
+      const data = Uint8Array.from(atob(document.data), char => char.charCodeAt(0));
+      const result = format === "pdf"
+        ? await platform.saveFile({ data, suggestedName: document.filename, title: "تصدير العقد PDF", filters: [{ name: "مستند PDF", extensions: ["pdf"] }] })
+        : await platform.printPdf({ data: document.data, title: contract.value.code });
+      if (!currentOperation(id, version, operation)) return;
+      if (!result.ok && !result.canceled) throw new Error(result.message || "تعذر إخراج المستند.");
+      if (format === "print") await service.recordPrint(id, "print");
+      const refreshed = await service.getContract(id);
+      if (currentOperation(id, version, operation)) bundle.value = refreshed;
+      return;
+    }
     // Fetch the current archived/issued document while recording the request.
     const printed = await service.recordPrint(id, format);
     if (!currentOperation(id, version, operation)) return;
@@ -593,6 +618,8 @@ onBeforeUnmount(() => {
           <v-tabs-window-item value="preview"
             ><v-card-text
               ><ContractDocumentPreview
+                :docx-data="docxPreview"
+                :load-pdf="() => service.previewPdf(contract!.id)"
                 :html="contract.generated_html"
                 :text="contract.generated_content" /></v-card-text
           ></v-tabs-window-item>

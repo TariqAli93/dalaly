@@ -19,14 +19,20 @@ interface ImportMeta {
 }
 
 interface DalalyConfigBridge {
+  printPdf?: (input: { data: string; title: string }) => Promise<{ ok: boolean; canceled?: boolean; message?: string }>;
+  getStartupHealth?: () => Promise<import("./types/setup.types").SetupStatus>;
+  rendererReady?: (health: {
+    startup_state: string;
+    startup_reason?: string;
+  }) => Promise<void>;
+  setupRequest?: (input: {
+    path: string;
+    body?: unknown;
+  }) => Promise<{ status: number; body: unknown }>;
   printDocument?: (input: {
     html: string;
     title: string;
   }) => Promise<{ ok: boolean; canceled?: boolean; message?: string }>;
-  notifyLegalTask?: (input: {
-    title: string;
-    body: string;
-  }) => Promise<{ ok: boolean }>;
   openMapLink?: (url: string) => Promise<{ ok: boolean }>;
   saveDatabaseUrl: (
     databaseUrl: string,

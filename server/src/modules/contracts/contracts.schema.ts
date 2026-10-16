@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { agreementDetailsSchema } from "./agreement.schema.js";
 import { legalContextSchema } from "./legal-content.schema.js";
-import { layoutSchema, brandingSchema } from "./contract-visual.engine.js";
 
 const optionalDate = z.coerce.date().optional().nullable();
 const optionalText = z
@@ -50,6 +49,7 @@ export const contractPayloadSchema = z
     paid_amount: z.coerce.number().nonnegative().default(0),
     payment_info: z.record(z.string(), z.unknown()).default({}),
     notes: optionalText,
+    formulation_override: z.string().trim().min(1).max(100000).optional().nullable(),
     agreement_details: agreementDetailsSchema.prefault({}),
     legal_context: legalContextSchema.default({
       jurisdiction: "iq_federal",
@@ -244,17 +244,8 @@ export const contractSettlementSchema = z
       });
   });
 
-export const contractTemplateSchema = z.object({
-  contract_type: z.enum(BACKEND_CONTRACT_TYPES),
-  name: z.string().trim().min(1),
-  body: z.literal("{{document}}").default("{{document}}"),
-  layout_config: layoutSchema,
-  branding_config: brandingSchema,
-  is_active: z.coerce.boolean().default(true),
-});
 
 export type ContractPayload = z.infer<typeof contractPayloadSchema>;
 export type ContractFilters = z.infer<typeof contractFiltersSchema>;
-export type ContractTemplatePayload = z.infer<typeof contractTemplateSchema>;
 export type ContractCancellation = z.infer<typeof contractCancellationSchema>;
 export type ContractSettlement = z.infer<typeof contractSettlementSchema>;

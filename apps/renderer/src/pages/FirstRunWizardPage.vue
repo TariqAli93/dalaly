@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { getErrorMessage } from "../services/api.service";
 import { useSetup } from "../composables/useSetup";
@@ -11,8 +11,14 @@ import FirstAdminResultDialog from "../components/setup/FirstAdminResultDialog.v
 import type { DatabaseSetupInput } from "../types";
 
 const router = useRouter();
-const { status, fetchStatus, testPostgres, initialize, createFirstAdmin } =
-  useSetup();
+const {
+  status,
+  fetchStatus,
+  testPostgres,
+  initialize,
+  createFirstAdmin,
+  recoverSystem,
+} = useSetup();
 const { notifySuccess, notifyError } = useSnackbar();
 
 // adminOnly: قاعدة البيانات مهيأة والجداول موجودة لكن لا يوجد مستخدم بعد.
@@ -20,10 +26,40 @@ const adminOnly = computed(
   () =>
     Boolean(status.value?.db_connected) &&
     Boolean(status.value?.users_table_exists) &&
+    Boolean(status.value?.migrations_ok) &&
     !status.value?.admin_exists,
 );
 
 const step = ref(1);
+const recoveryRequired = computed(
+  () =>
+    status.value?.database_exists === true &&
+    (!status.value.migrations_ok || !status.value.users_table_exists),
+);
+const adminRecoveryRequired = computed(
+  () => adminOnly.value && !status.value?.admin_setup_allowed,
+);
+const recovering = ref(false);
+watch(
+  adminOnly,
+  (value) => {
+    if (value) step.value = 3;
+  },
+  { immediate: true },
+);
+
+async function runRecovery() {
+  recovering.value = true;
+  try {
+    await recoverSystem();
+    const health = await fetchStatus();
+    if (health.startup_state === "READY") await router.replace("/login");
+  } catch (error) {
+    notifyError(getErrorMessage(error));
+  } finally {
+    recovering.value = false;
+  }
+}
 
 const dbForm = ref<DatabaseSetupInput>({
   host: "127.0.0.1",
@@ -107,8 +143,12 @@ async function runInitialize() {
         pin: result.admin.pin,
       };
     }
+    const health = await fetchStatus();
+    if (health.startup_state !== "READY")
+      throw new Error(
+        "لم تكتمل تهيئة النظام. تحقق من حالة قاعدة البيانات ثم أعد المحاولة.",
+      );
     markStagesDone();
-    await fetchStatus().catch(() => undefined);
     resultDialog.value = true;
     notifySuccess("تم إعداد النظام.");
   } catch (error) {
@@ -119,19 +159,52 @@ async function runInitialize() {
 }
 
 async function goToLogin() {
-  resultDialog.value = false;
-  await fetchStatus().catch(() => undefined);
-  await router.replace("/login");
+  try {
+    const health = await fetchStatus();
+    if (health.startup_state !== "READY")
+      throw new Error("النظام غير جاهز بعد. أعد التحقق من التهيئة.");
+    resultDialog.value = false;
+    await router.replace("/login");
+  } catch (error) {
+    notifyError(getErrorMessage(error));
+  }
 }
 </script>
 
 <template>
   <FirstRunLayout>
+    <v-alert
+      v-if="recoveryRequired"
+      type="warning"
+      variant="tonal"
+      class="mb-4"
+    >
+      قاعدة البيانات موجودة وتحتاج إلى استكمال التهيئة. سيُعاد تشغيل الهجرات
+      الآمنة مع الاحتفاظ بالبيانات الحالية.
+      <v-btn
+        class="mt-3"
+        color="primary"
+        :loading="recovering"
+        @click="runRecovery"
+        >استرداد التهيئة</v-btn
+      >
+    </v-alert>
+    <v-alert v-else-if="adminRecoveryRequired" type="warning" variant="tonal">
+      لا يوجد مدير فعال في نظام سبق إعداده. استعد حساب المدير من نسخة احتياطية
+      أو اطلب من مسؤول قاعدة البيانات استعادة صلاحياته، ثم أعد فحص النظام.
+      <v-btn class="mt-3" :loading="recovering" @click="runRecovery"
+        >إعادة فحص النظام</v-btn
+      >
+    </v-alert>
     <v-stepper
+      v-else
       v-model="step"
       :items="
         adminOnly
-          ? ['أول مستخدم', 'تهيئة']
+          ? [
+              { title: 'أول مستخدم', value: 3 },
+              { title: 'تهيئة', value: 4 },
+            ]
           : ['ترحيب', 'قاعدة البيانات', 'أول مستخدم', 'تهيئة']
       "
       flat

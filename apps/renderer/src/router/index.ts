@@ -79,9 +79,15 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
-    path: "/first-run",
+    path: "/setup",
+    alias: "/first-run",
     name: "first-run",
     component: () => import("../pages/FirstRunWizardPage.vue"),
+  },
+  {
+    path: "/startup-error",
+    name: "startup-error",
+    component: () => import("../pages/StartupErrorPage.vue"),
   },
   {
     path: "/login",
@@ -301,36 +307,30 @@ export const router = createRouter({
 });
 
 router.beforeEach(async (to) => {
-  const { status, fetchStatus } = useSetup();
+  const { status, startupState, fetchStatus } = useSetup();
   const { hasToken, currentUser, loadCurrentUser, clearAuthState } = useAuth();
   const { can } = usePermissions();
 
   let setup = status.value;
+  if (to.name === "startup-error" && startupState.value === "ERROR")
+    return true;
   if (!setup) {
     try {
       setup = await fetchStatus();
     } catch {
-      // الـ API غير متاح بعد: اسمح بصفحات الإعداد/الدخول فقط.
-      return to.path === "/login" || to.path === "/first-run"
-        ? true
-        : { path: "/login" };
+      return { name: "startup-error" };
     }
   }
 
-  const ready =
-    setup.db_configured &&
-    setup.db_connected &&
-    setup.migrations_ok &&
-    setup.users_table_exists &&
-    setup.admin_exists;
-
-  // النظام غير مهيأ بالكامل → First Run Wizard.
-  if (!ready) {
-    return to.path === "/first-run" ? true : { path: "/first-run" };
+  if (setup.startup_state === "ERROR") {
+    return to.name === "startup-error" ? true : { name: "startup-error" };
+  }
+  if (setup.startup_state === "SETUP_REQUIRED") {
+    return to.name === "first-run" ? true : { path: "/setup" };
   }
 
   // النظام مهيأ مسبقاً → لا يظهر الـ Wizard مرة ثانية.
-  if (to.path === "/first-run") {
+  if (to.name === "first-run" || to.name === "startup-error") {
     return { path: "/login" };
   }
 

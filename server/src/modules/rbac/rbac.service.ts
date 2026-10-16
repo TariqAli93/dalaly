@@ -23,9 +23,9 @@ export type AuthPermission = {
   module: string;
 };
 
-export async function seedSystemRbac() {
+export async function seedSystemRbac(database: typeof db = db) {
   for (const permission of SYSTEM_PERMISSIONS) {
-    await db
+    await database
       .insert(permissions)
       .values({
         key: permission.key,
@@ -43,7 +43,7 @@ export async function seedSystemRbac() {
       });
   }
 
-  const [superAdmin] = await db
+  const [superAdmin] = await database
     .insert(roles)
     .values({
       name: SUPER_ADMIN_ROLE,
@@ -59,16 +59,19 @@ export async function seedSystemRbac() {
     })
     .returning();
 
-  await grantAllPermissionsToRole(superAdmin.id);
+  await grantAllPermissionsToRole(superAdmin.id, database);
   return superAdmin;
 }
 
-export async function grantAllPermissionsToRole(roleId: number) {
-  const allPermissions = await db
+export async function grantAllPermissionsToRole(
+  roleId: number,
+  database: typeof db = db,
+) {
+  const allPermissions = await database
     .select({ id: permissions.id })
     .from(permissions);
   for (const permission of allPermissions) {
-    await db
+    await database
       .insert(rolePermissions)
       .values({ roleId, permissionId: permission.id })
       .onConflictDoNothing();

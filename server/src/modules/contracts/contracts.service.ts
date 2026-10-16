@@ -6,12 +6,10 @@ import {
   identitySidesComplete,
 } from "./agreement-data.js";
 import { getAgreementFollowup } from "./agreement-followup.service.js";
-import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { buildContractDocument } from "./contracts-document.service.js";
 import { documentHash, type ContractDocument } from "./legal-content.engine.js";
-import { legalError } from "./legal-content.service.js";
-import { and, asc, desc, eq, inArray, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, or } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import {
   auditLogs,
@@ -37,7 +35,6 @@ import { toApiObject } from "../../shared/utils/case.js";
 import type {
   ContractFilters,
   ContractPayload,
-  ContractTemplatePayload,
   ContractCancellation,
   ContractSettlement,
 } from "./contracts.schema.js";
@@ -47,6 +44,7 @@ import {
 } from "./contracts.schema.js";
 
 type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+const legalError = (message: string) => new ContractValidationError([{ code: "legal_content", message }]);
 
 const ROLE_LABELS: Record<string, string> = {
   seller: "البائع",
@@ -95,58 +93,15 @@ export async function listTemplates(
     .select()
     .from(contractTemplates)
     .where(
-      contractType
-        ? and(
+      and(isNotNull(contractTemplates.docxFilePath),
+      contractType ? and(
             eq(contractTemplates.contractType, contractType),
             eq(contractTemplates.isActive, true),
           )
-        : undefined,
+        : undefined),
     )
-    .orderBy(asc(contractTemplates.contractType), asc(contractTemplates.name));
+    .orderBy(desc(contractTemplates.isDefault), asc(contractTemplates.contractType), asc(contractTemplates.name));
   return rows.map(api);
-}
-
-export async function createTemplate(payload: ContractTemplatePayload) {
-  const [row] = await db
-    .insert(contractTemplates)
-    .values({
-      contractType: payload.contract_type,
-      name: payload.name,
-      body: "{{document}}",
-      templateCode: `custom_${randomUUID()}`,
-      layoutConfig: payload.layout_config,
-      brandingConfig: payload.branding_config,
-      isActive: payload.is_active,
-    })
-    .returning();
-  return api(row);
-}
-
-export async function updateTemplate(
-  id: number,
-  payload: ContractTemplatePayload,
-) {
-  const [existing] = await db
-    .select()
-    .from(contractTemplates)
-    .where(eq(contractTemplates.id, id));
-  if (!existing) return null;
-  if (existing.contractType !== payload.contract_type)
-    throw legalError("لا يمكن تغيير نوع القالب المرئي.");
-  const [row] = await db
-    .update(contractTemplates)
-    .set({
-      name: payload.name,
-      body: "{{document}}",
-      layoutConfig: payload.layout_config,
-      brandingConfig: payload.branding_config,
-      isActive: payload.is_active,
-      version: sql`${contractTemplates.version} + 1`,
-      updatedAt: new Date(),
-    })
-    .where(eq(contractTemplates.id, id))
-    .returning();
-  return api(row);
 }
 
 async function bundle(id: number) {
@@ -506,7 +461,7 @@ export async function loadValidationData(
         await executor
           .select()
           .from(contractTemplates)
-          .where(eq(contractTemplates.id, payload.template_id))
+          .where(and(eq(contractTemplates.id, payload.template_id), isNotNull(contractTemplates.docxFilePath)))
           .limit(1)
       )[0]
     : (
@@ -522,9 +477,10 @@ export async function loadValidationData(
                   : payload.contract_type,
               ),
               eq(contractTemplates.isActive, true),
+              isNotNull(contractTemplates.docxFilePath),
             ),
           )
-          .orderBy(asc(contractTemplates.id))
+          .orderBy(desc(contractTemplates.isDefault), asc(contractTemplates.id))
           .limit(1)
       )[0];
   if (
@@ -534,7 +490,7 @@ export async function loadValidationData(
   )
     issues.push({
       code: "template_type",
-      message: "القالب المرئي لا يطابق نوع العقد.",
+      message: "قالب DOCX لا يطابق نوع العقد.",
       path: "template_id",
     });
   if (template && !template.isActive)
@@ -793,6 +749,7 @@ export function buildRenderValues(
       "";
     values[`${prefix}.full_name`] = item.person.fullName;
     values[`${prefix}.identity_number`] = identityNumber;
+    values[`${prefix}.residence_card_number`] = item.person.residenceCardNumber ?? "";
     values[`${prefix}.phone`] = item.person.phonePrimary ?? "";
     values[`${prefix}.address`] = item.person.address ?? "";
     values[`${prefix}.email`] = item.person.email ?? "";
@@ -808,6 +765,7 @@ export function buildRenderValues(
       asset.totalPrice ?? asset.rentPrice ?? "",
     );
     values["property.address"] = assetPlace(asset);
+    for (const [key, field] of Object.entries({ legal_type: "legalType", plot_number: "plotNumber", plot_letter: "plotLetter", subdistrict_number: "subdistrictNumber", subdistrict_name: "subdistrictName", mahalla: "mahalla", alley: "alley", house_number: "houseNumber", area_unit: "areaUnit", area_value: "areaValue", rent_period: "rentPeriod" })) values[`property.${key}`] = String(asset[field] ?? "");
   }
   const assetRecords = loaded.assets as Array<Record<string, unknown>>;
   values["property.names"] = assetRecords
@@ -940,6 +898,8 @@ export async function previewContract(payload: ContractPayload) {
   return {
     content: result.content,
     html: result.html,
+    docx_data: result.docxData,
+    docx_hash: result.docxHash,
     document_model: result.model,
     template: api(loaded.template!),
     office: loaded.office ? api(loaded.office) : null,
@@ -970,6 +930,10 @@ async function saveDocumentSnapshot(
       ),
       documentModel: result.model,
       visualSnapshot: result.visual,
+      docxData: result.docxData,
+      docxHash: result.docxHash,
+      documentTemplateSnapshot: result.documentTemplateSnapshot,
+      formulationSnapshot: result.formulationSnapshot,
       contentHash: hash,
       review,
     })
@@ -982,6 +946,10 @@ async function saveDocumentSnapshot(
         ),
         documentModel: result.model,
         visualSnapshot: result.visual,
+        docxData: result.docxData,
+        docxHash: result.docxHash,
+        documentTemplateSnapshot: result.documentTemplateSnapshot,
+        formulationSnapshot: result.formulationSnapshot,
         contentHash: hash,
         review,
         createdAt: new Date(),
@@ -1016,6 +984,7 @@ function contractValues(
     legalContext: payload.legal_context,
     agreementDetails: payload.agreement_details,
     optionalClauseCodes: payload.optional_clause_codes,
+    formulationOverride: payload.formulation_override ?? null,
     generatedContent: content,
     generatedHtml: html,
     generatedAt: new Date(),
@@ -1224,7 +1193,7 @@ export async function issueContract(id: number, actorId?: number) {
     const model = s?.documentModel as ContractDocument | undefined;
     if (!model?.ready || !row.generatedHtml)
       throw legalError("يجب استخدام صيغ معتمدة وفعالة قبل الإصدار.");
-    for (const version of model!.legal_versions) {
+    for (const version of model!.legal_versions.filter(v => v.source !== "formulation")) {
       const [active] = await tx
         .select()
         .from(legalContractTemplates)
@@ -1495,6 +1464,14 @@ export async function contractDocx(id: number, actorId?: number) {
     : await generateContract(id);
   if (!contract) return null;
   const content = String(contract.contract.generated_content ?? "");
+  if (contract.legal_snapshot?.docx_data) {
+    const { annotateDocx, sha256 } = await import("./docx.engine.js");
+    const data = Buffer.from(String(contract.legal_snapshot.docx_data), "base64");
+    if (sha256(data) !== contract.legal_snapshot.docx_hash) throw legalError("نسخة DOCX المحفوظة تالفة؛ لا يمكن تصديرها.");
+    const status = String(contract.contract.status);
+    const note = status === "cancelled" ? content.split("\n\n")[0] : status === "draft" ? "مسودة — لم يتم إصدار العقد" : "";
+    return { filename: `${contract.contract.code}${status === "cancelled" ? "_ملغى" : status === "draft" ? "_مسودة" : ""}.docx`, data: (note ? annotateDocx(data, note) : data).toString("base64") };
+  }
   const paragraphs = content
     .split(/\r?\n/)
     .map(
