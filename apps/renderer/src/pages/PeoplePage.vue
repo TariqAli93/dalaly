@@ -59,7 +59,7 @@ onMounted(load);
 <template>
   <AppLayout
     title="العملاء والأشخاص"
-    subtitle="دليل جهات الاتصال وبيانات المتعاقدين في المكتب."
+    subtitle="دليل العملاء وجهات الاتصال في المكتب."
   >
     <template #header-actions
       ><v-btn

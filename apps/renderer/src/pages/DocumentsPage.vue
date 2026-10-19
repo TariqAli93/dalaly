@@ -103,7 +103,7 @@ onMounted(async () => {
 <template>
   <AppLayout
     title="مستمَسكات الأشخاص"
-    subtitle="ملفات الهوية مرتبطة بالشخص، ويمكن استخدامها داخل العقد كنسخ مرفقة تاريخياً."
+    subtitle="أدر ملفات الهوية والمستمسكات المرتبطة بالأشخاص."
   >
     <v-card variant="flat" border class="mb-3"
       ><v-card-text class="toolbar"

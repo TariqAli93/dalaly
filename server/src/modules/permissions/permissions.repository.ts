@@ -7,13 +7,16 @@ import {
   getRolePermissionIds,
 } from "../rbac/rbac.service.js";
 import type { PermissionPayload } from "./permissions.schema.js";
+import { isActivePermissionKey } from "../rbac/key-policy.js";
 
 export async function listPermissions() {
   const rows = await db
     .select()
     .from(permissions)
     .orderBy(asc(permissions.module), asc(permissions.key));
-  return rows.map(toPermissionDto);
+  return rows
+    .filter((row) => isActivePermissionKey(row.key))
+    .map(toPermissionDto);
 }
 
 export async function createPermission(payload: PermissionPayload) {

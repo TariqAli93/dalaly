@@ -161,36 +161,6 @@ export const CRM_NAV_ITEMS: NavItem[] = [
     icon: "mdi-file-document-multiple-outline",
     permission: "documents.read",
   },
-  {
-    title: "جميع العقود",
-    to: "/contracts",
-    icon: "mdi-file-sign",
-    permission: "contracts.read",
-  },
-  {
-    title: "إنشاء عقد",
-    to: "/contracts/create",
-    icon: "mdi-file-document-plus-outline",
-    permission: "contracts.manage",
-  },
-  {
-    title: "مراجعة العقود",
-    to: "/contracts/review",
-    icon: "mdi-file-document-check-outline",
-    permission: "contracts.read",
-  },
-  {
-    title: "الصيغ القانونية",
-    to: "/contracts/legal-templates",
-    icon: "mdi-scale-balance",
-    permission: "legal_content.read",
-  },
-  {
-    title: "قوالب العقود",
-    to: "/contract-templates",
-    icon: "mdi-file-edit-outline",
-    permission: "contract_templates.manage",
-  },
 ];
 
 export function statusLabel(status: string) {

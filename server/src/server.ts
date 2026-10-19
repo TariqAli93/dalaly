@@ -2,11 +2,7 @@ import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { ZodError } from "zod";
 import { config } from "./infrastructure/config.js";
-import {
-  ContractValidationError,
-  DuplicatePlotError,
-  DocumentError,
-} from "./shared/errors.js";
+import { DuplicatePlotError, DocumentError } from "./shared/errors.js";
 import { getSetupStatus } from "./infrastructure/database/health.js";
 import { registerAuthHook } from "./modules/auth/auth.hooks.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
@@ -18,8 +14,6 @@ import { purchaseRequestsRoutes } from "./modules/purchase-requests/purchase-req
 import { matchingRoutes } from "./modules/matching/matching.routes.js";
 import { documentsRoutes } from "./modules/documents/documents.routes.js";
 import { companySettingsRoutes } from "./modules/company-settings/company-settings.routes.js";
-import { contractsRoutes } from "./modules/contracts/contracts.routes.js";
-import { legalContentRoutes } from "./modules/contracts/legal-content.routes.js";
 import { favoritesRoutes } from "./modules/favorites/favorites.routes.js";
 import { followupsRoutes } from "./modules/followups/followups.routes.js";
 import { imagesRoutes } from "./modules/images/images.routes.js";
@@ -95,16 +89,17 @@ export async function buildServer(options: { logger?: boolean } = {}) {
       });
     }
 
-    if (error instanceof ContractValidationError) {
-      return reply.code(400).send({
-        code: "CONTRACT_VALIDATION_ERROR",
-        messageKey: "error.contractRequirements",
-        message: "لا يمكن إصدار العقد قبل إكمال المتطلبات.",
-        issues: error.issues,
+    if (error instanceof DocumentError)
+      return reply.code(error.statusCode).send({ message: error.message });
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "23503"
+    )
+      return reply.code(409).send({
+        message: "لا يمكن تنفيذ العملية بسبب ارتباط السجل ببيانات أخرى.",
       });
-    }
-
-    if (error instanceof DocumentError) return reply.code(error.statusCode).send({ message: error.message });
     if (
       error instanceof Error &&
       "statusCode" in error &&
@@ -145,8 +140,6 @@ export async function buildServer(options: { logger?: boolean } = {}) {
   await app.register(matchingRoutes, { prefix: "/api/matching" });
   await app.register(documentsRoutes, { prefix: "/api/documents" });
   await app.register(companySettingsRoutes, { prefix: "/api/office" });
-  await app.register(contractsRoutes, { prefix: "/api/contracts" });
-  await app.register(legalContentRoutes, { prefix: "/api/legal-content" });
   await app.register(locationsRoutes, { prefix: "/api/locations" });
   await app.register(favoritesRoutes, { prefix: "/api/favorites" });
   await app.register(backupRoutes, { prefix: "/api/backup" });

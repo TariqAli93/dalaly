@@ -32,7 +32,7 @@ export async function installationInitialized(connection: Queryable = pool) {
   // was introduced. Business records establish a previous installation.
   const assets =
     await connection.query(`select table_name from information_schema.tables
-    where table_schema = 'public' and table_name in ('properties', 'rentals', 'people', 'contracts')`);
+    where table_schema = 'public' and table_name in ('properties', 'rentals', 'people')`);
   for (const { table_name } of assets.rows) {
     const result = await connection.query(
       `select 1 from public."${table_name}" limit 1`,

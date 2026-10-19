@@ -1,0 +1,32 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import pg from 'pg';
+import {config,buildPoolConfig} from '../src/infrastructure/config.js';
+import {pool,reconfigurePool} from '../src/infrastructure/database/pool.js';
+import {runDatabaseMigrations} from '../src/infrastructure/database/run-migrations.js';
+import {markMigrationsSucceeded} from '../src/infrastructure/database/health.js';
+import {createAdmin,login} from '../src/modules/auth/auth.service.js';
+import {buildServer} from '../src/server.js';
+export async function removalTestContext(label:string){
+ if(!/^[a-z]+$/.test(label))throw new Error('Unsafe test label');
+ const name=`dalaly_removal_test_${Date.now()}_${label}`;
+ const admin=new pg.Pool(buildPoolConfig());
+ await admin.query(`CREATE DATABASE "${name}"`);
+ const url=config.databaseUrl?new URL(config.databaseUrl):new URL(`postgresql://${encodeURIComponent(config.db.user)}:${encodeURIComponent(config.db.password)}@${config.db.host}:${config.db.port}/${name}`);
+ url.pathname=`/${name}`;
+ await reconfigurePool(url.toString());
+ const root=path.resolve(`data/removal-tests/${name}`);
+ Object.assign(config,{appDataDir:root,documentsDir:path.join(root,'documents'),imagesDir:path.join(root,'images/properties'),backupsDir:path.join(root,'backups')});
+ await fs.mkdir(config.documentsDir,{recursive:true});await fs.mkdir(config.imagesDir,{recursive:true});
+ await runDatabaseMigrations(path.resolve('drizzle'));
+ markMigrationsSucceeded(path.resolve('drizzle'));
+ if(!(await pool.query('SELECT current_database() AS name')).rows[0].name.startsWith('dalaly_removal_test_'))throw new Error('Unsafe fixture target');
+ await createAdmin('removal_admin','1234');
+ const adminId=Number((await pool.query("SELECT id FROM users WHERE username='removal_admin'")).rows[0].id);
+ const people=(await pool.query("INSERT INTO people(code,full_name,national_id,address,phone_primary) VALUES('REMOVE-1','أحمد المالك','1111111111','بغداد الكرادة','07700000001'),('REMOVE-2','سارة الاختبار','2222222222','بغداد المنصور','07700000002') RETURNING *")).rows.map(row=>({...row,id:Number(row.id)}));
+ const property=(await pool.query("INSERT INTO properties(code,name,property_type,legal_type,area_value,area_unit,pricing_method,total_price,owner_name,owner_phone,governorate,address_details,owner_person_id) VALUES('REMOVE-P','عقار الاختبار','بيت','طابو ملك صرف',200,'متر','total',150000000,'أحمد المالك','07700000001','بغداد','الكرادة',$1) RETURNING *",[people[0].id])).rows[0];property.id=Number(property.id);
+ const rental=(await pool.query("INSERT INTO rentals(code,name,property_type,area_value,area_unit,rent_price,rent_period,owner_name,owner_phone,governorate,address_details,owner_person_id) VALUES('REMOVE-R','إيجار الاختبار','بيت',150,'متر',750000,'monthly','أحمد المالك','07700000001','بغداد','المنصور',$1) RETURNING *",[people[0].id])).rows[0];rental.id=Number(rental.id);
+ const app=await buildServer({logger:false});
+ const token=(await login('removal_admin','1234'))!.token;
+ return {name,root,app,token,adminId,people,property,rental,url:url.toString(),async close(){await app.close();await pool.end();if(!/^dalaly_removal_test_\d+_[a-z]+$/.test(name))throw new Error('Unsafe cleanup');await admin.query(`DROP DATABASE "${name}" WITH(FORCE)`);await admin.end();}};
+}

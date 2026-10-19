@@ -19,8 +19,6 @@ contextBridge.exposeInMainWorld("dalalyConfig", {
 
   // تصدير PDF عبر العملية الرئيسية.
   exportPdf: (input) => ipcRenderer.invoke("export:save-pdf", input),
-  printDocument: (input) => ipcRenderer.invoke("export:print-document", input),
-  printPdf: (input) => ipcRenderer.invoke("export:print-pdf", input),
   saveFile: (input) => ipcRenderer.invoke("export:save-file", input),
   exportFolder: (input) => ipcRenderer.invoke("export:save-folder", input),
 

@@ -18,7 +18,7 @@ const version = ref("");
 let unsubscribe: (() => void) | undefined;
 const features = [
   { label: "تقارير وإحصائيات", icon: "mdi-chart-bar" },
-  { label: "إدارة العقود", icon: "mdi-file-document-outline" },
+  { label: "إدارة الإيجارات", icon: "mdi-key-chain" },
   { label: "إدارة العملاء", icon: "mdi-account-group" },
   { label: "إدارة العقارات", icon: "mdi-home" },
 ];

@@ -3,6 +3,18 @@ import { test } from "node:test";
 import { createServer } from "node:http";
 import { classifyStartup, type StartupHealth } from "../src/infrastructure/database/startup-state.js";
 import { pollApiHealth, withDeadline } from "../../apps/desktop/src/startup.js";
+import { isSameDocumentNavigation } from "../../apps/desktop/src/external-links.js";
+
+test("Electron allows internal listing navigation and blocks other documents", () => {
+  const renderer = "file:///D:/Program%20Files/Dalaly/index.html#/properties";
+  assert.equal(isSameDocumentNavigation(renderer, "file:///D:/Program%20Files/Dalaly/index.html#/properties/42"), true);
+  assert.equal(isSameDocumentNavigation(renderer, "file:///D:/Program%20Files/Dalaly/other.html"), false);
+  assert.equal(isSameDocumentNavigation(renderer, "file:///C:/private.txt"), false);
+  assert.equal(isSameDocumentNavigation(renderer, "https://example.com/"), false);
+  assert.equal(isSameDocumentNavigation(renderer, "javascript:alert(1)"), false);
+  assert.equal(isSameDocumentNavigation("http://127.0.0.1:5173/#/properties", "http://127.0.0.1:5173/#/properties/42"), true);
+  assert.equal(isSameDocumentNavigation("http://127.0.0.1:5173/", "http://127.0.0.1:5174/"), false);
+});
 
 const ready: StartupHealth = { api_running: true, db_configured: true, db_connected: true,
   database_exists: true, migrations_ok: true, users_table_exists: true, admin_exists: true };

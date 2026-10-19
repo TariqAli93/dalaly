@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { VDialog } from "vuetify/components";
 import * as peopleService from "../../services/people.service";
 import { getErrorMessage } from "../../services/api.service";
 import { useSnackbar } from "../../composables/useSnackbar";
 import type { PersonRecord } from "../../types";
 const open = defineModel<boolean>({ required: true });
-const props = defineProps<{ person: PersonRecord | null; inline?: boolean }>();
+const props = defineProps<{ person: PersonRecord | null }>();
 const emit = defineEmits<{ saved: [PersonRecord] }>();
 const { notifySuccess } = useSnackbar();
 const saving = ref(false);
@@ -95,11 +94,9 @@ async function save() {
 }
 </script>
 <template>
-  <component
-    :is="props.inline ? 'div' : VDialog"
-    v-if="!props.inline || open"
+  <v-dialog
     v-model="open"
-    :max-width="props.inline ? undefined : 760"
+    max-width="760"
     class="person-editor"
     ><v-card
       ><v-card-title>{{ person ? "تعديل شخص" : "إضافة شخص" }}</v-card-title
@@ -185,6 +182,6 @@ async function save() {
           >حفظ</v-btn
         ></v-card-actions
       ></v-card
-    ></component
+    ></v-dialog
   >
 </template>

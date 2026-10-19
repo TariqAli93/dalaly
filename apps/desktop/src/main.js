@@ -8,8 +8,12 @@ import {
   ipcMain,
 } from "electron";
 import log from "electron-log/main.js";
-import { registerContractPdfExport } from "./contract-export.js";
-import { safeExternalUrl, safeMapLinkUrl } from "./external-links.js";
+import { registerDocumentExport } from "./document-export.js";
+import {
+  safeExternalUrl,
+  safeMapLinkUrl,
+  isSameDocumentNavigation,
+} from "./external-links.js";
 import { fetchJson, pollApiHealth, withDeadline } from "./startup.js";
 import nodemailer from "nodemailer";
 import { spawn } from "node:child_process";
@@ -200,6 +204,7 @@ async function createWindow(initialPath = "/") {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      plugins: true,
       preload: path.join(__dirname, "preload.cjs"),
     },
   });
@@ -243,7 +248,7 @@ async function createWindow(initialPath = "/") {
   });
   mainWindow.webContents.on("will-navigate", (event, url) => {
     const current = mainWindow?.webContents.getURL();
-    if (url === current) return;
+    if (isSameDocumentNavigation(current, url)) return;
     event.preventDefault();
     const safe = safeExternalUrl(url);
     if (safe)
@@ -319,7 +324,6 @@ function startLocalApi() {
       APP_DATA_DIR: appDataDir,
       IMAGES_DIR: path.join(appDataDir, "images", "properties"),
       BACKUP_DIR: path.join(appDataDir, "backups"),
-      LIBREOFFICE_PATH: process.env.LIBREOFFICE_PATH || path.join(isDev ? rootDir : process.resourcesPath, "tools", "libreoffice", "program", "soffice.exe"),
       INTERNAL_TOKEN: internalToken,
     },
   });
@@ -434,7 +438,6 @@ ipcMain.handle("maps:open-external", async (event, value) => {
   }
 });
 
-
 ipcMain.handle("config:save-database-url", async (event, databaseUrl) => {
   if (
     !trustedMainSender(event) ||
@@ -468,7 +471,7 @@ ipcMain.handle("config:save-database", async (_event, input) => {
   return { ok: true };
 });
 
-registerContractPdfExport(() => mainWindow);
+registerDocumentExport(() => mainWindow);
 
 ipcMain.handle("export:save-file", async (_event, input) => {
   const data = input?.data;

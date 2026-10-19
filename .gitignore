@@ -20,3 +20,12 @@ source-assets
 tests
 tools/libreoffice/
 tools/.document-renderer-setup/
+tools/chromium/
+server/data/backups/studio-*/
+server/data/studio-*.json
+server/data/studio-*.ts
+server/data/studio-tests/
+server/data/documents/
+
+server/data/removal-review/
+server/data/removal-tests/

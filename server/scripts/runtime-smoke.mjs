@@ -306,24 +306,6 @@ async function main() {
     check("read customer document file", documentFile.status === 200 && documentFile.body === "Hello", documentFile);
     const companySettings = await req("GET", "/company-settings", { token });
     check("company settings available", companySettings.status === 200 && companySettings.body?.id === 1, companySettings);
-    const templates = await req("GET", "/contracts/templates", { token });
-    check("contract templates available", templates.status === 200 && templates.body?.length >= 4, templates);
-
-    const contract = await req("POST", "/contracts", {
-      token,
-      body: {
-        contract_type: "rental",
-        customer_id: customerId,
-        rental_id: rentalId,
-        status: "draft",
-        parties: [{ customer_id: customerId, role: "tenant" }],
-      },
-    });
-    check("create rental contract 201", contract.status === 201 && typeof contract.body?.contract?.id === "number", contract);
-    const contractId = contract.body?.contract?.id;
-    const docx = await req("GET", `/contracts/${contractId}/docx`, { token });
-    check("generate contract docx", docx.status === 200 && typeof docx.body?.data === "string", docx);
-
     console.log("== Step 9: users + roles + permissions ==");
     const roles = await req("GET", "/roles", { token });
     check("roles includes Super Admin", Array.isArray(roles.body) && roles.body.some((r) => r.name === "Super Admin"), roles.body);

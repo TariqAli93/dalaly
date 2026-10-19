@@ -17,7 +17,6 @@ import BackupSettings from "../components/setup/BackupSettings.vue";
 import ScheduledBackupSettings from "../components/setup/ScheduledBackupSettings.vue";
 import * as companyService from "../services/company-settings.service";
 import AppearanceSettings from "../components/settings/AppearanceSettings.vue";
-import DocumentDefaultsSettings from "../components/settings/DocumentDefaultsSettings.vue";
 
 const router = useRouter();
 
@@ -155,7 +154,6 @@ onMounted(() => {
           >المظهر</v-tab
         ><v-tab value="company" prepend-icon="mdi-office-building-outline"
           >معلومات المكتب</v-tab
-        ><v-tab v-if="can('legal_content.read') || can('contract_templates.manage')" value="documents" prepend-icon="mdi-file-document-outline">صيغ وقوالب العقود</v-tab
         ><v-tab value="security" prepend-icon="mdi-shield-lock-outline"
           >الأمان</v-tab
         ><v-tab value="backups" prepend-icon="mdi-database-outline"
@@ -167,7 +165,6 @@ onMounted(() => {
     >
     <v-window v-model="settingsTab" class="settings-workspace"
       ><v-window-item value="appearance"><AppearanceSettings /></v-window-item
-      ><v-window-item v-if="can('legal_content.read') || can('contract_templates.manage')" value="documents"><DocumentDefaultsSettings /></v-window-item
       ><v-window-item value="company"
         ><v-card variant="flat" border>
           <v-card-title>معلومات الشركة</v-card-title>

@@ -14,24 +14,15 @@ export class DuplicatePlotError extends Error {
   }
 }
 
-export class ContractValidationError extends Error {
-  constructor(
-    public readonly issues: Array<{
-      code: string;
-      message: string;
-      path?: string;
-    }>,
-  ) {
-    super(issues.map((issue) => issue.message).join("، "));
-    this.name = "ContractValidationError";
-  }
-}
-
 export class ForbiddenError extends Error {
   readonly statusCode = 403;
 }
 export class DocumentError extends Error {
-  constructor(message: string, readonly statusCode: 400 | 409 | 422 | 503 = 400) {
-    super(message); this.name = "DocumentError";
+  constructor(
+    message: string,
+    readonly statusCode: 400 | 409 | 422 | 503 = 400,
+  ) {
+    super(message);
+    this.name = "DocumentError";
   }
 }

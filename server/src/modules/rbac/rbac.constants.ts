@@ -1,36 +1,6 @@
 export const SUPER_ADMIN_ROLE = "Super Admin";
 
 export const SYSTEM_PERMISSIONS = [
-  {
-    key: "legal_content.delete",
-    name: "حذف الصيغ القانونية المخصصة",
-    module: "legal_content",
-  },
-  {
-    key: "legal_content.publish",
-    name: "نشر الصيغ واعتماد التعديلات الإدارية",
-    module: "legal_content",
-  },
-  {
-    key: "legal_content.propose",
-    name: "اقتراح تعديلات الصيغ دون نشر",
-    module: "legal_content",
-  },
-  {
-    key: "legal_content.read",
-    name: "عرض الصيغ القانونية",
-    module: "legal_content",
-  },
-  {
-    key: "legal_content.manage",
-    name: "إدارة إصدارات الصيغ القانونية",
-    module: "legal_content",
-  },
-  {
-    key: "legal_content.approve",
-    name: "اعتماد الصيغ ومراجعة العقود",
-    module: "legal_content",
-  },
   { key: "properties.read", name: "قراءة العروض", module: "properties" },
   { key: "properties.create", name: "إضافة عروض", module: "properties" },
   { key: "properties.update", name: "تعديل عروض", module: "properties" },
@@ -123,19 +93,5 @@ export const SYSTEM_PERMISSIONS = [
     key: "documents.manage",
     name: "إدارة مستندات العملاء",
     module: "documents",
-  },
-  { key: "contracts.read", name: "قراءة العقود", module: "contracts" },
-  { key: "contracts.manage", name: "إدارة العقود", module: "contracts" },
-  { key: "contracts.issue", name: "إصدار العقود", module: "contracts" },
-  { key: "contracts.cancel", name: "إلغاء العقود", module: "contracts" },
-  {
-    key: "contracts.print",
-    name: "طباعة العقود وتصديرها",
-    module: "contracts",
-  },
-  {
-    key: "contract_templates.manage",
-    name: "إدارة قوالب العقود",
-    module: "contracts",
   },
 ] as const;

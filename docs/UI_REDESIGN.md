@@ -1,7 +1,7 @@
 # Dalaly desktop presentation redesign
 
 This document records the earlier presentation pass. The current appearance,
-detail-page routes, contract-stage order, and splash implementation are documented
+detail-page routes and splash implementation are documented
 in [UI_ENHANCEMENTS.md](UI_ENHANCEMENTS.md), which supersedes the corresponding
 palette and workflow descriptions below.
 
@@ -46,9 +46,6 @@ a matching app/sidebar canvas and applies a 60/30/10 neutral/teal color system.
   sets the primary image.
 - People: avatar/name cells and a read-only profile using fields already loaded
   for the directory. Existing create/edit/archive/restore actions remain.
-- Contracts: five presentation stages: information, parties, assets, payments,
-  and review. These call the original three-stage validation boundaries without
-  changing payload construction, required documents, payments, or persistence.
 - Settings: appearance previews, office information, security, backups, and
   system/connection tabs retain the original controls and permissions.
 - Other routed screens inherit the same shell, typography, controls and surfaces.
@@ -70,7 +67,7 @@ files changed. Sales and rentals remain separate. No migration or new runtime
 dependency is required.
 
 The current application has no separate reports route, general notification API,
-remember-me preference, or linked-client property/contract endpoint. Analytics
+remember-me preference, or linked-client property endpoint. Analytics
 remain in the dashboard, and unsupported controls or statistics are not invented.
 User-provided names and backend-generated document text remain intact.
 
@@ -94,11 +91,8 @@ borders. Output a single photograph.
 ## Verification
 
 - Root lint and production build, including production asset verification.
-- Source AST comparison of 62 existing data/business handlers: unchanged except
-  resetting the additional presentation-stage value.
 - Browser verification of login, dashboard sales/rental analytics, availability
-  filtering, pagination, property detail/gallery navigation, light/dark selection,
-  and the missing-party/document gate in the contract wizard.
+  filtering, pagination, property detail/gallery navigation, and light/dark selection.
 - Global shell checked at 1366×768, 1440×900, 1920×1080, and 375×812. Matching
   sidebar/canvas colors, darker workspace, primary active links, responsive
   drawer, and no horizontal page overflow were verified from rendered styles.

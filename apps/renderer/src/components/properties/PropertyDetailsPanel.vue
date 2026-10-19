@@ -10,7 +10,6 @@ import PropertyExportMenu from "./PropertyExportMenu.vue";
 import AuditLogList from "./AuditLogList.vue";
 import PropertyImages from "./PropertyImages.vue";
 import FollowupsTab from "./FollowupsTab.vue";
-import LinkedContracts from "../contracts/LinkedContracts.vue";
 import RecordNotes from "../shared/RecordNotes.vue";
 import PropertyLocationView from "../shared/PropertyLocationView.vue";
 import { getErrorMessage } from "../../services/api.service";
@@ -118,7 +117,6 @@ watch(
       <v-tab value="details">المعلومات الأساسية</v-tab>
       <v-tab value="map">الموقع على الخريطة</v-tab>
       <v-tab value="notes">الملاحظات</v-tab>
-      <v-tab value="contracts">العقود</v-tab>
       <v-tab value="images">الصور</v-tab>
       <v-tab v-if="can('followups.read')" value="followups">المتابعات</v-tab>
       <v-tab v-if="can('audit.read')" value="audit">السجل</v-tab>
@@ -300,9 +298,6 @@ watch(
               :updated-at="property.updated_at"
               :can-edit="can('properties.update')"
               @edit="emit('edit', property)"
-          /></v-window-item>
-          <v-window-item value="contracts"
-            ><LinkedContracts :property-id="property.id"
           /></v-window-item>
 
           <v-window-item v-if="can('followups.read')" value="followups">

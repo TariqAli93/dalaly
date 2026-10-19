@@ -3,7 +3,6 @@ import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import AppLayout from "../layouts/AppLayout.vue";
 import PersonEditor from "../components/people/PersonEditor.vue";
-import LinkedContracts from "../components/contracts/LinkedContracts.vue";
 import RecordNotes from "../components/shared/RecordNotes.vue";
 import EmptyState from "../components/shared/EmptyState.vue";
 import StatusChip from "../components/shared/StatusChip.vue";
@@ -178,7 +177,6 @@ onMounted(() => setRefreshHandler(load));
         ><v-tabs v-model="tab" color="primary" show-arrows
           ><v-tab value="basic">المعلومات الأساسية</v-tab
           ><v-tab value="properties">العقارات المرتبطة</v-tab
-          ><v-tab value="contracts">العقود</v-tab
           ><v-tab value="notes">الملاحظات</v-tab></v-tabs
         ></v-card
       >
@@ -264,9 +262,6 @@ onMounted(() => setRefreshHandler(load));
                     title="لا توجد عقارات مطابقة"
                     text="تظهر العقارات المرتبطة بالشخص بصفة المالك المسجّل." /></template></v-data-table></template></v-card
         ></v-window-item>
-        <v-window-item value="contracts"
-          ><LinkedContracts :key="person.id" :person-id="person.id"
-        /></v-window-item>
         <v-window-item value="notes"
           ><RecordNotes
             :notes="[{ label: 'ملاحظات العميل', text: person.notes }]"

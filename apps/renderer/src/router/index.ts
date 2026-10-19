@@ -38,47 +38,6 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
-    path: "/contracts/review",
-    name: "contract-review",
-    component: () => import("../pages/ContractsPage.vue"),
-    props: { reviewMode: true },
-    meta: {
-      requiresAuth: true,
-      permission: "contracts.read",
-      titleKey: "routes.contracts",
-    },
-  },
-  {
-    path: "/contracts/:id/review",
-    name: "contract-review-details",
-    component: () => import("../pages/ContractReviewPage.vue"),
-    meta: {
-      requiresAuth: true,
-      permission: "contracts.read",
-      titleKey: "routes.contracts",
-    },
-  },
-  {
-    path: "/contracts/create",
-    name: "contract-create",
-    component: () => import("../pages/ContractFormPage.vue"),
-    meta: {
-      requiresAuth: true,
-      permission: "contracts.manage",
-      titleKey: "routes.contracts",
-    },
-  },
-  {
-    path: "/contracts/:id/edit",
-    name: "contract-edit",
-    component: () => import("../pages/ContractFormPage.vue"),
-    meta: {
-      requiresAuth: true,
-      permission: "contracts.manage",
-      titleKey: "routes.contracts",
-    },
-  },
-  {
     path: "/setup",
     alias: "/first-run",
     name: "first-run",
@@ -209,37 +168,6 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: true,
       permission: "documents.read",
       titleKey: "routes.documents",
-    },
-  },
-  {
-    path: "/contracts",
-    name: "contracts",
-    component: () => import("../pages/ContractsPage.vue"),
-    meta: {
-      requiresAuth: true,
-      permission: "contracts.read",
-      titleKey: "routes.contracts",
-    },
-  },
-  {
-    path: "/settings/legal-content",
-    alias: "/contracts/legal-templates",
-    name: "legal-content",
-    component: () => import("../pages/LegalContentPage.vue"),
-    meta: {
-      requiresAuth: true,
-      permission: "legal_content.read",
-      titleKey: "routes.settings",
-    },
-  },
-  {
-    path: "/contract-templates",
-    name: "contract-templates",
-    component: () => import("../pages/ContractTemplatesPage.vue"),
-    meta: {
-      requiresAuth: true,
-      permission: "contract_templates.manage",
-      titleKey: "routes.contracts",
     },
   },
   {

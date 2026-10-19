@@ -38,12 +38,6 @@ export const SEED_ROLES = [
       "requests.update",
       "documents.read",
       "documents.manage",
-      "contracts.read",
-      "contracts.manage",
-      "contracts.issue",
-      "contracts.cancel",
-      "contracts.print",
-      "contract_templates.manage",
       "users.read",
       "roles.read",
       "settings.read",
@@ -75,9 +69,7 @@ export const SEED_ROLES = [
       "people.read",
       "requests.read",
       "documents.read",
-      "contracts.read",
       "security.change_pin",
-      "contracts.print",
       "followups.read",
       "followups.create",
       "followups.update",
@@ -722,21 +714,3 @@ export const SEED_COMPANY_SETTINGS = {
   address: "بغداد - الكرادة - شارع 62",
   additionalContact: "الدوام: السبت - الخميس، 9 صباحاً - 5 مساءً",
 };
-
-export const SEED_CONTRACTS = [
-  {
-    code: "CTR-9001",
-    contractType: "rental",
-    customerCode: "C-9002",
-    rentalCode: "R-9001",
-    status: "active",
-    startDate: "2026-01-01",
-    endDate: "2026-12-31",
-    amount: 10_200_000,
-    notes: "عقد إيجار تجريبي قابل للمعاينة.",
-    parties: [
-      { customerCode: "C-9001", role: "landlord" },
-      { customerCode: "C-9002", role: "tenant" },
-    ],
-  },
-] as const;

@@ -69,40 +69,6 @@ export const webPlatform: PlatformAdapter = {
   name: "web-demo",
   isDesktop: false,
   supportsScheduledBackup: false,
-  async printPdf({ data }) {
-    downloadBlob("contract.pdf", Uint8Array.from(atob(data), char => char.charCodeAt(0)), "application/pdf");
-    return { ok: true, fallback: true };
-  },
-  async printDocument({ html }): Promise<SaveResult> {
-    const frame = document.createElement("iframe");
-    frame.setAttribute("sandbox", "allow-same-origin allow-modals");
-    frame.title = "مستند الطباعة";
-    frame.style.cssText =
-      "position:fixed;width:1px;height:1px;inset:0;border:0;opacity:0;pointer-events:none";
-    try {
-      await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(
-          () => reject(new Error("تعذر تجهيز الطباعة.")),
-          15000,
-        );
-        frame.onload = () => {
-          clearTimeout(timer);
-          resolve();
-        };
-        frame.srcdoc = html;
-        document.body.append(frame);
-      });
-      await frame.contentDocument?.fonts.ready;
-      frame.contentWindow?.focus();
-      frame.contentWindow?.print();
-      return { ok: true, fallback: true };
-    } catch {
-      return { ok: false, message: "تعذر فتح حوار الطباعة." };
-    } finally {
-      setTimeout(() => frame.remove(), 60000);
-    }
-  },
-
   async exportPdf({ html, suggestedName }): Promise<SaveResult> {
     // لا window.print() ولا نافذة منبثقة: كلاهما يحجب الواجهة أثناء التصوير.
     // ننزّل مستنداً جاهزاً للطباعة يحمل نفس محتوى نسخة سطح المكتب.

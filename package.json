@@ -4,7 +4,6 @@
   "private": true,
   "description": "Local desktop real-estate listings manager for Iraqi brokerage offices.",
   "scripts": {
-    "prepare:documents": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/prepare-document-renderer.ps1",
     "dev": "concurrently -k -n renderer,desktop -c cyan,green \"pnpm --filter @dalaly/renderer dev\" \"wait-on http://127.0.0.1:5173 && pnpm --filter @dalaly/desktop dev\"",
     "build": "pnpm build:server && pnpm build:renderer && pnpm assert:dist-assets",
     "build:renderer": "pnpm --filter @dalaly/renderer build",
@@ -31,6 +30,7 @@
   "devDependencies": {
     "@playwright/test": "^1.61.1",
     "concurrently": "^9.2.1",
+    "prettier": "^3.9.10",
     "wait-on": "^8.0.4"
   },
   "engines": {

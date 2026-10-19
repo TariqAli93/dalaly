@@ -1,3 +1,16 @@
+export function isSameDocumentNavigation(current, target) {
+  try {
+    const from = new URL(current),
+      to = new URL(target);
+    if (!["file:", "http:", "https:"].includes(from.protocol)) return false;
+    from.hash = "";
+    to.hash = "";
+    return from.href === to.href;
+  } catch {
+    return false;
+  }
+}
+
 export function safeExternalUrl(value) {
   if (typeof value !== "string" || value.length > 4096) return null;
   try {

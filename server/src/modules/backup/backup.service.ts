@@ -1,59 +1,45 @@
 import fs from "node:fs";
 import path from "node:path";
 import AdmZip from "adm-zip";
-import { sql } from "drizzle-orm";
+import { getTableColumns } from "drizzle-orm";
 import { config } from "../../infrastructure/config.js";
 import { db } from "../../infrastructure/database/db.js";
 import { pool } from "../../infrastructure/database/pool.js";
+import { resolveManagedFile } from "../documents/documents.storage.js";
+import { getSetting, setSetting } from "../settings/settings.repository.js";
 import {
-  appSettings,
-  auditLogs,
   backupJobs,
   backupLogs,
-  officeProfiles,
-  contractParties,
-  contractTemplates,
-  legalFormulations,
-  legalReviewers,
-  legalContractTemplates,
-  legalContractClauses,
-  legalContentEvents,
-  legalTaskNotifications,
-  contractLegalSnapshots,
-  contracts,
-  people,
+  governorates,
   districts,
+  neighborhoods,
+  users,
+  roles,
+  permissions,
+  rolePermissions,
+  userRoles,
+  people,
+  properties,
+  rentals,
+  propertyImages,
+  propertyFollowups,
+  favoriteProperties,
+  rentalImages,
+  rentalFollowups,
+  favoriteRentals,
+  rentalRequests,
+  purchaseRequests,
   documentTypes,
   identityDocuments,
-  partySnapshots,
-  contractOfficeSnapshots,
-  contractAssetSnapshots,
-  contractAttachments,
-  contractProcedures,
-  contractProcedureAttachments,
-  favoriteProperties,
-  favoriteRentals,
-  governorates,
-  neighborhoods,
-  permissions,
-  properties,
-  propertyFollowups,
-  propertyImages,
-  purchaseRequests,
-  rentalFollowups,
-  rentalImages,
-  rentalRequests,
-  rentals,
-  rolePermissions,
-  roles,
-  userRoles,
-  users,
+  officeProfiles,
+  auditLogs,
+  appSettings,
 } from "../../infrastructure/database/schema.js";
-import { getSetting, setSetting } from "../settings/settings.repository.js";
-
-const BACKUP_VERSION = 1;
-
-// ترتيب الجداول (الأب قبل الابن) + أعمدة التواريخ لإعادة التحويل عند الاسترجاع.
+import {
+  isActivePermissionKey,
+  isActiveSettingKey,
+} from "../rbac/key-policy.js";
+const BACKUP_VERSION = 3;
 const TABLE_SPECS = [
   {
     name: "governorates",
@@ -129,87 +115,12 @@ const TABLE_SPECS = [
     table: officeProfiles,
     dates: ["createdAt", "updatedAt"],
   },
-  {
-    name: "contract_templates",
-    table: contractTemplates,
-    dates: ["createdAt", "updatedAt"],
-  },
-  { name: "legal_reviewers", table: legalReviewers, dates: ["verifiedAt"] },
-  { name: "legal_formulations", table: legalFormulations, dates: ["createdAt", "updatedAt", "deletedAt"] },
-  {
-    name: "legal_contract_templates",
-    table: legalContractTemplates,
-    dates: ["createdAt", "updatedAt", "approvedAt", "targetAt", "deletedAt"],
-  },
-  {
-    name: "legal_contract_clauses",
-    table: legalContractClauses,
-    dates: ["createdAt", "updatedAt"],
-  },
-  {
-    name: "legal_content_events",
-    table: legalContentEvents,
-    dates: ["createdAt"],
-  },
-  {
-    name: "legal_task_notifications",
-    table: legalTaskNotifications,
-    dates: ["createdAt", "targetAt", "readAt"],
-  },
-  {
-    name: "contracts",
-    table: contracts,
-    dates: [
-      "contractDate",
-      "startDate",
-      "endDate",
-      "createdAt",
-      "updatedAt",
-      "generatedAt",
-      "issuedAt",
-      "cancelledAt",
-    ],
-  },
-  { name: "contract_parties", table: contractParties, dates: ["createdAt"] },
-  { name: "party_snapshots", table: partySnapshots, dates: ["capturedAt"] },
-  {
-    name: "contract_office_snapshots",
-    table: contractOfficeSnapshots,
-    dates: ["capturedAt"],
-  },
-  {
-    name: "contract_asset_snapshots",
-    table: contractAssetSnapshots,
-    dates: ["capturedAt"],
-  },
-  {
-    name: "contract_attachments",
-    table: contractAttachments,
-    dates: ["capturedAt"],
-  },
-  {
-    name: "contract_legal_snapshots",
-    table: contractLegalSnapshots,
-    dates: ["createdAt"],
-  },
-  {
-    name: "contract_procedures",
-    table: contractProcedures,
-    dates: ["updatedAt"],
-  },
-  {
-    name: "contract_procedure_attachments",
-    table: contractProcedureAttachments,
-    dates: ["createdAt"],
-  },
   { name: "audit_logs", table: auditLogs, dates: ["createdAt"] },
   { name: "app_settings", table: appSettings, dates: ["updatedAt"] },
 ] as const;
-
 type TableName = (typeof TABLE_SPECS)[number]["name"];
-
 const SCOPE_TABLES: Record<string, TableName[]> = {
-  full: TABLE_SPECS.map((spec) => spec.name),
+  full: TABLE_SPECS.map((s) => s.name),
   properties: [
     "governorates",
     "districts",
@@ -220,12 +131,7 @@ const SCOPE_TABLES: Record<string, TableName[]> = {
   ],
   images: ["property_images"],
   users: ["users", "roles", "permissions", "role_permissions", "user_roles"],
-  settings: [
-    "app_settings",
-    "office_profiles",
-    "document_types",
-    "contract_templates",
-  ],
+  settings: ["app_settings", "office_profiles", "document_types"],
   rentals: [
     "governorates",
     "districts",
@@ -242,24 +148,8 @@ const SCOPE_TABLES: Record<string, TableName[]> = {
     "document_types",
     "identity_documents",
     "office_profiles",
-    "contract_templates",
-    "legal_reviewers",
-    "legal_contract_templates",
-    "legal_contract_clauses",
-    "legal_content_events",
-    "legal_task_notifications",
-    "contracts",
-    "contract_parties",
-    "party_snapshots",
-    "contract_office_snapshots",
-    "contract_asset_snapshots",
-    "contract_attachments",
-    "contract_procedures",
-    "contract_procedure_attachments",
-    "contract_legal_snapshots",
   ],
 };
-
 const SERIAL_TABLES = new Set<TableName>([
   "governorates",
   "districts",
@@ -278,23 +168,8 @@ const SERIAL_TABLES = new Set<TableName>([
   "purchase_requests",
   "document_types",
   "identity_documents",
-  "contract_templates",
-  "legal_contract_templates",
-  "legal_contract_clauses",
-  "legal_content_events",
-  "legal_task_notifications",
-  "contract_legal_snapshots",
-  "contracts",
-  "contract_parties",
-  "party_snapshots",
-  "contract_office_snapshots",
-  "contract_asset_snapshots",
-  "contract_attachments",
-  "contract_procedures",
-  "contract_procedure_attachments",
   "audit_logs",
 ]);
-
 function specByName(name: TableName) {
   return TABLE_SPECS.find((spec) => spec.name === name)!;
 }
@@ -305,11 +180,28 @@ function configJsonPath() {
 }
 
 async function exportDatabase() {
-  const data: Record<string, unknown[]> = {};
-  for (const spec of TABLE_SPECS) {
-    data[spec.name] = await db.select().from(spec.table);
-  }
-  return data;
+  return db.transaction(
+    async (tx) => {
+      const data: Record<string, unknown[]> = {};
+      for (const spec of TABLE_SPECS)
+        data[spec.name] = await tx.select().from(spec.table);
+      const activePermissions = (
+        data.permissions as Array<{ id: number; key: string }>
+      ).filter((row) => isActivePermissionKey(row.key));
+      const activePermissionIds = new Set(
+        activePermissions.map((row) => row.id),
+      );
+      data.permissions = activePermissions;
+      data.role_permissions = (
+        data.role_permissions as Array<{ permissionId: number }>
+      ).filter((row) => activePermissionIds.has(row.permissionId));
+      data.app_settings = (data.app_settings as Array<{ key: string }>).filter(
+        (row) => isActiveSettingKey(row.key),
+      );
+      return data;
+    },
+    { isolationLevel: "repeatable read", accessMode: "read only" },
+  );
 }
 
 function addImagesToZip(zip: AdmZip) {
@@ -532,7 +424,9 @@ function extractImagesFromZip(zip: AdmZip) {
   fs.mkdirSync(config.imagesDir, { recursive: true });
   for (const entry of entries) {
     const relative = entry.entryName.replace(/^images\/properties\//, "");
-    const target = path.join(config.imagesDir, relative);
+    const target = path.resolve(config.imagesDir, relative);
+    if (!target.startsWith(path.resolve(config.imagesDir) + path.sep))
+      throw new Error("مسار صورة في النسخة غير صالح.");
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, entry.getData());
   }
@@ -547,7 +441,7 @@ function extractDocumentsFromZip(zip: AdmZip) {
   fs.mkdirSync(config.documentsDir, { recursive: true });
   for (const entry of entries) {
     const relative = entry.entryName.replace(/^documents\//, "");
-    const target = path.join(config.documentsDir, relative);
+    const target = resolveManagedFile(relative);
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, entry.getData());
   }
@@ -557,6 +451,60 @@ function extractDocumentsFromZip(zip: AdmZip) {
 export type RestoreScope =
   "full" | "properties" | "images" | "users" | "settings" | "rentals" | "crm";
 
+function validateBackupSchema(
+  zip: AdmZip,
+  database: Record<string, Record<string, unknown>[]>,
+) {
+  const manifestEntry = zip.getEntry("manifest.json");
+  if (!manifestEntry) throw new Error("بيانات تعريف النسخة الاحتياطية مفقودة.");
+  const manifest = JSON.parse(manifestEntry.getData().toString("utf8"));
+  if (!manifest || manifest.version !== BACKUP_VERSION)
+    throw new Error(
+      "صيغة النسخة لا تتوافق مع مخطط هذا الإصدار. استعد النسخ السابقة باستخدام إصدارها في بيئة معزولة.",
+    );
+  if (!database || typeof database !== "object" || Array.isArray(database))
+    throw new Error("بيانات النسخة الاحتياطية غير صالحة.");
+  const tableNames = new Set<string>(TABLE_SPECS.map((spec) => spec.name));
+  if (
+    Object.keys(database).some((name) => !tableNames.has(name)) ||
+    TABLE_SPECS.some((spec) => !Object.hasOwn(database, spec.name))
+  )
+    throw new Error("مخطط جداول النسخة الاحتياطية لا يطابق هذا الإصدار.");
+  for (const spec of TABLE_SPECS) {
+    const rows = database[spec.name];
+    const columns = new Set(Object.keys(getTableColumns(spec.table)));
+    if (
+      !Array.isArray(rows) ||
+      rows.some(
+        (row) =>
+          !row ||
+          typeof row !== "object" ||
+          Array.isArray(row) ||
+          Object.keys(row).some((key) => !columns.has(key)),
+      )
+    )
+      throw new Error("حقول النسخة الاحتياطية لا تطابق المخطط الحالي.");
+  }
+  if (
+    database.permissions.some(
+      (row) => typeof row.key !== "string" || !isActivePermissionKey(row.key),
+    ) ||
+    database.app_settings.some(
+      (row) => typeof row.key !== "string" || !isActiveSettingKey(row.key),
+    )
+  )
+    throw new Error(
+      "تحتوي النسخة على صلاحيات أو إعدادات ضمن مساحات أسماء متقاعدة.",
+    );
+  const permissionIds = new Set(database.permissions.map((row) => row.id));
+  if (
+    database.role_permissions.some(
+      (row) => !permissionIds.has(row.permissionId),
+    )
+  )
+    throw new Error("تحتوي النسخة على علاقات صلاحيات غير صالحة.");
+}
+
 /** يسترجع نسخة احتياطية من محتوى ZIP حسب النطاق المحدد. */
 export async function restoreBackup(
   zipBuffer: Buffer,
@@ -564,6 +512,7 @@ export async function restoreBackup(
   userId?: number,
 ) {
   const startedAt = Date.now();
+  let schemaValidated = false;
   try {
     const zip = new AdmZip(zipBuffer);
     const dataEntry = zip.getEntry("data.json");
@@ -575,27 +524,19 @@ export async function restoreBackup(
       Record<string, unknown>[]
     >;
 
-    if (
-      (scope === "full" || scope === "crm") &&
-      !Object.hasOwn(database, "contract_legal_snapshots")
-    ) {
-      throw new Error(
-        "هذه النسخة تسبق فصل الصيغ القانونية. استرجعها في قاعدة منفصلة ثم حدّثها؛ لا يمكن استبدال السجل القانوني الحالي بها.",
-      );
-    }
+    validateBackupSchema(zip, database);
+    schemaValidated = true;
     const tablesToRestore = SCOPE_TABLES[scope] ?? SCOPE_TABLES.full;
+    let documentsRestored = 0;
+    if (scope === "full" || scope === "crm") {
+      // Restore managed documents before publishing rows that reference them.
+      documentsRestored = extractDocumentsFromZip(zip);
+    }
 
     await db.transaction(async (tx) => {
-      // Full/CRM restore is an explicit privileged replacement of historical
-      // bundles. Bypass guards only on this transaction's connection.
-      await tx.execute(sql`set local dalaly.restore = 'on'`);
       // حذف بترتيب عكسي (الابن قبل الأب) لتفادي قيود المفاتيح الأجنبية.
       for (const name of [...tablesToRestore].reverse()) {
-        if (
-          (scope === "settings" && name === "contract_templates") ||
-          (scope === "users" && name === "users")
-        )
-          continue;
+        if (scope === "users" && name === "users") continue;
         await tx.delete(specByName(name).table);
       }
       // إدراج بترتيب الأب قبل الابن.
@@ -605,10 +546,7 @@ export async function restoreBackup(
           coerceRow(row, spec.dates),
         );
         if (rows.length) {
-          if (
-            (scope === "settings" && name === "contract_templates") ||
-            (scope === "users" && name === "users")
-          ) {
+          if (scope === "users" && name === "users") {
             for (const row of rows)
               await tx
                 .insert(spec.table)
@@ -627,12 +565,8 @@ export async function restoreBackup(
     }
 
     let imagesRestored = 0;
-    let documentsRestored = 0;
     if (scope === "full" || scope === "images" || scope === "properties") {
       imagesRestored = extractImagesFromZip(zip);
-    }
-    if (scope === "full" || scope === "crm") {
-      documentsRestored = extractDocumentsFromZip(zip);
     }
 
     const durationMs = Date.now() - startedAt;
@@ -659,6 +593,7 @@ export async function restoreBackup(
       documents_restored: documentsRestored,
     };
   } catch (error) {
+    if (!schemaValidated) throw error;
     const message = error instanceof Error ? error.message : String(error);
     const [job] = await db
       .insert(backupJobs)

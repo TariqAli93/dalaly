@@ -24,32 +24,23 @@ Dalaly is a local desktop app for managing real-estate offers for an Iraqi broke
    ```
 
 3. Copy `.env.example` to `.env` and set the database credentials.
-4. Run the migration manually if you want to validate the database before opening the app. The API also runs Drizzle migrations automatically on startup.
+4. Run the migration manually to validate a fresh database before opening the app.
+   Existing installations may require an explicitly approved database maintenance step.
 
    ```bash
-
+   pnpm db:migrate
    ```
-
-pnpm db:migrate
-
-````
 
 5. Start the app in development:
 
    ```bash
    pnpm dev
-````
+   ```
 
 The Electron app starts the Fastify API on `127.0.0.1:34567` and loads the Vue/Vuetify renderer from Vite. On first startup the app validates PostgreSQL connectivity and shows a setup/login screen.
 
-Default first-install administrator values come from `.env`:
-
-```text
-ADMIN_USERNAME=admin
-ADMIN_PIN=1234
-```
-
-Change these before first run for customer machines.
+The setup screen creates the first administrator from the username and PIN entered
+by the operator. No default administrator account is created automatically.
 
 ## Production Build
 
@@ -106,3 +97,14 @@ tools/cloudflared/cloudflared.exe
 ```
 
 The core app works normally when this file is missing. The remote-access page will show a clear unavailable message.
+
+
+## نطاق التطبيق والبيانات التاريخية
+
+تقتصر الوظائف التشغيلية على إدارة الأشخاص والعقارات والإيجارات والطلبات
+والمطابقة والمستندات العامة والإعدادات والنسخ الاحتياطي. يستخدم تصدير العقارات
+إلى PDF محرك Electron المدمج؛ لا يحتاج التطبيق إلى متصفح مستقل أو حزمة Office.
+
+تحتاج إزالة بيانات الأنظمة السابقة من قاعدة قائمة أو إتلاف وثائقها التاريخية
+إلى موافقة مستقلة بعد النسخ الاحتياطي واختبار الاستعادة. راجع
+[خريطة إزالة النظام السابق](docs/CONTRACT_SYSTEM_REMOVAL_MAP.md).

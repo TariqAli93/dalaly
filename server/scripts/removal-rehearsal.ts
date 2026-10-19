@@ -1,0 +1,63 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {createHash} from 'node:crypto';
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
+import pg from 'pg';
+import {config,buildPoolConfig} from '../src/infrastructure/config.js';
+import {pool,reconfigurePool} from '../src/infrastructure/database/pool.js';
+import {applyMigrations} from '../src/infrastructure/database/run-migrations.js';
+const run=promisify(execFile),stamp=new Date().toISOString().replace(/[:.]/g,'-');
+const root=path.resolve('data/removal-review',stamp);
+const testName=`dalaly_removal_rehearsal_${Date.now()}`;
+await fs.mkdir(root,{recursive:true});
+const connection=buildPoolConfig(),sourceClient=new pg.Client(connection),admin=new pg.Client({...connection,database:'postgres',...(connection.connectionString?{connectionString:connection.connectionString.replace(/\/[^/?]+(\?.*)?$/,'/postgres')}: {})});
+const hash=(bytes:string|Buffer)=>createHash('sha256').update(bytes).digest('hex');
+const q=(value:string)=>'"'+value.replaceAll('"','""')+'"';
+async function digest(client:pg.Client){const tables=(await client.query("SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename")).rows;const rows:Record<string,{rows:number,hash:string}>={};for(const {tablename}of tables){const data=(await client.query(`SELECT to_jsonb(t) AS row FROM public.${q(tablename)} t ORDER BY to_jsonb(t)::text`)).rows;rows[tablename]={rows:data.length,hash:hash(JSON.stringify(data))};}return rows;}
+async function copyFiles(source:string,destination:string){const files:Record<string,string>={};async function walk(dir:string){for(const entry of await fs.readdir(dir,{withFileTypes:true}).catch(()=>[])){const absolute=path.join(dir,entry.name);if(entry.isSymbolicLink())throw new Error('Unexpected symlink');if(entry.isDirectory())await walk(absolute);else{const relative=path.relative(source,absolute),bytes=await fs.readFile(absolute),target=path.join(destination,relative);await fs.mkdir(path.dirname(target),{recursive:true});await fs.writeFile(target,bytes);assert.equal(hash(await fs.readFile(target)),hash(bytes));files[relative.replaceAll('\\','/')]=hash(bytes);}}}await walk(source);return files;}
+const target=config.databaseUrl?new URL(config.databaseUrl):null;
+const sourceDb=target?decodeURIComponent(target.pathname.slice(1)):config.db.database;
+const env={...process.env,PGHOST:target?.hostname??config.db.host,PGPORT:target?.port||String(config.db.port),PGUSER:target?decodeURIComponent(target.username):config.db.user,PGPASSWORD:target?decodeURIComponent(target.password):config.db.password};
+const bin=process.env.POSTGRES_BIN??'C:/Program Files/PostgreSQL/18/bin';
+const report:Record<string,any>={created_at:new Date().toISOString(),source_database:sourceDb,rehearsal_database:testName,source_modified:false,restore_verified:false,removal_verified:false,root};
+let restored:pg.Client|undefined;
+await sourceClient.connect();await admin.connect();
+try{
+ await sourceClient.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+ report.source_tables=await digest(sourceClient);
+ const snapshot=(await sourceClient.query('SELECT pg_export_snapshot() AS id')).rows[0].id;
+ await run(path.join(bin,'pg_dump.exe'),['--format=custom','--no-owner',`--snapshot=${snapshot}`,'--file',path.join(root,'database.dump'),'--dbname',sourceDb],{env,windowsHide:true,timeout:60000});
+ report.dump_sha256=hash(await fs.readFile(path.join(root,'database.dump')));
+ report.documents=await copyFiles(config.documentsDir,path.join(root,'documents'));
+ report.images=await copyFiles(config.imagesDir,path.join(root,'images'));
+ await sourceClient.query('COMMIT');
+ await admin.query(`CREATE DATABASE "${testName}" TEMPLATE template0`);
+ await run(path.join(bin,'pg_restore.exe'),['--no-owner','--exit-on-error','--dbname',testName,path.join(root,'database.dump')],{env,windowsHide:true,timeout:60000});
+ const url=target??new URL(`postgresql://${encodeURIComponent(config.db.user)}:${encodeURIComponent(config.db.password)}@${config.db.host}:${config.db.port}/${testName}`);url.pathname=`/${testName}`;
+ restored=new pg.Client({connectionString:url.toString()});await restored.connect();
+ assert.deepEqual(await digest(restored),report.source_tables,'Restore must reproduce every public table');
+ report.restore_verified=true;
+ await reconfigurePool(url.toString());
+ const before=await digest(restored);
+ await applyMigrations(path.resolve('drizzle'));
+ assert.deepEqual(await digest(restored),before,'Unapproved automatic startup must not remove records');
+ report.unapproved_startup_preserved=true;
+ await applyMigrations(path.resolve('drizzle'),{approvedRetirement:true});
+ const after=await digest(restored);
+ report.removed_tables=Object.keys(before).filter(name=>!Object.hasOwn(after,name));
+ report.after_tables=after;
+ const shared=['people','properties','rentals','identity_documents','document_types','office_profiles','property_images','rental_images','purchase_requests','rental_requests','users','roles','user_roles','sessions','governorates','districts','neighborhoods','property_followups','rental_followups','favorite_properties','favorite_rentals','backup_jobs','backup_logs'];
+ for(const name of shared)if(before[name])assert.deepEqual(after[name],before[name],`Shared data changed: ${name}`);
+ assert.ok(!Object.keys(after).some(name=>/^(studio_|contracts$|contract_|party_snapshots$|legal_(reviewers|formulations|contract_|content_events|task_notifications))/.test(name)));
+ const perms=(await restored.query("SELECT key FROM permissions WHERE key ~ '^(contracts|contract_templates|legal_content|legal_formulations|formulations|studio)\\.'")).rows;assert.equal(perms.length,0);
+ await applyMigrations(path.resolve('drizzle'));
+ assert.deepEqual(await digest(restored),after,'A restart must not recreate removed tables');
+ report.removal_verified=true;report.shared_data_unchanged=true;report.repeated_startup_no_recreation=true;
+ report.source_after=await digest(sourceClient);assert.deepEqual(report.source_after,report.source_tables,'Source changed while rehearsing; approval receipt must be refreshed');
+ await fs.writeFile(path.join(root,'report.json'),JSON.stringify(report,null,2));
+ await fs.writeFile(path.resolve('data/removal-review/latest.json'),JSON.stringify({root,report:path.join(root,'report.json'),dump:path.join(root,'database.dump'),rehearsal_database:testName},null,2));
+ console.log(JSON.stringify({root,restore_verified:true,removed_tables:report.removed_tables,source_modified:false}));
+}catch(error){report.error=String(error);await fs.writeFile(path.join(root,'report.json'),JSON.stringify(report,null,2));throw error;}
+finally{await restored?.end();await pool.end();await sourceClient.end();if(/^dalaly_removal_rehearsal_\d+$/.test(testName))await admin.query(`DROP DATABASE IF EXISTS "${testName}" WITH(FORCE)`);await admin.end();}

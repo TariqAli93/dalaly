@@ -16,7 +16,7 @@
     "release": "electron-builder --win nsis portable --publish never",
     "clean": "node -e \"require('node:fs').rmSync('release',{recursive:true,force:true})\"",
     "format": "npx prettier --write .",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "node scripts/check-source.mjs"
   },
   "dependencies": {
     "electron-log": "^5.4.4",
@@ -32,7 +32,6 @@
     "productName": "دلالي",
     "asar": true,
     "compression": "normal",
-    "beforePack": "./src/verify-document-renderer.cjs",
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -67,9 +66,7 @@
         "from": "../../tools",
         "to": "tools",
         "filter": [
-          "**/*",
-          "!.document-renderer-setup/**",
-          "!libreoffice/*.msi"
+          "cloudflared/**"
         ]
       }
     ],

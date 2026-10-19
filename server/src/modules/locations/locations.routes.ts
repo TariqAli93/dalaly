@@ -41,11 +41,9 @@ export const locationsRoutes: FastifyPluginAsync = async (app) => {
       })
       .parse(request.body);
     if (resolvingLinks >= 4)
-      return reply
-        .code(429)
-        .send({
-          message: "توجد طلبات كثيرة لحل روابط المواقع. أعد المحاولة بعد قليل.",
-        });
+      return reply.code(429).send({
+        message: "توجد طلبات كثيرة لحل روابط المواقع. أعد المحاولة بعد قليل.",
+      });
     resolvingLinks++;
     try {
       const point = await resolveMapLink(url);
@@ -55,12 +53,10 @@ export const locationsRoutes: FastifyPluginAsync = async (app) => {
     } finally {
       resolvingLinks--;
     }
-    return reply
-      .code(422)
-      .send({
-        message:
-          "تعذر استخراج الإحداثيات من الرابط. أدخلها يدوياً أو حدد الموقع على الخريطة.",
-      });
+    return reply.code(422).send({
+      message:
+        "تعذر استخراج الإحداثيات من الرابط. أدخلها يدوياً أو حدد الموقع على الخريطة.",
+    });
   });
   // القراءة متاحة لأي مستخدم مصادق (لازمة لنماذج العقار).
   app.get("/", async () => getLocations());

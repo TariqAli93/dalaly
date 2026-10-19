@@ -18,21 +18,6 @@ export const electronPlatform: PlatformAdapter = {
   name: "electron",
   isDesktop: true,
   supportsScheduledBackup: Boolean(bridge()?.getScheduledBackup),
-  async printPdf(input) {
-    const api = bridge();
-    if (!api?.printPdf) return { ok: false, message: "أعد تشغيل التطبيق لتفعيل طباعة PDF." };
-    return api.printPdf(input);
-  },
-  async printDocument(input) {
-    const api = bridge();
-    if (!api?.printDocument)
-      return {
-        ok: false,
-        message: "خدمة الطباعة غير متاحة. أعد تشغيل تطبيق سطح المكتب.",
-      };
-    return api.printDocument(input);
-  },
-
   async exportPdf({ html, suggestedName }): Promise<SaveResult> {
     const api = bridge();
     if (!api?.exportPdf)

@@ -45,12 +45,8 @@ const SECTION_PATHS = [
     ],
   },
   {
-    title: "المعاملات",
-    paths: ["/contracts", "/contracts/create", "/contracts/review"],
-  },
-  {
     title: "المستندات",
-    paths: ["/contracts/legal-templates", "/contract-templates", "/documents"],
+    paths: ["/documents"],
   },
   {
     title: "النظام",
@@ -117,12 +113,6 @@ async function onLogout() {
                   $route.path === item.to ||
                   (item.to === '/people' &&
                     $route.path.startsWith('/clients/')) ||
-                  (item.to === '/contracts/review' &&
-                    /^\/contracts\/\d+\/review$/.test($route.path)) ||
-                  (item.to === '/contracts/legal-templates' &&
-                    $route.path === '/settings/legal-content') ||
-                  (item.to === '/contracts/create' &&
-                    /^\/contracts\/\d+\/edit$/.test($route.path)) ||
                   (item.to === '/properties' &&
                     $route.path.startsWith(item.to + '/') &&
                     $route.path !== item.to + '/new')

@@ -19,7 +19,6 @@ interface ImportMeta {
 }
 
 interface DalalyConfigBridge {
-  printPdf?: (input: { data: string; title: string }) => Promise<{ ok: boolean; canceled?: boolean; message?: string }>;
   getStartupHealth?: () => Promise<import("./types/setup.types").SetupStatus>;
   rendererReady?: (health: {
     startup_state: string;
@@ -29,10 +28,6 @@ interface DalalyConfigBridge {
     path: string;
     body?: unknown;
   }) => Promise<{ status: number; body: unknown }>;
-  printDocument?: (input: {
-    html: string;
-    title: string;
-  }) => Promise<{ ok: boolean; canceled?: boolean; message?: string }>;
   openMapLink?: (url: string) => Promise<{ ok: boolean }>;
   saveDatabaseUrl: (
     databaseUrl: string,

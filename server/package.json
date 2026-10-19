@@ -27,15 +27,12 @@
     "clean": "node scripts/clean-dist.mjs",
     "format": "npx prettier --write .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test:contracts": "tsx --test scripts/contract-form.test.ts scripts/contract-reference.test.ts scripts/contracts-document.test.ts scripts/contracts-document-migration.test.ts scripts/contracts-lifecycle.test.ts",
-    "test:contracts:reference": "node scripts/contracts-reference-browser.mjs",
-    "test:contracts:documents": "tsx --test scripts/contracts-document-render.test.ts",
-    "test:contracts:management:browser": "node scripts/contracts-management-browser.mjs",
-    "test:contracts:browser": "node scripts/contracts-browser.mjs"
+    "test:removal:browser": "tsx scripts/removal-browser.ts",
+    "test:removal:electron": "tsx scripts/removal-package-smoke.ts",
+    "test:removal:legacy": "tsx --test scripts/removal-legacy.test.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",
-    "@xmldom/xmldom": "^0.9.12",
     "adm-zip": "^0.5.16",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.2",

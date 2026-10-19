@@ -1,4 +1,4 @@
-import { and, count, eq, ne } from "drizzle-orm";
+import { and, count, eq, inArray, ne } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import {
   permissions,
@@ -8,6 +8,7 @@ import {
   userRoles,
 } from "../../infrastructure/database/schema.js";
 import { SUPER_ADMIN_ROLE, SYSTEM_PERMISSIONS } from "./rbac.constants.js";
+import { isActivePermissionKey } from "./key-policy.js";
 
 export type AuthRole = {
   id: number;
@@ -68,9 +69,11 @@ export async function grantAllPermissionsToRole(
   database: typeof db = db,
 ) {
   const allPermissions = await database
-    .select({ id: permissions.id })
+    .select({ id: permissions.id, key: permissions.key })
     .from(permissions);
-  for (const permission of allPermissions) {
+  for (const permission of allPermissions.filter((row) =>
+    isActivePermissionKey(row.key),
+  )) {
     await database
       .insert(rolePermissions)
       .values({ roleId, permissionId: permission.id })
@@ -125,7 +128,9 @@ export async function getUserRolesAndPermissions(userId: number) {
     .where(eq(userRoles.userId, userId));
 
   const permissionMap = new Map(
-    permissionRows.map((permission) => [permission.key, permission]),
+    permissionRows
+      .filter((permission) => isActivePermissionKey(permission.key))
+      .map((permission) => [permission.key, permission]),
   );
 
   return {
@@ -135,6 +140,7 @@ export async function getUserRolesAndPermissions(userId: number) {
 }
 
 export async function userHasPermission(userId: number, permissionKey: string) {
+  if (!isActivePermissionKey(permissionKey)) return false;
   const [row] = await db
     .select({ count: count() })
     .from(userRoles)
@@ -163,12 +169,23 @@ export async function setRolePermissionIds(
   roleId: number,
   permissionIds: number[],
 ) {
+  const activePermissions = permissionIds.length
+    ? await db
+        .select({ id: permissions.id, key: permissions.key })
+        .from(permissions)
+        .where(inArray(permissions.id, permissionIds))
+    : [];
+  const allowedPermissions = activePermissions.filter((row) =>
+    isActivePermissionKey(row.key),
+  );
   await db.transaction(async (tx) => {
     await tx.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId));
-    if (permissionIds.length) {
+    if (allowedPermissions.length) {
       await tx
         .insert(rolePermissions)
-        .values(permissionIds.map((permissionId) => ({ roleId, permissionId })))
+        .values(
+          allowedPermissions.map(({ id }) => ({ roleId, permissionId: id })),
+        )
         .onConflictDoNothing();
     }
   });
@@ -176,10 +193,16 @@ export async function setRolePermissionIds(
 
 export async function getRolePermissionIds(roleId: number) {
   const rows = await db
-    .select({ permissionId: rolePermissions.permissionId })
+    .select({
+      permissionId: rolePermissions.permissionId,
+      key: permissions.key,
+    })
     .from(rolePermissions)
+    .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
     .where(eq(rolePermissions.roleId, roleId));
-  return rows.map((row) => row.permissionId);
+  return rows
+    .filter((row) => isActivePermissionKey(row.key))
+    .map((row) => row.permissionId);
 }
 
 export async function hasAnyUserWithRole(roleId: number) {

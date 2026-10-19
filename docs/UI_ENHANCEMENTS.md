@@ -1,8 +1,8 @@
-# Dalaly appearance, detail pages, contract form, and splash
+# Dalaly appearance, detail pages, and splash
 
 Implemented in the existing Electron/Vue 3/Vuetify 3 application. Arabic RTL,
-existing permissions, service methods, request payloads, contract calculations,
-and issued snapshots are preserved. No database migration, API change, or new
+existing permissions, service methods, and request payloads are preserved.
+No database migration, API change, or new
 runtime dependency is required.
 
 ## Appearance
@@ -78,41 +78,20 @@ Fonts and their SIL Open Font Licenses are in `src/assets/fonts`, sourced from
 
 | Route                                | Permission         | Behavior                                                                                        |
 | ------------------------------------ | ------------------ | ----------------------------------------------------------------------------------------------- |
-| `/clients/:id` (alias `/people/:id`) | `people.read`      | Basic information, owned properties, contracts, and notes                                       |
-| `/properties/:id`                    | `properties.read`  | Basic information, related properties, map, notes, contracts, images, follow-ups, and audit log |
-| `/contracts/create`                  | `contracts.manage` | Full-page contract creation                                                                     |
-| `/contracts/:id/edit`                | `contracts.manage` | Full-page editing of draft contracts                                                            |
+| `/clients/:id` (alias `/people/:id`) | `people.read`      | Basic information, owned properties, and notes                                       |
+| `/properties/:id`                    | `properties.read`  | Basic information, related properties, map, notes, images, follow-ups, and audit log |
 
 Client names open the client page. Property names, table rows, favorites,
 dashboard references, and sales matches open the property page. Archived
 dashboard references are also resolved. Existing selection events are retained.
-Existing contract snapshots open through `/contracts?view=<id>` and retain exports.
 
 Client/property editors, archive/restore/delete, image upload/primary selection,
 follow-ups, audit log, and export actions retain their original services and
 permissions. Read-only details are full pages; compact editing and confirmation
-dialogs remain where appropriate. `PersonEditor`, `RecordNotes`, `LinkedContracts`,
+dialogs remain where appropriate. `PersonEditor`, `RecordNotes`,
 and `usePropertyActions` reuse the existing implementation across the new pages.
 
-Only `owner_person_id` establishes client/property ownership. Contracts use the
-existing `person_id` and `property_id` server filters, including asset snapshots.
-The related-contract table uses stored party/asset snapshots and existing payment
-helpers, with Arabic contract/status labels.
-
-## Full-page contract form
-
-The existing `ContractWizard` now renders in a page rather than an outer modal.
-Five presentation stages are information, assets, parties/documents, payments,
-and review. Rental and sale remain the only renderer choices; legacy purchase
-support stays in the backend.
-
-Existing `contract-form.ts`, selectors, document uploads, inline person creation,
-office information, review/preview, validation endpoints, and payload construction
-are reused. Sales total `properties.total_price`; rentals total `rentals.rent_price`.
-Remaining amount continues to use the existing helper. Asset and document gates,
-bounded paid amounts, backend validation, and draft-only editing are retained.
-Save and Next lock before asynchronous work to prevent repeat submissions.
-Initial loading has a retry state; saved contracts navigate to their existing snapshot.
+Only `owner_person_id` establishes client/property ownership.
 
 ## Supported-data limits
 
@@ -160,8 +139,7 @@ Exact final prompt:
 - Windows unpacked package: `pnpm --filter @dalaly/desktop exec electron-builder --win --dir --publish never`.
 - Browser checks used the existing local API and actual stored records: appearance
   presets, font/text-size persistence after reload, dark/light mode, fluid/centered
-  width, client/property navigation, linked contract snapshots, gallery, missing
-  coordinates, and contract asset/document gates. No test contract was submitted.
+  width, client/property navigation, gallery, and missing coordinates.
 - Extra-large typography was checked at 375px and 768px; the default desktop theme
   was checked at 1440px. Controls wrap and document width stays within the viewport.
 - Windows development and unpacked-package launches reached the main window and

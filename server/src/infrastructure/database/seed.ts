@@ -18,9 +18,6 @@ import { seedIraqLocations } from "./iraq-locations.seed.js";
 import {
   districts,
   officeProfiles,
-  contractParties,
-  contractTemplates,
-  contracts,
   people,
   documentTypes,
   identityDocuments,
@@ -57,7 +54,6 @@ import { DuplicatePlotError } from "../../shared/errors.js";
 import {
   SEED_LOCATIONS,
   SEED_COMPANY_SETTINGS,
-  SEED_CONTRACTS,
   SEED_CUSTOMERS,
   SEED_DOCUMENTS,
   SEED_PROPERTIES,
@@ -94,7 +90,6 @@ function bump(counters: Counters, key: string) {
  */
 async function resetSeedData() {
   const seedUsernames = SEED_USERS.map((user) => user.username);
-  const seededContractCodes = SEED_CONTRACTS.map((contract) => contract.code);
   const seededDocumentCodes = SEED_DOCUMENTS.map((document) => document.code);
   const seededRentalCodes = SEED_RENTALS.map((rental) => rental.code);
   const seededRentalRequestCodes = SEED_RENTAL_REQUESTS.map(
@@ -105,21 +100,6 @@ async function resetSeedData() {
   );
   const seededCustomerCodes = SEED_CUSTOMERS.map((customer) => customer.code);
 
-  const seededContracts = await db
-    .select({ id: contracts.id })
-    .from(contracts)
-    .where(inArray(contracts.code, seededContractCodes));
-  if (seededContracts.length) {
-    await db.delete(contractParties).where(
-      inArray(
-        contractParties.contractId,
-        seededContracts.map((row) => row.id),
-      ),
-    );
-  }
-  await db
-    .delete(contracts)
-    .where(inArray(contracts.code, seededContractCodes));
   await db
     .delete(identityDocuments)
     .where(inArray(identityDocuments.code, seededDocumentCodes));
@@ -836,78 +816,6 @@ async function seedCompanySettings() {
   }
 }
 
-async function seedContracts(customerIndex: CustomerIndex) {
-  const templates = await db
-    .select({
-      id: contractTemplates.id,
-      contractType: contractTemplates.contractType,
-    })
-    .from(contractTemplates);
-  const templateIds = new Map(
-    templates.map((template) => [template.contractType, template.id]),
-  );
-
-  for (const seed of SEED_CONTRACTS) {
-    const [existing] = await db
-      .select({ id: contracts.id })
-      .from(contracts)
-      .where(eq(contracts.code, seed.code))
-      .limit(1);
-    if (existing) {
-      bump(skipped, "contracts");
-      continue;
-    }
-
-    const primaryPersonId = customerIndex.byCode.get(seed.customerCode);
-    const partyRows: Array<{ personId: number; role: string }> = [];
-    for (const party of seed.parties) {
-      const customerId = customerIndex.byCode.get(party.customerCode);
-      if (customerId !== undefined)
-        partyRows.push({
-          personId: customerId,
-          role: party.role === "landlord" ? "lessor" : "lessee",
-        });
-    }
-    const [rental] = await db
-      .select({ id: rentals.id })
-      .from(rentals)
-      .where(eq(rentals.code, seed.rentalCode))
-      .limit(1);
-    const templateId = templateIds.get(seed.contractType);
-    if (!primaryPersonId || !rental || !templateId || !partyRows.length)
-      continue;
-
-    const [contract] = await db
-      .insert(contracts)
-      .values({
-        code: seed.code,
-        contractType: seed.contractType,
-        rentalId: rental.id,
-        templateId,
-        status: "draft",
-        generatedContent:
-          "مسودة تجريبية غير معتمدة. أنشئ عقداً جديداً بالصيغ القانونية المعتمدة قبل الإصدار.",
-        contractDate: new Date(seed.startDate),
-        startDate: new Date(seed.startDate),
-        endDate: new Date(seed.endDate),
-        amount: String(seed.amount),
-        paymentInfo: { schedule: "annual" },
-        notes: seed.notes,
-      })
-      .returning({ id: contracts.id });
-
-    await db.insert(contractParties).values(
-      partyRows.map((party) => ({
-        contractId: contract.id,
-        personId: party.personId,
-        role: party.role,
-      })),
-    );
-    bump(created, "contracts");
-    bump(created, "contract_parties");
-  }
-}
-
 /** بيانات الاتصال بالقاعدة الهدف، من DATABASE_URL أو متغيرات DB_*. */
 function resolveTargetDatabase() {
   if (config.databaseUrl) {
@@ -1033,7 +941,6 @@ async function main() {
   console.log("→ بذر المستندات وإعدادات الشركة والعقود…");
   await seedDocuments(customerIndex);
   await seedCompanySettings();
-  await seedContracts(customerIndex);
 
   report();
   console.log(
