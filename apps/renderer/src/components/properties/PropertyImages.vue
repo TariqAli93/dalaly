@@ -6,6 +6,7 @@ import { getErrorMessage } from "../../services/api.service";
 import { useSnackbar } from "../../composables/useSnackbar";
 import { useConfirm } from "../../composables/useConfirm";
 import type { PropertyImage } from "../../types";
+import { readFileAsDataUrl } from "../../utils/files";
 
 const props = defineProps<{
   propertyId: number;
@@ -35,15 +36,6 @@ const activeImage = computed(
     primaryImage.value,
 );
 
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
 function imageUrl(image: PropertyImage) {
   return imagesService.imageFileUrl(props.propertyId, image.id);
 }
@@ -62,7 +54,7 @@ async function load() {
 async function addFiles(files: File[]) {
   const imageFiles = files.filter((f) => f.type.startsWith("image/"));
   for (const file of imageFiles) {
-    const dataUrl = await fileToDataUrl(file);
+    const dataUrl = await readFileAsDataUrl(file);
     pending.value.push({ name: file.name, dataUrl });
   }
 }

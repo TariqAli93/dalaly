@@ -13,6 +13,7 @@ import { usePermissions } from "../composables/usePermissions";
 import { useRefresh } from "../composables/useRefresh";
 import type { PersonRecord, PropertyRecord } from "../types";
 import { personStatusLabel } from "../constants/crm";
+import { formatDateTime } from "../utils/format";
 const route = useRoute();
 const { can } = usePermissions();
 const { setRefreshHandler } = useRefresh();
@@ -60,8 +61,8 @@ const info = computed(() =>
             ["الرمز", person.value.code],
             ["نوع الشخص", personType.value],
             ["رقم الهوية", person.value.national_id],
-            ["تاريخ الإضافة", when(person.value.created_at)],
-            ["آخر تحديث", when(person.value.updated_at)],
+            ["تاريخ الإضافة", formatDateTime(person.value.created_at)],
+            ["آخر تحديث", formatDateTime(person.value.updated_at)],
           ],
         },
       ]
@@ -74,9 +75,6 @@ const headers = [
   { title: "المساحة", key: "area" },
   { title: "الحالة", key: "status" },
 ];
-function when(value: string) {
-  return new Date(value).toLocaleString("ar-IQ", { numberingSystem: "latn" });
-}
 async function load() {
   const current = ++requestId;
   loading.value = true;

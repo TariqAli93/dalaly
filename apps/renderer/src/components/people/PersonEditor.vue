@@ -94,10 +94,7 @@ async function save() {
 }
 </script>
 <template>
-  <v-dialog
-    v-model="open"
-    max-width="760"
-    class="person-editor"
+  <v-dialog v-model="open" max-width="760" class="person-editor"
     ><v-card
       ><v-card-title>{{ person ? "تعديل شخص" : "إضافة شخص" }}</v-card-title
       ><v-card-text

@@ -1,4 +1,4 @@
-﻿export type RentalPropertyType =
+export type RentalPropertyType =
   | "house"
   | "apartment"
   | "shop"

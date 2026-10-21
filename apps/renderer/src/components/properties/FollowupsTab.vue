@@ -6,6 +6,7 @@ import { usePermissions } from "../../composables/usePermissions";
 import { useSnackbar } from "../../composables/useSnackbar";
 import { useConfirm } from "../../composables/useConfirm";
 import type { FollowupRecord, FollowupType } from "../../types";
+import { formatDateTime } from "../../utils/format";
 
 const props = defineProps<{ propertyId: number }>();
 
@@ -43,9 +44,7 @@ function typeLabel(value: string) {
   return TYPES.find((t) => t.value === value)?.title ?? value;
 }
 function fmt(value: string | null) {
-  return value
-    ? new Date(value).toLocaleString("ar-IQ", { numberingSystem: "latn" })
-    : "";
+  return value ? formatDateTime(value) : "";
 }
 function toLocalInput(iso: string | null) {
   if (!iso) return "";

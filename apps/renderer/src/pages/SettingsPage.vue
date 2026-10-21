@@ -16,6 +16,7 @@ import ChangePinDialog from "../components/auth/ChangePinDialog.vue";
 import BackupSettings from "../components/setup/BackupSettings.vue";
 import ScheduledBackupSettings from "../components/setup/ScheduledBackupSettings.vue";
 import * as companyService from "../services/company-settings.service";
+import { readFileAsDataUrl } from "../utils/files";
 import AppearanceSettings from "../components/settings/AppearanceSettings.vue";
 
 const router = useRouter();
@@ -117,19 +118,11 @@ async function saveCompany() {
     companySaving.value = false;
   }
 }
-function readFile(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
 async function uploadCompanyLogo() {
   if (!companyLogo.value) return;
   try {
     await companyService.uploadLogo({
-      data: await readFile(companyLogo.value),
+      data: await readFileAsDataUrl(companyLogo.value),
       original_name: companyLogo.value.name,
       file_type: companyLogo.value.type || "image/png",
     });

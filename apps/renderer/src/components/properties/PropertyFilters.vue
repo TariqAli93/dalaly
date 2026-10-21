@@ -16,7 +16,7 @@ import type { PropertyFilters } from "../../types";
 const model = defineModel<PropertyFilters>({ required: true });
 // نفس العقد السابق: apply يُشغّل نفس loadProperties في الصفحة. لم يتغيّر أي
 // منطق بحث أو فلترة — تغيّر تنظيم الواجهة وتوقيت التطبيق فقط.
-const emit = defineEmits<{ apply: []; clear: [] }>();
+const emit = defineEmits<{ apply: [] }>();
 
 const extraOpen = ref(false);
 const searchRef = ref<{ $el?: HTMLElement } | null>(null);

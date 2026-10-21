@@ -60,6 +60,16 @@ export const RENTAL_PROPERTY_TYPES = [
 export const RENTAL_PROPERTY_LABELS: Record<string, string> =
   Object.fromEntries(RENTAL_PROPERTY_TYPES.map((t) => [t.value, t.title]));
 
+export const RENT_PERIODS = [
+  { title: "شهري", value: "monthly" },
+  { title: "نصف سنوي", value: "semi_annual" },
+  { title: "سنوي", value: "annual" },
+];
+
+export const RENT_PERIOD_LABELS: Record<string, string> = Object.fromEntries(
+  RENT_PERIODS.map((p) => [p.value, p.title]),
+);
+
 export type NavItem = {
   title: string;
   to: string;

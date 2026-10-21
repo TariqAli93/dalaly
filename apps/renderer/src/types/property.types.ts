@@ -147,13 +147,3 @@ export type PropertyFilters = {
   price_max: string;
   q: string;
 };
-
-export type StatsSummary = {
-  total: number;
-  available: number;
-  sold: number;
-  archived: number;
-  by_type: Array<{ name: string; count: number }>;
-  by_legal_type: Array<{ name: string; count: number }>;
-  by_pricing_method: Array<{ name: string; count: number }>;
-};

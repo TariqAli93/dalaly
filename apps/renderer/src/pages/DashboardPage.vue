@@ -16,7 +16,12 @@ import { usePermissions } from "../composables/usePermissions";
 import { useProperties } from "../composables/useProperties";
 import { useSnackbar } from "../composables/useSnackbar";
 import { useRefresh } from "../composables/useRefresh";
-import { formatMoney, formatNumber, pluralizeDays } from "../utils/format";
+import {
+  formatDateTime,
+  formatMoney,
+  formatNumber,
+  pluralizeDays,
+} from "../utils/format";
 import type { DashboardSummary } from "../types";
 
 const router = useRouter();
@@ -209,8 +214,7 @@ async function runBackup() {
 
 function when(value: string) {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleString("ar-IQ", { numberingSystem: "latn" });
+  return Number.isNaN(date.getTime()) ? "—" : formatDateTime(date);
 }
 function daysSince(value: string) {
   const time = new Date(value).getTime();
@@ -260,38 +264,6 @@ const salesTrend = computed(() =>
 function rentalTypeLabel(name: string) {
   return rentalTypeLabels[name] ?? name;
 }
-function typeBarWidth(count: number) {
-  const max = Math.max(
-    1,
-    ...(data.value?.rentals.by_type ?? []).map((item) => item.count),
-  );
-  return Math.max(8, Math.round((count / max) * 100));
-}
-function salesTypeBarWidth(count: number) {
-  const max = Math.max(
-    1,
-    ...(data.value?.sales.by_type ?? []).map((item) => item.count),
-  );
-  return Math.max(8, Math.round((count / max) * 100));
-}
-
-function statusPercent(key: keyof DashboardSummary["rentals"]["counts"]) {
-  const active = data.value?.rentals.counts.active ?? 0;
-  return active
-    ? Math.round(((data.value?.rentals.counts[key] ?? 0) / active) * 100)
-    : 0;
-}
-
-function salesStatusPercent(
-  key: "available" | "reserved" | "negotiating" | "sold",
-) {
-  const active =
-    (data.value?.counts.total ?? 0) - (data.value?.counts.archived ?? 0);
-  return active
-    ? Math.round(((data.value?.counts[key] ?? 0) / active) * 100)
-    : 0;
-}
-
 onMounted(() => {
   setRefreshHandler(load);
   void load();

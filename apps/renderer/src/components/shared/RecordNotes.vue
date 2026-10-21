@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import EmptyState from "./EmptyState.vue";
+import { formatDateTime } from "../../utils/format";
 defineProps<{
   notes: { label: string; text: string | null | undefined }[];
   updatedAt: string;
   canEdit?: boolean;
 }>();
 defineEmits<{ edit: [] }>();
-function when(value: string) {
-  return new Date(value).toLocaleString("ar-IQ", { numberingSystem: "latn" });
-}
 </script>
 <template>
   <v-card variant="flat" border>
@@ -30,7 +28,7 @@ function when(value: string) {
           size="x-small"
           ><strong>{{ note.label }}</strong>
           <p class="text-caption text-medium-emphasis mb-2">
-            آخر تحديث للسجل: {{ when(updatedAt) }}
+            آخر تحديث للسجل: {{ formatDateTime(updatedAt) }}
           </p>
           <p class="note-text">{{ note.text }}</p></v-timeline-item
         ></v-timeline

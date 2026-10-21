@@ -1,4 +1,4 @@
-﻿import type { FollowupRecord, FollowupType } from "../types";
+import type { FollowupRecord, FollowupType } from "../types";
 import { request } from "./api.service";
 export function listRentalFollowups(id: number) {
   return request<FollowupRecord[]>(`/rentals/${id}/followups`);

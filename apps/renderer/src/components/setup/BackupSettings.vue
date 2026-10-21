@@ -8,6 +8,7 @@ import { useSnackbar } from "../../composables/useSnackbar";
 import { useConfirm } from "../../composables/useConfirm";
 import { useRefresh } from "../../composables/useRefresh";
 import type { BackupHistory } from "../../types";
+import { formatDateTime } from "../../utils/format";
 
 const { can } = usePermissions();
 const { notifySuccess, notifyError } = useSnackbar();
@@ -41,9 +42,7 @@ const SCOPES = [
 ];
 
 function fmt(value: string | null) {
-  return value
-    ? new Date(value).toLocaleString("ar-IQ", { numberingSystem: "latn" })
-    : "—";
+  return value ? formatDateTime(value) : "—";
 }
 function fmtSize(bytes: number | null) {
   if (!bytes) return "—";
