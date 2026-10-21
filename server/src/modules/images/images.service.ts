@@ -72,14 +72,20 @@ export function saveRentalImageToDisk(
   return saveScopedImageToDisk("rentals", rentalId, data, originalName);
 }
 
+/**
+ * المسار المطلق لملف صورة، أو null إن خرج المسار المخزَّن عن مجلد الصور
+ * (مثلاً صف معدَّل في نسخة احتياطية مستعادة).
+ */
 export function resolveImageAbsolutePath(filePath: string) {
-  return path.join(config.imagesDir, filePath);
+  const root = path.resolve(config.imagesDir);
+  const absolute = path.resolve(root, filePath);
+  return absolute.startsWith(`${root}${path.sep}`) ? absolute : null;
 }
 
 export function deleteImageFromDisk(filePath: string) {
   try {
     const absolute = resolveImageAbsolutePath(filePath);
-    if (fs.existsSync(absolute)) fs.unlinkSync(absolute);
+    if (absolute && fs.existsSync(absolute)) fs.unlinkSync(absolute);
   } catch {
     // تجاهل أخطاء حذف الملف.
   }

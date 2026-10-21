@@ -58,7 +58,7 @@ export const rentalImagesRoutes: FastifyPluginAsync = async (app) => {
       if (!image)
         return reply.code(404).send({ message: "الصورة غير موجودة." });
       const absolute = resolveImageAbsolutePath(image.filePath);
-      if (!fs.existsSync(absolute))
+      if (!absolute || !fs.existsSync(absolute))
         return reply.code(404).send({ message: "ملف الصورة غير موجود." });
       reply.header("Cache-Control", "private, max-age=86400");
       reply.type(contentTypeFor(image.filePath));

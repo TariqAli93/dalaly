@@ -62,7 +62,7 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(404).send({ message: "الصورة غير موجودة." });
 
       const absolute = resolveImageAbsolutePath(image.filePath);
-      if (!fs.existsSync(absolute)) {
+      if (!absolute || !fs.existsSync(absolute)) {
         return reply.code(404).send({ message: "ملف الصورة غير موجود." });
       }
 
