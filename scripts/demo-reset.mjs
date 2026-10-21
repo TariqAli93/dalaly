@@ -15,8 +15,11 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import pg from "pg";
+import { createRequire } from "node:module";
 import { ROOT, SERVER_DIR, WEB_DEMO, serverEnv } from "./web-demo-env.mjs";
+
+// pg is a server dependency; pnpm does not hoist it to the workspace root.
+const pg = createRequire(path.join(ROOT, "server", "package.json"))("pg");
 
 const soft = process.argv.includes("--soft");
 const quiet = process.argv.includes("--quiet");

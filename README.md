@@ -76,17 +76,8 @@ separate API port (45699), separate web port (5199), separate data directory
 Electron-only capabilities (native save/open dialogs, scheduled email backup) fall
 back to browser equivalents through `apps/renderer/src/platform/`.
 
-### Capturing
-
-```bash
-pnpm capture:list      # list every feature capture
-pnpm capture:all       # run all captures (screenshots + one video per feature)
-pnpm capture:process   # FFmpeg: optimized webm + mp4 + poster + webp screenshots
-pnpm capture:report    # open the Playwright HTML report
-```
-
-Requires FFmpeg on `PATH` (not installed by these scripts).
-See `docs/CAPTURE-SHOT-LIST.md` and `docs/CAPTURE-REPORT.md`.
+The Playwright capture suite and its `capture:*` scripts were removed; the
+`docs/CAPTURE-*.md` files describe its last run.
 
 ## Remote Access
 

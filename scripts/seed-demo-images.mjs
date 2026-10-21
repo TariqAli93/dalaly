@@ -7,8 +7,11 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import pg from "pg";
+import { createRequire } from "node:module";
 import { ROOT, WEB_DEMO } from "./web-demo-env.mjs";
+
+// pg is a server dependency; pnpm does not hoist it to the workspace root.
+const pg = createRequire(path.join(ROOT, "server", "package.json"))("pg");
 
 const SOURCE_DIR = path.join(ROOT, "source-assets", "demo", "images");
 const IMAGES_DIR = path.join(ROOT, "server", "data", "web-demo", "images", "properties");
