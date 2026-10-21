@@ -19,11 +19,7 @@ import {
   resolveImageAbsolutePath,
   saveImageToDisk,
 } from "./images.service.js";
-
-function parseId(value: string) {
-  const id = Number(value);
-  return Number.isInteger(id) && id > 0 ? id : null;
-}
+import { parseId } from "../../shared/utils/parse-id.js";
 
 const uploadSchema = z.object({
   images: z

@@ -52,20 +52,6 @@ export async function adminExists() {
   return Number(result[0]?.count ?? 0) > 0;
 }
 
-export async function getUserByUsername(username: string) {
-  const [user] = await db
-    .select({
-      id: users.id,
-      username: users.username,
-      displayName: users.displayName,
-      isActive: users.isActive,
-    })
-    .from(users)
-    .where(eq(users.username, username))
-    .limit(1);
-  return user ?? null;
-}
-
 export async function createAdmin(username: string, pin: string) {
   const pinHash = await hashPin(pin);
   const [user] = await db

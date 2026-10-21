@@ -9,11 +9,7 @@ import {
   updatePerson,
 } from "./people.repository.js";
 import { personFiltersSchema, personPayloadSchema } from "./people.schema.js";
-
-function parseId(value: string) {
-  const id = Number(value);
-  return Number.isInteger(id) && id > 0 ? id : null;
-}
+import { parseId } from "../../shared/utils/parse-id.js";
 
 export const peopleRoutes: FastifyPluginAsync = async (app) => {
   app.get(

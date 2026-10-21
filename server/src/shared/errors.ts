@@ -14,9 +14,6 @@ export class DuplicatePlotError extends Error {
   }
 }
 
-export class ForbiddenError extends Error {
-  readonly statusCode = 403;
-}
 export class DocumentError extends Error {
   constructor(
     message: string,

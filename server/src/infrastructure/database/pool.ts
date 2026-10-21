@@ -82,10 +82,6 @@ export async function reconfigurePool(connectionString: string) {
   await previousPool.end().catch(() => undefined);
 }
 
-export function markDatabaseConfigured() {
-  runtimeConfigured = true;
-}
-
 export function isDatabaseConfigured() {
   return runtimeConfigured || config.dbConfigured;
 }

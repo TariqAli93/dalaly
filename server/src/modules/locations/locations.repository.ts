@@ -1,4 +1,4 @@
-import { and, asc, count, eq } from "drizzle-orm";
+import { asc, count, eq } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import {
   districts,
@@ -197,31 +197,4 @@ async function countPropertiesByNeighborhood(id: number) {
     .from(properties)
     .where(eq(properties.neighborhoodId, id));
   return Number(row?.count ?? 0);
-}
-
-// تستخدمها وحدة المواقع لاحقاً عند الحاجة لمنع التكرار داخل المحافظة.
-export async function districtExists(governorateId: number, name: string) {
-  const [row] = await db
-    .select({ id: districts.id })
-    .from(districts)
-    .where(
-      and(eq(districts.governorateId, governorateId), eq(districts.name, name)),
-    )
-    .limit(1);
-  return Boolean(row);
-}
-
-// تمنع تكرار الحي داخل نفس المنطقة عند الحاجة.
-export async function neighborhoodExists(districtId: number, name: string) {
-  const [row] = await db
-    .select({ id: neighborhoods.id })
-    .from(neighborhoods)
-    .where(
-      and(
-        eq(neighborhoods.districtId, districtId),
-        eq(neighborhoods.name, name),
-      ),
-    )
-    .limit(1);
-  return Boolean(row);
 }

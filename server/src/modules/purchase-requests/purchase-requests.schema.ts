@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { PROPERTY_TYPES } from "../../shared/constants/domain.js";
 
 const optionalText = z
   .string()

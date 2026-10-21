@@ -19,6 +19,7 @@ import {
   reorderRentalImages,
   setPrimaryRentalImage,
 } from "./rental-images.repository.js";
+import { parseId } from "../../shared/utils/parse-id.js";
 
 const uploadSchema = z.object({
   images: z
@@ -33,11 +34,6 @@ const uploadSchema = z.object({
 const orderSchema = z.object({
   ids: z.array(z.coerce.number().int().positive()).default([]),
 });
-function parseId(value: string) {
-  const id = Number(value);
-  return Number.isInteger(id) && id > 0 ? id : null;
-}
-
 export const rentalImagesRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     "/:id/images",

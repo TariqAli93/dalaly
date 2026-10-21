@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, lte, or } from "drizzle-orm";
+import { and, asc, desc, eq, or } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import {
   documentTypes,
