@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1792378022727,
-      "tag": "0000_outstanding_alex_power",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1792378385880,
-      "tag": "0001_contract_studio",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1792379799830,
-      "tag": "0002_studio_ux",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1792418000000,
-      "tag": "0003_remove_contract_system",
+      "when": 1792616090016,
+      "tag": "0000_remarkable_shinobi_shaw",
       "breakpoints": true
     }
   ]
