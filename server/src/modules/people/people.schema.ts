@@ -1,11 +1,5 @@
 import { z } from "zod";
-
-const optionalText = z
-  .string()
-  .trim()
-  .optional()
-  .nullable()
-  .transform((value) => value || null);
+import { optionalText } from "../../shared/validation/fields.js";
 
 export const personPayloadSchema = z.object({
   full_name: z.string().trim().min(1),

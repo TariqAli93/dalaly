@@ -20,3 +20,10 @@ export const followupPayloadSchema = z.object({
 });
 
 export type FollowupPayload = z.infer<typeof followupPayloadSchema>;
+
+/** موعد المتابعة كتاريخ، أو null عند غيابه أو عدم صلاحيته. */
+export function normalizeScheduledAt(value?: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}

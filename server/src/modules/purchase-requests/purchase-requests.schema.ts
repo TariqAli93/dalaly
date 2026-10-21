@@ -1,13 +1,9 @@
 import { z } from "zod";
-
-const optionalText = z
-  .string()
-  .trim()
-  .optional()
-  .nullable()
-  .transform((value) => value || null);
-const optionalNumber = z.coerce.number().nonnegative().optional().nullable();
-const optionalId = z.coerce.number().int().positive().optional().nullable();
+import {
+  optionalId,
+  optionalNumber,
+  optionalText,
+} from "../../shared/validation/fields.js";
 
 export const purchaseRequestPayloadSchema = z
   .object({

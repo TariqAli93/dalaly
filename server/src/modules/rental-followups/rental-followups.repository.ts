@@ -4,12 +4,10 @@ import {
   rentalFollowups,
   users,
 } from "../../infrastructure/database/schema.js";
-import type { FollowupPayload } from "../followups/followups.schema.js";
-function normalizeScheduledAt(value?: string | null) {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
+import {
+  normalizeScheduledAt,
+  type FollowupPayload,
+} from "../followups/followups.schema.js";
 export async function listRentalFollowups(rentalId: number) {
   return db
     .select({
