@@ -14,7 +14,6 @@ import {
   setDatabaseChecking,
   validateDatabaseConnection,
 } from "./health.js";
-import { execSync } from "node:child_process";
 
 let preparation: Promise<void> | null = null;
 

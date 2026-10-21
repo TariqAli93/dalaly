@@ -4,6 +4,22 @@ import { createServer } from "node:http";
 import { classifyStartup, type StartupHealth } from "../src/infrastructure/database/startup-state.js";
 import { pollApiHealth, withDeadline } from "../../apps/desktop/src/startup.js";
 import { isSameDocumentNavigation } from "../../apps/desktop/src/external-links.js";
+import { isScheduleDue } from "../../apps/desktop/src/backup-schedule.js";
+
+test("scheduled email backup is due once per day or week after its local time", () => {
+  const at = (day: number, hour: number, minute = 0) => new Date(2026, 9, day, hour, minute);
+  const daily = { enabled: true, frequency: "daily", time: "02:30" };
+  assert.equal(isScheduleDue(undefined, at(20, 3)), false);
+  assert.equal(isScheduleDue({ ...daily, enabled: false }, at(20, 3)), false);
+  assert.equal(isScheduleDue(daily, at(20, 2, 29)), false);
+  assert.equal(isScheduleDue(daily, at(20, 2, 30)), true);
+  assert.equal(isScheduleDue({ ...daily, lastRunAt: at(20, 2, 31).toISOString() }, at(20, 23)), false);
+  assert.equal(isScheduleDue({ ...daily, lastRunAt: at(19, 2, 31).toISOString() }, at(20, 3)), true);
+  const weekly = { ...daily, frequency: "weekly", lastRunAt: at(14, 2, 30).toISOString() };
+  assert.equal(isScheduleDue(weekly, at(20, 3)), false);
+  assert.equal(isScheduleDue(weekly, at(21, 2, 30)), true);
+  assert.equal(isScheduleDue({ enabled: true }, at(20, 2)), true, "defaults to 02:00 daily");
+});
 
 test("Electron allows internal listing navigation and blocks other documents", () => {
   const renderer = "file:///D:/Program%20Files/Dalaly/index.html#/properties";

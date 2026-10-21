@@ -32,11 +32,6 @@ interface DalalyConfigBridge {
   saveDatabaseUrl: (
     databaseUrl: string,
   ) => Promise<{ ok: boolean; message?: string }>;
-  saveDatabaseConfig: (config: unknown) => Promise<{ ok: boolean }>;
-  getDatabaseConfigStatus: () => Promise<{
-    configured: boolean;
-    database: unknown;
-  }>;
   exportPdf?: (input: { html: string; suggestedName: string }) => Promise<{
     ok: boolean;
     path?: string;
