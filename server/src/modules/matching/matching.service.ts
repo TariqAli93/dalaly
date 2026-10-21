@@ -39,18 +39,6 @@ function inRange(value: number | null, min: unknown, max: unknown) {
   const high = number(max);
   return (low === null || value >= low) && (high === null || value <= high);
 }
-function rangesOverlap(
-  aMin: unknown,
-  aMax: unknown,
-  bMin: unknown,
-  bMax: unknown,
-) {
-  const left = number(aMin) ?? Number.NEGATIVE_INFINITY;
-  const right = number(aMax) ?? Number.POSITIVE_INFINITY;
-  const otherLeft = number(bMin) ?? Number.NEGATIVE_INFINITY;
-  const otherRight = number(bMax) ?? Number.POSITIVE_INFINITY;
-  return left <= otherRight && otherLeft <= right;
-}
 function locationReason(
   request: Record<string, unknown>,
   offer: Record<string, unknown>,

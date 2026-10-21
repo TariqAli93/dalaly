@@ -9,7 +9,6 @@ import ExcelImportDialog from "../components/properties/ExcelImportDialog.vue";
 import MasterDetailLayout from "../components/shared/MasterDetailLayout.vue";
 import PropertySummary from "../components/shared/PropertySummary.vue";
 import { useProperties } from "../composables/useProperties";
-import { useStats } from "../composables/useStats";
 import { usePropertyActions } from "../composables/usePropertyActions";
 import { useSnackbar } from "../composables/useSnackbar";
 import { useRefresh } from "../composables/useRefresh";
@@ -23,7 +22,6 @@ import type { PropertyRecord } from "../types";
 const router = useRouter();
 const { properties, loading, filters, loadProperties, clearFilters } =
   useProperties();
-const { loadStats } = useStats();
 
 const { notifyError, notifySuccess } = useSnackbar();
 const { setRefreshHandler } = useRefresh();
@@ -128,7 +126,7 @@ function resetAll() {
 }
 
 async function refreshData() {
-  await Promise.all([loadProperties(), loadStats()]);
+  await loadProperties();
 }
 
 function viewDetails(property: PropertyRecord) {
@@ -225,11 +223,7 @@ onMounted(() => {
       </div>
     </template>
 
-    <PropertyFilters
-      v-model="filters"
-      @apply="loadProperties"
-      @clear="clearFilters"
-    />
+    <PropertyFilters v-model="filters" @apply="loadProperties" />
 
     <!-- شريط النتائج: العدد بسياقه، اختيارات سريعة، والفرز -->
     <div class="dal-resultsbar bg-surface pa-3 border">

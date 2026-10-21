@@ -30,4 +30,15 @@ test("database-dependent endpoints still require authentication before setup", a
   assert.equal((await app.inject({ url: "/api/properties" })).statusCode, 401);
 });
 
+test("stored image paths cannot escape the images folder", async () => {
+  const path = await import("node:path");
+  const { config } = await import("../src/infrastructure/config.js");
+  const { resolveImageAbsolutePath } = await import("../src/modules/images/images.service.js");
+  const root = path.resolve(config.imagesDir);
+  assert.equal(resolveImageAbsolutePath("12/photo.png"), path.join(root, "12", "photo.png"));
+  assert.equal(resolveImageAbsolutePath("rentals/3/photo.png"), path.join(root, "rentals", "3", "photo.png"));
+  for (const escape of ["../../config.json", "rentals/../../x.png", path.resolve(root, "..", "x.png"), ""])
+    assert.equal(resolveImageAbsolutePath(escape), null, escape);
+});
+
 test.after(async () => { await app.close(); });

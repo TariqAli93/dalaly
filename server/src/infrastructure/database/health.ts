@@ -42,21 +42,6 @@ export async function validateDatabaseConnection() {
   }
 }
 
-export async function tableExists(tableName: string) {
-  const result = await pool.query(
-    `
-    select exists (
-      select from information_schema.tables
-      where table_schema = 'public'
-      and table_name = $1
-    ) as exists
-    `,
-    [tableName],
-  );
-
-  return Boolean(result.rows[0]?.exists);
-}
-
 export function markMigrationsSucceeded(migrationsFolder: string) {
   startupState.migrationsOk = true;
   startupState.migrationsFolder = migrationsFolder;
@@ -71,10 +56,6 @@ export function markMigrationsFailed(
   startupState.migrationsFolder = migrationsFolder;
   startupState.lastMigrationError =
     error instanceof Error ? error.message : String(error);
-}
-
-export function getDatabaseStartupState() {
-  return { ...startupState };
 }
 
 export type SetupStatus = {

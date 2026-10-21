@@ -12,7 +12,7 @@ The renderer uses the stable Leaflet 1.9.4 library directly with Vue 3 Compositi
 
 ## Data compatibility
 
-No new migration or backfill is required for this replacement. Existing separate `properties` and `rentals` tables retain `latitude numeric(10,8)`, `longitude numeric(11,8)` and optional `location_link text`, introduced by `0018_listing_locations.sql`. PostgreSQL range/pair constraints and numeric response types are unchanged.
+No new migration or backfill is required for this replacement. Existing separate `properties` and `rentals` tables retain `latitude numeric(10,8)`, `longitude numeric(11,8)` and optional `location_link text`, introduced by the former `0018_listing_locations.sql` and now part of the baseline `0000_outstanding_alex_power.sql`. PostgreSQL range/pair constraints and numeric response types are unchanged.
 
 Create/update accept both coordinates together within latitude ±90 and longitude ±180. Blank strings normalize to null; explicit null pairs clear a point. Omitted fields in older clients preserve saved values. Link validation now accepts HTTPS OpenStreetMap map/search/directions URLs and previously supported Google map URLs; credentials, custom ports, executable schemes and spoofed domains are rejected.
 

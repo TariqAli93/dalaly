@@ -1,7 +1,6 @@
-﻿import {
+import {
   bigint,
   bigserial,
-  date,
   check,
   boolean,
   index,
@@ -12,8 +11,6 @@
   primaryKey,
   text,
   timestamp,
-  unique,
-  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 

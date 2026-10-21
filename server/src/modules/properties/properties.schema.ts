@@ -11,21 +11,11 @@ import {
   locationFields,
   refineLocation,
 } from "../../shared/validation/location.js";
-
-const optionalText = z
-  .string()
-  .trim()
-  .optional()
-  .nullable()
-  .transform((value) => (value ? value : null));
-
-const optionalId = z.coerce.number().int().positive().optional().nullable();
-const optionalCount = z.coerce
-  .number()
-  .int()
-  .nonnegative()
-  .optional()
-  .nullable();
+import {
+  optionalCount,
+  optionalId,
+  optionalText,
+} from "../../shared/validation/fields.js";
 
 export const propertyPayloadSchema = z
   .object({

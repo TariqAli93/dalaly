@@ -39,14 +39,6 @@ export function resolveManagedFile(filePath: string) {
     throw new Error("مسار الملف غير صالح.");
   return absolute;
 }
-export function deleteManagedFile(filePath: string) {
-  try {
-    const absolute = resolveManagedFile(filePath);
-    if (fs.existsSync(absolute)) fs.unlinkSync(absolute);
-  } catch {
-    /* لا نحذف أي ملف خارج مجلد المستندات. */
-  }
-}
 export function contentTypeForFile(filePath: string) {
   const ext = path.extname(filePath).toLowerCase();
   return (

@@ -1,0 +1,125 @@
+# Dalaly architecture
+
+How the desktop app is put together, which layer owns what, and the conventions
+to follow when changing it. Keep this file current when a boundary moves.
+
+## Processes
+
+```text
+Electron main (apps/desktop/src)
+ ├─ spawns ──► Fastify API (server/)  ── pg Pool ──► PostgreSQL
+ │             127.0.0.1:34567, ELECTRON_RUN_AS_NODE child process
+ ├─ splash window   (renderer/dist/splash.html + splash-preload.cjs)
+ └─ main window     (renderer/dist/index.html  + preload.cjs)
+                     Vue 3 + Vuetify, talks to the API over HTTP
+```
+
+- **Electron main** owns the app lifecycle, windows, native dialogs, files the
+  user picks, the local `config.json` (database URL, scheduled backup), and the
+  API child process. It never queries PostgreSQL itself.
+- **Fastify API** owns validation, business rules, persistence and file storage
+  under the app data folder (images, documents, backups). Every route except
+  health, setup and login (`publicPaths` in `modules/auth/auth.hooks.ts`)
+  requires a bearer session token; `requirePermission` checks RBAC keys per
+  route. Anonymous setup mutations are further limited to local callers by
+  `requireLocalSetup`.
+- **Renderer** owns UI state and presentation. Business data goes over HTTP
+  through `apps/renderer/src/services/*.service.ts`; only native operations go
+  over IPC, through `apps/renderer/src/platform/` (a browser fallback exists
+  for the web demo).
+
+### Startup
+
+1. `main.js` shows the splash, starts the API (`tsx src/index.ts` in
+   development, `resources/server/dist/index.js` when packaged) and polls
+   `/api/health`.
+2. The API listens immediately and prepares the database in the background
+   (`infrastructure/database/startup.ts`): connection check, migrations, RBAC
+   seed. `/api/health` reports `CHECKING`, `SETUP_REQUIRED`, `READY` or
+   `ERROR` (see `docs/STARTUP_FLOW.md`).
+3. The main window opens on `/setup` or `/`; the renderer reports back through
+   `startup:renderer-ready` once the router has rendered, then the splash
+   closes.
+
+The per-launch `INTERNAL_TOKEN` (environment of the API child) authenticates
+main-process calls such as setup proxying and the scheduled backup run.
+
+## Electron main (`apps/desktop/src`)
+
+| File                                | Responsibility                                                                             |
+| ----------------------------------- | ------------------------------------------------------------------------------------------ |
+| `main.js`                           | lifecycle, main window, API child process, startup sequence, setup/startup/maps/config IPC |
+| `splash.js`                         | splash window, progress stages, `splash:*` IPC                                             |
+| `document-export.js`                | `export:save-pdf` (offscreen print), `export:save-file`, `export:save-folder`              |
+| `backup.js`                         | backup file/folder dialogs, schedule IPC, email backup scheduler                           |
+| `backup-schedule.js`                | pure due-time check (unit tested)                                                          |
+| `app-config.js`                     | read/write `userData/config.json`                                                          |
+| `ipc-guard.js`                      | `isMainWindowSender`: privileged channels accept only the main window's top frame          |
+| `external-links.js`, `startup.js`   | pure helpers (unit tested from `server/scripts`)                                           |
+| `preload.cjs`, `splash-preload.cjs` | the only APIs exposed to the renderers                                                     |
+
+Windows run with `contextIsolation`, `sandbox` and no `nodeIntegration`. A new
+native capability needs: a handler that validates its sender and input, one
+preload method, a typed entry in `apps/renderer/src/env.d.ts`, and an
+implementation in both `platform/electron.ts` and `platform/web.ts`.
+
+## API (`server/src`)
+
+```text
+index.ts            listen + background database preparation
+server.ts           CORS, auth hook, error handler, route registration
+infrastructure/     config, pg pool (hot-swappable after setup), drizzle
+                    schema, migrations runner, startup state, seeds
+modules/<domain>/   <domain>.routes.ts      endpoints + permissions
+                    <domain>.schema.ts      zod request schemas
+                    <domain>.repository.ts  queries, mapping, audit
+                    <domain>.service.ts     only where logic spans tables,
+                                            files or processes (backup,
+                                            matching, setup, images, auth)
+shared/             errors, domain constants, parseId, zod field helpers,
+                    map-link parsing, case mapping
+```
+
+Conventions:
+
+- Routes parse input with the module's zod schema (`schema.parse` errors become
+  localized 400s in the central error handler), call a repository or service,
+  and return snake_case objects (`toApiObject`).
+- Use `parseId` from `shared/utils/parse-id.ts` for route ids and
+  `shared/validation/fields.ts` for optional text/id/number fields.
+- User-facing messages are Arabic. Keep request/response shapes stable: the
+  renderer types in `apps/renderer/src/types` mirror them by hand.
+- Add a service file only when a repository alone would mix concerns; most
+  modules are CRUD and stay `routes → repository`.
+- Migrations live in `server/drizzle` and are never edited or deleted once
+  shipped. `run-migrations.ts` deliberately skips the retired contract-system
+  migrations `0001`/`0002` and gates `0003` behind explicit approval.
+
+## Renderer (`apps/renderer/src`)
+
+```text
+pages/         one per route (lazy-loaded in router/index.ts)
+components/    app/ shell, shared/ reusable, <domain>/ feature components
+composables/   cross-page state (auth, permissions, snackbar, confirm…)
+services/      one HTTP client module per API area; api.service.ts holds
+               the token, 401 handling and ApiError
+platform/      native capabilities: electron.ts (preload bridge) / web.ts
+constants/     domain option lists and Arabic labels (single source)
+utils/         formatting (format.ts), files, exports, Excel import
+types/         API record and form types
+```
+
+Conventions: Arabic UI and RTL throughout; numbers and dates use Latin digits
+(`formatMoney`, `formatNumber`, `formatDateTime`); option lists and their label
+maps come from `constants/` (for example `RENT_PERIODS` /
+`RENT_PERIOD_LABELS`) rather than per-component copies.
+
+The layout is by type with domain subfolders. It is consistent and small
+enough that a move to feature folders would cost more review and history churn
+than it saves; revisit only if a domain grows its own composables and
+services.
+
+## Checks
+
+See "Checks and Tests" in the README: `pnpm typecheck`, `pnpm test`, the
+database-backed runtime suites and the real Electron startup suite.

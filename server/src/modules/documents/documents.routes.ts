@@ -17,11 +17,7 @@ import {
   identityDocumentUpdateSchema,
 } from "./documents.schema.js";
 import { contentTypeForFile, resolveManagedFile } from "./documents.storage.js";
-
-function parseId(value: string) {
-  const id = Number(value);
-  return Number.isInteger(id) && id > 0 ? id : null;
-}
+import { parseId } from "../../shared/utils/parse-id.js";
 
 export const documentsRoutes: FastifyPluginAsync = async (app) => {
   app.get(

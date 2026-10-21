@@ -88,7 +88,7 @@ Backend:
 - `server/src/modules/setup/setup.service.ts`
 - `server/src/modules/rbac/rbac.service.ts`
 - `server/drizzle.config.ts`
-- `server/drizzle/0000_fresh_felicia_hardy.sql` (new baseline)
+- `server/drizzle/0000_fresh_felicia_hardy.sql` (new baseline; since replaced by `0000_outstanding_alex_power.sql`)
 - `server/drizzle/meta/0000_snapshot.json` (generated)
 - `server/drizzle/meta/_journal.json` (generated)
 

@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { RENTAL_PROPERTY_LABELS } from "../../constants/domain";
+import {
+  RENT_PERIOD_LABELS,
+  RENTAL_PROPERTY_LABELS,
+} from "../../constants/domain";
 import { ref, watch } from "vue";
 import { statusColor, statusLabel } from "../../constants/domain";
 import { usePermissions } from "../../composables/usePermissions";
 import { getRentalAudit } from "../../services/rentals.service";
 import { amenitiesText } from "../../utils/amenities";
-import { formatMoney } from "../../utils/format";
+import { formatDateTime, formatMoney } from "../../utils/format";
 import type { AuditLogRecord, RentalRecord } from "../../types";
 import RentalExportMenu from "./RentalExportMenu.vue";
 import RentalImages from "./RentalImages.vue";
@@ -32,15 +35,7 @@ const auditLogs = ref<AuditLogRecord[]>([]);
 const auditLoading = ref(false);
 
 const typeLabel = RENTAL_PROPERTY_LABELS;
-const periodLabel: Record<string, string> = {
-  monthly: "شهري",
-  semi_annual: "نصف سنوي",
-  annual: "سنوي",
-};
-
-function formatDate(value: string) {
-  return new Date(value).toLocaleString("ar-IQ", { numberingSystem: "latn" });
-}
+const periodLabel = RENT_PERIOD_LABELS;
 
 async function loadAudit(id: number) {
   if (!can("audit.read")) return;
@@ -204,7 +199,7 @@ watch(
                 <div class="detail-item">
                   <div class="detail-label">آخر تحديث</div>
                   <div class="detail-value">
-                    {{ formatDate(rental.updated_at) }}
+                    {{ formatDateTime(rental.updated_at) }}
                   </div>
                 </div>
                 <div class="detail-item">

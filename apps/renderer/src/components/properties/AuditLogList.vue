@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AuditLogRecord } from "../../types";
+import { formatDateTime } from "../../utils/format";
 
 defineProps<{ logs: AuditLogRecord[]; loading?: boolean }>();
 
@@ -32,9 +33,6 @@ function label(action: string) {
 }
 function icon(action: string) {
   return ACTION_ICONS[action] ?? "mdi-history";
-}
-function when(value: string) {
-  return new Date(value).toLocaleString("ar-IQ", { numberingSystem: "latn" });
 }
 function detail(log: AuditLogRecord) {
   const value = (log.new_value ?? {}) as Record<string, unknown>;
@@ -75,7 +73,8 @@ function detail(log: AuditLogRecord) {
             >
           </div>
           <div class="text-caption text-medium-emphasis">
-            {{ log.user_name || "النظام" }} · {{ when(log.created_at) }}
+            {{ log.user_name || "النظام" }} ·
+            {{ formatDateTime(log.created_at) }}
           </div>
         </div>
       </v-timeline-item>

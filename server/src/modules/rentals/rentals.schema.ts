@@ -1,4 +1,4 @@
-﻿import { z } from "zod";
+import { z } from "zod";
 import {
   AREA_UNITS,
   RENTAL_PROPERTY_TYPES,
@@ -10,20 +10,11 @@ import {
   locationFields,
   refineLocation,
 } from "../../shared/validation/location.js";
-
-const optionalText = z
-  .string()
-  .trim()
-  .optional()
-  .nullable()
-  .transform((value) => value || null);
-const optionalCount = z.coerce
-  .number()
-  .int()
-  .nonnegative()
-  .optional()
-  .nullable();
-const optionalId = z.coerce.number().int().positive().optional().nullable();
+import {
+  optionalCount,
+  optionalId,
+  optionalText,
+} from "../../shared/validation/fields.js";
 
 export const rentalPayloadSchema = z
   .object({

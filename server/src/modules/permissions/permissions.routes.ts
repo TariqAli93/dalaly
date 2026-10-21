@@ -7,11 +7,7 @@ import {
   updatePermission,
 } from "./permissions.repository.js";
 import { permissionPayloadSchema } from "./permissions.schema.js";
-
-function parseId(value: string) {
-  const id = Number(value);
-  return Number.isInteger(id) && id > 0 ? id : null;
-}
+import { parseId } from "../../shared/utils/parse-id.js";
 
 export const permissionsRoutes: FastifyPluginAsync = async (app) => {
   app.get("/", { preHandler: requirePermission("roles.read") }, async () =>

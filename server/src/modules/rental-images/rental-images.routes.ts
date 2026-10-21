@@ -1,4 +1,4 @@
-﻿import fs from "node:fs";
+import fs from "node:fs";
 import { type FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { requirePermission } from "../auth/auth.hooks.js";
@@ -19,6 +19,7 @@ import {
   reorderRentalImages,
   setPrimaryRentalImage,
 } from "./rental-images.repository.js";
+import { parseId } from "../../shared/utils/parse-id.js";
 
 const uploadSchema = z.object({
   images: z
@@ -33,11 +34,6 @@ const uploadSchema = z.object({
 const orderSchema = z.object({
   ids: z.array(z.coerce.number().int().positive()).default([]),
 });
-function parseId(value: string) {
-  const id = Number(value);
-  return Number.isInteger(id) && id > 0 ? id : null;
-}
-
 export const rentalImagesRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     "/:id/images",
@@ -62,7 +58,7 @@ export const rentalImagesRoutes: FastifyPluginAsync = async (app) => {
       if (!image)
         return reply.code(404).send({ message: "الصورة غير موجودة." });
       const absolute = resolveImageAbsolutePath(image.filePath);
-      if (!fs.existsSync(absolute))
+      if (!absolute || !fs.existsSync(absolute))
         return reply.code(404).send({ message: "ملف الصورة غير موجود." });
       reply.header("Cache-Control", "private, max-age=86400");
       reply.type(contentTypeFor(image.filePath));

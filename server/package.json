@@ -5,6 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
+    "test": "tsx --test scripts/startup.test.ts scripts/setup-security.test.ts scripts/location.test.ts",
     "test:startup": "tsx --test scripts/startup.test.ts scripts/setup-security.test.ts",
     "test:startup:electron": "node scripts/startup-electron.mjs",
     "dev": "tsx watch src/index.ts",
@@ -29,6 +30,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:removal:browser": "tsx scripts/removal-browser.ts",
     "test:removal:electron": "tsx scripts/removal-package-smoke.ts",
+    "test:removal": "tsx --test scripts/removal-core.test.ts scripts/removal-backup.test.ts scripts/removal-legacy.test.ts",
     "test:removal:legacy": "tsx --test scripts/removal-legacy.test.ts"
   },
   "dependencies": {

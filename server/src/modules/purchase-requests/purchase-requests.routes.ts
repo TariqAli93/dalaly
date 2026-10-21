@@ -10,10 +10,7 @@ import {
   purchaseRequestFiltersSchema,
   purchaseRequestPayloadSchema,
 } from "./purchase-requests.schema.js";
-function parseId(value: string) {
-  const id = Number(value);
-  return Number.isInteger(id) && id > 0 ? id : null;
-}
+import { parseId } from "../../shared/utils/parse-id.js";
 export const purchaseRequestsRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     "/",

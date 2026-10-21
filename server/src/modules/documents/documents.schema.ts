@@ -1,11 +1,5 @@
 import { z } from "zod";
-
-const optionalText = z
-  .string()
-  .trim()
-  .optional()
-  .nullable()
-  .transform((value) => value || null);
+import { optionalText } from "../../shared/validation/fields.js";
 
 export const identityDocumentPayloadSchema = z.object({
   person_id: z.coerce.number().int().positive(),

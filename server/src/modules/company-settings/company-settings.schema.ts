@@ -1,10 +1,5 @@
 import { z } from "zod";
-const optionalText = z
-  .string()
-  .trim()
-  .optional()
-  .nullable()
-  .transform((value) => value || null);
+import { optionalText } from "../../shared/validation/fields.js";
 export const companySettingsSchema = z.object({
   company_name: z.string().trim().default(""),
   owner_name: optionalText,

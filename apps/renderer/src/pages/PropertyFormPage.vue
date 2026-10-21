@@ -6,7 +6,6 @@ import PropertyForm from "../components/properties/PropertyForm.vue";
 import { DIRECT_PRICE } from "../constants/domain";
 import { getErrorMessage } from "../services/api.service";
 import { useProperties } from "../composables/useProperties";
-import { useStats } from "../composables/useStats";
 import { useSnackbar } from "../composables/useSnackbar";
 import * as requests from "../services/requests.service";
 import * as peopleService from "../services/people.service";
@@ -22,7 +21,6 @@ import type {
 const route = useRoute();
 const router = useRouter();
 const { service, loadProperties } = useProperties();
-const { loadStats } = useStats();
 const { notifySuccess, notifyError } = useSnackbar();
 const people = ref<PersonRecord[]>([]);
 
@@ -192,7 +190,7 @@ async function save() {
         // Matching is advisory and must not block saving an offer.
       }
     }
-    await Promise.all([loadProperties(), loadStats()]);
+    await loadProperties();
     if (matches.value.length) matchDialog.value = true;
     else await router.push("/properties");
   } catch (error) {

@@ -273,5 +273,3 @@ export async function recoverSystem() {
     return recovered;
   });
 }
-
-export { getSetupStatus };

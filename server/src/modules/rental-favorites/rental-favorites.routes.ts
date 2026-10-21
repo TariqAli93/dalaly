@@ -1,4 +1,4 @@
-﻿import { type FastifyPluginAsync } from "fastify";
+import { type FastifyPluginAsync } from "fastify";
 import { requirePermission } from "../auth/auth.hooks.js";
 import {
   addFavoriteRental,
@@ -6,10 +6,7 @@ import {
   listFavoriteRentals,
   removeFavoriteRental,
 } from "./rental-favorites.repository.js";
-function parseId(value: string) {
-  const id = Number(value);
-  return Number.isInteger(id) && id > 0 ? id : null;
-}
+import { parseId } from "../../shared/utils/parse-id.js";
 export const rentalFavoritesRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     "/",

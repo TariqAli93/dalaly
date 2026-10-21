@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RENTAL_PROPERTY_TYPES } from "../../constants/domain";
+import { RENT_PERIODS, RENTAL_PROPERTY_TYPES } from "../../constants/domain";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useLocations } from "../../composables/useLocations";
 import NumberField from "../app/NumberField.vue";
@@ -23,11 +23,7 @@ const neighborhoods = computed(() =>
 );
 
 const propertyTypes = RENTAL_PROPERTY_TYPES;
-const periods = [
-  { title: "شهري", value: "monthly" },
-  { title: "نصف سنوي", value: "semi_annual" },
-  { title: "سنوي", value: "annual" },
-];
+const periods = RENT_PERIODS;
 const statuses = [
   { title: "متاح", value: "available" },
   { title: "محجوز", value: "reserved" },

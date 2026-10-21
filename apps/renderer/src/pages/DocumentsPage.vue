@@ -6,6 +6,7 @@ import * as documentsService from "../services/documents.service";
 import { getErrorMessage } from "../services/api.service";
 import { usePermissions } from "../composables/usePermissions";
 import { useSnackbar } from "../composables/useSnackbar";
+import { readFileAsDataUrl } from "../utils/files";
 import type {
   DocumentRecord,
   DocumentTypeRecord,
@@ -35,14 +36,6 @@ const headers = [
   { title: "الحالة", key: "computed_status" },
   { title: "", key: "actions" },
 ];
-function readFile(value: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = reject;
-    reader.readAsDataURL(value);
-  });
-}
 async function load() {
   loading.value = true;
   try {
@@ -63,7 +56,7 @@ async function add() {
     await documentsService.uploadDocument({
       ...form.value,
       person_id: personId.value,
-      data: await readFile(file.value),
+      data: await readFileAsDataUrl(file.value),
       file_type: file.value.type || "application/octet-stream",
       original_name: file.value.name,
       expires_at: form.value.expires_at || null,

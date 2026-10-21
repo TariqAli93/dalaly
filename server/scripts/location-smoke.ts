@@ -25,7 +25,6 @@ try {
   } else { delete process.env.DATABASE_URL; process.env.DB_NAME = name; }
   process.env.APP_DATA_DIR = path.join(temporary, "data");
   process.env.CORS_ORIGINS = "http://127.0.0.1:5189,http://127.0.0.1:5173,null";
-  process.env.ADMIN_USERNAME = "maps_test_admin"; process.env.ADMIN_PIN = "918273";
   const migrations = path.join(root, "server/drizzle");
   const oldMigrations = path.join(temporary, "drizzle");
   await fs.cp(migrations, oldMigrations, { recursive: true });
@@ -48,6 +47,8 @@ try {
   console.log("PASS migration preserves preexisting sale/rental records and reruns safely");
   const { markMigrationsSucceeded } = await import("../src/infrastructure/database/health.js");
   markMigrationsSucceeded(migrations);
+  // Startup never creates a default administrator; the test creates its own.
+  await (await import("../src/modules/auth/auth.service.js")).createAdmin("maps_test_admin", "918273");
   app = await (await import("../src/server.js")).buildServer(); app.log.level = "silent";
   const login = await app.inject({ method: "POST", url: "/api/auth/login", payload: { username: "maps_test_admin", pin: "918273" } });
   assert.equal(login.statusCode, 200);

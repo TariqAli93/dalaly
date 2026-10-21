@@ -9,11 +9,14 @@ import { fileURLToPath } from "node:url";
 import { createServer } from "node:http";
 import net from "node:net";
 import { randomUUID } from "node:crypto";
+import { createRequire } from "node:module";
 import dotenv from "dotenv";
 import pg from "pg";
 import { _electron, expect } from "@playwright/test";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+// The electron package exports its platform binary path; pnpm installs it under apps/desktop.
+const electronExecutable = createRequire(path.join(root, "apps/desktop/package.json"))("electron");
 dotenv.config({ path: path.join(root, ".env"), quiet: true });
 const configured = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL) : null;
 const credentials = {
@@ -74,7 +77,7 @@ async function launch({ configuredDatabase = true, dbPort, migrations = migratio
   const port = apiPort || await freePort();
   const env = Object.fromEntries(Object.entries(process.env).filter(([key, value]) => key !== "ELECTRON_RUN_AS_NODE" && typeof value === "string"));
   electron = await _electron.launch({
-    executablePath: path.join(root, "node_modules/electron/dist/electron.exe"),
+    executablePath: electronExecutable,
     args: [path.join(root, "apps/desktop/src/main.js"), `--user-data-dir=${profile}`],
     env: { ...env, DATABASE_URL: "", DB_HOST: "", DB_NAME: "", VITE_DEV_SERVER_URL: "",
       API_HOST: "127.0.0.1", API_PORT: String(port), DRIZZLE_MIGRATIONS_DIR: migrations,

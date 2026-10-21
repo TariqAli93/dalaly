@@ -6,6 +6,7 @@ import * as rentals from "../../services/rentals.service";
 import { getErrorMessage } from "../../services/api.service";
 import { useSnackbar } from "../../composables/useSnackbar";
 import { useConfirm } from "../../composables/useConfirm";
+import { readFileAsDataUrl } from "../../utils/files";
 const props = defineProps<{
   rentalId: number;
   canManage?: boolean;
@@ -27,13 +28,6 @@ const activeImage = computed(
 const loading = ref(false);
 const uploading = ref(false);
 const input = ref<HTMLInputElement | null>(null);
-const toDataUrl = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 async function load() {
   loading.value = true;
   try {
@@ -53,7 +47,7 @@ async function upload(event: Event) {
   try {
     for (const file of files)
       await rentals.uploadRentalImages(props.rentalId, [
-        { data: await toDataUrl(file), original_name: file.name },
+        { data: await readFileAsDataUrl(file), original_name: file.name },
       ]);
     await load();
     notifySuccess("تم رفع صور الإيجار.");

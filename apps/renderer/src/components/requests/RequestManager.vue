@@ -5,7 +5,12 @@ import LocationSelects from "../properties/LocationSelects.vue";
 import StatusChip from "../shared/StatusChip.vue";
 import NumberField from "../app/NumberField.vue";
 import AppLayout from "../../layouts/AppLayout.vue";
-import { PROPERTY_TYPES, RENTAL_PROPERTY_TYPES } from "../../constants/domain";
+import {
+  PROPERTY_TYPES,
+  RENT_PERIOD_LABELS,
+  RENT_PERIODS,
+  RENTAL_PROPERTY_TYPES,
+} from "../../constants/domain";
 import * as peopleService from "../../services/people.service";
 import * as requests from "../../services/requests.service";
 import { getErrorMessage } from "../../services/api.service";
@@ -92,15 +97,7 @@ function requestRentPeriodLabel(
   item: RentalRequestRecord | PurchaseRequestRecord,
 ) {
   if (!("rent_period" in item)) return "-";
-  return (
-    {
-      monthly: "شهري",
-      semi_annual: "نصف سنوي",
-      annual: "سنوي",
-    }[item.rent_period ?? ""] ??
-    item.rent_period ??
-    "-"
-  );
+  return RENT_PERIOD_LABELS[item.rent_period ?? ""] ?? item.rent_period ?? "-";
 }
 
 function handleRowClick(
@@ -108,13 +105,6 @@ function handleRowClick(
   context: { item: RentalRequestRecord | PurchaseRequestRecord },
 ) {
   openEdit(context.item);
-}
-function matchKey(match: MatchResult) {
-  return String((match.record as { id: number }).id);
-}
-function matchTitle(match: MatchResult) {
-  const record = match.record as { name?: string; code?: string };
-  return String(record.name || record.code || "offer");
 }
 function numberOrNull(value: unknown) {
   if (value === "" || value === null || value === undefined) return null;
@@ -336,11 +326,7 @@ onMounted(async () => {
             /><v-select
               v-if="isRental"
               v-model="form.rent_period"
-              :items="[
-                { title: 'شهري', value: 'monthly' },
-                { title: 'نصف سنوي', value: 'semi_annual' },
-                { title: 'سنوي', value: 'annual' },
-              ]"
+              :items="RENT_PERIODS"
               label="نوع الإيجار"
             /><NumberField
               v-model="form.budget_min"

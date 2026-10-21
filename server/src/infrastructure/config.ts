@@ -51,8 +51,6 @@ export const config = {
   appVersion: process.env.APP_VERSION ?? "0.1.0",
   apiHost: process.env.API_HOST ?? "127.0.0.1",
   apiPort: Number(process.env.API_PORT ?? 34567),
-  /** وضع عرض الويب للتصوير فقط — لا يُفعَّل في نسخة سطح المكتب ولا الإنتاج. */
-  webDemoMode: process.env.WEB_DEMO_MODE === "true",
   corsOrigins,
   databaseUrl,
   dbConfigured: hasExplicitDbEnv,

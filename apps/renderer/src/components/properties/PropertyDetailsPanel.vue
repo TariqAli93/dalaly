@@ -3,7 +3,7 @@ import { computed, ref, watch } from "vue";
 import { statusColor, statusLabel } from "../../constants/domain";
 import { usePermissions } from "../../composables/usePermissions";
 import { getPropertyAudit } from "../../services/properties.service";
-import { formatMoney, formatPlot } from "../../utils/format";
+import { formatDateTime, formatMoney, formatPlot } from "../../utils/format";
 import { neighborhoodOf } from "../../utils/exportProperty";
 import type { AuditLogRecord, PropertyRecord } from "../../types";
 import PropertyExportMenu from "./PropertyExportMenu.vue";
@@ -56,21 +56,17 @@ const extraFields = computed(() =>
     ["عرض الشارع (متر)", props.property.street_width],
     ["عدد الحمامات", props.property.bathrooms_count],
     ["المزايا", amenitiesText(props.property.amenities)],
-    ["تاريخ الإضافة", formatDate(props.property.created_at)],
+    ["تاريخ الإضافة", formatDateTime(props.property.created_at)],
     [
       "تاريخ الأرشفة",
       props.property.archived_at
-        ? formatDate(props.property.archived_at)
+        ? formatDateTime(props.property.archived_at)
         : null,
     ],
   ].filter(
     ([, value]) => value !== null && value !== undefined && value !== "",
   ),
 );
-
-function formatDate(value: string) {
-  return new Date(value).toLocaleString("ar-IQ", { numberingSystem: "latn" });
-}
 
 async function loadAudit(id: number) {
   if (!can("audit.read")) return;
@@ -241,7 +237,7 @@ watch(
               <div class="detail-item">
                 <div class="detail-label">آخر تحديث</div>
                 <div class="detail-value">
-                  {{ formatDate(property.updated_at) }}
+                  {{ formatDateTime(property.updated_at) }}
                 </div>
               </div>
               <div v-if="property.rooms_count" class="detail-item">

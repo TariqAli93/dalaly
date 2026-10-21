@@ -1,5 +1,5 @@
-﻿<script setup lang="ts">
-import { RENTAL_PROPERTY_TYPES } from "../../constants/domain";
+<script setup lang="ts">
+import { RENT_PERIODS, RENTAL_PROPERTY_TYPES } from "../../constants/domain";
 import { computed, ref } from "vue";
 import { AREA_UNITS } from "../../constants/domain";
 import type { PersonRecord, RentalForm as RentalFormType } from "../../types";
@@ -23,11 +23,7 @@ const required = (value: unknown) => Boolean(value) || "هذا الحقل مطل
 const positive = (value: unknown) =>
   Number(value) > 0 || "يجب أن تكون القيمة أكبر من صفر";
 const propertyTypes = RENTAL_PROPERTY_TYPES;
-const periods = [
-  { title: "شهري", value: "monthly" },
-  { title: "نصف سنوي", value: "semi_annual" },
-  { title: "سنوي", value: "annual" },
-];
+const periods = RENT_PERIODS;
 const statuses = [
   { title: "متاح", value: "available" },
   { title: "محجوز", value: "reserved" },

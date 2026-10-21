@@ -11,12 +11,6 @@ contextBridge.exposeInMainWorld("dalalyConfig", {
   saveDatabaseUrl: (databaseUrl) =>
     ipcRenderer.invoke("config:save-database-url", databaseUrl),
 
-  saveDatabaseConfig: (config) =>
-    ipcRenderer.invoke("config:save-database", config),
-
-  getDatabaseConfigStatus: () =>
-    ipcRenderer.invoke("config:get-database-status"),
-
   // تصدير PDF عبر العملية الرئيسية.
   exportPdf: (input) => ipcRenderer.invoke("export:save-pdf", input),
   saveFile: (input) => ipcRenderer.invoke("export:save-file", input),

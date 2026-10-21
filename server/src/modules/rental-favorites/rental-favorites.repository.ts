@@ -1,4 +1,4 @@
-﻿import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import {
   favoriteRentals,

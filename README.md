@@ -58,6 +58,25 @@ pnpm package:installer # Windows NSIS installer
 pnpm release          # full release build into apps/desktop/release
 ```
 
+## Checks and Tests
+
+```bash
+pnpm typecheck   # server tsc, renderer vue-tsc, Electron syntax check
+pnpm test        # fast unit tests, no database needed
+```
+
+Database-backed suites create and drop their own `dalaly_*` test databases on the
+local PostgreSQL. They read `DB_HOST`, `DB_PORT`, `DB_USER` and `DB_PASSWORD`
+(set `DB_NAME` to an existing database such as `postgres` for the `tsx` suites):
+
+```bash
+pnpm --filter @dalaly/server build            # runtime suites start server/dist
+pnpm --filter @dalaly/server test:runtime     # also :phase1 … :phase5, :spaces
+pnpm --filter @dalaly/server test:removal     # backup restore + retired-module checks
+pnpm --filter @dalaly/server test:maps:runtime
+pnpm --filter @dalaly/server test:startup:electron  # real Electron startup (needs a display)
+```
+
 ## Web Demo Mode (capture only)
 
 A separate, isolated mode that serves the same Vue app in a plain browser. It exists
@@ -76,17 +95,8 @@ separate API port (45699), separate web port (5199), separate data directory
 Electron-only capabilities (native save/open dialogs, scheduled email backup) fall
 back to browser equivalents through `apps/renderer/src/platform/`.
 
-### Capturing
-
-```bash
-pnpm capture:list      # list every feature capture
-pnpm capture:all       # run all captures (screenshots + one video per feature)
-pnpm capture:process   # FFmpeg: optimized webm + mp4 + poster + webp screenshots
-pnpm capture:report    # open the Playwright HTML report
-```
-
-Requires FFmpeg on `PATH` (not installed by these scripts).
-See `docs/CAPTURE-SHOT-LIST.md` and `docs/CAPTURE-REPORT.md`.
+The Playwright capture suite and its `capture:*` scripts were removed; the
+`docs/CAPTURE-*.md` files describe its last run.
 
 ## Remote Access
 
