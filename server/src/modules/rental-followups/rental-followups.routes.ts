@@ -1,4 +1,4 @@
-﻿import { type FastifyPluginAsync } from "fastify";
+import { type FastifyPluginAsync } from "fastify";
 import { requirePermission } from "../auth/auth.hooks.js";
 import { followupPayloadSchema } from "../followups/followups.schema.js";
 import {

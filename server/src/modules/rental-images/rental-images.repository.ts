@@ -1,4 +1,4 @@
-﻿import { and, asc, eq, max } from "drizzle-orm";
+import { and, asc, eq, max } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import { rentalImages } from "../../infrastructure/database/schema.js";
 import { toApiObject, toApiObjects } from "../../shared/utils/case.js";

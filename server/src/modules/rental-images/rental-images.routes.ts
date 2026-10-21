@@ -1,4 +1,4 @@
-﻿import fs from "node:fs";
+import fs from "node:fs";
 import { type FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { requirePermission } from "../auth/auth.hooks.js";
