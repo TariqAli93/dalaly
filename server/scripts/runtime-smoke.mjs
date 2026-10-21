@@ -223,12 +223,12 @@ async function main() {
     check("delete property ok", del.status === 200 && del.body?.deleted === true, del);
 
     console.log("== Step 8: CRM modules + rental matching ==");
-    const customer = await req("POST", "/customers", {
+    const person = await req("POST", "/people", {
       token,
-      body: { full_name: "CRM Test Customer", phone_primary: "07700000001", customer_type: "individual" },
+      body: { full_name: "CRM Test Customer", phone_primary: "07700000001", person_type: "individual" },
     });
-    check("create customer 201", customer.status === 201 && typeof customer.body?.id === "number", customer);
-    const customerId = customer.body?.id;
+    check("create person 201", person.status === 201 && typeof person.body?.id === "number", person);
+    const personId = person.body?.id;
 
     const rental = await req("POST", "/rentals", {
       token,
@@ -238,7 +238,7 @@ async function main() {
         rent_period: "monthly",
         area_value: 120,
         area_unit: "متر",
-        owner_customer_id: customerId,
+        owner_person_id: personId,
         owner_name: "CRM Test Customer",
         owner_phone: "07700000001",
         status: "available",
@@ -250,7 +250,7 @@ async function main() {
     const rentalRequest = await req("POST", "/rental-requests", {
       token,
       body: {
-        customer_id: customerId,
+        person_id: personId,
         property_type: "apartment",
         rent_period: "monthly",
         budget_max: 1000,
@@ -281,7 +281,7 @@ async function main() {
     check("create sale offer 201", sale.status === 201 && typeof sale.body?.id === "number", sale);
     const purchaseRequest = await req("POST", "/purchase-requests", {
       token,
-      body: { customer_id: customerId, property_type: "أرض", budget_max: 150000, status: "open" },
+      body: { person_id: personId, property_type: "أرض", budget_max: 150000, status: "open" },
     });
     check("create purchase request 201", purchaseRequest.status === 201 && typeof purchaseRequest.body?.id === "number", purchaseRequest);
     const purchaseMatches = await req("GET", `/matching/purchase-requests/${purchaseRequest.body?.id}/offers`, { token });
@@ -293,7 +293,7 @@ async function main() {
     const document = await req("POST", "/documents", {
       token,
       body: {
-        customer_id: customerId,
+        person_id: personId,
         document_type_id: nationalIdType,
         document_name: "CRM test document",
         original_name: "test.txt",
@@ -301,11 +301,11 @@ async function main() {
         data: "data:text/plain;base64,SGVsbG8=",
       },
     });
-    check("upload customer document 201", document.status === 201 && typeof document.body?.id === "number", document);
+    check("upload person document 201", document.status === 201 && typeof document.body?.id === "number", document);
     const documentFile = await req("GET", `/documents/${document.body?.id}/file`, { token });
-    check("read customer document file", documentFile.status === 200 && documentFile.body === "Hello", documentFile);
-    const companySettings = await req("GET", "/company-settings", { token });
-    check("company settings available", companySettings.status === 200 && companySettings.body?.id === 1, companySettings);
+    check("read person document file", documentFile.status === 200 && documentFile.body === "Hello", documentFile);
+    const companySettings = await req("GET", "/office", { token });
+    check("office settings available", companySettings.status === 200 && companySettings.body?.id === 1, companySettings);
     console.log("== Step 9: users + roles + permissions ==");
     const roles = await req("GET", "/roles", { token });
     check("roles includes Super Admin", Array.isArray(roles.body) && roles.body.some((r) => r.name === "Super Admin"), roles.body);
@@ -322,7 +322,8 @@ async function main() {
     const users = await req("GET", "/users", { token });
     check("users list has 2", Array.isArray(users.body) && users.body.length === 2, users.body?.length);
 
-    console.log("== Step 10: idempotency of initialize ==");
+    // An initialized installation must never be re-initialized anonymously.
+    console.log("== Step 10: initialize is refused once the system is set up ==");
     const init2 = await req("POST", "/setup/initialize", {
       body: {
         host: "127.0.0.1",
@@ -334,9 +335,7 @@ async function main() {
         firstAdminPin: "4321",
       },
     });
-    check("re-initialize ok", init2.body?.ok === true, init2.body);
-    check("re-initialize database_created false", init2.body?.database_created === false, init2.body);
-    check("re-initialize admin.pin null (no duplicate)", init2.body?.admin?.pin === null, init2.body);
+    check("re-initialize refused 409", init2.status === 409 && init2.body?.ok === false, init2);
 
     const usersAfter = await req("GET", "/users", { token });
     check("no duplicate users after re-init (still 2)", Array.isArray(usersAfter.body) && usersAfter.body.length === 2, usersAfter.body?.length);
