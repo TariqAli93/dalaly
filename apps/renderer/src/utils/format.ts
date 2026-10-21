@@ -1,3 +1,8 @@
+/** تاريخ ووقت بالعربية مع أرقام لاتينية، كما في بقية الواجهة. */
+export function formatDateTime(value: string | number | Date) {
+  return new Date(value).toLocaleString("ar-IQ", { numberingSystem: "latn" });
+}
+
 export function toNumber(value: unknown) {
   // نتحمّل القيم المنسّقة بفواصل الآلاف (مثل "112,345,123") القادمة من حقول الإدخال.
   const raw = typeof value === "string" ? value.replace(/,/g, "") : value;

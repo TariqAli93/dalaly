@@ -1,9 +1,10 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { onMounted, ref } from "vue";
 import type { FollowupRecord, FollowupType } from "../../types";
 import * as service from "../../services/rental-followups.service";
 import { getErrorMessage } from "../../services/api.service";
 import { useSnackbar } from "../../composables/useSnackbar";
+import { formatDateTime } from "../../utils/format";
 const props = defineProps<{ rentalId: number }>();
 const { notifyError, notifySuccess } = useSnackbar();
 const items = ref<FollowupRecord[]>([]);
@@ -14,9 +15,11 @@ const saving = ref(false);
 const types = [
   { title: "اتصال", value: "phone_call" },
   { title: "زيارة", value: "visit" },
-  { title: "رسالة", value: "message" },
   { title: "أخرى", value: "other" },
 ];
+function typeLabel(value: string) {
+  return types.find((item) => item.value === value)?.title ?? value;
+}
 async function load() {
   try {
     items.value = await service.listRentalFollowups(props.rentalId);
@@ -30,7 +33,10 @@ async function add() {
     await service.createRentalFollowup(props.rentalId, {
       type: type.value,
       notes: notes.value || null,
-      scheduled_at: scheduled.value || null,
+      // الخادم يقبل وقت ISO مع المنطقة الزمنية فقط؛ datetime-local بلا منطقة.
+      scheduled_at: scheduled.value
+        ? new Date(scheduled.value).toISOString()
+        : null,
     });
     notes.value = "";
     scheduled.value = "";
@@ -79,7 +85,7 @@ onMounted(() => void load());
         v-for="item in items"
         :key="item.id"
         :title="item.notes || 'متابعة إيجار'"
-        :subtitle="`${item.type} · ${item.scheduled_at ? new Date(item.scheduled_at).toLocaleString('ar-IQ') : 'بدون موعد'}`"
+        :subtitle="`${typeLabel(item.type)} · ${item.scheduled_at ? formatDateTime(item.scheduled_at) : 'بدون موعد'}`"
         ><template #append
           ><v-btn
             icon="mdi-delete-outline"
