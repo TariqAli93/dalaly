@@ -1,6 +1,7 @@
 import vue from "@vitejs/plugin-vue";
 import { defineConfig, type Plugin } from "vite";
 import vueDevTools from "vite-plugin-vue-devtools";
+import vuetify from "vite-plugin-vuetify";
 import tailwindcss from "@tailwindcss/vite";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -44,6 +45,9 @@ export default defineConfig(({ mode }) => {
     plugins: [
       mdiWoff2Only(),
       vue(),
+      // Imports only the Vuetify components and directives the templates
+      // use (with their CSS), instead of the whole library at startup.
+      vuetify({ autoImport: true }),
       ...(isWebDemo ? [] : [vueDevTools({ appendTo: "/src/main.ts" })]),
       tailwindcss(),
     ],

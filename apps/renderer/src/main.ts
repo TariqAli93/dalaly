@@ -4,8 +4,6 @@ import "./styles.css";
 
 import { createApp, nextTick } from "vue";
 import { createVuetify } from "vuetify";
-import * as components from "vuetify/components";
-import * as directives from "vuetify/directives";
 import { ar } from "vuetify/locale";
 import App from "./App.vue";
 import { router } from "./router";
@@ -21,9 +19,8 @@ import { useSetup } from "./composables/useSetup";
 // Startup marks, read by scripts/perf/startup-trace.mjs.
 performance.mark("dalaly:modules-evaluated");
 initializeAppearance();
+// Components and directives are imported per template by vite-plugin-vuetify.
 const vuetify = createVuetify({
-  components,
-  directives,
   locale: {
     locale: "ar",
     fallback: "ar",
