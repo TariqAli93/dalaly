@@ -4,10 +4,12 @@ import {
   createPurchaseRequest,
   getPurchaseRequest,
   listPurchaseRequests,
+  listPurchaseRequestsPage,
   updatePurchaseRequest,
 } from "./purchase-requests.repository.js";
 import {
   purchaseRequestFiltersSchema,
+  purchaseRequestPageQuerySchema,
   purchaseRequestPayloadSchema,
 } from "./purchase-requests.schema.js";
 import { parseId } from "../../shared/utils/parse-id.js";
@@ -17,6 +19,15 @@ export const purchaseRequestsRoutes: FastifyPluginAsync = async (app) => {
     { preHandler: requirePermission("requests.read") },
     async (request) =>
       listPurchaseRequests(purchaseRequestFiltersSchema.parse(request.query)),
+  );
+  // صفحة واحدة مع العدد الكلي لجدول الطلبات.
+  app.get(
+    "/paged",
+    { preHandler: requirePermission("requests.read") },
+    async (request) =>
+      listPurchaseRequestsPage(
+        purchaseRequestPageQuerySchema.parse(request.query),
+      ),
   );
   app.get(
     "/:id",

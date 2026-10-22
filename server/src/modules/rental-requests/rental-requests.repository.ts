@@ -1,4 +1,5 @@
-import { and, desc, eq, ilike, ne, or } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, ne, or, type SQL } from "drizzle-orm";
+import { type AnyPgColumn } from "drizzle-orm/pg-core";
 import { db } from "../../infrastructure/database/db.js";
 import {
   rentalRequests,
@@ -11,9 +12,17 @@ import {
   getNeighborhoodName,
 } from "../locations/locations.repository.js";
 import { toApiObject } from "../../shared/utils/case.js";
+import {
+  pageOffset,
+  sortNullsLast,
+  totalRowsColumn,
+  type SortOrder,
+} from "../../shared/utils/paging.js";
 import type {
   RentalRequestFilters,
+  RentalRequestPageQuery,
   RentalRequestPayload,
+  RentalRequestSortKey,
 } from "./rental-requests.schema.js";
 import {
   withRecordCodeLock,
@@ -88,8 +97,9 @@ async function generateCode(tx: Transaction) {
   return `RR-${String((last?.code ? Number(last.code.split("-")[1] ?? 0) : 0) + 1).padStart(4, "0")}`;
 }
 
-export async function listRentalRequests(filters: RentalRequestFilters) {
-  const where = [];
+/** شروط الفلاتر والبحث المشتركة بين القائمة الكاملة والقائمة المقسّمة. */
+function rentalRequestConditions(filters: RentalRequestFilters) {
+  const where: SQL[] = [];
   if (filters.person_id)
     where.push(eq(rentalRequests.personId, filters.person_id));
   if (filters.property_type)
@@ -108,8 +118,12 @@ export async function listRentalRequests(filters: RentalRequestFilters) {
         ilike(rentalRequests.code, `%${filters.q}%`),
         ilike(rentalRequests.otherRequirements, `%${filters.q}%`),
         ilike(rentalRequests.notes, `%${filters.q}%`),
-      ),
+      )!,
     );
+  return and(...where);
+}
+
+export async function listRentalRequests(filters: RentalRequestFilters) {
   const rows = await db
     .select({
       request: rentalRequests,
@@ -118,9 +132,68 @@ export async function listRentalRequests(filters: RentalRequestFilters) {
     })
     .from(rentalRequests)
     .innerJoin(people, eq(rentalRequests.personId, people.id))
-    .where(where.length ? and(...where) : undefined)
+    .where(rentalRequestConditions(filters))
     .orderBy(desc(rentalRequests.updatedAt), desc(rentalRequests.id));
   return rows.map((row) => apiRow(row.request, row.personName, row.personCode));
+}
+
+const RENTAL_REQUEST_SORT_COLUMNS: Record<RentalRequestSortKey, AnyPgColumn> = {
+  updated_at: rentalRequests.updatedAt,
+  created_at: rentalRequests.createdAt,
+  code: rentalRequests.code,
+  person_name: people.fullName,
+  property_type: rentalRequests.propertyType,
+  rent_period: rentalRequests.rentPeriod,
+  budget_max: rentalRequests.budgetMax,
+  district: rentalRequests.district,
+  status: rentalRequests.status,
+};
+
+/** فرز ثانوي ثابت بين الصفحات، والترتيب الافتراضي (آخر تحديث) عند التساوي. */
+function rentalRequestOrder(
+  sortKey: RentalRequestSortKey,
+  order: SortOrder,
+): SQL[] {
+  if (sortKey === "updated_at" || sortKey === "created_at")
+    return [
+      sortNullsLast(RENTAL_REQUEST_SORT_COLUMNS[sortKey], order),
+      order === "asc" ? asc(rentalRequests.id) : desc(rentalRequests.id),
+    ];
+  return [
+    sortNullsLast(RENTAL_REQUEST_SORT_COLUMNS[sortKey], order),
+    desc(rentalRequests.updatedAt),
+    desc(rentalRequests.id),
+  ];
+}
+
+export async function listRentalRequestsPage(query: RentalRequestPageQuery) {
+  const condition = rentalRequestConditions(query);
+  const rows = await db
+    .select({
+      request: rentalRequests,
+      personName: people.fullName,
+      personCode: people.code,
+      total: totalRowsColumn(),
+    })
+    .from(rentalRequests)
+    .innerJoin(people, eq(rentalRequests.personId, people.id))
+    .where(condition)
+    .orderBy(...rentalRequestOrder(query.sort_by, query.sort_order))
+    .limit(query.page_size)
+    .offset(pageOffset(query.page, query.page_size));
+  // صفحة بعد النهاية لا صفوف فيها تحمل العدد، فيُعدّ منفصلاً (الشروط على الطلب
+  // وحده؛ الربط بالشخص لا يُسقط صفاً لأن person_id إلزامي).
+  const total =
+    rows[0]?.total ??
+    (query.page > 1 ? await db.$count(rentalRequests, condition) : 0);
+  return {
+    items: rows.map((row) =>
+      apiRow(row.request, row.personName, row.personCode),
+    ),
+    total,
+    page: query.page,
+    page_size: query.page_size,
+  };
 }
 
 export async function getRentalRequest(id: number) {

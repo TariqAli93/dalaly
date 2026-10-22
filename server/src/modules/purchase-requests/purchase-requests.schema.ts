@@ -4,6 +4,7 @@ import {
   optionalNumber,
   optionalText,
 } from "../../shared/validation/fields.js";
+import { pageFields } from "../../shared/validation/paging.js";
 
 export const purchaseRequestPayloadSchema = z
   .object({
@@ -69,9 +70,32 @@ export const purchaseRequestFiltersSchema = z.object({
   q: z.string().trim().optional(),
 });
 
+// مفاتيح الترتيب المسموحة في /purchase-requests/paged (أعمدة جدول الطلبات).
+export const PURCHASE_REQUEST_SORT_KEYS = [
+  "updated_at",
+  "created_at",
+  "code",
+  "person_name",
+  "property_type",
+  "budget_max",
+  "district",
+  "status",
+] as const;
+
+export const purchaseRequestPageQuerySchema =
+  purchaseRequestFiltersSchema.extend({
+    ...pageFields,
+    sort_by: z.enum(PURCHASE_REQUEST_SORT_KEYS).default("updated_at"),
+  });
+
 export type PurchaseRequestPayload = z.infer<
   typeof purchaseRequestPayloadSchema
 >;
 export type PurchaseRequestFilters = z.infer<
   typeof purchaseRequestFiltersSchema
 >;
+export type PurchaseRequestPageQuery = z.infer<
+  typeof purchaseRequestPageQuerySchema
+>;
+export type PurchaseRequestSortKey =
+  (typeof PURCHASE_REQUEST_SORT_KEYS)[number];

@@ -63,6 +63,24 @@ export type PersonSortKey =
   | "person_type"
   | "status";
 
+/** مفاتيح الترتيب في /rental-requests/paged (RENTAL_REQUEST_SORT_KEYS في الخادم). */
+export type RentalRequestSortKey =
+  | "updated_at"
+  | "created_at"
+  | "code"
+  | "person_name"
+  | "property_type"
+  | "rent_period"
+  | "budget_max"
+  | "district"
+  | "status";
+
+/** مفاتيح /purchase-requests/paged: نفسها بلا نوع الإيجار. */
+export type PurchaseRequestSortKey = Exclude<
+  RentalRequestSortKey,
+  "rent_period"
+>;
+
 export type MatchReason = {
   field: string;
   label: string;

@@ -1,4 +1,5 @@
-import { and, desc, eq, ilike, ne, or } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, ne, or, type SQL } from "drizzle-orm";
+import { type AnyPgColumn } from "drizzle-orm/pg-core";
 import { db } from "../../infrastructure/database/db.js";
 import {
   people,
@@ -11,9 +12,17 @@ import {
   getNeighborhoodName,
 } from "../locations/locations.repository.js";
 import { toApiObject } from "../../shared/utils/case.js";
+import {
+  pageOffset,
+  sortNullsLast,
+  totalRowsColumn,
+  type SortOrder,
+} from "../../shared/utils/paging.js";
 import type {
   PurchaseRequestFilters,
+  PurchaseRequestPageQuery,
   PurchaseRequestPayload,
+  PurchaseRequestSortKey,
 } from "./purchase-requests.schema.js";
 import {
   withRecordCodeLock,
@@ -72,8 +81,9 @@ async function generateCode(tx: Transaction) {
     .limit(1);
   return `PR-${String((last?.code ? Number(last.code.split("-")[1] ?? 0) : 0) + 1).padStart(4, "0")}`;
 }
-export async function listPurchaseRequests(filters: PurchaseRequestFilters) {
-  const where = [];
+/** شروط الفلاتر والبحث المشتركة بين القائمة الكاملة والقائمة المقسّمة. */
+function purchaseRequestConditions(filters: PurchaseRequestFilters) {
+  const where: SQL[] = [];
   if (filters.person_id)
     where.push(eq(purchaseRequests.personId, filters.person_id));
   if (filters.property_type)
@@ -90,8 +100,12 @@ export async function listPurchaseRequests(filters: PurchaseRequestFilters) {
         ilike(purchaseRequests.code, `%${filters.q}%`),
         ilike(purchaseRequests.otherRequirements, `%${filters.q}%`),
         ilike(purchaseRequests.notes, `%${filters.q}%`),
-      ),
+      )!,
     );
+  return and(...where);
+}
+
+export async function listPurchaseRequests(filters: PurchaseRequestFilters) {
   const rows = await db
     .select({
       request: purchaseRequests,
@@ -100,9 +114,71 @@ export async function listPurchaseRequests(filters: PurchaseRequestFilters) {
     })
     .from(purchaseRequests)
     .innerJoin(people, eq(purchaseRequests.personId, people.id))
-    .where(where.length ? and(...where) : undefined)
+    .where(purchaseRequestConditions(filters))
     .orderBy(desc(purchaseRequests.updatedAt), desc(purchaseRequests.id));
   return rows.map((row) => apiRow(row.request, row.personName, row.personCode));
+}
+
+const PURCHASE_REQUEST_SORT_COLUMNS: Record<
+  PurchaseRequestSortKey,
+  AnyPgColumn
+> = {
+  updated_at: purchaseRequests.updatedAt,
+  created_at: purchaseRequests.createdAt,
+  code: purchaseRequests.code,
+  person_name: people.fullName,
+  property_type: purchaseRequests.propertyType,
+  budget_max: purchaseRequests.budgetMax,
+  district: purchaseRequests.district,
+  status: purchaseRequests.status,
+};
+
+/** نفس قواعد ترتيب طلبات الإيجار (rentalRequestOrder). */
+function purchaseRequestOrder(
+  sortKey: PurchaseRequestSortKey,
+  order: SortOrder,
+): SQL[] {
+  if (sortKey === "updated_at" || sortKey === "created_at")
+    return [
+      sortNullsLast(PURCHASE_REQUEST_SORT_COLUMNS[sortKey], order),
+      order === "asc" ? asc(purchaseRequests.id) : desc(purchaseRequests.id),
+    ];
+  return [
+    sortNullsLast(PURCHASE_REQUEST_SORT_COLUMNS[sortKey], order),
+    desc(purchaseRequests.updatedAt),
+    desc(purchaseRequests.id),
+  ];
+}
+
+export async function listPurchaseRequestsPage(
+  query: PurchaseRequestPageQuery,
+) {
+  const condition = purchaseRequestConditions(query);
+  const rows = await db
+    .select({
+      request: purchaseRequests,
+      personName: people.fullName,
+      personCode: people.code,
+      total: totalRowsColumn(),
+    })
+    .from(purchaseRequests)
+    .innerJoin(people, eq(purchaseRequests.personId, people.id))
+    .where(condition)
+    .orderBy(...purchaseRequestOrder(query.sort_by, query.sort_order))
+    .limit(query.page_size)
+    .offset(pageOffset(query.page, query.page_size));
+  // صفحة بعد النهاية لا صفوف فيها تحمل العدد، فيُعدّ منفصلاً.
+  const total =
+    rows[0]?.total ??
+    (query.page > 1 ? await db.$count(purchaseRequests, condition) : 0);
+  return {
+    items: rows.map((row) =>
+      apiRow(row.request, row.personName, row.personCode),
+    ),
+    total,
+    page: query.page,
+    page_size: query.page_size,
+  };
 }
 export async function getPurchaseRequest(id: number) {
   const [row] = await db
