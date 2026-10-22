@@ -18,6 +18,8 @@ import { setUnauthorizedHandler } from "./services/api.service";
 import { useAuth } from "./composables/useAuth";
 import { useSetup } from "./composables/useSetup";
 
+// Startup marks, read by scripts/perf/startup-trace.mjs.
+performance.mark("dalaly:modules-evaluated");
 initializeAppearance();
 const vuetify = createVuetify({
   components,
@@ -84,8 +86,10 @@ const app = createApp(App).use(i18n).use(vuetify).use(router);
 async function mountApplication() {
   try {
     await router.isReady();
+    performance.mark("dalaly:router-ready");
     app.mount("#app");
     await nextTick();
+    performance.mark("dalaly:mounted");
     const { startupState, status } = useSetup();
     await window.dalalyConfig?.rendererReady?.({
       startup_state: startupState.value,

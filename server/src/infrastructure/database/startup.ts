@@ -22,19 +22,30 @@ export function prepareDatabase(): Promise<void> {
   setDatabaseChecking(true);
   preparation = (async () => {
     let folder: string | null = null;
+    // Step durations land in main.log once per launch, for diagnosing slow
+    // starts on office PCs.
+    const started = performance.now();
+    const steps: Record<string, number> = {};
+    const lap = (name: string) => {
+      steps[name] = Math.round(performance.now() - started);
+    };
     try {
       if (!isDatabaseConfigured()) return;
       if (!(await validateDatabaseConnection())) {
         retryMigrationsWhenConnected();
         throw new Error("DATABASE_CONNECTION");
       }
+      lap("connected");
       await withStartupPool(async (startupPool) => {
         if (await installationInitialized(startupPool))
           await markInstallationInitialized(startupPool);
       });
+      lap("marker");
       folder = getMigrationsFolder();
       await runDatabaseMigrations(folder);
       markMigrationsSucceeded(folder);
+      lap("migrated");
+      console.info("Database prepared", steps);
     } catch (error) {
       markMigrationsFailed(error, folder);
       console.error("Database preparation failed", {
