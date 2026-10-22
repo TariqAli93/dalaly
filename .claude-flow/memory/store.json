@@ -1,0 +1,23 @@
+{
+  "entries": {
+    "cmd-1792625152070": {
+      "key": "cmd-1792625152070",
+      "value": "{\"command\":\"ls -la ~/.claude/statusline.js; echo \\\"HOME=$HOME\\\"; echo '{\\\"model\\\":{\\\"display_name\\\":\\\"Opus 5.5\\\"}}' | node ~/.claude/statusline.js 2>&1; echo \\\" [exit=$?]\\\"; echo '{\\\"model\\\":{\\\"display_name\\\":\\\"Opus 5.5\\\"}}' | node -e 'let r=\\\"\\\";process.stdin.on(\\\"data\\\",c=>r+=c);process.stdin.on(\\\"end\\\",()=>process.stdout.write(\\\"got:\\\"+r))'; echo \\\" [exit=$?]\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-21T23:25:52.070Z",
+      "lastAccessed": "2026-10-21T23:25:52.070Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-20T23:25:52.070Z"
+    },
+    "cmd-1792625161977": {
+      "key": "cmd-1792625161977",
+      "value": "{\"command\":\"printf '%s' '{\\\"model\\\":{\\\"display_name\\\":\\\"Opus 5.5\\\"},\\\"workspace\\\":{\\\"current_dir\\\":\\\"D:\\\\\\\\dev_projects\\\\\\\\dalaly\\\"},\\\"context_window\\\":{\\\"used_percentage\\\":42.4}}' | node ~/.claude/statusline.js 2>&1; echo \\\" [exit=$?]\\\"; printf '%s' '{\\\"model\\\":{\\\"display_name\\\":\\\"Opus 5.5\\\"},\\\"workspace\\\":{\\\"current_dir\\\":\\\"C:\\\\\\\\Windows\\\"},\\\"context_window\\\":{\\\"used_percentage\\\":null}}' | node ~/.claude/statusline.js 2>&1; echo \\\" [exit=$?]\\\"; printf '%s' '{\\\"model\\\":{\\\"display_name\\\":\\\"Opus 5.5\\\"},\\\"workspace\\\":{\\\"current_dir\\\":\\\"D:/dev_projects/dalaly\\\"},\\\"context_window\\\":{\\\"used_percentage\\\":7}}' | node ~/.claude/statusline.js 2>&1; echo \\\" [exit=$?]\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-21T23:26:01.977Z",
+      "lastAccessed": "2026-10-21T23:26:01.977Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-20T23:26:01.977Z"
+    }
+  },
+  "version": "3.0.0"
+}
