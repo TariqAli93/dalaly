@@ -33,6 +33,7 @@
     "test:removal": "tsx --test scripts/removal-core.test.ts scripts/removal-backup.test.ts scripts/removal-legacy.test.ts",
     "test:removal:legacy": "tsx --test scripts/removal-legacy.test.ts",
     "test:restore:large": "tsx --test scripts/backup-restore-large.test.ts",
+    "test:backup:safety": "tsx --test scripts/backup-safety.test.ts",
     "test:permissions": "tsx --test scripts/permissions-scope.test.ts"
   },
   "dependencies": {

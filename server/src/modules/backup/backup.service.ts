@@ -42,6 +42,31 @@ import {
 const BACKUP_VERSION = 3;
 /** PostgreSQL's limit on bind parameters in one statement is 65535. */
 const MAX_BIND_PARAMETERS = 60_000;
+
+/** Another backup, export or restore is already running. */
+export class BackupBusyError extends Error {
+  readonly statusCode = 409;
+  constructor() {
+    super(
+      "عملية نسخ احتياطي أو استرجاع أخرى قيد التنفيذ. أعد المحاولة بعد انتهائها.",
+    );
+  }
+}
+
+let operationRunning = false;
+/**
+ * Runs one backup, export or restore at a time: a backup reads every table
+ * and file while a restore rewrites them, and each archive is built in memory.
+ */
+async function exclusive<T>(operation: () => Promise<T>): Promise<T> {
+  if (operationRunning) throw new BackupBusyError();
+  operationRunning = true;
+  try {
+    return await operation();
+  } finally {
+    operationRunning = false;
+  }
+}
 const TABLE_SPECS = [
   {
     name: "governorates",
@@ -176,11 +201,6 @@ function specByName(name: TableName) {
   return TABLE_SPECS.find((spec) => spec.name === name)!;
 }
 
-function configJsonPath() {
-  // config.json يقع في جذر userData (appDataDir).
-  return path.join(config.appDataDir, "config.json");
-}
-
 async function exportDatabase() {
   return db.transaction(
     async (tx) => {
@@ -281,7 +301,11 @@ export type CreateBackupResult = {
   duration_ms: number;
 };
 
-/** يبني أرشيف ZIP كامل: JSON منطقي + صور + config + metadata. */
+/**
+ * يبني أرشيف ZIP كامل: JSON منطقي + صور + metadata. Electron's config.json is
+ * deliberately left out: it holds the database URL with its password, restore
+ * never used it, and scheduled backups are emailed.
+ */
 async function assembleBackupZip(backupType: string) {
   const database = await exportDatabase();
   const manifest = {
@@ -295,11 +319,6 @@ async function assembleBackupZip(backupType: string) {
   const zip = new AdmZip();
   zip.addFile("manifest.json", Buffer.from(JSON.stringify(manifest, null, 2)));
   zip.addFile("data.json", Buffer.from(JSON.stringify(database)));
-
-  const cfgPath = configJsonPath();
-  if (fs.existsSync(cfgPath)) {
-    zip.addLocalFile(cfgPath, "", "config.json");
-  }
 
   addImagesToZip(zip);
   return zip;
@@ -368,13 +387,17 @@ export async function createBackup(
   type: "manual" | "scheduled" | "email",
   userId?: number,
 ): Promise<CreateBackupResult> {
-  const dir = await getBackupDir();
-  fs.mkdirSync(dir, { recursive: true });
-  const filePath = path.join(
-    dir,
-    `Dalaly_Backup_${timestampLabel(new Date())}.zip`,
-  );
-  return writeBackupTo(filePath, type, userId);
+  // Take the lock before the first await so overlapping calls are refused
+  // however quickly the other operation finishes.
+  return exclusive(async () => {
+    const dir = await getBackupDir();
+    fs.mkdirSync(dir, { recursive: true });
+    const filePath = path.join(
+      dir,
+      `Dalaly_Backup_${timestampLabel(new Date())}.zip`,
+    );
+    return writeBackupTo(filePath, type, userId);
+  });
 }
 
 /**
@@ -392,7 +415,7 @@ export async function exportBackup(
   if (!path.isAbsolute(target)) {
     throw new Error("مسار الحفظ غير صالح.");
   }
-  return writeBackupTo(target, "manual_export", userId);
+  return exclusive(() => writeBackupTo(target, "manual_export", userId));
 }
 
 function coerceRow(
@@ -513,6 +536,14 @@ export async function restoreBackup(
   scope: RestoreScope,
   userId?: number,
 ) {
+  return exclusive(() => restoreArchive(zipBuffer, scope, userId));
+}
+
+async function restoreArchive(
+  zipBuffer: Buffer,
+  scope: RestoreScope,
+  userId?: number,
+) {
   const startedAt = Date.now();
   let schemaValidated = false;
   try {
@@ -528,6 +559,16 @@ export async function restoreBackup(
 
     validateBackupSchema(zip, database);
     schemaValidated = true;
+    // Restore replaces whole tables. Keep the current data first so a wrong
+    // file can be undone; if that copy cannot be written, nothing is touched.
+    const safetyBackup = await writeBackupTo(
+      path.join(
+        await getBackupDir(),
+        `Dalaly_Before_Restore_${timestampLabel(new Date())}.zip`,
+      ),
+      "pre_restore",
+      userId,
+    );
     const tablesToRestore = SCOPE_TABLES[scope] ?? SCOPE_TABLES.full;
     let documentsRestored = 0;
     if (scope === "full" || scope === "crm") {
@@ -607,6 +648,7 @@ export async function restoreBackup(
       tables: tablesToRestore,
       images_restored: imagesRestored,
       documents_restored: documentsRestored,
+      safety_backup_path: safetyBackup.file_path,
     };
   } catch (error) {
     if (!schemaValidated) throw error;
