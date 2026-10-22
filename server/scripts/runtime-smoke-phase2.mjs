@@ -37,7 +37,7 @@ async function main() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dalaly-p2-"));
   const runDir = path.join(tmp, "run"); fs.mkdirSync(runDir, { recursive: true });
   const appData = path.join(tmp, "appdata"); fs.mkdirSync(appData, { recursive: true });
-  // write a config.json into appData so backup includes it
+  // a config.json in appData, which backups must leave out
   fs.writeFileSync(path.join(appData, "config.json"), JSON.stringify({ databaseUrl: "x" }));
 
   const child = spawn(process.execPath, [SERVER_ENTRY], {

@@ -49,7 +49,7 @@ async function main() {
   fs.mkdirSync(runDir, { recursive: true });
   fs.mkdirSync(path.dirname(migrationsDir), { recursive: true });
   fs.cpSync(MIGRATIONS_SRC, migrationsDir, { recursive: true });
-  // config.json داخل مسار فيه فراغات (يُقرأ أثناء النسخ الاحتياطي).
+  // config.json داخل مسار فيه فراغات: يحمل كلمة مرور قاعدة البيانات، فيجب ألا يدخل النسخة الاحتياطية.
   fs.writeFileSync(path.join(appData, "config.json"), JSON.stringify({ databaseUrl: "x", note: "spaces test" }));
 
   console.log("BASE PATH:", base);
@@ -104,7 +104,7 @@ async function main() {
       const AdmZip = (await import("adm-zip")).default;
       const zip = new AdmZip(exportTarget);
       check("export archive contains data.json", !!zip.getEntry("data.json"));
-      check("export archive contains config.json (read from spaced path)", !!zip.getEntry("config.json"));
+      check("export archive leaves out config.json (it holds the database password)", !zip.getEntry("config.json"));
       check("export archive contains image", zip.getEntries().some(e => e.entryName.startsWith("images/properties/")));
     }
 
