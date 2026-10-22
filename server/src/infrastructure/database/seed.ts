@@ -3,12 +3,13 @@
  *
  *   pnpm --filter @dalaly/server db:seed            # idempotent — يضيف الناقص فقط
  *   pnpm --filter @dalaly/server db:seed -- --reset # يمسح البيانات التجريبية أولاً
+ *   (يرفض --reset إذا كان عدد العقارات أكبر مما ينشئه البذر، إلا مع --force)
  *
  * يشغّل الـ migrations وصلاحيات النظام أولاً، ثم يبذر: أدوار، مستخدمين،
  * مواقع (محافظة/منطقة/حي)، عروض، متابعات، ومفضّلات.
  * لا يمسّ حساب المدير الأساسي ولا صلاحيات النظام.
  */
-import { and, eq, inArray } from "drizzle-orm";
+import { and, count, eq, inArray } from "drizzle-orm";
 import pg from "pg";
 import { config } from "../config.js";
 import { db } from "./db.js";
@@ -89,6 +90,18 @@ function bump(counters: Counters, key: string) {
  * البذر. لا يحذف المدير الأساسي ولا الأدوار/الصلاحيات النظامية.
  */
 async function resetSeedData() {
+  // Properties (with their favorites and follow-ups) and locations are
+  // cleared wholesale, not by seed code. More properties than the seed
+  // creates means this is probably not a seed-only database.
+  const [{ total }] = await db.select({ total: count() }).from(properties);
+  if (total > SEED_PROPERTIES.length && !process.argv.includes("--force")) {
+    const { rows } = await pool.query("SELECT current_database() AS name");
+    throw new Error(
+      `قاعدة البيانات "${rows[0].name}" تحتوي ${total} عقاراً، أكثر مما ينشئه البذر (${SEED_PROPERTIES.length}). ` +
+        "إعادة الضبط تحذف كل العقارات والمواقع؛ أضف --force إن كانت قاعدة تطوير فعلاً.",
+    );
+  }
+
   const seedUsernames = SEED_USERS.map((user) => user.username);
   const seededDocumentCodes = SEED_DOCUMENTS.map((document) => document.code);
   const seededRentalCodes = SEED_RENTALS.map((rental) => rental.code);
