@@ -25,6 +25,8 @@ The health endpoint also collapsed every connection failure into `database_exist
 
 `/first-run` remains an alias of `/setup`. Browser startup errors use `/startup-error`; the desktop keeps its existing Splash error UI. Electron waits for both first paint and a sender-validated renderer IPC acknowledgement sent after `router.isReady()`, mounting and `nextTick()`.
 
+Electron polls `/api/health` every 100 ms until the backend answers. On the first `CHECKING` it switches to `/api/health?wait=1`, which the backend answers when its database preparation settles (capped at 4 s, below Electron's 6 s request timeout), so the main window opens within milliseconds of the database being ready instead of on the next poll. The backend logs one `Database prepared` line with step durations per launch; `scripts/perf/startup-trace.mjs` lines these up with the renderer's startup marks.
+
 The backend listens before database preparation. A fresh PostgreSQL client determines database existence, avoiding stale pooled connections and preserving error codes. Existence is `null` when the server cannot establish it. When the server becomes reachable after an initial connection failure, a health retry resumes safe database preparation.
 
 Setup mutations are restricted to loopback clients and trusted development origins. Desktop setup requests use a narrow preload/main IPC bridge and a per-launch internal token; arbitrary null-origin setup requests are rejected. File renderer CORS is enabled only for Electron-managed backends. Both startup windows keep context isolation, disable Node integration, and enable the renderer sandbox.

@@ -38,7 +38,10 @@ Electron main (apps/desktop/src)
 
 1. `main.js` shows the splash, starts the API (`tsx src/index.ts` in
    development, `resources/server/dist/index.js` when packaged) and polls
-   `/api/health`.
+   `/api/health` every 100 ms until it answers. After the first `CHECKING` it
+   asks `/api/health?wait=1`, which the API holds until database preparation
+   settles (at most 4 s), so the window opens as soon as the database is
+   ready rather than on the next poll.
 2. The API listens immediately and prepares the database in the background
    (`infrastructure/database/startup.ts`): connection check, migrations, RBAC
    seed. `/api/health` reports `CHECKING`, `SETUP_REQUIRED`, `READY` or
