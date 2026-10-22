@@ -18,6 +18,7 @@ PostgreSQL 18). Nothing below is estimated unless it says so.
 | Unpacked app (`win-unpacked`)        | 411,464,392 B | 359,393,049 B (−52.1 MB, −12.7%) |
 | — Chromium `locales/` (55 → 2)       | 46,328,906 B  | 1,578,383 B                      |
 | — `resources/renderer`               | 12,102,931 B  | 4,811,101 B                      |
+| NSIS installer                       | 114,107,209 B | 101,187,082 B (−12.9 MB, −11.3%) |
 | `pnpm typecheck`                     | passes, 43 s  | passes                           |
 | `pnpm test`                          | 19 tests pass | 27 tests pass                    |
 | Real Electron startup suite          | not run       | 11/11 pass                       |
@@ -28,9 +29,10 @@ Before-numbers come from a fresh `electron-builder --dir` of `main` at
 still contains a 441 MB `tools/chromium` from a retired configuration) and
 should not be used for comparisons.
 
-Not yet measured (needs a harness, see Phase 0): cold/warm startup time,
-time to interactive, idle and loaded RAM/CPU, API p95 latency, NSIS installer
-size. The remaining unpacked size is dominated by the Electron runtime
+Startup, time to interactive, RAM/CPU and API latency are now measured by
+`pnpm perf` (Phase 0); results and their reading are in
+[`docs/PERFORMANCE.md`](PERFORMANCE.md). The first batch did not change speed
+measurably. The remaining unpacked size is dominated by the Electron runtime
 (`دلالي.exe` 211 MB, `dxcompiler.dll` 26 MB, ICU 10 MB) and
 `cloudflared.exe` (54 MB, always bundled).
 
@@ -173,15 +175,23 @@ Ordered by value against risk. Each item is meant to be one reviewable PR
 with its own verification. Items in the same phase are independent unless
 noted.
 
-### Phase 0 — measurement harness (prerequisite for performance claims)
+### Phase 0 — measurement harness — done
 
-- Startup timing via the existing Playwright `_electron` setup: launch →
-  splash shown → `/api/health` READY → `startup:renderer-ready`, cold
-  (fresh profile) and warm, 10 runs, median and p95.
-- Idle and loaded RSS/CPU of main, renderer and API processes.
-- API latency script (autocannon or a small `fetch` loop) over dashboard,
-  property list/search, image list, with a seeded dataset of ~5k properties.
-- NSIS installer build in CI or locally for size tracking.
+`pnpm perf -- --app <win-unpacked>` (see `docs/PERFORMANCE.md`): startup
+marks for fresh and repeat profiles, per-process memory and idle CPU, API
+latency per endpoint and under 4 parallel clients, all against a seeded
+5,000-property throwaway database. Measured hotspots, which re-rank the
+phases below:
+
+1. **Properties list ships every row** (4.9 MB JSON, ~310 ms API time per
+   load at 5,000 properties) → server pagination moves up (Phase 2.6).
+2. **Search under 4 concurrent clients ~1 s, CPU-bound** → search rewrite
+   (Phase 2.7).
+3. **~0.55 s from API READY to login form** and **~0.55 s to render the
+   dashboard after its data arrives** → Phase 3.1–3.2 and dashboard render
+   profiling.
+4. The session/permission cache (Phase 2.1) is _not_ supported by the data
+   so far: `GET /auth/me` takes ~5 ms. Keep it below the items above.
 
 ### Phase 1 — safety and correctness (low risk, small)
 
@@ -208,8 +218,14 @@ noted.
    `EXPLAIN (ANALYZE, BUFFERS)` on the Phase 0 dataset.
 4. Pool tuning and a statement timeout (exempting backup/restore).
 5. Fix N+1s: users/roles listing, location names, import (transaction + cap).
-6. Owner filter and server pagination for person details, people, requests,
-   documents.
+6. Server pagination end to end: the properties and rentals APIs already
+   accept `limit`/`offset` but the renderer never sends them (move those
+   pages to `v-data-table-server`); add pagination to people, requests and
+   documents, and an owner filter for person details.
+7. Search: replace the per-token `ILIKE` over ~28 columns (plus casts and a
+   `regexp_replace` on phone) with one generated, normalized `search_text`
+   column and a `pg_trgm` index (new migration); escape `%`/`_` in input.
+   Compare with `pnpm perf` before and after.
 
 ### Phase 3 — renderer startup and responsiveness
 
