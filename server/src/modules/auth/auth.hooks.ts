@@ -20,7 +20,9 @@ const publicPaths = new Set([
 ]);
 
 export function registerAuthHook(app: FastifyInstance) {
-  app.addHook("preHandler", async (request, reply) => {
+  // onRequest runs before the body is read, so an anonymous caller cannot
+  // make the API buffer and parse an upload-sized body.
+  app.addHook("onRequest", async (request, reply) => {
     if (
       request.method === "OPTIONS" ||
       publicPaths.has(request.url.split("?")[0])

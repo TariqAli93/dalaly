@@ -3,6 +3,7 @@ import Fastify, { type FastifyServerOptions } from "fastify";
 import { ZodError } from "zod";
 import { config } from "./infrastructure/config.js";
 import { DuplicatePlotError, DocumentError } from "./shared/errors.js";
+import { DEFAULT_BODY_LIMIT } from "./shared/constants/limits.js";
 import { getSetupStatus } from "./infrastructure/database/health.js";
 import { registerAuthHook } from "./modules/auth/auth.hooks.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
@@ -61,13 +62,13 @@ export async function buildServer(options: { logger?: boolean } = {}) {
       }),
     },
   };
-  // bodyLimit مرفوع لدعم رفع صور العقارات عبر base64.
   const app = Fastify({
     logger,
     // Per-request lines are written synchronously by electron-log in the
     // main process; only slow or failed requests are logged (onResponse).
     disableRequestLogging: true,
-    bodyLimit: 50 * 1024 * 1024,
+    // Upload routes raise this per route (UPLOAD_BODY_LIMIT).
+    bodyLimit: DEFAULT_BODY_LIMIT,
   });
 
   app.addHook("onResponse", async (request, reply) => {

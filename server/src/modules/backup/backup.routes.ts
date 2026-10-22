@@ -16,6 +16,7 @@ import {
   setBackupDir,
   type RestoreScope,
 } from "./backup.service.js";
+import { UPLOAD_BODY_LIMIT } from "../../shared/constants/limits.js";
 
 const restoreSchema = z.object({
   scope: z
@@ -124,7 +125,10 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
 
   app.post(
     "/restore",
-    { preHandler: requirePermission("backups.restore") },
+    {
+      bodyLimit: UPLOAD_BODY_LIMIT,
+      preHandler: requirePermission("backups.restore"),
+    },
     async (request, reply) => {
       const payload = restoreSchema.parse(request.body);
       let buffer: Buffer | null = null;

@@ -18,6 +18,7 @@ import {
 } from "./documents.schema.js";
 import { contentTypeForFile, resolveManagedFile } from "./documents.storage.js";
 import { parseId } from "../../shared/utils/parse-id.js";
+import { UPLOAD_BODY_LIMIT } from "../../shared/constants/limits.js";
 
 export const documentsRoutes: FastifyPluginAsync = async (app) => {
   app.get(
@@ -73,7 +74,10 @@ export const documentsRoutes: FastifyPluginAsync = async (app) => {
   );
   app.post(
     "/",
-    { preHandler: requirePermission("documents.manage") },
+    {
+      bodyLimit: UPLOAD_BODY_LIMIT,
+      preHandler: requirePermission("documents.manage"),
+    },
     async (request, reply) =>
       reply
         .code(201)
@@ -114,7 +118,10 @@ export const documentsRoutes: FastifyPluginAsync = async (app) => {
   );
   app.post(
     "/people/:personId",
-    { preHandler: requirePermission("documents.manage") },
+    {
+      bodyLimit: UPLOAD_BODY_LIMIT,
+      preHandler: requirePermission("documents.manage"),
+    },
     async (request, reply) => {
       const personId = parseId(
         (request.params as { personId: string }).personId,

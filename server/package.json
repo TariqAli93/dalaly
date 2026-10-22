@@ -34,7 +34,8 @@
     "test:removal:legacy": "tsx --test scripts/removal-legacy.test.ts",
     "test:restore:large": "tsx --test scripts/backup-restore-large.test.ts",
     "test:backup:safety": "tsx --test scripts/backup-safety.test.ts",
-    "test:permissions": "tsx --test scripts/permissions-scope.test.ts"
+    "test:permissions": "tsx --test scripts/permissions-scope.test.ts",
+    "test:limits": "tsx --test scripts/request-limits.test.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",
