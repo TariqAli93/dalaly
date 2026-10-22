@@ -47,6 +47,11 @@ export const pool = new Proxy({} as pg.Pool, {
     const value = Reflect.get(activePool, property, receiver);
     return typeof value === "function" ? value.bind(activePool) : value;
   },
+  // Drizzle gives a transaction its own client only when the driver looks
+  // like a pg Pool (instanceof, or a prototype named *Pool). A bare proxy
+  // fails both checks, and BEGIN, each statement and COMMIT then went through
+  // pool.query separately, each possibly on a different connection.
+  getPrototypeOf: () => pg.Pool.prototype,
 });
 
 /**

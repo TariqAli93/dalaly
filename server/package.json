@@ -36,7 +36,8 @@
     "test:backup:safety": "tsx --test scripts/backup-safety.test.ts",
     "test:permissions": "tsx --test scripts/permissions-scope.test.ts",
     "test:limits": "tsx --test scripts/request-limits.test.ts",
-    "test:codes": "tsx --test scripts/record-codes.test.ts"
+    "test:codes": "tsx --test scripts/record-codes.test.ts",
+    "test:transactions": "tsx --test scripts/transactions.test.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",
