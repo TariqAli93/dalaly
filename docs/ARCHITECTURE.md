@@ -100,7 +100,12 @@ Conventions:
   modules are CRUD and stay `routes → repository`.
 - Migrations live in `server/drizzle` and are never edited or deleted once
   shipped. `run-migrations.ts` deliberately skips the retired contract-system
-  migrations `0001`/`0002` and gates `0003` behind explicit approval.
+  migrations by tag (`0001_contract_studio`/`0002_studio_ux`) and gates
+  `0003_remove_contract_system` behind explicit approval; the current
+  `0001_default_document_types` is unrelated and runs normally.
+- Reference rows the app needs on a fresh install (default document types) are
+  inserted by a data migration once per database; system permissions and the
+  Super Admin role are re-seeded on every startup by `seedSystemRbac`.
 
 ## Renderer (`apps/renderer/src`)
 

@@ -68,6 +68,10 @@ These are not code-quality calls; they change history, data or behavior.
      fresh installs lack them while older ones have them. Re-adding the unique
      index needs a migration that first checks for duplicates, or startup
      fails on databases that already contain them.
+   - _Resolved:_ the default document types were inserted only by the old data
+     migrations, which an earlier consolidation (`152c7a5`) replaced with a
+     schema-only baseline, so fresh installs had an empty type list.
+     `0001_default_document_types` restores them (`ON CONFLICT DO NOTHING`).
 
    Decide whether any installed database predates the squash; then either
    restore the retirement path or formally retire it (update `CLAUDE.md`,
