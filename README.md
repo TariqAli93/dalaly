@@ -74,6 +74,10 @@ pnpm --filter @dalaly/server build            # runtime suites start server/dist
 pnpm --filter @dalaly/server test:runtime     # also :phase1 … :phase5, :spaces
 pnpm --filter @dalaly/server test:removal     # backup restore + retired-module checks
 pnpm --filter @dalaly/server test:restore:large  # restore beyond one INSERT's bind limit
+pnpm --filter @dalaly/server test:backup:safety  # no config.json, one operation at a time, pre-restore copy
+pnpm --filter @dalaly/server test:permissions    # dashboard/matching follow read permissions
+pnpm --filter @dalaly/server test:limits         # auth before body parsing, 1 MB limit off upload routes
+pnpm --filter @dalaly/server test:codes          # concurrent saves get distinct codes; duplicates are 409
 pnpm --filter @dalaly/server test:maps:runtime
 pnpm --filter @dalaly/server test:startup:electron  # real Electron startup (needs a display)
 ```
