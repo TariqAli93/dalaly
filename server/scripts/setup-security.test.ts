@@ -42,6 +42,15 @@ test("a locked-out account is refused before the PIN is checked", async () => {
   loginThrottle.recordSuccess("login:locked-user");
 });
 
+test("malformed or wrongly typed bodies are client errors, not 500s", async () => {
+  const badJson = await app.inject({ method: "POST", url: "/api/auth/login", payload: "{bad", headers: { "content-type": "application/json" } });
+  assert.equal(badJson.statusCode, 400);
+  assert.equal(badJson.json().code, "BAD_REQUEST");
+  const wrongType = await app.inject({ method: "POST", url: "/api/auth/login", payload: "x", headers: { "content-type": "application/x-unknown" } });
+  assert.equal(wrongType.statusCode, 415);
+  assert.match(wrongType.json().message, /غير مدعوم/);
+});
+
 test("database-dependent endpoints still require authentication before setup", async () => {
   assert.equal((await app.inject({ url: "/api/properties" })).statusCode, 401);
 });
