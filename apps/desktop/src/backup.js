@@ -7,6 +7,9 @@ import { isMainWindowSender } from "./ipc-guard.js";
 
 // ===== النسخ الاحتياطي: حوارات الملفات والجدولة بالبريد =====
 
+// Archiving every image and document can take minutes on a slow disk.
+const BACKUP_REQUEST_TIMEOUT_MS = 10 * 60 * 1000;
+
 function encryptSecret(plain) {
   try {
     if (safeStorage.isEncryptionAvailable()) {
@@ -123,6 +126,7 @@ async function runScheduledBackup({ apiUrl, internalToken }) {
     const response = await fetch(`${apiUrl}/api/backup/internal-run`, {
       method: "POST",
       headers: { "x-internal-token": internalToken },
+      signal: AbortSignal.timeout(BACKUP_REQUEST_TIMEOUT_MS),
     });
     const result = await response.json();
     if (!response.ok || !result?.ok) {
@@ -165,11 +169,18 @@ async function runScheduledBackup({ apiUrl, internalToken }) {
 // يفحص الموعد كل دقيقة ما دام التطبيق يعمل.
 export function createBackupScheduler(options) {
   let timer = null;
+  // lastRunAt is only written once a run finishes, so a run longer than the
+  // tick would otherwise start a second backup and email.
+  let running = false;
   return {
     start() {
       if (timer) return;
       timer = setInterval(() => {
-        void runScheduledBackup(options);
+        if (running) return;
+        running = true;
+        runScheduledBackup(options).finally(() => {
+          running = false;
+        });
       }, 60 * 1000);
     },
     stop() {
