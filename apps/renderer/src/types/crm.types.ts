@@ -53,6 +53,16 @@ export type RentalRequestRecord = {
 };
 export type PurchaseRequestRecord = Omit<RentalRequestRecord, "rent_period">;
 
+/** مفاتيح الترتيب في /people/paged (PERSON_SORT_KEYS في الخادم). */
+export type PersonSortKey =
+  | "updated_at"
+  | "created_at"
+  | "full_name"
+  | "code"
+  | "phone_primary"
+  | "person_type"
+  | "status";
+
 export type MatchReason = {
   field: string;
   label: string;

@@ -5,10 +5,15 @@ import {
   createPerson,
   getPerson,
   listPeople,
+  listPeoplePage,
   restorePerson,
   updatePerson,
 } from "./people.repository.js";
-import { personFiltersSchema, personPayloadSchema } from "./people.schema.js";
+import {
+  personFiltersSchema,
+  personPageQuerySchema,
+  personPayloadSchema,
+} from "./people.schema.js";
 import { parseId } from "../../shared/utils/parse-id.js";
 
 export const peopleRoutes: FastifyPluginAsync = async (app) => {
@@ -16,6 +21,14 @@ export const peopleRoutes: FastifyPluginAsync = async (app) => {
     "/",
     { preHandler: requirePermission("people.read") },
     async (request) => listPeople(personFiltersSchema.parse(request.query)),
+  );
+  // صفحة واحدة مع العدد الكلي لجدول الأشخاص. القائمة الكاملة أعلاه باقية
+  // لقوائم الاختيار (مالك العرض، عميل الطلب، تصفية المستمسكات).
+  app.get(
+    "/paged",
+    { preHandler: requirePermission("people.read") },
+    async (request) =>
+      listPeoplePage(personPageQuerySchema.parse(request.query)),
   );
   app.get(
     "/:id",

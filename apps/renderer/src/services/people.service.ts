@@ -1,14 +1,34 @@
-import type { PersonRecord } from "../types";
+import type {
+  PageQuery,
+  PagedResult,
+  PersonRecord,
+  PersonSortKey,
+} from "../types";
 import { request } from "./api.service";
 
-export function listPeople(filters: Record<string, string | undefined> = {}) {
+function buildQuery(filters: Record<string, string | number | undefined>) {
   const query = new URLSearchParams(
     Object.entries(filters)
       .filter(([, value]) => value !== undefined && value !== "")
       .map(([key, value]) => [key, String(value)]),
   );
-  return request<PersonRecord[]>(
-    `/people${query.toString() ? `?${query}` : ""}`,
+  return query.toString() ? `?${query}` : "";
+}
+
+/** كل الأشخاص، لقوائم الاختيار (مالك العرض، عميل الطلب، تصفية المستمسكات). */
+export function listPeople(filters: Record<string, string | undefined> = {}) {
+  return request<PersonRecord[]>(`/people${buildQuery(filters)}`);
+}
+
+/** صفحة واحدة مع العدد الكلي، لجدول الأشخاص. */
+export function listPeoplePage(
+  filters: { q?: string },
+  page: PageQuery<PersonSortKey>,
+  signal?: AbortSignal,
+) {
+  return request<PagedResult<PersonRecord>>(
+    `/people/paged${buildQuery({ ...filters, ...page })}`,
+    { signal },
   );
 }
 export function getPerson(id: number) {
