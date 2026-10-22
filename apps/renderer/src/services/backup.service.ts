@@ -41,10 +41,13 @@ export function restoreBackup(input: {
   file_path?: string;
   data?: string;
 }) {
-  return request<{ ok: boolean; scope: string; images_restored: number }>(
-    "/backup/restore",
-    { method: "POST", body: JSON.stringify(input) },
-  );
+  return request<{
+    ok: boolean;
+    scope: string;
+    images_restored: number;
+    /** Copy of the data the restore replaced (absent from older APIs). */
+    safety_backup_path?: string;
+  }>("/backup/restore", { method: "POST", body: JSON.stringify(input) });
 }
 
 export function backupDownloadUrl(jobId: number) {

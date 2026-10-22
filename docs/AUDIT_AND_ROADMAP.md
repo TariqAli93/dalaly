@@ -87,9 +87,9 @@ These are not code-quality calls; they change history, data or behavior.
    enforced, and the cloudflared child is not killed when the API exits, so a
    public tunnel can outlive the app. Decide whether the flag should gate
    `/api/remote-access/enable`.
-5. **Backup contents.** Every backup zip includes `config.json` with the
-   plaintext database URL and is emailed unencrypted (with ID scans) by the
-   scheduled backup.
+5. **Backup contents.** Resolved in part: backups no longer include
+   `config.json` (the database password). The scheduled backup still emails
+   the archive, including ID scans, unencrypted.
 
 ## 3. Findings by area (open)
 
@@ -98,14 +98,13 @@ These are not code-quality calls; they change history, data or behavior.
 - **Pool defaults** (max 10, 10 s idle, 1.5 s connect/queue timeout, no
   statement timeout); `reconfigurePool` rebuilds a bare config.
 - **Dashboard runs ~13 sequential queries** (properties scanned ~8 times);
-  route needs only `properties.read` but returns rentals, audit activity with
-  usernames and follow-ups (**RBAC leak**). Matching returns customer data
-  under `rentals.read`.
+  the RBAC leak (rentals, audit activity and follow-ups under
+  `properties.read`; matching across domains) is fixed in Phase 1.
 - **Every authenticated request costs 3 queries** (session + roles +
   permissions); a 20-thumbnail gallery ≈ 80 queries. A short-TTL, explicitly
   invalidated session cache is the single biggest backend win.
-- **Record codes** (`P-…`, `R-…`, people, requests, documents) are read-max +1,
-  not race-safe; a double-clicked Save gives a 23505 (now a 409, previously 500).
+- **Record codes** (`P-…`, `R-…`, people, requests, documents) are read-max +1;
+  Phase 1 retries on a collision, so simultaneous saves no longer fail.
 - **No pagination** for people, requests, documents, audit; renderer never
   sends `limit/offset` for properties/rentals; person details downloads all
   properties to filter by owner client-side.
@@ -116,16 +115,16 @@ These are not code-quality calls; they change history, data or behavior.
 - **Non-atomic writes**: entity write and audit row are separate, audit errors
   are swallowed; files are written before their row, orphaned on failure.
 - **Backup/restore block the event loop**: adm-zip reads every image and
-  compresses synchronously; no backup/restore mutex; no retention; no
-  pre-restore safety backup; images extracted after the DB commit.
-- **Uploads** are base64 inside JSON with a global 50 MB `bodyLimit`, no
-  per-file limit, no content sniffing, no thumbnails; auth runs as
-  `preHandler`, so unauthenticated bodies are parsed before rejection.
+  compresses synchronously; no retention; images extracted after the DB
+  commit. (Lock and pre-restore copy added in Phase 1.)
+- **Uploads** are base64 inside JSON (50 MB route limit since Phase 1, 1 MB
+  elsewhere), no per-file limit, no content sniffing, no thumbnails.
 - **Error shapes** vary (`{code,messageKey,message}` / `{message}` /
   `{ok:false,message}`); several routes return raw driver text as 400;
   `DocumentError` is dead; `z.coerce.boolean()` turns `"false"` into `true`.
-- Already good: no `any`, consistent-snapshot export, single-transaction
-  restore with validation first, path-traversal guards, advisory-locked
+- Already good: no `any`, snapshot export and single-transaction restore
+  with validation first (effective since Phase 1 made `db.transaction` real),
+  path-traversal guards, advisory-locked
   migrations, scrypt PINs and hashed session tokens, streamed file serving.
 
 ### Renderer
@@ -153,9 +152,9 @@ These are not code-quality calls; they change history, data or behavior.
 
 ### Electron, packaging, logs
 
-- **API child is not supervised**: it never exits when Electron dies
-  (orphan holds port 34567 with an old token), an exit after startup is only
-  logged, and the scheduled-backup `fetch` previously had no timeout.
+- ~~API child is not supervised~~: measured, not a problem on Windows — the
+  API exits with Electron even when Electron is force-killed (see Phase 1).
+  An API exit after startup is still only logged.
 - `config.json` writes are not atomic and a parse failure silently returns
   `{}` (drops the user into Setup); the DB URL is stored in plaintext.
 - electron-log keeps 1 MB + one archive; the default menu (with DevTools) is
@@ -193,18 +192,40 @@ phases below:
 4. The session/permission cache (Phase 2.1) is _not_ supported by the data
    so far: `GET /auth/me` takes ~5 ms. Keep it below the items above.
 
-### Phase 1 — safety and correctness (low risk, small)
+### Phase 1 — safety and correctness — done except as noted
 
-1. API lifecycle: spawn with an IPC channel and exit on `disconnect`; kill
-   cloudflared on API exit; enforce `REMOTE_ACCESS_ENABLED`.
-2. Backup/restore mutex; drop `config.json` from archives; pre-restore safety
-   backup; retention of the last N backups.
-3. Dashboard and matching: filter sections by permission.
-4. Auth to `onRequest`; global `bodyLimit` 1 MB with explicit per-route
-   limits for uploads, import and restore.
-5. Race-safe record codes (advisory lock or one retry on 23505).
-6. Atomic `config.json` writes with a `.bak`.
-7. Runtime suites read `DB_*` and use unique database names.
+1. ~~API lifecycle~~ — **not needed**. Measured on the packaged app: when
+   Electron's main process is force-killed, the API exits ~1.3 s later and
+   frees its port, before and after the first batch. Node's child processes
+   on Windows (libuv) die with their parent; cloudflared, a child of the API,
+   should go the same way but was not tested with a live tunnel. An
+   IPC-based shutdown was implemented, measured against this and dropped.
+   Enforcing `REMOTE_ACCESS_ENABLED` stays an owner decision (section 2).
+2. Done: backups no longer include `config.json`; backup, export, scheduled
+   run and restore share one lock (409 when busy); restore first writes
+   `Dalaly_Before_Restore_<time>.zip`. **Not done:** retention of the last N
+   backups — it deletes user files, so it needs an owner decision.
+3. Done: dashboard sections and matching follow their domains' read
+   permissions.
+4. Done: auth runs on `onRequest`; 1 MB global body limit, 50 MB on the
+   eight upload/import/restore routes.
+5. Done: record codes are allocated inside a transaction holding a
+   per-table advisory lock, so simultaneous creates take turns. Also fixed:
+   Drizzle wraps PostgreSQL errors, so the 23505/23503 → 409 mapping from
+   the first batch never matched; it now reads the SQLSTATE through `cause`.
+   **Found on the way:** `db.transaction` was never a real transaction. The
+   pool is a `Proxy` that Drizzle did not recognize as a pool, so `BEGIN`,
+   each statement and `COMMIT` could run on different connections under
+   concurrency (restore, the backup snapshot, property creation). The proxy
+   now reports `pg.Pool`'s prototype.
+6. Done: atomic `config.json` writes with a `.bak` used when the file is
+   torn.
+7. Open: runtime smoke suites still hardcode credentials and fixed database
+   names.
+
+New DB-backed suites: `test:permissions`, `test:backup:safety`,
+`test:limits`, `test:codes`, `test:transactions` (each fails without its
+fix).
 
 ### Phase 2 — backend efficiency
 

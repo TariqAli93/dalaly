@@ -14,6 +14,7 @@ import {
   contentTypeForFile,
   resolveManagedFile,
 } from "../documents/documents.storage.js";
+import { UPLOAD_BODY_LIMIT } from "../../shared/constants/limits.js";
 export const companySettingsRoutes: FastifyPluginAsync = async (app) => {
   app.get("/", { preHandler: requirePermission("settings.read") }, async () =>
     getCompanySettings(),
@@ -26,7 +27,10 @@ export const companySettingsRoutes: FastifyPluginAsync = async (app) => {
   );
   app.post(
     "/logo",
-    { preHandler: requirePermission("settings.update") },
+    {
+      bodyLimit: UPLOAD_BODY_LIMIT,
+      preHandler: requirePermission("settings.update"),
+    },
     async (request) => updateCompanyLogo(companyLogoSchema.parse(request.body)),
   );
   app.get("/logo", async (_request, reply) => {

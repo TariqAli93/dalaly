@@ -15,6 +15,10 @@ import type {
   RentalRequestFilters,
   RentalRequestPayload,
 } from "./rental-requests.schema.js";
+import {
+  withRecordCodeLock,
+  type Transaction,
+} from "../../infrastructure/database/record-codes.js";
 
 function apiRow(
   request: Record<string, unknown>,
@@ -75,8 +79,8 @@ async function normalize(
   };
 }
 
-async function generateCode() {
-  const [last] = await db
+async function generateCode(tx: Transaction) {
+  const [last] = await tx
     .select({ code: rentalRequests.code })
     .from(rentalRequests)
     .orderBy(desc(rentalRequests.id))
@@ -134,10 +138,13 @@ export async function getRentalRequest(id: number) {
 }
 
 export async function createRentalRequest(payload: RentalRequestPayload) {
-  const [row] = await db
-    .insert(rentalRequests)
-    .values({ ...(await normalize(payload)), code: await generateCode() })
-    .returning();
+  const values = await normalize(payload);
+  const [row] = await withRecordCodeLock("rental_requests", async (tx) =>
+    tx
+      .insert(rentalRequests)
+      .values({ ...values, code: await generateCode(tx) })
+      .returning(),
+  );
   return getRentalRequest(row.id);
 }
 

@@ -1,10 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
-import { type FastifyPluginAsync } from "fastify";
+import { type FastifyPluginAsync, type FastifyReply } from "fastify";
 import { z } from "zod";
 import { config } from "../../infrastructure/config.js";
 import { requirePermission } from "../auth/auth.hooks.js";
 import {
+  BackupBusyError,
   createBackup,
   exportBackup,
   getBackupDir,
@@ -15,6 +16,7 @@ import {
   setBackupDir,
   type RestoreScope,
 } from "./backup.service.js";
+import { UPLOAD_BODY_LIMIT } from "../../shared/constants/limits.js";
 
 const restoreSchema = z.object({
   scope: z
@@ -35,6 +37,14 @@ const restoreSchema = z.object({
 const dirSchema = z.object({ dir: z.string().trim().min(1) });
 
 const exportSchema = z.object({ outputPath: z.string().trim().min(1) });
+
+/** 409 while another backup or restore runs, otherwise the failure as 500. */
+function failure(reply: FastifyReply, error: unknown, fallback: string) {
+  return reply.code(error instanceof BackupBusyError ? 409 : 500).send({
+    ok: false,
+    message: error instanceof Error ? error.message : fallback,
+  });
+}
 
 export const backupRoutes: FastifyPluginAsync = async (app) => {
   app.get(
@@ -76,13 +86,7 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
         const result = await createBackup("manual", request.user?.id);
         return result;
       } catch (error) {
-        return reply.code(500).send({
-          ok: false,
-          message:
-            error instanceof Error
-              ? error.message
-              : "تعذر إنشاء النسخة الاحتياطية.",
-        });
+        return failure(reply, error, "تعذر إنشاء النسخة الاحتياطية.");
       }
     },
   );
@@ -96,13 +100,7 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
       try {
         return await exportBackup(payload.outputPath, request.user?.id);
       } catch (error) {
-        return reply.code(500).send({
-          ok: false,
-          message:
-            error instanceof Error
-              ? error.message
-              : "تعذر تصدير النسخة الاحتياطية.",
-        });
+        return failure(reply, error, "تعذر تصدير النسخة الاحتياطية.");
       }
     },
   );
@@ -127,7 +125,10 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
 
   app.post(
     "/restore",
-    { preHandler: requirePermission("backups.restore") },
+    {
+      bodyLimit: UPLOAD_BODY_LIMIT,
+      preHandler: requirePermission("backups.restore"),
+    },
     async (request, reply) => {
       const payload = restoreSchema.parse(request.body);
       let buffer: Buffer | null = null;
@@ -154,13 +155,7 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
         );
         return result;
       } catch (error) {
-        return reply.code(500).send({
-          ok: false,
-          message:
-            error instanceof Error
-              ? error.message
-              : "تعذر استرجاع النسخة الاحتياطية.",
-        });
+        return failure(reply, error, "تعذر استرجاع النسخة الاحتياطية.");
       }
     },
   );
@@ -174,10 +169,7 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
     try {
       return await createBackup("email");
     } catch (error) {
-      return reply.code(500).send({
-        ok: false,
-        message: error instanceof Error ? error.message : "فشل النسخ المجدول.",
-      });
+      return failure(reply, error, "فشل النسخ المجدول.");
     }
   });
 };

@@ -36,6 +36,11 @@ import {
   type PropertyFilters,
   type PropertyPayload,
 } from "./properties.schema.js";
+import { postgresError } from "../../shared/utils/postgres-errors.js";
+import {
+  withRecordCodeLock,
+  type Transaction,
+} from "../../infrastructure/database/record-codes.js";
 
 const ENTITY = "property";
 const PLOT_UNIQUE_INDEX = "uq_properties_plot_identity";
@@ -84,10 +89,10 @@ async function findDuplicatePlotOwner(
 
 /** هل الخطأ ناتج عن انتهاك فهرس تفرّد القطعة (طبقة الأمان)؟ */
 function isUniquePlotViolation(error: unknown): boolean {
-  const pgError = error as { code?: string; constraint?: string } | null;
+  const pgError = postgresError(error);
   return (
     pgError?.code === "23505" &&
-    (pgError?.constraint ?? "").includes(PLOT_UNIQUE_INDEX)
+    (pgError.constraint ?? "").includes(PLOT_UNIQUE_INDEX)
   );
 }
 
@@ -260,8 +265,8 @@ export async function createProperty(
 
   const property = await (async () => {
     try {
-      return await db.transaction(async (tx) => {
-        const code = await generatePropertyCode(payload.property_type);
+      return await withRecordCodeLock("properties", async (tx) => {
+        const code = await generatePropertyCode(tx, payload.property_type);
         const [created] = await tx
           .insert(properties)
           .values({ ...values, code })
@@ -416,9 +421,12 @@ export function getPropertyAudit(id: number) {
   return listEntityAudit(ENTITY, id);
 }
 
-async function generatePropertyCode(propertyType: PropertyType) {
+async function generatePropertyCode(
+  tx: Transaction,
+  propertyType: PropertyType,
+) {
   const prefix = PROPERTY_TYPE_PREFIX[propertyType] ?? "P";
-  const [lastProperty] = await db
+  const [lastProperty] = await tx
     .select({ code: properties.code })
     .from(properties)
     .where(ilike(properties.code, `${prefix}-%`))

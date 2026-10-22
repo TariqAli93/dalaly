@@ -23,6 +23,10 @@ import {
 } from "../locations/locations.repository.js";
 import { listEntityAudit, recordAudit } from "../audit/audit.service.js";
 import { type RentalFilters, type RentalPayload } from "./rentals.schema.js";
+import {
+  withRecordCodeLock,
+  type Transaction,
+} from "../../infrastructure/database/record-codes.js";
 
 const ENTITY = "rental";
 const SEARCHABLE_COLUMNS = [
@@ -165,8 +169,8 @@ async function normalizePayload(
   };
 }
 
-async function generateRentalCode() {
-  const [last] = await db
+async function generateRentalCode(tx: Transaction) {
+  const [last] = await tx
     .select({ code: rentals.code })
     .from(rentals)
     .where(ilike(rentals.code, "R-%"))
@@ -177,13 +181,13 @@ async function generateRentalCode() {
 }
 
 export async function createRental(payload: RentalPayload, userId?: number) {
-  const [row] = await db
-    .insert(rentals)
-    .values({
-      ...(await normalizePayload(payload)),
-      code: await generateRentalCode(),
-    })
-    .returning();
+  const values = await normalizePayload(payload);
+  const [row] = await withRecordCodeLock("rentals", async (tx) =>
+    tx
+      .insert(rentals)
+      .values({ ...values, code: await generateRentalCode(tx) })
+      .returning(),
+  );
   const result = toApiObject(row, "rentals");
   await recordAudit({
     entityType: ENTITY,

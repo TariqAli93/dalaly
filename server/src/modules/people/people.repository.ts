@@ -6,6 +6,10 @@ import {
 } from "../../infrastructure/database/schema.js";
 import { toApiObject, toApiObjects } from "../../shared/utils/case.js";
 import type { PersonFilters, PersonPayload } from "./people.schema.js";
+import {
+  withRecordCodeLock,
+  type Transaction,
+} from "../../infrastructure/database/record-codes.js";
 
 function normalize(payload: PersonPayload): Omit<NewPerson, "code"> {
   return {
@@ -29,8 +33,8 @@ function normalize(payload: PersonPayload): Omit<NewPerson, "code"> {
   };
 }
 
-async function generateCode() {
-  const [last] = await db
+async function generateCode(tx: Transaction) {
+  const [last] = await tx
     .select({ code: people.code })
     .from(people)
     .orderBy(desc(people.id))
@@ -76,10 +80,12 @@ export async function getPerson(id: number) {
 }
 
 export async function createPerson(payload: PersonPayload) {
-  const [row] = await db
-    .insert(people)
-    .values({ ...normalize(payload), code: await generateCode() })
-    .returning();
+  const [row] = await withRecordCodeLock("people", async (tx) =>
+    tx
+      .insert(people)
+      .values({ ...normalize(payload), code: await generateCode(tx) })
+      .returning(),
+  );
   return toApiObject(row, "people");
 }
 

@@ -376,7 +376,9 @@ onMounted(() => {
               </div>
               <v-tabs v-model="analysisDomain" color="primary" density="compact"
                 ><v-tab value="sales">عروض البيع</v-tab
-                ><v-tab value="rentals">الإيجارات</v-tab></v-tabs
+                ><v-tab v-if="can('rentals.read')" value="rentals"
+                  >الإيجارات</v-tab
+                ></v-tabs
               >
             </div>
             <v-window v-model="analysisDomain">
@@ -613,7 +615,7 @@ onMounted(() => {
                 </tr></tbody
             ></v-table>
           </v-card>
-          <v-card variant="flat" border>
+          <v-card v-if="can('audit.read')" variant="flat" border>
             <div class="section-heading">
               <h2>النشاط الأخير</h2>
               <span class="muted-caption">آخر العمليات</span>
@@ -693,6 +695,7 @@ onMounted(() => {
             </v-card-text></v-card
           >
           <v-card
+            v-if="can('followups.read')"
             variant="flat"
             border
             :class="{ 'attention-card': overdueCount }"

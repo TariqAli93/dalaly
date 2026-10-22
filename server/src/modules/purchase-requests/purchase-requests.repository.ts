@@ -15,6 +15,10 @@ import type {
   PurchaseRequestFilters,
   PurchaseRequestPayload,
 } from "./purchase-requests.schema.js";
+import {
+  withRecordCodeLock,
+  type Transaction,
+} from "../../infrastructure/database/record-codes.js";
 
 function apiRow(
   request: Record<string, unknown>,
@@ -60,8 +64,8 @@ async function normalize(
     updatedAt: new Date(),
   };
 }
-async function generateCode() {
-  const [last] = await db
+async function generateCode(tx: Transaction) {
+  const [last] = await tx
     .select({ code: purchaseRequests.code })
     .from(purchaseRequests)
     .orderBy(desc(purchaseRequests.id))
@@ -114,10 +118,13 @@ export async function getPurchaseRequest(id: number) {
   return row ? apiRow(row.request, row.personName, row.personCode) : null;
 }
 export async function createPurchaseRequest(payload: PurchaseRequestPayload) {
-  const [row] = await db
-    .insert(purchaseRequests)
-    .values({ ...(await normalize(payload)), code: await generateCode() })
-    .returning();
+  const values = await normalize(payload);
+  const [row] = await withRecordCodeLock("purchase_requests", async (tx) =>
+    tx
+      .insert(purchaseRequests)
+      .values({ ...values, code: await generateCode(tx) })
+      .returning(),
+  );
   return getPurchaseRequest(row.id);
 }
 export async function updatePurchaseRequest(

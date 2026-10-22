@@ -20,6 +20,7 @@ import {
   setPrimaryRentalImage,
 } from "./rental-images.repository.js";
 import { parseId } from "../../shared/utils/parse-id.js";
+import { UPLOAD_BODY_LIMIT } from "../../shared/constants/limits.js";
 
 const uploadSchema = z.object({
   images: z
@@ -67,7 +68,10 @@ export const rentalImagesRoutes: FastifyPluginAsync = async (app) => {
   );
   app.post(
     "/:id/images",
-    { preHandler: requirePermission("rentals.images.manage") },
+    {
+      bodyLimit: UPLOAD_BODY_LIMIT,
+      preHandler: requirePermission("rentals.images.manage"),
+    },
     async (request, reply) => {
       const rentalId = parseId((request.params as { id: string }).id);
       if (!rentalId)

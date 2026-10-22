@@ -20,6 +20,7 @@ import {
   saveImageToDisk,
 } from "./images.service.js";
 import { parseId } from "../../shared/utils/parse-id.js";
+import { UPLOAD_BODY_LIMIT } from "../../shared/constants/limits.js";
 
 const uploadSchema = z.object({
   images: z
@@ -74,7 +75,10 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
 
   app.post(
     "/:id/images",
-    { preHandler: requirePermission("properties.images.manage") },
+    {
+      bodyLimit: UPLOAD_BODY_LIMIT,
+      preHandler: requirePermission("properties.images.manage"),
+    },
     async (request, reply) => {
       const propertyId = parseId((request.params as { id: string }).id);
       if (!propertyId)

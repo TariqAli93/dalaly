@@ -3,6 +3,8 @@ import Fastify, { type FastifyServerOptions } from "fastify";
 import { ZodError } from "zod";
 import { config } from "./infrastructure/config.js";
 import { DuplicatePlotError, DocumentError } from "./shared/errors.js";
+import { DEFAULT_BODY_LIMIT } from "./shared/constants/limits.js";
+import { postgresError } from "./shared/utils/postgres-errors.js";
 import { getSetupStatus } from "./infrastructure/database/health.js";
 import { registerAuthHook } from "./modules/auth/auth.hooks.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
@@ -61,13 +63,13 @@ export async function buildServer(options: { logger?: boolean } = {}) {
       }),
     },
   };
-  // bodyLimit مرفوع لدعم رفع صور العقارات عبر base64.
   const app = Fastify({
     logger,
     // Per-request lines are written synchronously by electron-log in the
     // main process; only slow or failed requests are logged (onResponse).
     disableRequestLogging: true,
-    bodyLimit: 50 * 1024 * 1024,
+    // Upload routes raise this per route (UPLOAD_BODY_LIMIT).
+    bodyLimit: DEFAULT_BODY_LIMIT,
   });
 
   app.addHook("onResponse", async (request, reply) => {
@@ -128,16 +130,13 @@ export async function buildServer(options: { logger?: boolean } = {}) {
 
     if (error instanceof DocumentError)
       return reply.code(error.statusCode).send({ message: error.message });
-    // PostgreSQL SQLSTATE or Fastify FST_* code.
-    const errorCode =
-      error && typeof error === "object" && "code" in error
-        ? error.code
-        : undefined;
-    if (errorCode === "23503")
+    // Drizzle wraps PostgreSQL errors, so read the SQLSTATE through `cause`.
+    const sqlState = postgresError(error)?.code;
+    if (sqlState === "23503")
       return reply.code(409).send({
         message: "لا يمكن تنفيذ العملية بسبب ارتباط السجل ببيانات أخرى.",
       });
-    if (errorCode === "23505")
+    if (sqlState === "23505")
       return reply.code(409).send({
         code: "DUPLICATE_VALUE",
         message: "القيمة مستخدمة مسبقاً في سجل آخر.",
@@ -153,7 +152,9 @@ export async function buildServer(options: { logger?: boolean } = {}) {
     // own (malformed JSON, body too large, wrong content type) carry English
     // messages; errors thrown by our modules already carry Arabic ones.
     if (statusCode >= 400 && statusCode < 500) {
-      const fastifyError = String(errorCode ?? "").startsWith("FST_");
+      const fastifyError = String(
+        (error as { code?: unknown }).code ?? "",
+      ).startsWith("FST_");
       return reply.code(statusCode).send({
         code: "BAD_REQUEST",
         message: fastifyError

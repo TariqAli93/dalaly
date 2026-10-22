@@ -144,7 +144,7 @@ function onFileChange(event: Event) {
 function confirmRestore() {
   openConfirm({
     title: "تأكيد الاسترجاع",
-    body: "سيتم استبدال البيانات الحالية بمحتوى النسخة الاحتياطية. هذا الإجراء لا يمكن التراجع عنه. هل أنت متأكد؟",
+    body: "سيتم استبدال البيانات الحالية بمحتوى النسخة الاحتياطية. تُحفظ نسخة من البيانات الحالية في مجلد النسخ قبل الاستبدال. هل أنت متأكد؟",
     confirmText: "استرجاع",
     color: "error",
     onConfirm: runRestore,
@@ -154,14 +154,16 @@ function confirmRestore() {
 async function runRestore() {
   restoring.value = true;
   try {
-    await backupService.restoreBackup({
+    const result = await backupService.restoreBackup({
       scope: restoreScope.value,
       file_path: restoreFilePath.value || undefined,
       data: restoreData.value || undefined,
     });
     restoreOpen.value = false;
     notifySuccess(
-      "تم استرجاع النسخة الاحتياطية. قد تحتاج إلى إعادة تسجيل الدخول.",
+      result.safety_backup_path
+        ? `تم استرجاع النسخة الاحتياطية، وحُفظت البيانات السابقة في: ${result.safety_backup_path}. قد تحتاج إلى إعادة تسجيل الدخول.`
+        : "تم استرجاع النسخة الاحتياطية. قد تحتاج إلى إعادة تسجيل الدخول.",
     );
     await load();
   } catch (error) {
