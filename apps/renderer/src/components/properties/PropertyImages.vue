@@ -73,6 +73,8 @@ function onDrop(event: DragEvent) {
 }
 
 function onPaste(event: ClipboardEvent) {
+  // The pending list is only shown, and uploadable, with manage permission.
+  if (!props.canManage) return;
   const items = event.clipboardData?.items;
   if (!items) return;
   const files: File[] = [];
@@ -159,7 +161,8 @@ async function onDropReorder(index: number) {
 
 watch(() => props.propertyId, load);
 onMounted(() => {
-  window.addEventListener("paste", onPaste);
+  // Table rows mount one primary-only thumbnail each; they take no uploads.
+  if (!props.primaryOnly) window.addEventListener("paste", onPaste);
   void load();
 });
 onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
@@ -239,12 +242,7 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
           @dragover.prevent
           @drop.prevent="onDropReorder(index)"
         >
-          <ListingImage
-            :src="imageUrl(image)"
-            class="thumb small"
-            alt=""
-            @click="setPrimary(image)"
-          />
+          <ListingImage :src="imageUrl(image)" class="thumb small" alt="" />
           <div v-if="canManage" class="thumb-actions">
             <v-btn
               v-if="!image.is_primary"
