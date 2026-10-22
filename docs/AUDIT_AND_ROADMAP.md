@@ -115,9 +115,11 @@ These are not code-quality calls; they change history, data or behavior.
   invalidated session cache is the single biggest backend win.
 - **Record codes** (`P-…`, `R-…`, people, requests, documents) are read-max +1;
   Phase 1 retries on a collision, so simultaneous saves no longer fail.
-- **No pagination** for people, requests, documents, audit; renderer never
-  sends `limit/offset` for properties/rentals; person details downloads all
-  properties to filter by owner client-side.
+- **No pagination** for the audit log. (Properties, rentals, people,
+  requests and documents are paged on the server, and person details asks
+  for its owner's offers; Phase 2.6.) The pickers that list every person
+  (offer owner, request customer, documents filter) still download them
+  all.
 - **Search**: properties ORs `ILIKE` over ~28 columns plus casts per token;
   `%`/`_` not escaped; duplicate-plot check is a sequential scan per save.
 - **N+1**: `listUsers` (2 per user), `listRoles`, location names (3 lookups per
@@ -248,14 +250,20 @@ fix).
 3. Index migration for measured query patterns (`created_at`/`updated_at`
    orderings, `owner_person_id`, `audit_logs(entity_type, created_at)`); drop
    the duplicate `sessions.token_hash` index. Verify with
-   `EXPLAIN (ANALYZE, BUFFERS)` on the Phase 0 dataset.
+   `EXPLAIN (ANALYZE, BUFFERS)` on the Phase 0 dataset. Measured for
+   `owner_person_id`: a sequential scan of 0.8 ms at 5,000 properties and
+   8 ms at 50,000, so no index yet (`docs/PERFORMANCE.md`, "Paging the
+   remaining lists").
 4. Pool tuning and a statement timeout (exempting backup/restore).
 5. Fix N+1s: users/roles listing, location names, import (transaction + cap).
-6. Server pagination end to end. **Done for properties and rentals**:
-   `GET /properties/paged` and `/rentals/paged` (page, size, whitelisted
-   sort including area in m², total) and `v-data-table-server` on both
-   pages. Still open: pagination for people, requests and documents, and an
-   owner filter for person details (it still downloads every property).
+6. Done: server pagination end to end. `GET /properties/paged` and
+   `/rentals/paged` (page, size, whitelisted sort including area in m²,
+   total), then `/people/paged`, `/rental-requests/paged`,
+   `/purchase-requests/paged` and `/documents/paged` (the documents status
+   filter, "expired" included, moved into SQL), all on
+   `v-data-table-server`. Person details asks `/properties/paged` for its
+   owner's offers (`owner_person_id`, `include_archived`) instead of
+   downloading every property. Results in `docs/PERFORMANCE.md`.
 7. Search: replace the per-token `ILIKE` over ~28 columns (plus casts and a
    `regexp_replace` on phone) with one generated, normalized `search_text`
    column and a `pg_trgm` index (new migration); escape `%`/`_` in input.

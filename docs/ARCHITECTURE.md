@@ -99,11 +99,18 @@ Conventions:
   `shared/validation/fields.ts` for optional text/id/number fields.
 - Large lists have a paged form next to the plain array: `GET
 /<domain>/paged` takes the same filters plus `page`, `page_size` (max
-  100), a whitelisted `sort_by`, `sort_order` and `favorites_only`, and
-  returns `{ items, total, page, page_size }` (properties and rentals so
-  far; helpers in `shared/utils/paging.ts`). Every sort ends on a unique
-  tie-breaker so rows never repeat across pages. The array endpoints stay
-  for callers that need every row.
+  100), a whitelisted `sort_by` and `sort_order` (and `favorites_only` on
+  the lists with favorites), and returns `{ items, total, page, page_size }`
+  with the total from the same query (properties, rentals, people, rental
+  and purchase requests, documents; helpers in `shared/utils/paging.ts`
+  and `shared/validation/paging.ts`). Every sort ends on a unique
+  tie-breaker so rows never repeat across pages. Every filter is a SQL
+  condition, including the time-dependent ones (an "expired" document), so
+  the total matches the rows. The array endpoints stay for callers that
+  need every row (pickers, matching, the dashboard).
+- Properties and rentals also filter by `owner_person_id`, and
+  `include_archived=true` lists archived rows with the rest; person details
+  uses both on `/properties/paged`.
 - User-facing messages are Arabic. Keep request/response shapes stable: the
   renderer types in `apps/renderer/src/types` mirror them by hand.
 - Add a service file only when a repository alone would mix concerns; most
@@ -145,11 +152,15 @@ Conventions: Arabic UI and RTL throughout; numbers and dates use Latin digits
 maps come from `constants/` (for example `RENT_PERIODS` /
 `RENT_PERIOD_LABELS`) rather than per-component copies.
 
-Server-paged tables (`PropertiesTable`, `RentalTable` when given a `total`)
-use `v-data-table-server` with their page, size and sort state in
+Server-paged tables (`PropertiesTable`, `RentalTable` when given a `total`,
+the people, requests and documents pages, a person's properties) use
+`v-data-table-server` with their page, size and sort state in
 `createPagedList` (`composables/usePagedList.ts`). It aborts a superseded
 request and only the newest one writes its result; header keys of sortable
-columns are the API's sort keys.
+columns are the API's sort keys. A page that renders its table at once
+starts the first load in `setup`, before the table emits its initial
+options, so that load is not sent twice; `onError` replaces the snackbar
+for a page that shows the error in place of the table.
 
 The layout is by type with domain subfolders. It is consistent and small
 enough that a move to feature folders would cost more review and history churn
