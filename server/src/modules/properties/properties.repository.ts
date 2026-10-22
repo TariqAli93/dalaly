@@ -77,8 +77,10 @@ async function findDuplicatePlotOwner(
   const plotNumber = normalizeKeyPart(values.plotNumber);
   if (!plotNumber) return null;
 
+  // Same expression as uq_properties_plot_identity. The sql tag reads the
+  // cooked template, where '\s' would reach PostgreSQL as a plain 's'.
   const norm = (column: AnyPgColumn) =>
-    sql`regexp_replace(btrim(coalesce(${column}, '')), '\s+', ' ', 'g')`;
+    sql`regexp_replace(btrim(coalesce(${column}, '')), '\\s+', ' ', 'g')`;
 
   const conditions = [
     sql`${norm(properties.governorate)} = ${normalizeKeyPart(values.governorate)}`,

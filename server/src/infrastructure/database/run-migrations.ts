@@ -97,8 +97,17 @@ export async function applyMigrations(
               "SELECT set_config('dalaly.approved_module_removal','contracts',true)",
             );
         }
-        for (const query of migration.sql)
-          if (query.trim()) await client.query(query);
+        // Migrations report a skipped optional step (an index that existing
+        // data or permissions prevent) with RAISE NOTICE; log it, or nobody sees it.
+        const logNotice = (notice: { message?: string }) =>
+          console.warn(`Migration ${tag}: ${notice.message}`);
+        client.on("notice", logNotice);
+        try {
+          for (const query of migration.sql)
+            if (query.trim()) await client.query(query);
+        } finally {
+          client.off("notice", logNotice);
+        }
         await client.query(
           "INSERT INTO drizzle.__drizzle_migrations(hash,created_at) VALUES($1,$2)",
           [migration.hash, migration.folderMillis],

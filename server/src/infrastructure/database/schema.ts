@@ -260,6 +260,10 @@ export const properties = pgTable(
     index("idx_properties_governorate_id").on(table.governorateId),
     index("idx_properties_district_id").on(table.districtId),
     index("idx_properties_neighborhood_id").on(table.neighborhoodId),
+    // uq_properties_plot_identity and the idx_properties_*_trgm indexes are
+    // created only by migration 0002, best-effort (existing duplicates or a
+    // missing pg_trgm skip them). Declaring them here would make the next
+    // db:generate emit a plain CREATE INDEX that can fail at startup.
   ],
 );
 

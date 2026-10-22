@@ -113,6 +113,10 @@ Conventions:
 - Reference rows the app needs on a fresh install (default document types) are
   inserted by a data migration once per database; system permissions and the
   Super Admin role are re-seeded on every startup by `seedSystemRbac`.
+- Indexes that existing data may block (the plot-identity unique index, the
+  `pg_trgm` search indexes) are created best-effort by hand-written migrations
+  (`DO $$ … EXCEPTION … RAISE NOTICE`) and are not declared in `schema.ts`;
+  the runner logs migration notices.
 
 ## Renderer (`apps/renderer/src`)
 
