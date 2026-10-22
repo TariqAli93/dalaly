@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from "vue";
-import skyline from "../../assets/images/splash-background.png";
+import skyline from "../../assets/images/splash-background.webp";
 type Stage = { progress?: number; message?: string; isError?: boolean };
 type SplashAPI = {
   onProgress: (callback: (stage: Stage) => void) => () => void;
