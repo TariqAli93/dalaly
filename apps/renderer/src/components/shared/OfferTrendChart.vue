@@ -16,6 +16,7 @@ import {
 import EmptyState from "./EmptyState.vue";
 import { appearance, fontSizes } from "../../composables/useAppearance";
 import { formatNumber } from "../../utils/format";
+import { afterNextPaint } from "../../utils/schedule";
 
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip);
 
@@ -167,6 +168,7 @@ function renderChart() {
       options: chartOptions.value,
       plugins: [valueLabels],
     });
+    performance.mark("dalaly:chart-drawn");
     return;
   }
   chart.data = chartData.value;
@@ -174,9 +176,24 @@ function renderChart() {
   chart.update("none");
 }
 
-onMounted(renderChart);
-watch([canvas, chartData, chartOptions], renderChart, { flush: "post" });
-onBeforeUnmount(() => chart?.destroy());
+// Creating a chart reads the canvas's computed size, which forces a style
+// recalculation of the page Vue has just rendered. Draw it after that page has
+// painted, so the dashboard's figures appear first; later updates are direct.
+let cancelFirstDraw: (() => void) | null = null;
+function scheduleRender() {
+  if (chart) return renderChart();
+  cancelFirstDraw ??= afterNextPaint(() => {
+    cancelFirstDraw = null;
+    renderChart();
+  });
+}
+
+onMounted(scheduleRender);
+watch([canvas, chartData, chartOptions], scheduleRender, { flush: "post" });
+onBeforeUnmount(() => {
+  cancelFirstDraw?.();
+  chart?.destroy();
+});
 </script>
 
 <template>
