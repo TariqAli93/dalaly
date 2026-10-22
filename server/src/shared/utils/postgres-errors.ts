@@ -29,24 +29,3 @@ export function postgresError(
   }
   return null;
 }
-
-/**
- * Record codes are "last code + 1", so two saves at the same moment can pick
- * the same one. Retries the insert (which must generate the code itself) when
- * it hits that code's unique constraint.
- */
-export async function withUniqueCodeRetry<T>(
-  constraint: string,
-  insert: () => Promise<T>,
-  attempts = 5,
-): Promise<T> {
-  for (let attempt = 1; ; attempt += 1) {
-    try {
-      return await insert();
-    } catch (error) {
-      const pg = postgresError(error);
-      const codeTaken = pg?.code === "23505" && pg.constraint === constraint;
-      if (!codeTaken || attempt >= attempts) throw error;
-    }
-  }
-}

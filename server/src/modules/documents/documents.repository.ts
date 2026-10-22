@@ -13,7 +13,10 @@ import type {
   IdentityDocumentPayload,
   IdentityDocumentUpdate,
 } from "./documents.schema.js";
-import { withUniqueCodeRetry } from "../../shared/utils/postgres-errors.js";
+import {
+  withRecordCodeLock,
+  type Transaction,
+} from "../../infrastructure/database/record-codes.js";
 
 function documentApi(
   row: Record<string, unknown>,
@@ -57,8 +60,8 @@ export async function createDocumentType(payload: DocumentTypePayload) {
   return toApiObject(row);
 }
 
-async function generateCode() {
-  const [last] = await db
+async function generateCode(tx: Transaction) {
+  const [last] = await tx
     .select({ code: identityDocuments.code })
     .from(identityDocuments)
     .orderBy(desc(identityDocuments.id))
@@ -118,26 +121,24 @@ export async function createIdentityDocument(payload: IdentityDocumentPayload) {
     payload.original_name,
     payload.file_type,
   );
-  const [row] = await withUniqueCodeRetry(
-    "identity_documents_code_unique",
-    async () =>
-      db
-        .insert(identityDocuments)
-        .values({
-          code: await generateCode(),
-          personId: payload.person_id,
-          documentTypeId: payload.document_type_id ?? null,
-          documentName: payload.document_name,
-          documentNumber: payload.document_number,
-          documentSide: payload.document_side,
-          filePath: stored.filePath,
-          fileType: payload.file_type,
-          fileSize: stored.fileSize,
-          expiresAt: payload.expires_at ?? null,
-          notes: payload.notes,
-          status: "active",
-        })
-        .returning(),
+  const [row] = await withRecordCodeLock("identity_documents", async (tx) =>
+    tx
+      .insert(identityDocuments)
+      .values({
+        code: await generateCode(tx),
+        personId: payload.person_id,
+        documentTypeId: payload.document_type_id ?? null,
+        documentName: payload.document_name,
+        documentNumber: payload.document_number,
+        documentSide: payload.document_side,
+        filePath: stored.filePath,
+        fileType: payload.file_type,
+        fileSize: stored.fileSize,
+        expiresAt: payload.expires_at ?? null,
+        notes: payload.notes,
+        status: "active",
+      })
+      .returning(),
   );
   return getIdentityDocument(row.id);
 }

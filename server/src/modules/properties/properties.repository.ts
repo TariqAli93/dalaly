@@ -36,10 +36,11 @@ import {
   type PropertyFilters,
   type PropertyPayload,
 } from "./properties.schema.js";
+import { postgresError } from "../../shared/utils/postgres-errors.js";
 import {
-  postgresError,
-  withUniqueCodeRetry,
-} from "../../shared/utils/postgres-errors.js";
+  withRecordCodeLock,
+  type Transaction,
+} from "../../infrastructure/database/record-codes.js";
 
 const ENTITY = "property";
 const PLOT_UNIQUE_INDEX = "uq_properties_plot_identity";
@@ -264,16 +265,14 @@ export async function createProperty(
 
   const property = await (async () => {
     try {
-      return await withUniqueCodeRetry("properties_code_unique", () =>
-        db.transaction(async (tx) => {
-          const code = await generatePropertyCode(payload.property_type);
-          const [created] = await tx
-            .insert(properties)
-            .values({ ...values, code })
-            .returning();
-          return created;
-        }),
-      );
+      return await withRecordCodeLock("properties", async (tx) => {
+        const code = await generatePropertyCode(tx, payload.property_type);
+        const [created] = await tx
+          .insert(properties)
+          .values({ ...values, code })
+          .returning();
+        return created;
+      });
     } catch (error) {
       // طبقة أمان: لو فات الفحص بسبب تسابق، حوّل انتهاك الفهرس إلى 409.
       if (isUniquePlotViolation(error)) {
@@ -422,9 +421,12 @@ export function getPropertyAudit(id: number) {
   return listEntityAudit(ENTITY, id);
 }
 
-async function generatePropertyCode(propertyType: PropertyType) {
+async function generatePropertyCode(
+  tx: Transaction,
+  propertyType: PropertyType,
+) {
   const prefix = PROPERTY_TYPE_PREFIX[propertyType] ?? "P";
-  const [lastProperty] = await db
+  const [lastProperty] = await tx
     .select({ code: properties.code })
     .from(properties)
     .where(ilike(properties.code, `${prefix}-%`))
