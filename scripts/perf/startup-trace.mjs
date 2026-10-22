@@ -82,6 +82,14 @@ try {
     const t0 = Date.now();
     const electron = await _electron.launch({ executablePath: app.exe, args: [`--user-data-dir=${profile}`], env: cleanEnv(), timeout: 60_000 });
     const launched = Date.now();
+    // The splash is the first window; read its timing before it closes.
+    const splashPage = await electron.firstWindow();
+    await splashPage.waitForLoadState("load");
+    const splash = await splashPage.evaluate(() => {
+      const nav = performance.getEntriesByType("navigation")[0];
+      const fcp = performance.getEntriesByType("paint").find((e) => e.name === "first-contentful-paint");
+      return { timeOrigin: performance.timeOrigin, domContentLoaded: nav?.domContentLoadedEventEnd, firstContentfulPaint: fcp?.startTime };
+    });
     let page;
     while (!(page = electron.windows().find((w) => w.url().includes("/index.html")))) await sleep(10);
     await page.getByLabel("اسم المستخدم", { exact: true }).waitFor({ state: "visible", timeout: 60_000 });
@@ -124,6 +132,9 @@ try {
       apiReady: rel(apiReady),
       mainSawReady: rel(mainReady),
       readyNoticedAfter: apiReady && mainReady ? mainReady - apiReady : null,
+      splashNavStart: Math.round(splash.timeOrigin - t0),
+      splashDomContentLoaded: Math.round(splash.timeOrigin + splash.domContentLoaded - t0),
+      splashFirstPaint: splash.firstContentfulPaint ? Math.round(splash.timeOrigin + splash.firstContentfulPaint - t0) : null,
       rendererNavStart: Math.round(renderer.timeOrigin - t0),
       domContentLoaded: Math.round(renderer.timeOrigin + renderer.domContentLoaded - t0),
       firstContentfulPaint: renderer.firstContentfulPaint ? Math.round(renderer.timeOrigin + renderer.firstContentfulPaint - t0) : null,

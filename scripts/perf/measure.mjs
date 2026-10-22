@@ -322,6 +322,12 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
 
     await page.getByLabel("اسم المستخدم", { exact: true }).fill(ADMIN.username);
     await page.getByLabel("الرمز السري", { exact: true }).fill(ADMIN.pin);
+    // Record the click on the page's own clock, which Element Timing and
+    // performance marks also use.
+    await page.evaluate(() => {
+      window.__dalalyLoginClick = undefined;
+      document.addEventListener("click", (event) => (window.__dalalyLoginClick ??= event.timeStamp), { capture: true });
+    });
     const clicked = performance.now();
     const dashboard = page.waitForResponse((response) => response.url().includes("/api/dashboard/summary"), {
       timeout: 60_000,
@@ -332,6 +338,32 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
     // Two frames after the data arrives, the dashboard has rendered it.
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     marks.loginToDashboardPainted = performance.now() - clicked;
+    // In-page clock, from the click event: when the dashboard's first heading
+    // was painted (Element Timing, elementtiming="dashboard-content") and when
+    // its last chart was drawn (performance mark). Absent on builds without them.
+    const inPage = await page.evaluate(async () => {
+      const click = window.__dalalyLoginClick;
+      for (let i = 0; i < 50 && performance.getEntriesByName("dalaly:chart-drawn").length < 2; i += 1)
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      // Element Timing entries reach observers only; buffered: true replays them.
+      const content = await new Promise((resolve) => {
+        new PerformanceObserver((list, observer) => {
+          const entry = list.getEntries().find((e) => e.identifier === "dashboard-content");
+          if (entry) {
+            observer.disconnect();
+            resolve(entry);
+          }
+        }).observe({ type: "element", buffered: true });
+        setTimeout(() => resolve(undefined), 1000);
+      });
+      const charts = performance.getEntriesByName("dalaly:chart-drawn");
+      return {
+        content: content && click !== undefined ? content.renderTime - click : null,
+        charts: charts.length && click !== undefined ? charts.at(-1).startTime - click : null,
+      };
+    });
+    if (inPage.content !== null) marks.loginToDashboardContentPainted = inPage.content;
+    if (inPage.charts !== null) marks.loginToDashboardChartsDrawn = inPage.charts;
 
     if (sampleMemory) memory.idleOnDashboard = await sampleProcesses(electron);
 
