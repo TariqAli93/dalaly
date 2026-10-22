@@ -37,7 +37,8 @@
     "test:permissions": "tsx --test scripts/permissions-scope.test.ts",
     "test:limits": "tsx --test scripts/request-limits.test.ts",
     "test:codes": "tsx --test scripts/record-codes.test.ts",
-    "test:transactions": "tsx --test scripts/transactions.test.ts"
+    "test:transactions": "tsx --test scripts/transactions.test.ts",
+    "test:paging": "tsx --test scripts/list-paging.test.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",

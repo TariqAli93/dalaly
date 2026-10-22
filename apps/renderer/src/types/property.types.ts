@@ -128,6 +128,19 @@ export type PropertyForm = {
   amenities: Record<string, unknown>;
 };
 
+/** مفاتيح الترتيب في /properties/paged (PROPERTY_SORT_KEYS في الخادم). */
+export type PropertySortKey =
+  | "created_at"
+  | "updated_at"
+  | "name"
+  | "code"
+  | "property_type"
+  | "district"
+  | "area"
+  | "owner_name"
+  | "total_price"
+  | "status";
+
 export type PropertyFilters = {
   name: string;
   property_type: string;

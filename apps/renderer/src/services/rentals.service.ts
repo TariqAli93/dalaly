@@ -1,13 +1,18 @@
 import type {
   AuditLogRecord,
+  PageQuery,
+  PagedResult,
   RentalFilters,
   RentalForm,
   RentalImage,
   RentalRecord,
+  RentalSortKey,
 } from "../types";
 import { API_BASE, getToken, request } from "./api.service";
 
-function query(filters: Partial<RentalFilters>) {
+function query(
+  filters: Partial<RentalFilters> | Partial<PageQuery<RentalSortKey>>,
+) {
   const params = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
     if (value !== "" && value !== undefined && value !== null)
@@ -19,6 +24,17 @@ function query(filters: Partial<RentalFilters>) {
 
 export function listRentals(filters: Partial<RentalFilters> = {}) {
   return request<RentalRecord[]>(`/rentals${query(filters)}`);
+}
+/** صفحة واحدة مع العدد الكلي، لجدول الإيجارات. */
+export function listRentalsPage(
+  filters: Partial<RentalFilters>,
+  page: PageQuery<RentalSortKey>,
+  signal?: AbortSignal,
+) {
+  return request<PagedResult<RentalRecord>>(
+    `/rentals/paged${query({ ...filters, ...page })}`,
+    { signal },
+  );
 }
 export function getRental(id: number) {
   return request<RentalRecord>(`/rentals/${id}`);

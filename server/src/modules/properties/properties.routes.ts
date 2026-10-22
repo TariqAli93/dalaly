@@ -7,11 +7,13 @@ import {
   getProperty,
   getPropertyAudit,
   listProperties,
+  listPropertiesPage,
   restoreProperty,
   updateProperty,
 } from "./properties.repository.js";
 import {
   propertyFiltersSchema,
+  propertyPageQuerySchema,
   propertyPayloadSchema,
 } from "./properties.schema.js";
 import { parseId } from "../../shared/utils/parse-id.js";
@@ -24,6 +26,18 @@ export const propertiesRoutes: FastifyPluginAsync = async (app) => {
       const filters = propertyFiltersSchema.parse(request.query);
       return listProperties(filters);
     },
+  );
+
+  // صفحة واحدة مع العدد الكلي، لجدول العروض. القائمة الكاملة أعلاه باقية لبقية
+  // المستدعين (تفاصيل الشخص، لوحة التحكم).
+  app.get(
+    "/paged",
+    { preHandler: requirePermission("properties.read") },
+    async (request) =>
+      listPropertiesPage(
+        propertyPageQuerySchema.parse(request.query),
+        request.user?.id,
+      ),
   );
 
   app.get(

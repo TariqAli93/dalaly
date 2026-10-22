@@ -120,6 +120,21 @@ export type RentalForm = {
   is_negotiable: boolean;
   notes: string;
 };
+/** مفاتيح الترتيب في /rentals/paged (RENTAL_SORT_KEYS في الخادم). */
+export type RentalSortKey =
+  | "created_at"
+  | "updated_at"
+  | "name"
+  | "code"
+  | "property_type"
+  | "rent_price"
+  | "district"
+  | "area"
+  | "rooms_count"
+  | "bathrooms_count"
+  | "owner_name"
+  | "status";
+
 export type RentalFilters = {
   property_type: RentalPropertyType | "";
   rent_period: RentPeriod | "";

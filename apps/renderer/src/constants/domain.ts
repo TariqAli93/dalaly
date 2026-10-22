@@ -1,3 +1,5 @@
+import type { ListSortOption, PropertySortKey, RentalSortKey } from "../types";
+
 export const DIRECT_PRICE = "سعر إجمالي مباشر";
 
 export const PROPERTY_TYPES = [
@@ -69,6 +71,70 @@ export const RENT_PERIODS = [
 export const RENT_PERIOD_LABELS: Record<string, string> = Object.fromEntries(
   RENT_PERIODS.map((p) => [p.value, p.title]),
 );
+
+/** أحجام الصفحة في جداول العروض والإيجارات (الخادم يقبل حتى 100). */
+export const LIST_PAGE_SIZES = [10, 25, 50, 100];
+export const DEFAULT_LIST_PAGE_SIZE = 10;
+
+// خيارات "ترتيب" في شريط النتائج؛ كل خيار مفتاح ترتيب واتجاه في الخادم.
+// أول خيار هو الترتيب الافتراضي (الأحدث أولاً).
+export const PROPERTY_SORT_OPTIONS: ListSortOption<PropertySortKey>[] = [
+  { value: "newest", title: "الأحدث", key: "created_at", order: "desc" },
+  { value: "updated", title: "آخر تحديث", key: "updated_at", order: "desc" },
+  {
+    value: "price_asc",
+    title: "السعر: الأقل",
+    key: "total_price",
+    order: "asc",
+  },
+  {
+    value: "price_desc",
+    title: "السعر: الأعلى",
+    key: "total_price",
+    order: "desc",
+  },
+  {
+    value: "area_desc",
+    title: "المساحة: الأكبر أولاً",
+    key: "area",
+    order: "desc",
+  },
+  {
+    value: "area_asc",
+    title: "المساحة: الأصغر أولاً",
+    key: "area",
+    order: "asc",
+  },
+];
+
+export const RENTAL_SORT_OPTIONS: ListSortOption<RentalSortKey>[] = [
+  { value: "newest", title: "الأحدث", key: "created_at", order: "desc" },
+  { value: "updated", title: "آخر تحديث", key: "updated_at", order: "desc" },
+  {
+    value: "price_asc",
+    title: "السعر: الأقل",
+    key: "rent_price",
+    order: "asc",
+  },
+  {
+    value: "price_desc",
+    title: "السعر: الأعلى",
+    key: "rent_price",
+    order: "desc",
+  },
+  {
+    value: "area_desc",
+    title: "المساحة: الأكبر أولاً",
+    key: "area",
+    order: "desc",
+  },
+  {
+    value: "area_asc",
+    title: "المساحة: الأصغر أولاً",
+    key: "area",
+    order: "asc",
+  },
+];
 
 export type NavItem = {
   title: string;

@@ -1,7 +1,9 @@
 import {
   and,
+  asc,
   desc,
   eq,
+  exists,
   gte,
   ilike,
   inArray,
@@ -14,6 +16,7 @@ import {
 import { type AnyPgColumn } from "drizzle-orm/pg-core";
 import { db } from "../../infrastructure/database/db.js";
 import {
+  favoriteProperties,
   properties,
   type NewProperty,
 } from "../../infrastructure/database/schema.js";
@@ -34,8 +37,17 @@ import {
 import { listEntityAudit, recordAudit } from "../audit/audit.service.js";
 import {
   type PropertyFilters,
+  type PropertyPageQuery,
   type PropertyPayload,
+  type PropertySortKey,
 } from "./properties.schema.js";
+import {
+  areaInSquareMeters,
+  pageOffset,
+  sortNullsLast,
+  totalRowsColumn,
+  type SortOrder,
+} from "../../shared/utils/paging.js";
 import { postgresError } from "../../shared/utils/postgres-errors.js";
 import {
   withRecordCodeLock,
@@ -163,8 +175,11 @@ function buildSearchClause(term: string): SQL | undefined {
   return or(...parts);
 }
 
-export async function listProperties(filters: PropertyFilters) {
-  const where = [];
+/** شروط الفلاتر والبحث المشتركة بين القائمة الكاملة والقائمة المقسّمة. */
+function propertyConditions(
+  filters: Omit<PropertyFilters, "limit" | "offset">,
+): SQL[] {
+  const where: SQL[] = [];
 
   if (!filters.status) {
     where.push(ne(properties.status, "archived"));
@@ -227,6 +242,11 @@ export async function listProperties(filters: PropertyFilters) {
     }
   }
 
+  return where;
+}
+
+export async function listProperties(filters: PropertyFilters) {
+  const where = propertyConditions(filters);
   let query = db
     .select()
     .from(properties)
@@ -241,6 +261,97 @@ export async function listProperties(filters: PropertyFilters) {
 
   const result = await query;
   return toApiObjects(result, "properties");
+}
+
+const PROPERTY_SORT_COLUMNS: Record<
+  Exclude<PropertySortKey, "area">,
+  AnyPgColumn
+> = {
+  created_at: properties.createdAt,
+  updated_at: properties.updatedAt,
+  name: properties.name,
+  code: properties.code,
+  property_type: properties.propertyType,
+  district: properties.district,
+  owner_name: properties.ownerName,
+  total_price: properties.totalPrice,
+  status: properties.status,
+};
+
+/**
+ * ترتيب الصفحة مع فرز ثانوي ثابت كي لا يتكرر صف أو يختفي بين الصفحات. يطابق
+ * الفرز السابق في الواجهة: المساحة بالـ م² ثم id تصاعدياً (compareByAreaM2)،
+ * وبقية المفاتيح بالترتيب الافتراضي (الأحدث أولاً) عند التساوي.
+ */
+function propertyOrder(sortKey: PropertySortKey, order: SortOrder): SQL[] {
+  if (sortKey === "area") {
+    return [
+      sortNullsLast(
+        areaInSquareMeters(properties.areaValue, properties.areaUnit),
+        order,
+      ),
+      asc(properties.id),
+    ];
+  }
+  if (sortKey === "created_at") {
+    return [
+      sortNullsLast(properties.createdAt, order),
+      order === "asc" ? asc(properties.id) : desc(properties.id),
+    ];
+  }
+  return [
+    sortNullsLast(PROPERTY_SORT_COLUMNS[sortKey], order),
+    desc(properties.createdAt),
+    desc(properties.id),
+  ];
+}
+
+export async function listPropertiesPage(
+  query: PropertyPageQuery,
+  userId?: number,
+) {
+  const where = propertyConditions(query);
+  if (query.favorites_only === "true") {
+    where.push(
+      userId === undefined
+        ? sql`false`
+        : exists(
+            db
+              .select({ id: favoriteProperties.propertyId })
+              .from(favoriteProperties)
+              .where(
+                and(
+                  eq(favoriteProperties.userId, userId),
+                  eq(favoriteProperties.propertyId, properties.id),
+                ),
+              ),
+          ),
+    );
+  }
+  const condition = where.length ? and(...where) : undefined;
+
+  const rows = await db
+    .select({ property: properties, total: totalRowsColumn() })
+    .from(properties)
+    .where(condition)
+    .orderBy(...propertyOrder(query.sort_by, query.sort_order))
+    .limit(query.page_size)
+    .offset(pageOffset(query.page, query.page_size));
+
+  // صفحة بعد النهاية لا صفوف فيها تحمل العدد، فيُعدّ منفصلاً.
+  const total =
+    rows[0]?.total ??
+    (query.page > 1 ? await db.$count(properties, condition) : 0);
+
+  return {
+    items: toApiObjects(
+      rows.map((row) => row.property),
+      "properties",
+    ),
+    total,
+    page: query.page,
+    page_size: query.page_size,
+  };
 }
 
 export async function getProperty(id: number) {

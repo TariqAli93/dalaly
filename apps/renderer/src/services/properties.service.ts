@@ -1,12 +1,17 @@
 import type {
   AuditLogRecord,
+  PageQuery,
+  PagedResult,
   PropertyFilters,
   PropertyForm,
   PropertyRecord,
+  PropertySortKey,
 } from "../types";
 import { request } from "./api.service";
 
-function buildQuery(filters: Partial<PropertyFilters>) {
+function buildQuery(
+  filters: Partial<PropertyFilters> | Partial<PageQuery<PropertySortKey>>,
+) {
   const params = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
     if (value !== "" && value !== undefined && value !== null) {
@@ -19,6 +24,18 @@ function buildQuery(filters: Partial<PropertyFilters>) {
 
 export function listProperties(filters: Partial<PropertyFilters> = {}) {
   return request<PropertyRecord[]>(`/properties${buildQuery(filters)}`);
+}
+
+/** صفحة واحدة مع العدد الكلي، لجدول العروض. */
+export function listPropertiesPage(
+  filters: Partial<PropertyFilters>,
+  page: PageQuery<PropertySortKey>,
+  signal?: AbortSignal,
+) {
+  return request<PagedResult<PropertyRecord>>(
+    `/properties/paged${buildQuery({ ...filters, ...page })}`,
+    { signal },
+  );
 }
 
 export function getProperty(id: number) {

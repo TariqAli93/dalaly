@@ -15,6 +15,7 @@ import {
   optionalId,
   optionalText,
 } from "../../shared/validation/fields.js";
+import { pageFields } from "../../shared/validation/paging.js";
 
 export const rentalPayloadSchema = z
   .object({
@@ -68,5 +69,30 @@ export const rentalFiltersSchema = z.object({
   offset: z.coerce.number().int().nonnegative().optional(),
 });
 
+// مفاتيح الترتيب المسموحة في /rentals/paged. "area" بالمساحة الحقيقية (م²).
+export const RENTAL_SORT_KEYS = [
+  "created_at",
+  "updated_at",
+  "name",
+  "code",
+  "property_type",
+  "rent_price",
+  "district",
+  "area",
+  "rooms_count",
+  "bathrooms_count",
+  "owner_name",
+  "status",
+] as const;
+
+export const rentalPageQuerySchema = rentalFiltersSchema
+  .omit({ limit: true, offset: true })
+  .extend({
+    ...pageFields,
+    sort_by: z.enum(RENTAL_SORT_KEYS).default("created_at"),
+  });
+
 export type RentalPayload = z.infer<typeof rentalPayloadSchema>;
 export type RentalFilters = z.infer<typeof rentalFiltersSchema>;
+export type RentalPageQuery = z.infer<typeof rentalPageQuerySchema>;
+export type RentalSortKey = (typeof RENTAL_SORT_KEYS)[number];

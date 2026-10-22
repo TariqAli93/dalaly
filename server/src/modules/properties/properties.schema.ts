@@ -16,6 +16,7 @@ import {
   optionalId,
   optionalText,
 } from "../../shared/validation/fields.js";
+import { pageFields } from "../../shared/validation/paging.js";
 
 export const propertyPayloadSchema = z
   .object({
@@ -110,5 +111,29 @@ export const propertyFiltersSchema = z.object({
   offset: z.coerce.number().int().nonnegative().optional(),
 });
 
+// مفاتيح الترتيب المسموحة في /properties/paged. "area" بالمساحة الحقيقية (م²).
+export const PROPERTY_SORT_KEYS = [
+  "created_at",
+  "updated_at",
+  "name",
+  "code",
+  "property_type",
+  "district",
+  "area",
+  "owner_name",
+  "total_price",
+  "status",
+] as const;
+
+// صفحة من القائمة: نفس الفلاتر مع صفحة وحجم وترتيب، والنتيجة {items, total}.
+export const propertyPageQuerySchema = propertyFiltersSchema
+  .omit({ limit: true, offset: true })
+  .extend({
+    ...pageFields,
+    sort_by: z.enum(PROPERTY_SORT_KEYS).default("created_at"),
+  });
+
 export type PropertyPayload = z.infer<typeof propertyPayloadSchema>;
 export type PropertyFilters = z.infer<typeof propertyFiltersSchema>;
+export type PropertyPageQuery = z.infer<typeof propertyPageQuerySchema>;
+export type PropertySortKey = (typeof PROPERTY_SORT_KEYS)[number];

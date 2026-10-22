@@ -1,8 +1,12 @@
 import { ref } from "vue";
-import { getErrorMessage } from "../services/api.service";
+import { PROPERTY_SORT_OPTIONS } from "../constants/domain";
 import * as propertiesService from "../services/properties.service";
-import type { PropertyFilters, PropertyRecord } from "../types";
-import { useSnackbar } from "./useSnackbar";
+import type {
+  PropertyFilters,
+  PropertyRecord,
+  PropertySortKey,
+} from "../types";
+import { createPagedList } from "./usePagedList";
 
 function emptyFilters(): PropertyFilters {
   return {
@@ -26,20 +30,17 @@ function emptyFilters(): PropertyFilters {
   };
 }
 
-const properties = ref<PropertyRecord[]>([]);
-const loading = ref(false);
 const filters = ref<PropertyFilters>(emptyFilters());
+// الصفحة الحالية من الخادم؛ الفلاتر والصفحة والترتيب تبقى بين زيارات الصفحة.
+const list = createPagedList<PropertyRecord, PropertySortKey>(
+  (page, signal) =>
+    propertiesService.listPropertiesPage(filters.value, page, signal),
+  PROPERTY_SORT_OPTIONS[0],
+);
 
-async function loadProperties() {
-  const { notifyError } = useSnackbar();
-  loading.value = true;
-  try {
-    properties.value = await propertiesService.listProperties(filters.value);
-  } catch (error) {
-    notifyError(getErrorMessage(error));
-  } finally {
-    loading.value = false;
-  }
+/** فلاتر جديدة (من الصفحة أو لوحة التحكم أو البحث العلوي): من الصفحة الأولى. */
+function loadProperties() {
+  return list.loadFirstPage();
 }
 
 function clearFilters() {
@@ -49,10 +50,13 @@ function clearFilters() {
 
 export function useProperties() {
   return {
-    properties,
-    loading,
+    properties: list.items,
+    total: list.total,
+    loading: list.loading,
     filters,
+    list,
     loadProperties,
+    reloadProperties: list.reload,
     clearFilters,
     service: propertiesService,
   };
