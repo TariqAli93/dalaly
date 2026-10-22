@@ -60,6 +60,7 @@ main-process calls such as setup proxying and the scheduled backup run.
 | `backup.js`                         | backup file/folder dialogs, schedule IPC, email backup scheduler                           |
 | `backup-schedule.js`                | pure due-time check (unit tested)                                                          |
 | `app-config.js`                     | read/write `userData/config.json`                                                          |
+| `json-file.js`                      | atomic JSON write with `.bak` copy; read falls back to it (unit tested)                    |
 | `ipc-guard.js`                      | `isMainWindowSender`: privileged channels accept only the main window's top frame          |
 | `external-links.js`, `startup.js`   | pure helpers (unit tested from `server/scripts`)                                           |
 | `preload.cjs`, `splash-preload.cjs` | the only APIs exposed to the renderers                                                     |
