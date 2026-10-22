@@ -19,6 +19,15 @@ const rows = [
   ["Memory on dashboard, all processes (working set MB)", (r) => r.startup?.memory?.idleOnDashboard.total.workingSetMB],
   ["Memory on dashboard, all processes (private MB)", (r) => r.startup?.memory?.idleOnDashboard.total.privateMB],
   ["Idle CPU on dashboard, all processes (%)", (r) => r.startup?.memory?.idleOnDashboard.total.cpuPercent],
+  ["Dashboard → properties list data (median ms)", (r) => r.startup?.repeat.dashboardToPropertiesData?.median],
+  ["Dashboard → properties list painted (median ms)", (r) => r.startup?.repeat.dashboardToPropertiesPainted?.median],
+  ["Properties search → data (median ms)", (r) => r.startup?.repeat.propertiesSearchData?.median],
+  ["Properties search → painted (median ms)", (r) => r.startup?.repeat.propertiesSearchPainted?.median],
+  ["Properties → rentals list painted (median ms)", (r) => r.startup?.repeat.propertiesToRentalsPainted?.median],
+  ["Memory on properties list, all processes (working set MB)", (r) => r.startup?.memory?.idleOnProperties?.total.workingSetMB],
+  ["Memory on properties list, all processes (private MB)", (r) => r.startup?.memory?.idleOnProperties?.total.privateMB],
+  ["Memory on properties list, renderer (private MB)", (r) => r.startup?.memory?.idleOnProperties?.Tab?.privateMB],
+  ["Idle CPU on properties list, all processes (%)", (r) => r.startup?.memory?.idleOnProperties?.total.cpuPercent],
   ...Object.keys(results[0].api?.sequential ?? {}).map((name) => [
     `${name} (median / p95 ms)`,
     (r) => {
@@ -26,8 +35,20 @@ const rows = [
       return s && `${s.median} / ${s.p95}`;
     },
   ]),
+  ...Object.keys(results[0].api?.pageRequests ?? {}).map((name) => [
+    `${name} (median / p95 ms, KB)`,
+    (r) => {
+      const s = r.api?.pageRequests?.[name];
+      return s && `${s.median} / ${s.p95}, ${Math.round(s.bytes / 1024)}`;
+    },
+  ]),
   ["4-client search (median / p95 ms)", (r) => r.api && `${r.api.concurrentSearch.median} / ${r.api.concurrentSearch.p95}`],
   ["4-client search (requests/s)", (r) => r.api?.concurrentSearch.requestsPerSecond],
+  [
+    "4-client search as the page sends it (median / p95 ms)",
+    (r) => r.api?.concurrentPageSearch && `${r.api.concurrentPageSearch.median} / ${r.api.concurrentPageSearch.p95}`,
+  ],
+  ["4-client search as the page sends it (requests/s)", (r) => r.api?.concurrentPageSearch?.requestsPerSecond],
   ["API working set after load (MB)", (r) => r.api?.apiProcess.workingSetMBAfter],
   ["API CPU during API pass (s)", (r) => r.api?.apiProcess.cpuSecondsDuringRun],
 ];
