@@ -1,7 +1,9 @@
 import {
   and,
+  asc,
   desc,
   eq,
+  exists,
   gte,
   ilike,
   lte,
@@ -10,8 +12,10 @@ import {
   sql,
   type SQL,
 } from "drizzle-orm";
+import { type AnyPgColumn } from "drizzle-orm/pg-core";
 import { db } from "../../infrastructure/database/db.js";
 import {
+  favoriteRentals,
   rentals,
   type NewRental,
 } from "../../infrastructure/database/schema.js";
@@ -22,7 +26,19 @@ import {
   getNeighborhoodName,
 } from "../locations/locations.repository.js";
 import { listEntityAudit, recordAudit } from "../audit/audit.service.js";
-import { type RentalFilters, type RentalPayload } from "./rentals.schema.js";
+import {
+  type RentalFilters,
+  type RentalPageQuery,
+  type RentalPayload,
+  type RentalSortKey,
+} from "./rentals.schema.js";
+import {
+  areaInSquareMeters,
+  pageOffset,
+  sortNullsLast,
+  totalRowsColumn,
+  type SortOrder,
+} from "../../shared/utils/paging.js";
 import {
   withRecordCodeLock,
   type Transaction,
@@ -67,7 +83,8 @@ function searchClause(term: string): SQL {
   )!;
 }
 
-export async function listRentals(filters: RentalFilters) {
+/** شروط الفلاتر والبحث المشتركة بين القائمة الكاملة والقائمة المقسّمة. */
+function rentalConditions(filters: Omit<RentalFilters, "limit" | "offset">) {
   const where: SQL[] = filters.status ? [] : [ne(rentals.status, "archived")];
   if (filters.status) where.push(eq(rentals.status, filters.status));
   if (filters.property_type)
@@ -105,6 +122,11 @@ export async function listRentals(filters: RentalFilters) {
   if (search)
     for (const token of search.split(/\s+/).filter(Boolean))
       where.push(searchClause(token));
+  return where;
+}
+
+export async function listRentals(filters: RentalFilters) {
+  const where = rentalConditions(filters);
   let query = db
     .select()
     .from(rentals)
@@ -114,6 +136,86 @@ export async function listRentals(filters: RentalFilters) {
   if (typeof filters.limit === "number")
     query = query.limit(filters.limit).offset(filters.offset ?? 0);
   return toApiObjects(await query, "rentals");
+}
+
+const RENTAL_SORT_COLUMNS: Record<
+  Exclude<RentalSortKey, "area">,
+  AnyPgColumn
+> = {
+  created_at: rentals.createdAt,
+  updated_at: rentals.updatedAt,
+  name: rentals.name,
+  code: rentals.code,
+  property_type: rentals.propertyType,
+  rent_price: rentals.rentPrice,
+  district: rentals.district,
+  rooms_count: rentals.roomsCount,
+  bathrooms_count: rentals.bathroomsCount,
+  owner_name: rentals.ownerName,
+  status: rentals.status,
+};
+
+/** نفس قواعد ترتيب العروض (propertyOrder): فرز ثانوي ثابت بين الصفحات. */
+function rentalOrder(sortKey: RentalSortKey, order: SortOrder): SQL[] {
+  if (sortKey === "area")
+    return [
+      sortNullsLast(
+        areaInSquareMeters(rentals.areaValue, rentals.areaUnit),
+        order,
+      ),
+      asc(rentals.id),
+    ];
+  if (sortKey === "created_at")
+    return [
+      sortNullsLast(rentals.createdAt, order),
+      order === "asc" ? asc(rentals.id) : desc(rentals.id),
+    ];
+  return [
+    sortNullsLast(RENTAL_SORT_COLUMNS[sortKey], order),
+    desc(rentals.createdAt),
+    desc(rentals.id),
+  ];
+}
+
+export async function listRentalsPage(query: RentalPageQuery, userId?: number) {
+  const where = rentalConditions(query);
+  if (query.favorites_only === "true")
+    where.push(
+      userId === undefined
+        ? sql`false`
+        : exists(
+            db
+              .select({ id: favoriteRentals.rentalId })
+              .from(favoriteRentals)
+              .where(
+                and(
+                  eq(favoriteRentals.userId, userId),
+                  eq(favoriteRentals.rentalId, rentals.id),
+                ),
+              ),
+          ),
+    );
+  const condition = and(...where);
+  const rows = await db
+    .select({ rental: rentals, total: totalRowsColumn() })
+    .from(rentals)
+    .where(condition)
+    .orderBy(...rentalOrder(query.sort_by, query.sort_order))
+    .limit(query.page_size)
+    .offset(pageOffset(query.page, query.page_size));
+  // صفحة بعد النهاية لا صفوف فيها تحمل العدد، فيُعدّ منفصلاً.
+  const total =
+    rows[0]?.total ??
+    (query.page > 1 ? await db.$count(rentals, condition) : 0);
+  return {
+    items: toApiObjects(
+      rows.map((row) => row.rental),
+      "rentals",
+    ),
+    total,
+    page: query.page,
+    page_size: query.page_size,
+  };
 }
 
 export async function getRental(id: number) {

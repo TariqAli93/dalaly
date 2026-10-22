@@ -7,10 +7,15 @@ import {
   getRental,
   getRentalAudit,
   listRentals,
+  listRentalsPage,
   restoreRental,
   updateRental,
 } from "./rentals.repository.js";
-import { rentalFiltersSchema, rentalPayloadSchema } from "./rentals.schema.js";
+import {
+  rentalFiltersSchema,
+  rentalPageQuerySchema,
+  rentalPayloadSchema,
+} from "./rentals.schema.js";
 import { parseId } from "../../shared/utils/parse-id.js";
 
 export const rentalsRoutes: FastifyPluginAsync = async (app) => {
@@ -18,6 +23,16 @@ export const rentalsRoutes: FastifyPluginAsync = async (app) => {
     "/",
     { preHandler: requirePermission("rentals.read") },
     async (request) => listRentals(rentalFiltersSchema.parse(request.query)),
+  );
+  // صفحة واحدة مع العدد الكلي، لجدول الإيجارات.
+  app.get(
+    "/paged",
+    { preHandler: requirePermission("rentals.read") },
+    async (request) =>
+      listRentalsPage(
+        rentalPageQuerySchema.parse(request.query),
+        request.user?.id,
+      ),
   );
   app.get(
     "/:id",
