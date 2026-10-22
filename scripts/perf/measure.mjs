@@ -48,6 +48,9 @@ if (!options.app) throw new Error("--app <win-unpacked folder> is required");
 
 const app = packagedApp(options.app);
 const label = options.label ?? path.basename(path.dirname(app.dir));
+// For file and folder names: a branch-style label such as feature/perf
+// would otherwise point into folders that do not exist.
+const fileLabel = label.replace(/[^A-Za-z0-9._-]+/g, "-");
 const runs = Number(options.runs);
 const propertyCount = Number(options.properties);
 const sizes = {
@@ -69,10 +72,12 @@ const results = {
   dataset: sizes,
 };
 
-const databaseName = await createDatabase();
-const temporary = makeTempDir(label);
+const temporary = makeTempDir(fileLabel);
+let databaseName;
 let apiChild;
 try {
+  // Inside the try so the finally drops the database whatever fails next.
+  databaseName = await createDatabase();
   // 1. Migrate through the packaged API, create the administrator, seed.
   const fixturePort = await freePort();
   apiChild = startApi(app, { databaseName, port: fixturePort, dataDir: temporary });
@@ -105,13 +110,13 @@ try {
   }
 } finally {
   await stopProcess(apiChild);
-  await dropDatabase(databaseName);
+  if (databaseName) await dropDatabase(databaseName);
   fs.rmSync(temporary, { recursive: true, force: true });
 }
 
 const outputDir = path.join(root, "perf-results");
 fs.mkdirSync(outputDir, { recursive: true });
-const outputFile = path.join(outputDir, `${label}.json`);
+const outputFile = path.join(outputDir, `${fileLabel}.json`);
 fs.writeFileSync(outputFile, `${JSON.stringify(results, null, 2)}\n`);
 console.log(`\nWrote ${path.relative(root, outputFile)}`);
 
@@ -174,7 +179,7 @@ async function measureApi(port, apiPid) {
 }
 
 async function measureStartup() {
-  const profiles = makeTempDir(`${label}-profiles`);
+  const profiles = makeTempDir(`${fileLabel}-profiles`);
   const repeatProfile = path.join(profiles, "repeat");
   const launchApp = async (profile) => {
     fs.mkdirSync(profile, { recursive: true });
