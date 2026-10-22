@@ -200,7 +200,7 @@ export async function api(port, pathname, { token, method = "GET", body } = {}) 
  * Sizes default to a busy single office after a few years of use.
  */
 export async function seedDataset(databaseName, sizes) {
-  const { properties, rentals, people, requests, auditLogs } = sizes;
+  const { properties, rentals, people, requests, documents, auditLogs } = sizes;
   const lists = {
     types: ["أرض", "أرض سكنية", "أرض زراعية", "بيت", "مزرعة", "فيلا", "شقة", "بناية", "عقار تجاري", "مكتب", "مخزن", "أخرى"],
     legal: ["طابو ملك صرف", "طابو زراعي ملك صرف", "طابو زراعي مملوك للدولة سند 25", "عقد زراعي 117", "عقد زراعي 35"],
@@ -246,6 +246,17 @@ export async function seedDataset(databaseName, sizes) {
     SELECT 'PERF-PQ' || g, (SELECT min(id) FROM people) + g % $1::int, ($6::text[])[1 + g % 12]
     FROM generate_series(1, $4::int) g;
 
+    WITH types AS (SELECT array_agg(id ORDER BY id) AS ids FROM document_types)
+    INSERT INTO identity_documents(code, person_id, document_type_id, document_name, document_number,
+      file_path, file_type, status, expires_at, uploaded_at)
+    SELECT 'PERF-D' || g, (SELECT min(id) FROM people) + g % $1::int, types.ids[1 + g % nullif(cardinality(types.ids), 0)],
+           'مستمسك ' || g, 'PERF-N' || g, 'people/perf/' || g || '.pdf', 'application/pdf',
+           CASE WHEN g % 10 = 0 THEN 'archived' ELSE 'active' END,
+           CASE g % 4 WHEN 0 THEN now() - make_interval(days => g % 365) WHEN 1 THEN NULL
+                      ELSE now() + make_interval(days => g % 700) END,
+           now() - make_interval(mins => g)
+    FROM generate_series(1, $14::int) g, types;
+
     INSERT INTO audit_logs(entity_type, entity_id, action, user_id, created_at)
     SELECT 'property', (SELECT min(id) FROM properties) + g % $2::int,
            CASE WHEN g % 4 = 0 THEN 'create' ELSE 'update' END,
@@ -261,7 +272,7 @@ export async function seedDataset(databaseName, sizes) {
   const params = [
     people, properties, rentals, requests,
     lists.governorates, lists.types, lists.legal, lists.pricing, lists.statuses,
-    lists.rentalTypes, lists.periods, lists.rentalStatuses, auditLogs,
+    lists.rentalTypes, lists.periods, lists.rentalStatuses, auditLogs, documents,
   ];
   for (const statement of statements) {
     const used = [...statement.matchAll(/\$(\d+)/g)].map((match) => Number(match[1]));

@@ -35,6 +35,8 @@ import {
 } from "./lib.mjs";
 
 const { values: options } = parseArgs({
+  // pnpm 10 passes the `--` of `pnpm perf -- --app …` through.
+  args: process.argv.slice(2).filter((arg, index) => !(index === 0 && arg === "--")),
   options: {
     app: { type: "string" },
     label: { type: "string" },
@@ -58,6 +60,7 @@ const sizes = {
   rentals: Math.round(propertyCount * 0.4),
   people: Math.round(propertyCount * 0.3),
   requests: Math.round(propertyCount * 0.1),
+  documents: Math.round(propertyCount * 0.6),
   auditLogs: propertyCount * 4,
 };
 // The renderer's API base is fixed at build time to this port.
@@ -68,6 +71,10 @@ const IDLE_SAMPLE_MS = 10_000;
 const LIST_REQUEST = {
   properties: /\/api\/properties(\/paged)?(\?|$)/,
   rentals: /\/api\/rentals(\/paged)?(\?|$)/,
+  people: /\/api\/people(\/paged)?(\?|$)/,
+  rentalRequests: /\/api\/rental-requests(\/paged)?(\?|$)/,
+  purchaseRequests: /\/api\/purchase-requests(\/paged)?(\?|$)/,
+  documents: /\/api\/documents(\/paged)?(\?|$)/,
 };
 const PROPERTY_SEARCH_PLACEHOLDER = "ابحث باسم المالك، الهاتف، رقم القطعة، المنطقة أو أي وصف";
 const PAGE_SEARCH = "بغداد";
@@ -98,13 +105,15 @@ try {
   await seedDataset(databaseName, sizes);
   results.seedSeconds = Math.round((performance.now() - seedStarted) / 100) / 10;
   console.log(`Seeded ${databaseName} in ${results.seedSeconds} s`, sizes);
+  results.build = await probeBuild(fixturePort);
+  console.log("Build:", results.build);
 
   if (!options["skip-api"]) {
     // Restart so the API runs against the seeded data with cold caches.
     await stopProcess(apiChild);
     apiChild = startApi(app, { databaseName, port: fixturePort, dataDir: temporary });
     await waitForHealth(fixturePort, (health) => health.startup_state === "READY");
-    results.api = await measureApi(fixturePort, apiChild.pid);
+    results.api = await measureApi(fixturePort, apiChild.pid, results.build);
     printApi(results.api);
   }
   await stopProcess(apiChild);
@@ -113,7 +122,7 @@ try {
   if (!options["skip-startup"]) {
     if (!(await portIsFree(APP_API_PORT)))
       throw new Error(`Port ${APP_API_PORT} is in use; close Dalaly before measuring startup.`);
-    results.startup = await measureStartup();
+    results.startup = await measureStartup(results.build);
     printStartup(results.startup);
   }
 } finally {
@@ -128,7 +137,26 @@ const outputFile = path.join(outputDir, `${fileLabel}.json`);
 fs.writeFileSync(outputFile, `${JSON.stringify(results, null, 2)}\n`);
 console.log(`\nWrote ${path.relative(root, outputFile)}`);
 
-async function measureApi(port, apiPid) {
+/**
+ * What the build under test can do, so both passes send what its pages send:
+ * server paging of properties and rentals (PR 5), and of people, requests and
+ * documents with the owner filter (person details). Also the person whose
+ * offers the person details page shows: the owner of the newest offer.
+ */
+async function probeBuild(port) {
+  const { body: session } = await api(port, "/auth/login", { method: "POST", body: ADMIN });
+  const ok = async (pathname) =>
+    (await fetch(`http://127.0.0.1:${port}/api${pathname}`, { headers: { authorization: `Bearer ${session.token}` } }))
+      .ok;
+  const { body: newest } = await api(port, "/properties?limit=1", { token: session.token });
+  return {
+    pagedOffers: await ok("/properties/paged?page_size=1"),
+    pagedPeople: await ok("/people/paged?page_size=1"),
+    ownerId: newest[0].owner_person_id,
+  };
+}
+
+async function measureApi(port, apiPid, build) {
   const { body: session } = await api(port, "/auth/login", { method: "POST", body: ADMIN });
   const token = session.token;
   const get = (pathname) => () => api(port, pathname, { token });
@@ -157,12 +185,19 @@ async function measureApi(port, apiPid) {
   // The request each list page sends for the same user action, so builds
   // before and after server paging compare like for like: before, every
   // action downloads the whole list and the renderer sorts and pages it.
-  const paged = (await fetch(`http://127.0.0.1:${port}/api/properties/paged?page_size=1`, {
-    headers: { authorization: `Bearer ${token}` },
-  })).ok;
+  const paged = build.pagedOffers;
   const pageRequests = {};
-  for (const [name, pathname] of Object.entries(await listPageRequests(port, token, paged))) {
-    pageRequests[name] = { path: pathname, ...(await timeRequests(get(pathname), { warmup: 3, count: 30 })) };
+  for (const [name, spec] of Object.entries(await listPageRequests(port, token, build))) {
+    // A page that sends several requests for one action: all of them, in
+    // parallel (Promise.all) or one after another as the page does.
+    const { paths, sequential = false } = typeof spec === "string" ? { paths: [spec] } : spec;
+    const send = async () => {
+      const responses = [];
+      if (sequential) for (const pathname of paths) responses.push(await get(pathname)());
+      else responses.push(...(await Promise.all(paths.map((pathname) => get(pathname)()))));
+      return { bytes: responses.reduce((sum, response) => sum + response.bytes, 0) };
+    };
+    pageRequests[name] = { path: paths.join(sequential ? " → " : " ∥ "), ...(await timeRequests(send, { warmup: 3, count: 30 })) };
   }
 
   // Four parallel clients searching, as several office PCs would over the tunnel.
@@ -192,27 +227,53 @@ async function measureApi(port, apiPid) {
   };
 }
 
-/** What the properties and rentals pages request for each measured action. */
-async function listPageRequests(port, token, paged) {
-  if (!paged) {
+/**
+ * What each list page requests for each measured action: one path, or
+ * { paths, sequential } when the page sends several requests.
+ */
+async function listPageRequests(port, token, build) {
+  const first = "page=1&page_size=10&sort_by=created_at&sort_order=desc";
+  let offers;
+  if (!build.pagedOffers) {
     const all = "/properties";
-    return {
+    offers = {
       "Properties page: open": all,
       [`Properties page: search ${PAGE_SEARCH}`]: `/properties?q=${encodeURIComponent(PAGE_SEARCH)}`,
       "Properties page: sort by area": all,
       "Properties page: last page": all,
       "Rentals page: open": "/rentals",
     };
+  } else {
+    const { body } = await api(port, `/properties/paged?${first}`, { token });
+    const lastPage = Math.max(1, Math.ceil(body.total / 10));
+    offers = {
+      "Properties page: open": `/properties/paged?${first}`,
+      [`Properties page: search ${PAGE_SEARCH}`]: `/properties/paged?q=${encodeURIComponent(PAGE_SEARCH)}&${first}`,
+      "Properties page: sort by area": "/properties/paged?page=1&page_size=10&sort_by=area&sort_order=desc",
+      "Properties page: last page": `/properties/paged?page=${lastPage}&page_size=10&sort_by=created_at&sort_order=desc`,
+      "Rentals page: open": `/rentals/paged?${first}`,
+    };
   }
-  const first = "page=1&page_size=10&sort_by=created_at&sort_order=desc";
-  const { body } = await api(port, `/properties/paged?${first}`, { token });
-  const lastPage = Math.max(1, Math.ceil(body.total / 10));
+  // Before: person details downloads every active and archived offer to keep
+  // the owner's; the requests pages download the whole list, then every
+  // person (for the form's customer picker), on each load.
+  if (!build.pagedPeople)
+    return {
+      ...offers,
+      "Person details: properties": { paths: ["/properties", "/properties?status=archived"] },
+      "People page: open": "/people",
+      "Rental requests page: open": { paths: ["/rental-requests", "/people"], sequential: true },
+      "Purchase requests page: open": { paths: ["/purchase-requests", "/people"], sequential: true },
+      "Documents page: open (list request)": "/documents",
+    };
+  const updated = "page=1&page_size=10&sort_by=updated_at&sort_order=desc";
   return {
-    "Properties page: open": `/properties/paged?${first}`,
-    [`Properties page: search ${PAGE_SEARCH}`]: `/properties/paged?q=${encodeURIComponent(PAGE_SEARCH)}&${first}`,
-    "Properties page: sort by area": "/properties/paged?page=1&page_size=10&sort_by=area&sort_order=desc",
-    "Properties page: last page": `/properties/paged?page=${lastPage}&page_size=10&sort_by=created_at&sort_order=desc`,
-    "Rentals page: open": `/rentals/paged?${first}`,
+    ...offers,
+    "Person details: properties": `/properties/paged?owner_person_id=${build.ownerId}&include_archived=true&q=&${first}`,
+    "People page: open": `/people/paged?q=&${updated}`,
+    "Rental requests page: open": `/rental-requests/paged?q=&${updated}`,
+    "Purchase requests page: open": `/purchase-requests/paged?q=&${updated}`,
+    "Documents page: open (list request)": "/documents/paged?page=1&page_size=10&sort_by=uploaded_at&sort_order=desc",
   };
 }
 
@@ -237,7 +298,7 @@ async function concurrently(request) {
   };
 }
 
-async function measureStartup() {
+async function measureStartup(build) {
   const profiles = makeTempDir(`${fileLabel}-profiles`);
   const repeatProfile = path.join(profiles, "repeat");
   const launchApp = async (profile) => {
@@ -268,6 +329,7 @@ async function measureStartup() {
           started,
           login: true,
           sampleMemory: mode === "repeat" && index === 0,
+          build,
         });
         samples[mode].push(timing.marks);
         if (timing.memory) memory.push(timing.memory);
@@ -285,7 +347,7 @@ async function measureStartup() {
   return { runs, fresh: summarize(samples.fresh), repeat: summarize(samples.repeat), memory: memory[0] };
 }
 
-async function runOnce(electron, { started = performance.now(), login, sampleMemory = false }) {
+async function runOnce(electron, { started = performance.now(), login, sampleMemory = false, build }) {
   const marks = { launched: performance.now() - started };
   let apiReadyAt;
   let stopPolling = false;
@@ -381,6 +443,29 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
     const rentals = await openList(page, "#/rentals", LIST_REQUEST.rentals, "PERF-R");
     marks.propertiesToRentalsData = rentals.data;
     marks.propertiesToRentalsPainted = rentals.painted;
+
+    // Rentals → people → one person's properties → rental requests →
+    // purchase requests → documents (first row's code or number on screen).
+    const people = await openList(page, "#/people", LIST_REQUEST.people, "PERF-C", 2);
+    marks.rentalsToPeopleData = people.data;
+    marks.rentalsToPeoplePainted = people.painted;
+    if (sampleMemory) memory.idleOnPeople = await sampleProcesses(electron);
+
+    const person = await openPersonProperties(page, build);
+    marks.peopleToPersonPropertiesData = person.data;
+    marks.peopleToPersonPropertiesPainted = person.painted;
+
+    const rentalRequests = await openList(page, "#/rental-requests", LIST_REQUEST.rentalRequests, "PERF-RQ", 1);
+    marks.personToRentalRequestsData = rentalRequests.data;
+    marks.personToRentalRequestsPainted = rentalRequests.painted;
+
+    const purchaseRequests = await openList(page, "#/purchase-requests", LIST_REQUEST.purchaseRequests, "PERF-PQ", 1);
+    marks.rentalToPurchaseRequestsData = purchaseRequests.data;
+    marks.rentalToPurchaseRequestsPainted = purchaseRequests.painted;
+
+    const documents = await openList(page, "#/documents", LIST_REQUEST.documents, "PERF-N", 3);
+    marks.purchaseRequestsToDocumentsData = documents.data;
+    marks.purchaseRequestsToDocumentsPainted = documents.painted;
     // The repeat profile would otherwise open straight on the dashboard next
     // time; a daily start normally finds the 12-hour session expired.
     await page.evaluate(() => localStorage.removeItem("dalaly.session"));
@@ -404,12 +489,28 @@ function firstRowCode(page) {
   );
 }
 
+/** The first table row's cell in `column` starts with `prefix`. */
+function firstRowStartsWith(page, column, prefix) {
+  return page.waitForFunction(
+    ([column, prefix]) =>
+      document
+        .querySelector(`.v-data-table tbody tr td:nth-child(${column})`)
+        ?.textContent?.trim()
+        .startsWith(prefix),
+    [column, prefix],
+    { timeout: 60_000 },
+  );
+}
+
 async function painted(page) {
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
 
-/** Routes to a list page and waits for its first rows. */
-async function openList(page, hash, request, codePrefix) {
+/**
+ * Routes to a list page and waits for its first rows: the code in the
+ * `column`th cell (the third, in the properties and rentals grids).
+ */
+async function openList(page, hash, request, codePrefix, column = 3) {
   const started = performance.now();
   const finished = page.waitForEvent("requestfinished", {
     predicate: (entry) => request.test(entry.url()),
@@ -418,14 +519,39 @@ async function openList(page, hash, request, codePrefix) {
   await page.evaluate((target) => (location.hash = target), hash);
   await finished;
   const data = performance.now() - started;
+  await firstRowStartsWith(page, column, codePrefix);
+  await painted(page);
+  return { data, painted: performance.now() - started };
+}
+
+/**
+ * Opens a person (the owner of the newest offer) and the "linked properties"
+ * tab as soon as it shows. `data` waits for every property list request the
+ * page sends (two on builds without the owner filter).
+ */
+async function openPersonProperties(page, build) {
+  const started = performance.now();
+  let pending = build.pagedPeople ? 1 : 2;
+  const finished = new Promise((resolve) => {
+    const onFinished = (entry) => {
+      if (!LIST_REQUEST.properties.test(entry.url()) || --pending > 0) return;
+      page.off("requestfinished", onFinished);
+      resolve(performance.now() - started);
+    };
+    page.on("requestfinished", onFinished);
+  });
+  await page.evaluate((target) => (location.hash = target), `#/clients/${build.ownerId}`);
+  const tab = page.getByRole("tab", { name: "العقارات المرتبطة", exact: true });
+  await tab.click({ timeout: 60_000 });
+  // The name cell holds the offer's name and, under it, its code.
   await page.waitForFunction(
-    (prefix) =>
-      document.querySelector(".dal-grid tbody tr td:nth-child(3)")?.textContent?.trim().startsWith(prefix),
-    codePrefix,
+    () => document.querySelector(".v-window-item--active .v-data-table tbody tr td")?.textContent?.includes("PERF-P"),
+    undefined,
     { timeout: 60_000 },
   );
   await painted(page);
-  return { data, painted: performance.now() - started };
+  const paintedAt = performance.now() - started;
+  return { data: await finished, painted: paintedAt };
 }
 
 /** Searches the properties list (Enter skips the 300 ms debounce). */
@@ -542,5 +668,7 @@ function printStartup(result) {
     console.table(result.memory.idleOnDashboard);
     console.log("Memory and idle CPU on the properties list:");
     console.table(result.memory.idleOnProperties);
+    console.log("Memory and idle CPU on the people list:");
+    console.table(result.memory.idleOnPeople);
   }
 }

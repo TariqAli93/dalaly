@@ -28,6 +28,16 @@ const rows = [
   ["Memory on properties list, all processes (private MB)", (r) => r.startup?.memory?.idleOnProperties?.total.privateMB],
   ["Memory on properties list, renderer (private MB)", (r) => r.startup?.memory?.idleOnProperties?.Tab?.privateMB],
   ["Idle CPU on properties list, all processes (%)", (r) => r.startup?.memory?.idleOnProperties?.total.cpuPercent],
+  ["Rentals → people list data (median ms)", (r) => r.startup?.repeat.rentalsToPeopleData?.median],
+  ["Rentals → people list painted (median ms)", (r) => r.startup?.repeat.rentalsToPeoplePainted?.median],
+  ["Memory on people list, all processes (working set MB)", (r) => r.startup?.memory?.idleOnPeople?.total.workingSetMB],
+  ["Memory on people list, renderer (private MB)", (r) => r.startup?.memory?.idleOnPeople?.Tab?.privateMB],
+  ["People → person's properties data (median ms)", (r) => r.startup?.repeat.peopleToPersonPropertiesData?.median],
+  ["People → person's properties painted (median ms)", (r) => r.startup?.repeat.peopleToPersonPropertiesPainted?.median],
+  ["Person → rental requests painted (median ms)", (r) => r.startup?.repeat.personToRentalRequestsPainted?.median],
+  ["Rental → purchase requests painted (median ms)", (r) => r.startup?.repeat.rentalToPurchaseRequestsPainted?.median],
+  ["Purchase requests → documents data (median ms)", (r) => r.startup?.repeat.purchaseRequestsToDocumentsData?.median],
+  ["Purchase requests → documents painted (median ms)", (r) => r.startup?.repeat.purchaseRequestsToDocumentsPainted?.median],
   ...Object.keys(results[0].api?.sequential ?? {}).map((name) => [
     `${name} (median / p95 ms)`,
     (r) => {
