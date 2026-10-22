@@ -78,6 +78,13 @@ pnpm --filter @dalaly/server test:maps:runtime
 pnpm --filter @dalaly/server test:startup:electron  # real Electron startup (needs a display)
 ```
 
+Performance of a packaged build (startup, memory, API latency) against a
+seeded throwaway database — see `docs/PERFORMANCE.md`:
+
+```bash
+pnpm perf -- --app apps/desktop/release/win-unpacked --label my-change
+```
+
 ## Web Demo Mode (capture only)
 
 A separate, isolated mode that serves the same Vue app in a plain browser. It exists

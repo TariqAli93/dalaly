@@ -20,6 +20,7 @@ pnpm typecheck        # server tsc, renderer vue-tsc, Electron syntax check
 pnpm lint             # same as typecheck for server + renderer (no ESLint in repo)
 pnpm format           # prettier across all three workspaces
 pnpm test             # fast unit tests only; no database required
+pnpm perf -- --app <win-unpacked>  # startup/memory/API timings of a packaged build (docs/PERFORMANCE.md)
 pnpm db:migrate       # apply Drizzle migrations
 pnpm db:seed          # (also db:seed:reset)
 pnpm package          # Windows portable + NSIS installer into apps/desktop/release
