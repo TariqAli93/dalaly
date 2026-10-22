@@ -245,6 +245,7 @@ router.beforeEach(async (to) => {
   if (!setup) {
     try {
       setup = await fetchStatus();
+      performance.mark("dalaly:status-fetched");
     } catch {
       return { name: "startup-error" };
     }

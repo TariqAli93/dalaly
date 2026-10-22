@@ -371,7 +371,7 @@ onMounted(() => {
           <v-card variant="flat" border class="analytics-workspace">
             <div class="analytics-heading">
               <div>
-                <h2>التقارير والإحصائيات</h2>
+                <h2 elementtiming="dashboard-content">التقارير والإحصائيات</h2>
                 <p>العروض الجديدة وتوزيع العقارات النشطة</p>
               </div>
               <v-tabs v-model="analysisDomain" color="primary" density="compact"

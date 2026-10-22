@@ -6,6 +6,7 @@ import { DuplicatePlotError, DocumentError } from "./shared/errors.js";
 import { DEFAULT_BODY_LIMIT } from "./shared/constants/limits.js";
 import { postgresError } from "./shared/utils/postgres-errors.js";
 import { getSetupStatus } from "./infrastructure/database/health.js";
+import { waitForDatabasePreparation } from "./infrastructure/database/startup.js";
 import { registerAuthHook } from "./modules/auth/auth.hooks.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { backupRoutes } from "./modules/backup/backup.routes.js";
@@ -102,7 +103,12 @@ export async function buildServer(options: { logger?: boolean } = {}) {
     credentials: true,
   });
 
-  app.get("/api/health", async () => {
+  app.get("/api/health", async (request) => {
+    // Electron's startup check sends ?wait=1 once it sees CHECKING, so it
+    // learns READY as soon as the database is prepared (capped below its
+    // 6 s request timeout) instead of on its next poll.
+    if ((request.query as { wait?: string }).wait === "1")
+      await waitForDatabasePreparation(4000);
     const status = await getSetupStatus();
     return { ok: true, ...status };
   });

@@ -263,9 +263,13 @@ fix).
 
 ### Phase 3 — renderer startup and responsiveness
 
-1. `vite-plugin-vuetify` auto-import (tree-shaking); verify no dynamically
-   named components.
-2. Icons: `mdi-svg` with `@mdi/js` (only used icons), at least for the splash.
+1. Done: `vite-plugin-vuetify` auto-import (main-window startup JS
+   719 → 328 KB, module evaluation ~20 ms faster). Also done: the startup
+   health wait (removes the ~350 ms slow-launch step) and charts drawn after
+   the dashboard's first paint (figures ~150 ms sooner). See
+   `docs/PERFORMANCE.md`, "Renderer startup and dashboard".
+2. Icons: measured, not worth it for the splash (dropping the icon CSS did
+   not change its load time). Revisit only with evidence for the main window.
 3. Lazy-load xlsx; remove dead exports.
 4. Table thumbnails: return the primary image id in list responses, render a
    lazy `<img>`; generate thumbnails server-side (or downscale on upload).

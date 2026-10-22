@@ -15,6 +15,14 @@ test("health and setup status are available before database configuration", asyn
   }
 });
 
+test("health with ?wait=1 answers at once when no database preparation is running", async () => {
+  const started = Date.now();
+  const result = await app.inject({ url: "/api/health?wait=1" });
+  assert.equal(result.statusCode, 200);
+  assert.equal(result.json().startup_state, "SETUP_REQUIRED");
+  assert.ok(Date.now() - started < 1000);
+});
+
 test("anonymous setup mutations reject remote addresses and untrusted origins", async () => {
   for (const url of ["/api/setup/initialize", "/api/setup/recover", "/api/setup/test-postgres", "/api/auth/setup-admin"]) {
     const remote = await app.inject({ method: "POST", url, payload: {}, remoteAddress: "192.0.2.10" });

@@ -237,3 +237,71 @@ row; the ones above are the ones this change could affect.
   filter by owner, and people, requests and documents are not paged yet.
 - Idle CPU on the properties list stayed between 1.1% and 1.9%, within
   noise.
+
+## Renderer startup and dashboard, October 2026
+
+Profiled first with `scripts/perf/startup-trace.mjs` (per-launch timeline
+from `main.log`, the renderer's startup marks and the login form), then
+changed only what the trace and a CPU profile pointed at. Same development
+PC and dataset; builds: `main` at `d8310e8` and branch
+`perf/renderer-startup`, measured alternately.
+
+### What the profile showed
+
+- **The ~400 ms startup step was the health poll.** The database finished
+  preparing 0.74–0.85 s after launch in every traced launch, but Electron
+  polled `/api/health` every 350 ms and opened the main window only after a
+  poll saw `READY`: database-ready → window start was either 22–31 ms or
+  309–413 ms. Everything after that (≈120 ms to evaluate the renderer, ≈160 ms
+  to the login form) was the same in fast and slow launches.
+- **Renderer, after navigation start:** module evaluation ≈115 ms (all of
+  Vuetify plus ~870 KB of CSS), the router's own health request ≈45 ms
+  (a fresh PostgreSQL connection per call), login chunk ≈5 ms, mount ≈27 ms.
+- **The splash's ~270 ms to DOMContentLoaded is not the icon CSS:** a build
+  without the icon font stylesheet (splash CSS 590 KB → 274 KB) measured
+  240–300 ms against 265–285 ms. Not changed; the remaining time could not
+  be separated from Playwright attaching to Electron during that window.
+- **Dashboard:** after its data arrived, ~255 ms passed before paint. A CPU
+  profile put ~30 ms in `getComputedStyle` called by Chart.js while creating
+  its canvases (a forced style recalculation of the freshly rendered page),
+  and the page's first paint waited for both charts. The dashboard's DOM is
+  small (~1,000 elements), so less DOM was not the lever.
+
+### Changes and their effect
+
+| Change                                                        | Measure                                                                          |              Before |               After |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------: | ------------------: |
+| Health wait (`/api/health?wait=1` after the first `CHECKING`) | database ready → window start, 12 launches each                                  | 22–31 or 309–413 ms | 48–62 or 123–165 ms |
+| Vuetify auto-import (`vite-plugin-vuetify`)                   | main-window startup JS / CSS                                                     |     719 KB / 850 KB |     328 KB / 628 KB |
+|                                                               | module evaluation after navigation start, 12 launches each, alternating          |          115–125 ms |           92–107 ms |
+| Charts drawn one frame after the page paints                  | login click → dashboard content painted (Element Timing), 2 rounds × 12 launches |          530–556 ms |          369–405 ms |
+|                                                               | login click → charts drawn                                                       |          373–402 ms |          376–409 ms |
+
+Whole build, `main` against the branch, two alternating rounds:
+
+|                                                     |     main r1 |   branch r1 |     main r2 |   branch r2 |
+| --------------------------------------------------- | ----------: | ----------: | ----------: | ----------: |
+| Login form, repeat profile (median / max ms)        | 1292 / 1560 | 1183 / 1418 | 1203 / 1522 | 1089 / 1257 |
+| Login form, fresh profile (median ms)               |        1439 |        1152 |        1247 |        1248 |
+| Login click → dashboard painted (median ms)         |         549 |         412 |         521 |         415 |
+| Login click → dashboard content painted (median ms) |           – |     384–402 |           – |     387–392 |
+| Working set on dashboard, all processes (MB)        |         557 |         548 |         549 |         550 |
+
+Pooled over 12 traced launches per build, login form visible: `main`
+1016 / 1169 / 1446 / 1596 ms (min / median / p90 / max), branch
+1031 / 1182 / 1261 / 1429 ms; mean 1260 → 1182 ms.
+
+### Reading it
+
+- **Startup:** the slow launches are gone (p90 −185 ms, max −170 ms, mean
+  −80 ms) but the median launch did not change on this PC: half the launches
+  were already in the fast group. The gains scale with how long database
+  preparation takes, so slower office PCs should benefit more; that has not
+  been measured.
+- **Vuetify tree-shaking** saves ~20 ms of module evaluation here. On a
+  slower CPU the saving should be proportionally larger (not measured).
+- **Dashboard:** its figures and lists appear ~150 ms sooner; the charts
+  arrive when they did before.
+- **Not changed:** API, memory and idle CPU (within noise), the splash,
+  and the router's health request (~45 ms); passing Electron's health
+  result to the renderer would remove it but needs a new IPC path.

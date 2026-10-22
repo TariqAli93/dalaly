@@ -307,8 +307,12 @@ function startLocalApi() {
 // يفحص جاهزية الخادم المحلي عبر /api/health ويعيد كائن الصحة، أو يرمي
 // STARTUP_BACKEND_TIMEOUT عند انتهاء المهلة. مجرّد استطلاع لنقطة الصحة الحالية.
 async function waitForApiHealth(timeoutMs = 25000) {
-  return pollApiHealth(`${apiUrl}/api/health`, timeoutMs, () =>
-    sendSplashProgress(SPLASH_STAGES.database),
+  // Retry quickly until the API listens; a refused connection costs nothing.
+  return pollApiHealth(
+    `${apiUrl}/api/health`,
+    timeoutMs,
+    () => sendSplashProgress(SPLASH_STAGES.database),
+    100,
   );
 }
 

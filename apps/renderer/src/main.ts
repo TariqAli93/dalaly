@@ -4,8 +4,6 @@ import "./styles.css";
 
 import { createApp, nextTick } from "vue";
 import { createVuetify } from "vuetify";
-import * as components from "vuetify/components";
-import * as directives from "vuetify/directives";
 import { ar } from "vuetify/locale";
 import App from "./App.vue";
 import { router } from "./router";
@@ -18,10 +16,11 @@ import { setUnauthorizedHandler } from "./services/api.service";
 import { useAuth } from "./composables/useAuth";
 import { useSetup } from "./composables/useSetup";
 
+// Startup marks, read by scripts/perf/startup-trace.mjs.
+performance.mark("dalaly:modules-evaluated");
 initializeAppearance();
+// Components and directives are imported per template by vite-plugin-vuetify.
 const vuetify = createVuetify({
-  components,
-  directives,
   locale: {
     locale: "ar",
     fallback: "ar",
@@ -84,8 +83,10 @@ const app = createApp(App).use(i18n).use(vuetify).use(router);
 async function mountApplication() {
   try {
     await router.isReady();
+    performance.mark("dalaly:router-ready");
     app.mount("#app");
     await nextTick();
+    performance.mark("dalaly:mounted");
     const { startupState, status } = useSetup();
     await window.dalalyConfig?.rendererReady?.({
       startup_state: startupState.value,
