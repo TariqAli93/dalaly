@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { computed } from "vue";
+import { VDataTable, VDataTableServer } from "vuetify/components";
 import {
+  LIST_PAGE_SIZES,
   RENT_PERIOD_LABELS,
   RENTAL_PROPERTY_LABELS,
 } from "../../constants/domain";
 import { formatMoney } from "../../utils/format";
-import type { RentalRecord } from "../../types";
+import type { RentalRecord, RentalSortKey, TableSortItem } from "../../types";
 import StatusChip from "../shared/StatusChip.vue";
 import EmptyState from "../shared/EmptyState.vue";
 import { usePermissions } from "../../composables/usePermissions";
@@ -17,7 +20,13 @@ const props = defineProps<{
   loading?: boolean;
   selectedId?: number | null;
   hasFilters?: boolean;
+  // مع total يصبح الجدول صفحة من الخادم (v-data-table-server) والصفحة
+  // والحجم والترتيب بيد الأب؛ بدونه يقسّم ويرتّب القائمة الممرّرة محلياً.
+  total?: number;
 }>();
+const page = defineModel<number>("page", { default: 1 });
+const itemsPerPage = defineModel<number>("itemsPerPage", { default: 10 });
+const sortBy = defineModel<TableSortItem[]>("sortBy", { default: () => [] });
 
 const emit = defineEmits<{
   view: [RentalRecord];
@@ -29,6 +38,7 @@ const emit = defineEmits<{
   create: [];
   select: [RentalRecord];
   clearFilters: [];
+  options: [];
 }>();
 
 const { can } = usePermissions();
@@ -46,7 +56,7 @@ function rowProps(ctx: { item: RentalRecord }) {
   return ctx.item.id === props.selectedId ? { class: "dal-row--selected" } : {};
 }
 
-const headers = [
+const ALL_HEADERS = [
   { title: "الصورة", key: "image", sortable: false },
   { title: "الاسم", key: "name", sortable: true },
   { title: "الكود", key: "code", sortable: true },
@@ -63,11 +73,51 @@ const headers = [
   { title: "الحالة", key: "status" },
   { title: "", key: "actions", sortable: false, align: "end" as const },
 ];
+// أعمدة يرتّبها الخادم؛ مفتاح العمود هو مفتاح الترتيب نفسه.
+const SERVER_SORT_KEYS = new Set<string>([
+  "name",
+  "code",
+  "property_type",
+  "rent_price",
+  "district",
+  "area",
+  "rooms_count",
+  "bathrooms_count",
+  "owner_name",
+  "status",
+] satisfies RentalSortKey[]);
+
+const serverMode = computed(() => props.total !== undefined);
+const headers = computed(() =>
+  serverMode.value
+    ? ALL_HEADERS.map((header) =>
+        SERVER_SORT_KEYS.has(header.key)
+          ? header
+          : { ...header, sortable: false },
+      )
+    : ALL_HEADERS,
+);
+const serverBindings = computed(() =>
+  serverMode.value
+    ? {
+        itemsLength: props.total,
+        page: page.value,
+        "onUpdate:page": (value: number) => (page.value = value),
+        itemsPerPage: itemsPerPage.value,
+        "onUpdate:itemsPerPage": (value: number) =>
+          (itemsPerPage.value = value),
+        sortBy: sortBy.value,
+        "onUpdate:sortBy": (value: TableSortItem[]) => (sortBy.value = value),
+        "onUpdate:options": () => emit("options"),
+        itemsPerPageOptions: LIST_PAGE_SIZES,
+      }
+    : {},
+);
 </script>
 
 <template>
   <v-card variant="flat" class="dal-panel dal-grid">
-    <v-skeleton-loader v-if="loading" type="table" />
+    <v-skeleton-loader v-if="loading && !rentals.length" type="table" />
     <EmptyState
       v-else-if="!rentals.length && hasFilters"
       class="dal-empty"
@@ -101,14 +151,17 @@ const headers = [
         </v-btn>
       </template>
     </EmptyState>
-    <v-data-table
+    <component
+      :is="serverMode ? VDataTableServer : VDataTable"
       v-else
       :headers="headers"
       :items="rentals"
       item-value="id"
       density="compact"
       hover
+      :loading="loading"
       :row-props="rowProps"
+      v-bind="serverBindings"
       @click:row="onRowClick"
     >
       <template #item.image="{ item }">
@@ -197,7 +250,7 @@ const headers = [
           />
         </div>
       </template>
-    </v-data-table>
+    </component>
   </v-card>
 </template>
 

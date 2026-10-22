@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AppLayout from "../layouts/AppLayout.vue";
 import RentalFilters from "../components/rentals/RentalFilters.vue";
@@ -14,10 +14,13 @@ import { usePermissions } from "../composables/usePermissions";
 import { useSnackbar } from "../composables/useSnackbar";
 import { useConfirm } from "../composables/useConfirm";
 import { useRefresh } from "../composables/useRefresh";
+import { createPagedList } from "../composables/usePagedList";
 import { exportRentalFolder } from "../utils/listingExport";
+import { RENTAL_SORT_OPTIONS } from "../constants/domain";
 import type {
   RentalFilters as RentalFiltersType,
   RentalRecord,
+  RentalSortKey,
 } from "../types";
 
 const router = useRouter();
@@ -47,61 +50,34 @@ const defaultFilters = (): RentalFiltersType => ({
 });
 
 const filters = ref<RentalFiltersType>(defaultFilters());
-const items = ref<RentalRecord[]>([]);
 const favoriteIds = ref(new Set<number>());
-const loading = ref(false);
 const selected = ref<RentalRecord | null>(null);
 const detailsDialog = ref(false);
 const paneOpen = ref(false);
-const favOnly = ref(false);
 
-type SortKey =
-  "newest" | "updated" | "price_asc" | "price_desc" | "area_desc" | "area_asc";
-const sortBy = ref<SortKey>("newest");
-const SORT_OPTIONS = [
-  { value: "newest", title: "الأحدث" },
-  { value: "updated", title: "آخر تحديث" },
-  { value: "price_asc", title: "السعر: الأقل" },
-  { value: "price_desc", title: "السعر: الأعلى" },
-  { value: "area_desc", title: "المساحة: الأكبر أولاً" },
-  { value: "area_asc", title: "المساحة: الأصغر أولاً" },
-];
+// صفحة واحدة من الخادم؛ الترتيب (والمساحة فيه بالمتر المربع) والمفضلة هناك.
+const list = createPagedList<RentalRecord, RentalSortKey>(
+  (page, signal) => rentals.listRentalsPage(filters.value, page, signal),
+  RENTAL_SORT_OPTIONS[0],
+);
+const {
+  items,
+  total,
+  loading,
+  page,
+  pageSize,
+  sortBy,
+  favoritesOnly,
+  onTableOptions,
+} = list;
 
-const num = (value: unknown) =>
-  Number(typeof value === "string" ? value.replace(/,/g, "") : value) || 0;
-const timeOf = (value: string) => {
-  const time = new Date(value).getTime();
-  return Number.isNaN(time) ? 0 : time;
-};
-
-function sortList(list: RentalRecord[]) {
-  const result = [...list];
-  switch (sortBy.value) {
-    case "updated":
-      return result.sort((a, b) => timeOf(b.updated_at) - timeOf(a.updated_at));
-    case "price_asc":
-      return result.sort((a, b) => num(a.rent_price) - num(b.rent_price));
-    case "price_desc":
-      return result.sort((a, b) => num(b.rent_price) - num(a.rent_price));
-    case "area_desc":
-      return result.sort((a, b) => num(b.area_value) - num(a.area_value));
-    case "area_asc":
-      return result.sort((a, b) => num(a.area_value) - num(b.area_value));
-    case "newest":
-    default:
-      return result.sort((a, b) => timeOf(b.created_at) - timeOf(a.created_at));
-  }
+const sortValue = computed(() => list.currentSortValue(RENTAL_SORT_OPTIONS));
+function selectSort(value: string | null) {
+  const option = RENTAL_SORT_OPTIONS.find((item) => item.value === value);
+  if (option) void list.setSort(option);
 }
 
-const displayed = computed(() => {
-  const base = favOnly.value
-    ? items.value.filter((item) => favoriteIds.value.has(item.id))
-    : items.value;
-  return sortList(base);
-});
-const resultsLabel = computed(
-  () => `عدد العروض الإيجارية: ${displayed.value.length}`,
-);
+const resultsLabel = computed(() => `عدد العروض الإيجارية: ${total.value}`);
 const hasActiveFilters = computed(() => {
   const filter = filters.value;
   return Boolean(
@@ -121,24 +97,24 @@ const hasActiveFilters = computed(() => {
     filter.floors_count ||
     filter.negotiable ||
     filter.amenities ||
-    favOnly.value,
+    favoritesOnly.value,
   );
 });
 
-async function load() {
-  loading.value = true;
+async function loadFavoriteIds() {
   try {
-    const [result, favorites] = await Promise.all([
-      rentals.listRentals(filters.value),
-      rentals.listRentalFavoriteIds(),
-    ]);
-    items.value = result;
-    favoriteIds.value = new Set(favorites.ids);
+    favoriteIds.value = new Set((await rentals.listRentalFavoriteIds()).ids);
   } catch (error) {
     notifyError(getErrorMessage(error));
-  } finally {
-    loading.value = false;
   }
+}
+/** فلاتر جديدة: من الصفحة الأولى. */
+function load() {
+  return list.loadFirstPage();
+}
+/** بعد أرشفة أو حذف أو تحديث: نفس الصفحة. */
+async function reload() {
+  await Promise.all([list.reload(), loadFavoriteIds()]);
 }
 
 function clear() {
@@ -146,7 +122,7 @@ function clear() {
   void load();
 }
 function resetAll() {
-  favOnly.value = false;
+  favoritesOnly.value = false;
   clear();
 }
 function toggleAvailable() {
@@ -176,6 +152,7 @@ function favorite(item: RentalRecord) {
       if (isFavorite) next.delete(item.id);
       else next.add(item.id);
       favoriteIds.value = next;
+      if (favoritesOnly.value) void list.reload();
     })
     .catch((error) => notifyError(getErrorMessage(error)));
 }
@@ -189,7 +166,7 @@ function archive(item: RentalRecord) {
       try {
         await rentals.archiveRental(item.id);
         detailsDialog.value = false;
-        await load();
+        await reload();
         notifySuccess("تمت أرشفة العرض الإيجاري.");
       } catch (error) {
         notifyError(getErrorMessage(error));
@@ -207,7 +184,7 @@ function restore(item: RentalRecord) {
       try {
         await rentals.restoreRental(item.id);
         detailsDialog.value = false;
-        await load();
+        await reload();
         notifySuccess("تم إرجاع العرض الإيجاري.");
       } catch (error) {
         notifyError(getErrorMessage(error));
@@ -226,7 +203,7 @@ function remove(item: RentalRecord) {
         await rentals.deleteRental(item.id);
         detailsDialog.value = false;
         selected.value = null;
-        await load();
+        await reload();
         notifySuccess("تم حذف العرض الإيجاري.");
       } catch (error) {
         notifyError(getErrorMessage(error));
@@ -254,9 +231,10 @@ async function exportSelected() {
 
 onMounted(async () => {
   await loadLocations();
-  setRefreshHandler(load);
-  await load();
+  setRefreshHandler(reload);
+  await reload();
 });
+onBeforeUnmount(() => list.cancel());
 </script>
 
 <template>
@@ -305,28 +283,29 @@ onMounted(async () => {
         >
         <v-btn
           size="small"
-          :variant="sortBy === 'newest' ? 'flat' : 'text'"
-          :color="sortBy === 'newest' ? 'primary' : undefined"
-          @click="sortBy = 'newest'"
+          :variant="sortValue === 'newest' ? 'flat' : 'text'"
+          :color="sortValue === 'newest' ? 'primary' : undefined"
+          @click="selectSort('newest')"
           >المضافة حديثاً</v-btn
         >
         <v-btn
           size="small"
-          :variant="favOnly ? 'flat' : 'text'"
-          :color="favOnly ? 'error' : undefined"
+          :variant="favoritesOnly ? 'flat' : 'text'"
+          :color="favoritesOnly ? 'error' : undefined"
           prepend-icon="mdi-heart-outline"
-          @click="favOnly = !favOnly"
+          @click="list.setFavoritesOnly(!favoritesOnly)"
           >المفضلة</v-btn
         >
       </div>
       <v-spacer />
       <v-select
-        v-model="sortBy"
-        :items="SORT_OPTIONS"
+        :model-value="sortValue"
+        :items="RENTAL_SORT_OPTIONS"
         label="ترتيب"
         density="compact"
         hide-details
         class="dal-sort"
+        @update:model-value="selectSort"
       />
     </div>
 
@@ -336,7 +315,11 @@ onMounted(async () => {
     >
       <template #main>
         <RentalTable
-          :rentals="displayed"
+          v-model:page="page"
+          v-model:items-per-page="pageSize"
+          v-model:sort-by="sortBy"
+          :rentals="items"
+          :total="total"
           :favorite-ids="favoriteIds"
           :loading="loading"
           :selected-id="selected?.id ?? null"
@@ -350,6 +333,7 @@ onMounted(async () => {
           @create="router.push('/rentals/new')"
           @select="selectRow"
           @clear-filters="resetAll"
+          @options="onTableOptions"
         />
       </template>
       <template #detail>

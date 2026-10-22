@@ -1,7 +1,14 @@
 <script setup lang="ts">
+import { computed } from "vue";
+import { VDataTable, VDataTableServer } from "vuetify/components";
 import { formatMoney, formatPlot } from "../../utils/format";
 import { neighborhoodOf } from "../../utils/exportProperty";
-import type { PropertyRecord } from "../../types";
+import { LIST_PAGE_SIZES } from "../../constants/domain";
+import type {
+  PropertyRecord,
+  PropertySortKey,
+  TableSortItem,
+} from "../../types";
 import PropertyActions from "./PropertyActions.vue";
 import StatusChip from "../shared/StatusChip.vue";
 import EmptyState from "../shared/EmptyState.vue";
@@ -13,7 +20,13 @@ const props = defineProps<{
   loading?: boolean;
   selectedId?: number | null;
   hasFilters?: boolean;
+  // مع total يصبح الجدول صفحة من الخادم (v-data-table-server) والصفحة
+  // والحجم والترتيب بيد الأب؛ بدونه يقسّم ويرتّب القائمة الممرّرة محلياً.
+  total?: number;
 }>();
+const page = defineModel<number>("page", { default: 1 });
+const itemsPerPage = defineModel<number>("itemsPerPage", { default: 10 });
+const sortBy = defineModel<TableSortItem[]>("sortBy", { default: () => [] });
 
 const emit = defineEmits<{
   view: [PropertyRecord];
@@ -24,6 +37,7 @@ const emit = defineEmits<{
   create: [];
   select: [PropertyRecord];
   clearFilters: [];
+  options: [];
 }>();
 
 // نحافظ على حدث التحديد، ونفتح صفحة التفاصيل عند نقر الصف.
@@ -45,7 +59,7 @@ function rowProps(ctx: { item: PropertyRecord }) {
   return ctx.item.id === props.selectedId ? { class: "dal-row--selected" } : {};
 }
 
-const headers = [
+const ALL_HEADERS = [
   { title: "الصورة", key: "image", sortable: false },
   { title: "الاسم", key: "name", sortable: true },
   { title: "الكود", key: "code", sortable: true },
@@ -61,12 +75,50 @@ const headers = [
   { title: "الحالة", key: "status" },
   { title: "", key: "actions", sortable: false, align: "end" as const },
 ];
+// أعمدة يرتّبها الخادم؛ مفتاح العمود هو مفتاح الترتيب نفسه.
+const SERVER_SORT_KEYS = new Set<string>([
+  "name",
+  "code",
+  "property_type",
+  "district",
+  "area",
+  "owner_name",
+  "total_price",
+  "status",
+] satisfies PropertySortKey[]);
+
+const serverMode = computed(() => props.total !== undefined);
+const headers = computed(() =>
+  serverMode.value
+    ? ALL_HEADERS.map((header) =>
+        SERVER_SORT_KEYS.has(header.key)
+          ? header
+          : { ...header, sortable: false },
+      )
+    : ALL_HEADERS,
+);
+const serverBindings = computed(() =>
+  serverMode.value
+    ? {
+        itemsLength: props.total,
+        page: page.value,
+        "onUpdate:page": (value: number) => (page.value = value),
+        itemsPerPage: itemsPerPage.value,
+        "onUpdate:itemsPerPage": (value: number) =>
+          (itemsPerPage.value = value),
+        sortBy: sortBy.value,
+        "onUpdate:sortBy": (value: TableSortItem[]) => (sortBy.value = value),
+        "onUpdate:options": () => emit("options"),
+        itemsPerPageOptions: LIST_PAGE_SIZES,
+      }
+    : {},
+);
 </script>
 
 <template>
   <!-- شبكة بيانات مكتبية: لوح بحدّ رفيع يملأ العرض، لا بطاقة. -->
   <v-card variant="flat" class="dal-panel dal-grid">
-    <v-skeleton-loader v-if="loading" type="table" />
+    <v-skeleton-loader v-if="loading && !properties.length" type="table" />
     <!-- حالة فارغة مع فلاتر فعّالة: سبب واضح + إجراءات تصحيح -->
     <EmptyState
       v-else-if="!properties.length && hasFilters"
@@ -102,14 +154,17 @@ const headers = [
         </v-btn>
       </template>
     </EmptyState>
-    <v-data-table
+    <component
+      :is="serverMode ? VDataTableServer : VDataTable"
       v-else
       :headers="headers"
       :items="properties"
       item-value="id"
       density="compact"
       hover
+      :loading="loading"
       :row-props="rowProps"
+      v-bind="serverBindings"
       @dblclick:row="onRowDbClick"
       @click:row="onRowClick"
     >
@@ -150,7 +205,7 @@ const headers = [
           @delete="emit('delete', $event)"
         />
       </template>
-    </v-data-table>
+    </component>
   </v-card>
 </template>
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import AppLayout from "../layouts/AppLayout.vue";
 import PropertyFilters from "../components/properties/PropertyFilters.vue";
@@ -15,75 +15,45 @@ import { useRefresh } from "../composables/useRefresh";
 import { useFavorites } from "../composables/useFavorites";
 import { usePermissions } from "../composables/usePermissions";
 import { exportPropertyFolder } from "../utils/listingExport";
-import { compareByAreaM2 } from "../utils/area";
+import { PROPERTY_SORT_OPTIONS } from "../constants/domain";
 import { getErrorMessage } from "../services/api.service";
 import type { PropertyRecord } from "../types";
 
 const router = useRouter();
-const { properties, loading, filters, loadProperties, clearFilters } =
-  useProperties();
+const {
+  properties,
+  total,
+  loading,
+  filters,
+  list,
+  loadProperties,
+  reloadProperties,
+  clearFilters,
+} = useProperties();
+// الصفحة والحجم والترتيب والمفضلة: مربوطة بالجدول وتُرسل إلى الخادم.
+const { page, pageSize, sortBy, favoritesOnly, onTableOptions } = list;
 
 const { notifyError, notifySuccess } = useSnackbar();
 const { setRefreshHandler } = useRefresh();
-const { isFavorite, loadFavoriteIds } = useFavorites();
+const { favoriteIds, loadFavoriteIds } = useFavorites();
 const { can } = usePermissions();
 
 const selectedProperty = ref<PropertyRecord | null>(null);
-const favOnly = ref(false);
 const importOpen = ref(false);
 // Details pane (Master–Detail): يعرض ملخّص الصف المحدد من بيانات القائمة نفسها.
 const paneOpen = ref(false);
 
-// فرز على البيانات المُحمّلة فقط (client-side) — كل النتائج مُحمّلة والصفحات
-// تُقسَّم داخل الجدول، فلا يسبب الفرز المحلي ترتيباً خاطئاً عبر الصفحات.
-type SortKey =
-  "newest" | "updated" | "price_asc" | "price_desc" | "area_desc" | "area_asc";
-const sortBy = ref<SortKey>("newest");
-const SORT_OPTIONS = [
-  { value: "newest", title: "الأحدث" },
-  { value: "updated", title: "آخر تحديث" },
-  { value: "price_asc", title: "السعر: الأقل" },
-  { value: "price_desc", title: "السعر: الأعلى" },
-  { value: "area_desc", title: "المساحة: الأكبر أولاً" },
-  { value: "area_asc", title: "المساحة: الأصغر أولاً" },
-];
-const num = (v: unknown) =>
-  Number(typeof v === "string" ? v.replace(/,/g, "") : v) || 0;
-const timeOf = (v: string) => {
-  const t = new Date(v).getTime();
-  return Number.isNaN(t) ? 0 : t;
-};
-function sortList(list: PropertyRecord[]) {
-  const arr = [...list];
-  switch (sortBy.value) {
-    case "updated":
-      return arr.sort((a, b) => timeOf(b.updated_at) - timeOf(a.updated_at));
-    case "price_asc":
-      return arr.sort((a, b) => num(a.total_price) - num(b.total_price));
-    case "price_desc":
-      return arr.sort((a, b) => num(b.total_price) - num(a.total_price));
-    // المساحة: تُقارَن بالمساحة الحقيقية (م²) عبر المصدر الموحّد، مع NULLS
-    // LAST وفرز ثانوي ثابت — لا بالقيمة الرقمية الخام التي تتجاهل الوحدة.
-    case "area_desc":
-      return arr.sort((a, b) => compareByAreaM2(a, b, "desc"));
-    case "area_asc":
-      return arr.sort((a, b) => compareByAreaM2(a, b, "asc"));
-    case "newest":
-    default:
-      return arr.sort((a, b) => timeOf(b.created_at) - timeOf(a.created_at));
-  }
+// الترتيب على الخادم (صفحة واحدة فقط محمّلة)، والمساحة فيه بالمتر المربع. قائمة
+// "ترتيب" ورؤوس الأعمدة تكتبان نفس sortBy.
+const sortValue = computed(() => list.currentSortValue(PROPERTY_SORT_OPTIONS));
+function selectSort(value: string | null) {
+  const option = PROPERTY_SORT_OPTIONS.find((item) => item.value === value);
+  if (option) void list.setSort(option);
 }
-
-const displayed = computed(() => {
-  const base = favOnly.value
-    ? properties.value.filter((p) => isFavorite(p.id))
-    : properties.value;
-  return sortList(base);
-});
 
 // عدّاد النتائج مع سياق البحث (لا عنوان كبير ولا بطاقة).
 const resultsLabel = computed(() => {
-  const n = displayed.value.length;
+  const n = total.value;
   if (filters.value.q)
     return `عدد النتائج المطابقة لـ "${filters.value.q}": ${n}`;
   return `عدد العروض: ${n}`;
@@ -110,7 +80,7 @@ const hasActiveFilters = computed(() => {
       f.area_max ||
       f.price_min ||
       f.price_max,
-    ) || favOnly.value
+    ) || favoritesOnly.value
   );
 });
 
@@ -121,13 +91,18 @@ function toggleAvailable() {
 }
 // مسح كل شيء بما فيه المفضلة (يعيد نفس clearFilters الحالي).
 function resetAll() {
-  favOnly.value = false;
+  favoritesOnly.value = false;
   clearFilters();
 }
 
 async function refreshData() {
-  await loadProperties();
+  await reloadProperties();
 }
+
+// إزالة عقار من المفضلة أثناء عرض المفضلة فقط: أعد تحميل الصفحة.
+watch(favoriteIds, () => {
+  if (favoritesOnly.value) void reloadProperties();
+});
 
 function viewDetails(property: PropertyRecord) {
   void router.push(`/properties/${property.id}`);
@@ -185,8 +160,9 @@ function paneDelete() {
 }
 
 onMounted(() => {
-  setRefreshHandler(loadProperties);
-  void loadProperties();
+  setRefreshHandler(reloadProperties);
+  // نفس الصفحة والفلاتر من الزيارة السابقة.
+  void reloadProperties();
   void loadFavoriteIds();
 });
 </script>
@@ -239,30 +215,31 @@ onMounted(() => {
         </v-btn>
         <v-btn
           size="small"
-          :variant="sortBy === 'newest' ? 'flat' : 'text'"
-          :color="sortBy === 'newest' ? 'primary' : undefined"
-          @click="sortBy = 'newest'"
+          :variant="sortValue === 'newest' ? 'flat' : 'text'"
+          :color="sortValue === 'newest' ? 'primary' : undefined"
+          @click="selectSort('newest')"
         >
           المضافة حديثاً
         </v-btn>
         <v-btn
           size="small"
-          :variant="favOnly ? 'flat' : 'text'"
-          :color="favOnly ? 'error' : undefined"
+          :variant="favoritesOnly ? 'flat' : 'text'"
+          :color="favoritesOnly ? 'error' : undefined"
           prepend-icon="mdi-heart-outline"
-          @click="favOnly = !favOnly"
+          @click="list.setFavoritesOnly(!favoritesOnly)"
         >
           المفضلة
         </v-btn>
       </div>
       <v-spacer />
       <v-select
-        v-model="sortBy"
-        :items="SORT_OPTIONS"
+        :model-value="sortValue"
+        :items="PROPERTY_SORT_OPTIONS"
         label="ترتيب"
         density="compact"
         hide-details
         class="dal-sort"
+        @update:model-value="selectSort"
       />
     </div>
 
@@ -272,7 +249,11 @@ onMounted(() => {
     >
       <template #main>
         <PropertiesTable
-          :properties="displayed"
+          v-model:page="page"
+          v-model:items-per-page="pageSize"
+          v-model:sort-by="sortBy"
+          :properties="properties"
+          :total="total"
           :loading="loading"
           :selected-id="selectedProperty?.id ?? null"
           :has-filters="hasActiveFilters"
@@ -284,6 +265,7 @@ onMounted(() => {
           @create="router.push('/properties/new')"
           @select="selectRow"
           @clear-filters="resetAll"
+          @options="onTableOptions"
         />
       </template>
       <template #detail>
