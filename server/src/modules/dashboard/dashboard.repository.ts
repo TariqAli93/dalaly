@@ -27,7 +27,18 @@ const activityMonths = sql`generate_series(
   interval '1 month'
 ) as activity_months(month)`;
 
-export async function getDashboard() {
+/**
+ * What the caller may see beyond properties (the route requires
+ * properties.read). Sections without permission keep their shape but are
+ * empty, and their queries are skipped.
+ */
+export type DashboardAccess = {
+  rentals: boolean;
+  audit: boolean;
+  followups: boolean;
+};
+
+export async function getDashboard(access: DashboardAccess) {
   const statusRows = await db
     .select({ status: properties.status, count: sql<number>`count(*)::int` })
     .from(properties)
@@ -100,6 +111,105 @@ export async function getDashboard() {
     .groupBy(sql`activity_months.month`)
     .orderBy(asc(sql`activity_months.month`));
 
+  const rentalSummary = access.rentals
+    ? await getRentalSummary()
+    : emptyRentalSummary();
+
+  const latestRows = await db
+    .select()
+    .from(properties)
+    .orderBy(desc(properties.createdAt), desc(properties.id))
+    .limit(10);
+
+  // Audit rows carry usernames and history; only audit.read may see them.
+  const recentActivity = access.audit
+    ? await db
+        .select({
+          id: auditLogs.id,
+          action: auditLogs.action,
+          entity_id: auditLogs.entityId,
+          property_code: properties.code,
+          user_name: users.username,
+          created_at: auditLogs.createdAt,
+        })
+        .from(auditLogs)
+        .leftJoin(users, eq(auditLogs.userId, users.id))
+        .leftJoin(properties, eq(auditLogs.entityId, properties.id))
+        .where(eq(auditLogs.entityType, "property"))
+        .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id))
+        .limit(20)
+    : [];
+
+  const topGovernorates = await db
+    .select({ name: properties.governorate, count: sql<number>`count(*)::int` })
+    .from(properties)
+    .where(
+      and(ne(properties.status, "archived"), isNotNull(properties.governorate)),
+    )
+    .groupBy(properties.governorate)
+    .orderBy(desc(sql`count(*)`))
+    .limit(6);
+
+  const topDistricts = await db
+    .select({ name: properties.district, count: sql<number>`count(*)::int` })
+    .from(properties)
+    .where(
+      and(ne(properties.status, "archived"), isNotNull(properties.district)),
+    )
+    .groupBy(properties.district)
+    .orderBy(desc(sql`count(*)`))
+    .limit(6);
+
+  const cutoff = new Date(Date.now() - REVIEW_DAYS * 24 * 60 * 60 * 1000);
+  const needsReviewRows = await db
+    .select()
+    .from(properties)
+    .where(
+      and(
+        notInArray(properties.status, ["archived", "sold", "rented"]),
+        lt(properties.updatedAt, cutoff),
+      ),
+    )
+    .orderBy(asc(properties.updatedAt))
+    .limit(15);
+
+  const reminders = access.followups
+    ? await listUpcomingReminders(
+        new Date(Date.now() - 24 * 60 * 60 * 1000),
+        20,
+      )
+    : [];
+
+  return {
+    counts,
+    financial,
+    latest: toApiObjects(latestRows, "properties"),
+    recent_activity: recentActivity,
+    top_governorates: topGovernorates.map((r) => ({
+      name: r.name,
+      count: Number(r.count),
+    })),
+    top_districts: topDistricts.map((r) => ({
+      name: r.name,
+      count: Number(r.count),
+    })),
+    needs_review: toApiObjects(needsReviewRows, "properties"),
+    reminders,
+    sales: {
+      by_type: salesByTypeRows.map((row) => ({
+        name: row.name,
+        count: Number(row.count),
+      })),
+      monthly_activity: salesActivityRows.map((row) => ({
+        month: row.month,
+        created: Number(row.created),
+      })),
+    },
+    rentals: rentalSummary,
+  };
+}
+
+async function getRentalSummary() {
   const rentalStatusRows = await db
     .select({ status: rentals.status, count: sql<number>`count(*)::int` })
     .from(rentals)
@@ -181,102 +291,38 @@ export async function getDashboard() {
     rented_monthly_value: Number(rentalFinancialRow?.rented_monthly_value ?? 0),
   };
 
-  const latestRows = await db
-    .select()
-    .from(properties)
-    .orderBy(desc(properties.createdAt), desc(properties.id))
-    .limit(10);
-
-  const recentActivity = await db
-    .select({
-      id: auditLogs.id,
-      action: auditLogs.action,
-      entity_id: auditLogs.entityId,
-      property_code: properties.code,
-      user_name: users.username,
-      created_at: auditLogs.createdAt,
-    })
-    .from(auditLogs)
-    .leftJoin(users, eq(auditLogs.userId, users.id))
-    .leftJoin(properties, eq(auditLogs.entityId, properties.id))
-    .where(eq(auditLogs.entityType, "property"))
-    .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id))
-    .limit(20);
-
-  const topGovernorates = await db
-    .select({ name: properties.governorate, count: sql<number>`count(*)::int` })
-    .from(properties)
-    .where(
-      and(ne(properties.status, "archived"), isNotNull(properties.governorate)),
-    )
-    .groupBy(properties.governorate)
-    .orderBy(desc(sql`count(*)`))
-    .limit(6);
-
-  const topDistricts = await db
-    .select({ name: properties.district, count: sql<number>`count(*)::int` })
-    .from(properties)
-    .where(
-      and(ne(properties.status, "archived"), isNotNull(properties.district)),
-    )
-    .groupBy(properties.district)
-    .orderBy(desc(sql`count(*)`))
-    .limit(6);
-
-  const cutoff = new Date(Date.now() - REVIEW_DAYS * 24 * 60 * 60 * 1000);
-  const needsReviewRows = await db
-    .select()
-    .from(properties)
-    .where(
-      and(
-        notInArray(properties.status, ["archived", "sold", "rented"]),
-        lt(properties.updatedAt, cutoff),
-      ),
-    )
-    .orderBy(asc(properties.updatedAt))
-    .limit(15);
-
-  const reminders = await listUpcomingReminders(
-    new Date(Date.now() - 24 * 60 * 60 * 1000),
-    20,
-  );
-
   return {
-    counts,
-    financial,
-    latest: toApiObjects(latestRows, "properties"),
-    recent_activity: recentActivity,
-    top_governorates: topGovernorates.map((r) => ({
-      name: r.name,
-      count: Number(r.count),
+    counts: rentalCounts,
+    financial: rentalFinancial,
+    by_type: rentalByTypeRows.map((row) => ({
+      name: row.name,
+      count: Number(row.count),
     })),
-    top_districts: topDistricts.map((r) => ({
-      name: r.name,
-      count: Number(r.count),
+    monthly_activity: rentalActivityRows.map((row) => ({
+      month: row.month,
+      created: Number(row.created),
     })),
-    needs_review: toApiObjects(needsReviewRows, "properties"),
-    reminders,
-    sales: {
-      by_type: salesByTypeRows.map((row) => ({
-        name: row.name,
-        count: Number(row.count),
-      })),
-      monthly_activity: salesActivityRows.map((row) => ({
-        month: row.month,
-        created: Number(row.created),
-      })),
+  };
+}
+
+function emptyRentalSummary(): Awaited<ReturnType<typeof getRentalSummary>> {
+  return {
+    counts: {
+      total: 0,
+      active: 0,
+      available: 0,
+      reserved: 0,
+      negotiating: 0,
+      rented: 0,
+      archived: 0,
     },
-    rentals: {
-      counts: rentalCounts,
-      financial: rentalFinancial,
-      by_type: rentalByTypeRows.map((row) => ({
-        name: row.name,
-        count: Number(row.count),
-      })),
-      monthly_activity: rentalActivityRows.map((row) => ({
-        month: row.month,
-        created: Number(row.created),
-      })),
+    financial: {
+      monthly_value: 0,
+      avg_monthly_price: 0,
+      available_monthly_value: 0,
+      rented_monthly_value: 0,
     },
+    by_type: [],
+    monthly_activity: [],
   };
 }

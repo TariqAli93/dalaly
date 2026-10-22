@@ -7,10 +7,17 @@ import {
   findRentalRequestMatches,
 } from "./matching.service.js";
 import { parseId } from "../../shared/utils/parse-id.js";
+// Each match pairs two domains (a request and offers, or an offer and the
+// customers' requests), so both read permissions are required.
 export const matchingRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     "/rental-requests/:id/offers",
-    { preHandler: requirePermission("requests.read") },
+    {
+      preHandler: [
+        requirePermission("requests.read"),
+        requirePermission("rentals.read"),
+      ],
+    },
     async (request, reply) => {
       const id = parseId((request.params as { id: string }).id);
       if (!id) return reply.code(400).send({ message: "معرف الطلب غير صحيح." });
@@ -20,7 +27,12 @@ export const matchingRoutes: FastifyPluginAsync = async (app) => {
   );
   app.get(
     "/rentals/:id/requests",
-    { preHandler: requirePermission("rentals.read") },
+    {
+      preHandler: [
+        requirePermission("rentals.read"),
+        requirePermission("requests.read"),
+      ],
+    },
     async (request, reply) => {
       const id = parseId((request.params as { id: string }).id);
       if (!id)
@@ -31,7 +43,12 @@ export const matchingRoutes: FastifyPluginAsync = async (app) => {
   );
   app.get(
     "/purchase-requests/:id/offers",
-    { preHandler: requirePermission("requests.read") },
+    {
+      preHandler: [
+        requirePermission("requests.read"),
+        requirePermission("properties.read"),
+      ],
+    },
     async (request, reply) => {
       const id = parseId((request.params as { id: string }).id);
       if (!id) return reply.code(400).send({ message: "معرف الطلب غير صحيح." });
@@ -41,7 +58,12 @@ export const matchingRoutes: FastifyPluginAsync = async (app) => {
   );
   app.get(
     "/properties/:id/purchase-requests",
-    { preHandler: requirePermission("properties.read") },
+    {
+      preHandler: [
+        requirePermission("properties.read"),
+        requirePermission("requests.read"),
+      ],
+    },
     async (request, reply) => {
       const id = parseId((request.params as { id: string }).id);
       if (!id)
