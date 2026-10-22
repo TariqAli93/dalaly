@@ -184,6 +184,8 @@ phases below:
 
 1. **Properties list ships every row** (4.9 MB JSON, ~310 ms API time per
    load at 5,000 properties) → server pagination moves up (Phase 2.6).
+   Done for properties and rentals: ~11 KB and ~7 ms per page, the list
+   paints ~45% sooner (`docs/PERFORMANCE.md`, "Server pagination").
 2. **Search under 4 concurrent clients ~1 s, CPU-bound** → search rewrite
    (Phase 2.7).
 3. **~0.55 s from API READY to login form** and **~0.55 s to render the
@@ -239,10 +241,11 @@ fix).
    `EXPLAIN (ANALYZE, BUFFERS)` on the Phase 0 dataset.
 4. Pool tuning and a statement timeout (exempting backup/restore).
 5. Fix N+1s: users/roles listing, location names, import (transaction + cap).
-6. Server pagination end to end: the properties and rentals APIs already
-   accept `limit`/`offset` but the renderer never sends them (move those
-   pages to `v-data-table-server`); add pagination to people, requests and
-   documents, and an owner filter for person details.
+6. Server pagination end to end. **Done for properties and rentals**:
+   `GET /properties/paged` and `/rentals/paged` (page, size, whitelisted
+   sort including area in m², total) and `v-data-table-server` on both
+   pages. Still open: pagination for people, requests and documents, and an
+   owner filter for person details (it still downloads every property).
 7. Search: replace the per-token `ILIKE` over ~28 columns (plus casts and a
    `regexp_replace` on phone) with one generated, normalized `search_text`
    column and a `pg_trgm` index (new migration); escape `%`/`_` in input.
@@ -256,7 +259,9 @@ fix).
 3. Lazy-load xlsx; remove dead exports.
 4. Table thumbnails: return the primary image id in list responses, render a
    lazy `<img>`; generate thumbnails server-side (or downscale on upload).
-5. Request hygiene: AbortController in list loads, remove duplicate fires,
+5. Request hygiene: AbortController in list loads (done for the
+   properties and rentals lists, `createPagedList`), remove duplicate fires
+   (the top-bar search still loads twice: Enter and the filter debounce),
    `Promise.all` waterfalls, cached people/locations.
 6. Persistent shell (`AppLayout` in a parent route), `useRefresh` cleanup,
    `shallowRef` for list payloads, cached `Intl.NumberFormat`.
