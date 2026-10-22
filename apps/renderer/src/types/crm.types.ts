@@ -120,6 +120,17 @@ export type DocumentRecord = {
   computed_status: string;
   notes: string | null;
 };
+
+/** مفاتيح الترتيب في /documents/paged (DOCUMENT_SORT_KEYS في الخادم). */
+export type DocumentSortKey =
+  | "uploaded_at"
+  | "expires_at"
+  | "code"
+  | "person_name"
+  | "document_type_name"
+  | "document_name"
+  | "document_number"
+  | "computed_status";
 export type CompanySettingsRecord = {
   id: number;
   company_name: string;

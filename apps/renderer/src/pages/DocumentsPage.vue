@@ -1,14 +1,18 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import AppLayout from "../layouts/AppLayout.vue";
 import * as peopleService from "../services/people.service";
 import * as documentsService from "../services/documents.service";
 import { getErrorMessage } from "../services/api.service";
 import { usePermissions } from "../composables/usePermissions";
 import { useSnackbar } from "../composables/useSnackbar";
+import { createPagedList } from "../composables/usePagedList";
+import { DOCUMENTS_DEFAULT_SORT } from "../constants/crm";
+import { LIST_PAGE_SIZES } from "../constants/domain";
 import { readFileAsDataUrl } from "../utils/files";
 import type {
   DocumentRecord,
+  DocumentSortKey,
   DocumentTypeRecord,
   PersonRecord,
 } from "../types";
@@ -17,10 +21,8 @@ const { can } = usePermissions();
 const { notifyError, notifySuccess } = useSnackbar();
 const people = ref<PersonRecord[]>([]);
 const types = ref<DocumentTypeRecord[]>([]);
-const rows = ref<DocumentRecord[]>([]);
 const personId = ref<number | null>(null);
 const file = ref<File | null>(null);
-const loading = ref(false);
 const saving = ref(false);
 const form = ref({
   document_type_id: null as number | null,
@@ -29,25 +31,33 @@ const form = ref({
   expires_at: "",
   notes: "",
 });
+// مفاتيح الأعمدة القابلة للترتيب هي مفاتيح الترتيب في الخادم.
 const headers = [
   { title: "الشخص", key: "person_name" },
   { title: "النوع", key: "document_type_name" },
   { title: "الرقم", key: "document_number" },
   { title: "الحالة", key: "computed_status" },
-  { title: "", key: "actions" },
+  { title: "", key: "actions", sortable: false },
 ];
-async function load() {
-  loading.value = true;
-  try {
-    rows.value = await documentsService.listDocuments(
+// صفحة واحدة من الخادم؛ التصفية بالشخص والترتيب هناك.
+const list = createPagedList<DocumentRecord, DocumentSortKey>(
+  (page, signal) =>
+    documentsService.listDocumentsPage(
       personId.value ? { person_id: personId.value } : {},
-    );
-  } catch (cause) {
-    notifyError(getErrorMessage(cause));
-  } finally {
-    loading.value = false;
-  }
-}
+      page,
+      signal,
+    ),
+  DOCUMENTS_DEFAULT_SORT,
+);
+const {
+  items: rows,
+  total,
+  loading,
+  page,
+  pageSize,
+  sortBy,
+  onTableOptions,
+} = list;
 async function add() {
   if (!personId.value || !file.value || !form.value.document_name.trim())
     return;
@@ -70,7 +80,7 @@ async function add() {
       notes: "",
     };
     file.value = null;
-    await load();
+    await list.reload();
   } catch (cause) {
     notifyError(getErrorMessage(cause));
   } finally {
@@ -80,18 +90,21 @@ async function add() {
 function openFile(id: number) {
   window.open(documentsService.fileUrl(id), "_blank");
 }
-watch(personId, load);
+watch(personId, () => list.loadFirstPage());
+// القائمة لا تنتظر قائمتي الأشخاص والأنواع، ويبدأ طلبها قبل أن يُظهر الجدول
+// خياراته الأولى فلا يُطلب مرتين.
+void list.reload();
 onMounted(async () => {
   try {
     [people.value, types.value] = await Promise.all([
       peopleService.listPeople(),
       documentsService.listDocumentTypes(),
     ]);
-    await load();
   } catch (cause) {
     notifyError(getErrorMessage(cause));
   }
 });
+onBeforeUnmount(() => list.cancel());
 </script>
 <template>
   <AppLayout
@@ -134,11 +147,17 @@ onMounted(async () => {
       ></v-card
     >
     <v-card variant="flat" border
-      ><v-data-table
+      ><v-data-table-server
+        v-model:page="page"
+        v-model:items-per-page="pageSize"
+        v-model:sort-by="sortBy"
         :headers="headers"
         :items="rows"
+        :items-length="total"
+        :items-per-page-options="LIST_PAGE_SIZES"
         :loading="loading"
         item-value="id"
+        @update:options="onTableOptions"
         ><template #item.computed_status="{ item }"
           ><v-chip
             size="small"
@@ -152,7 +171,7 @@ onMounted(async () => {
           ><v-btn
             icon="mdi-open-in-new"
             variant="text"
-            @click="openFile(item.id)" /></template></v-data-table
+            @click="openFile(item.id)" /></template></v-data-table-server
     ></v-card>
   </AppLayout>
 </template>

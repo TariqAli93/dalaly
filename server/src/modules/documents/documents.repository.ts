@@ -1,4 +1,16 @@
-import { and, asc, desc, eq, or } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  isNull,
+  lt,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
+import { type AnyPgColumn } from "drizzle-orm/pg-core";
 import { db } from "../../infrastructure/database/db.js";
 import {
   documentTypes,
@@ -6,9 +18,17 @@ import {
   people,
 } from "../../infrastructure/database/schema.js";
 import { toApiObject } from "../../shared/utils/case.js";
+import {
+  pageOffset,
+  sortNullsLast,
+  totalRowsColumn,
+  type SortOrder,
+} from "../../shared/utils/paging.js";
 import { saveManagedFile } from "./documents.storage.js";
 import type {
   DocumentFilters,
+  DocumentPageQuery,
+  DocumentSortKey,
   DocumentTypePayload,
   IdentityDocumentPayload,
   IdentityDocumentUpdate,
@@ -22,18 +42,55 @@ function documentApi(
   row: Record<string, unknown>,
   personName?: string | null,
   typeName?: string | null,
+  computedStatus?: string,
 ) {
   return {
     ...toApiObject(row),
     person_name: personName ?? null,
     document_type_name: typeName ?? null,
     computed_status:
-      row.status === "active" &&
+      computedStatus ??
+      (row.status === "active" &&
       row.expiresAt instanceof Date &&
       row.expiresAt < new Date()
         ? "expired"
-        : row.status,
+        : row.status),
   };
+}
+
+/**
+ * الحالة المحسوبة في قاعدة البيانات، بنفس قاعدة documentApi: النشط الذي مضى
+ * تاريخ انتهائه "expired". تُقرأ مع الصفوف كي تطابق الحالةُ المعروضة الفلترَ.
+ */
+const computedStatus = sql<string>`case
+  when ${identityDocuments.status} = 'active' and ${identityDocuments.expiresAt} < now() then 'expired'
+  else ${identityDocuments.status}
+end`;
+
+/** شروط الفلاتر المشتركة بين القائمة الكاملة والقائمة المقسّمة. */
+function documentConditions(filters: DocumentFilters) {
+  const where: SQL[] = [];
+  if (filters.person_id)
+    where.push(eq(identityDocuments.personId, filters.person_id));
+  if (filters.document_type_id)
+    where.push(eq(identityDocuments.documentTypeId, filters.document_type_id));
+  // شروط صريحة بدل مقارنة computedStatus كي يبقى فهرس الحالة صالحاً.
+  if (filters.status === "expired")
+    where.push(
+      eq(identityDocuments.status, "active"),
+      lt(identityDocuments.expiresAt, sql`now()`),
+    );
+  else if (filters.status === "active")
+    where.push(
+      eq(identityDocuments.status, "active"),
+      or(
+        isNull(identityDocuments.expiresAt),
+        gte(identityDocuments.expiresAt, sql`now()`),
+      )!,
+    );
+  else if (filters.status)
+    where.push(eq(identityDocuments.status, filters.status));
+  return where.length ? and(...where) : undefined;
 }
 
 export async function listDocumentTypes() {
@@ -70,18 +127,12 @@ async function generateCode(tx: Transaction) {
 }
 
 export async function listIdentityDocuments(filters: DocumentFilters) {
-  const where = [];
-  if (filters.person_id)
-    where.push(eq(identityDocuments.personId, filters.person_id));
-  if (filters.document_type_id)
-    where.push(eq(identityDocuments.documentTypeId, filters.document_type_id));
-  if (filters.status && filters.status !== "expired")
-    where.push(eq(identityDocuments.status, filters.status));
   const rows = await db
     .select({
       document: identityDocuments,
       personName: people.fullName,
       typeName: documentTypes.name,
+      computedStatus,
     })
     .from(identityDocuments)
     .innerJoin(people, eq(identityDocuments.personId, people.id))
@@ -89,11 +140,76 @@ export async function listIdentityDocuments(filters: DocumentFilters) {
       documentTypes,
       eq(identityDocuments.documentTypeId, documentTypes.id),
     )
-    .where(where.length ? and(...where) : undefined)
+    .where(documentConditions(filters))
     .orderBy(desc(identityDocuments.uploadedAt), desc(identityDocuments.id));
-  return rows
-    .map((row) => documentApi(row.document, row.personName, row.typeName))
-    .filter((row) => !filters.status || row.computed_status === filters.status);
+  return rows.map((row) =>
+    documentApi(row.document, row.personName, row.typeName, row.computedStatus),
+  );
+}
+
+const DOCUMENT_SORT_COLUMNS: Record<DocumentSortKey, AnyPgColumn | SQL> = {
+  uploaded_at: identityDocuments.uploadedAt,
+  expires_at: identityDocuments.expiresAt,
+  code: identityDocuments.code,
+  person_name: people.fullName,
+  document_type_name: documentTypes.name,
+  document_name: identityDocuments.documentName,
+  document_number: identityDocuments.documentNumber,
+  computed_status: computedStatus,
+};
+
+/** فرز ثانوي ثابت بين الصفحات، والترتيب الافتراضي (الأحدث رفعاً) عند التساوي. */
+function documentOrder(sortKey: DocumentSortKey, order: SortOrder): SQL[] {
+  if (sortKey === "uploaded_at")
+    return [
+      sortNullsLast(identityDocuments.uploadedAt, order),
+      order === "asc" ? asc(identityDocuments.id) : desc(identityDocuments.id),
+    ];
+  return [
+    sortNullsLast(DOCUMENT_SORT_COLUMNS[sortKey], order),
+    desc(identityDocuments.uploadedAt),
+    desc(identityDocuments.id),
+  ];
+}
+
+export async function listIdentityDocumentsPage(query: DocumentPageQuery) {
+  const condition = documentConditions(query);
+  const rows = await db
+    .select({
+      document: identityDocuments,
+      personName: people.fullName,
+      typeName: documentTypes.name,
+      computedStatus,
+      total: totalRowsColumn(),
+    })
+    .from(identityDocuments)
+    .innerJoin(people, eq(identityDocuments.personId, people.id))
+    .leftJoin(
+      documentTypes,
+      eq(identityDocuments.documentTypeId, documentTypes.id),
+    )
+    .where(condition)
+    .orderBy(...documentOrder(query.sort_by, query.sort_order))
+    .limit(query.page_size)
+    .offset(pageOffset(query.page, query.page_size));
+  // صفحة بعد النهاية لا صفوف فيها تحمل العدد، فيُعدّ منفصلاً (person_id إلزامي
+  // والنوع ربط اختياري، فالربط لا يغيّر العدد).
+  const total =
+    rows[0]?.total ??
+    (query.page > 1 ? await db.$count(identityDocuments, condition) : 0);
+  return {
+    items: rows.map((row) =>
+      documentApi(
+        row.document,
+        row.personName,
+        row.typeName,
+        row.computedStatus,
+      ),
+    ),
+    total,
+    page: query.page,
+    page_size: query.page_size,
+  };
 }
 
 export async function getIdentityDocument(id: number) {

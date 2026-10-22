@@ -1,4 +1,5 @@
 import type {
+  DocumentSortKey,
   ListSortOption,
   PersonSortKey,
   PurchaseRequestSortKey,
@@ -16,6 +17,12 @@ export const REQUESTS_DEFAULT_SORT: ListSortOption<PurchaseRequestSortKey> = {
   value: "updated",
   title: "آخر تحديث",
   key: "updated_at",
+  order: "desc",
+};
+export const DOCUMENTS_DEFAULT_SORT: ListSortOption<DocumentSortKey> = {
+  value: "newest",
+  title: "الأحدث",
+  key: "uploaded_at",
   order: "desc",
 };
 

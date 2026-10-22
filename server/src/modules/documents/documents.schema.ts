@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { optionalText } from "../../shared/validation/fields.js";
+import { pageFields } from "../../shared/validation/paging.js";
 
 export const identityDocumentPayloadSchema = z.object({
   person_id: z.coerce.number().int().positive(),
@@ -27,7 +28,25 @@ export const identityDocumentUpdateSchema = z.object({
 export const documentFiltersSchema = z.object({
   person_id: z.coerce.number().int().positive().optional(),
   document_type_id: z.coerce.number().int().positive().optional(),
+  // الحالة المحسوبة: "active" = نشط غير منتهٍ، "expired" = نشط انتهى تاريخه.
   status: z.enum(["active", "archived", "expired"]).optional(),
+});
+
+// مفاتيح الترتيب المسموحة في /documents/paged.
+export const DOCUMENT_SORT_KEYS = [
+  "uploaded_at",
+  "expires_at",
+  "code",
+  "person_name",
+  "document_type_name",
+  "document_name",
+  "document_number",
+  "computed_status",
+] as const;
+
+export const documentPageQuerySchema = documentFiltersSchema.extend({
+  ...pageFields,
+  sort_by: z.enum(DOCUMENT_SORT_KEYS).default("uploaded_at"),
 });
 
 export const documentTypePayloadSchema = z.object({
@@ -54,4 +73,6 @@ export type IdentityDocumentUpdate = z.infer<
   typeof identityDocumentUpdateSchema
 >;
 export type DocumentFilters = z.infer<typeof documentFiltersSchema>;
+export type DocumentPageQuery = z.infer<typeof documentPageQuerySchema>;
+export type DocumentSortKey = (typeof DOCUMENT_SORT_KEYS)[number];
 export type DocumentTypePayload = z.infer<typeof documentTypePayloadSchema>;
