@@ -28,7 +28,7 @@ pnpm package          # Windows portable + NSIS installer into apps/desktop/rele
 
 ### Tests
 
-`pnpm test` runs four `node:test` files via `tsx` and needs no database (CI runs it with typecheck and build on `windows-latest`, `.github/workflows/ci.yml`). Everything heavier is a separate `@dalaly/server` script and **does** touch PostgreSQL — those suites create and drop their own `dalaly_*` databases using `DB_HOST`/`DB_PORT`/`DB_USER`/`DB_PASSWORD` (set `DB_NAME` to an existing database such as `postgres` for the `tsx` suites).
+`pnpm test` runs four `node:test` files via `tsx` and needs no database (CI runs it with typecheck and build on `windows-latest`, `.github/workflows/ci.yml`). Everything heavier is a separate `@dalaly/server` script and **does** touch PostgreSQL — those suites create and drop their own `dalaly_*` databases using `DB_HOST`/`DB_PORT`/`DB_USER`/`DB_PASSWORD` (set `DB_NAME` to an existing database such as `postgres` for the `tsx` suites). CI's `database` job runs them on Linux against a PostgreSQL service; a new database suite needs a step there, and anything it cannot run is listed with its reason in the workflow and `README.md`.
 
 ```bash
 # one file

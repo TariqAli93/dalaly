@@ -4,20 +4,14 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import pg from "pg";
+import { adminConnection, dropTestDatabase, testDatabaseName } from "./runtime-smoke-db.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SERVER_ENTRY = path.join(__dirname, "..", "dist", "index.js");
 const MIGRATIONS_DIR = path.join(__dirname, "..", "drizzle");
 const PORT = 45999;
 const BASE = `http://127.0.0.1:${PORT}/api`;
-const TEST_DB = "dalaly_phase5_test";
-const ADMIN = {
-  host: "127.0.0.1",
-  port: 5432,
-  user: "postgres",
-  password: "root",
-};
+const TEST_DB = testDatabaseName("phase5");
 
 let passed = 0,
   failed = 0;
@@ -33,25 +27,6 @@ const check = (n, c, e) => {
   }
 };
 
-async function adminQuery(sql, params) {
-  const p = new pg.Pool({
-    ...ADMIN,
-    database: "postgres",
-    connectionTimeoutMillis: 4000,
-  });
-  try {
-    return await p.query(sql, params);
-  } finally {
-    await p.end().catch(() => {});
-  }
-}
-async function dropDb() {
-  try {
-    await adminQuery(`DROP DATABASE IF EXISTS "${TEST_DB}" WITH (FORCE)`);
-  } catch {
-    await adminQuery(`DROP DATABASE IF EXISTS "${TEST_DB}"`).catch(() => {});
-  }
-}
 let TOKEN = "";
 async function req(method, p, { token = TOKEN, body } = {}) {
   const headers = {};
@@ -87,7 +62,7 @@ const has = (r, id) => Array.isArray(r.body) && r.body.some((p) => p.id === id);
 const count = (r) => (Array.isArray(r.body) ? r.body.length : -1);
 
 async function main() {
-  await dropDb();
+  console.log(`== Throwaway database: ${TEST_DB} ==`);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dalaly-p5-"));
   const runDir = path.join(tmp, "run");
   fs.mkdirSync(runDir, { recursive: true });
@@ -121,11 +96,7 @@ async function main() {
     await req("POST", "/setup/initialize", {
       token: null,
       body: {
-        host: "127.0.0.1",
-        port: 5432,
-        adminUsername: "postgres",
-        adminPassword: "root",
-        databaseName: TEST_DB,
+        ...adminConnection(TEST_DB),
         firstAdminUsername: "admin",
         firstAdminPin: "4321",
       },
@@ -347,7 +318,7 @@ async function main() {
   } finally {
     child.kill();
     await new Promise((r) => setTimeout(r, 500));
-    await dropDb();
+    await dropTestDatabase(TEST_DB);
     try {
       fs.rmSync(tmp, { recursive: true, force: true });
     } catch {}

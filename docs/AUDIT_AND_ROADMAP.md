@@ -234,8 +234,10 @@ phases below:
    now reports `pg.Pool`'s prototype.
 6. Done: atomic `config.json` writes with a `.bak` used when the file is
    torn.
-7. Open: runtime smoke suites still hardcode credentials and fixed database
-   names.
+7. Done: the runtime smoke suites read `DB_HOST`/`DB_PORT`/`DB_USER`/
+   `DB_PASSWORD`, name their databases `dalaly_<suite>_test_<pid>_<ms>` and
+   drop only names of that shape (`scripts/runtime-smoke-db.mjs`).
+   `test:runtime:spaces` now expects backups _without_ `config.json`.
 
 New DB-backed suites: `test:permissions`, `test:backup:safety`,
 `test:limits`, `test:codes`, `test:transactions` (each fails without its
@@ -306,5 +308,7 @@ fix).
    `useListingSort`.
 4. API contract tests: for each list/detail endpoint, assert the response keys
    and types against the renderer types (run against the isolated test DB).
-5. A DB-backed CI job (Linux runner with a PostgreSQL service) for the
-   runtime and restore suites.
+5. Done: the `database` job in `ci.yml` (Linux, PostgreSQL 18 service) runs
+   the runtime, restore and other database suites. Left out, with reasons in
+   the workflow and the README: the Electron, packaged-build and Playwright
+   suites, and `removal-core`/`removal-legacy` until decision 2.1.
