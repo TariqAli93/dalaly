@@ -8,6 +8,13 @@
       "when": 1792616090016,
       "tag": "0000_remarkable_shinobi_shaw",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792666846081,
+      "tag": "0001_default_document_types",
+      "breakpoints": true
     }
   ]
 }
