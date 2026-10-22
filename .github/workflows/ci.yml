@@ -31,3 +31,112 @@ jobs:
       # Fast suites only; they blank DB settings and need no PostgreSQL.
       - run: pnpm test
       - run: pnpm build
+
+  database:
+    # The PostgreSQL-backed suites. GitHub runs service containers only on
+    # Linux runners, and none of these suites depends on Windows. Each suite
+    # creates and drops its own dalaly_*_test_* database; nothing else exists
+    # on this server.
+    #
+    # Not run here:
+    # - test:startup:electron launches the real Electron app: it needs a
+    #   display and the Windows Electron binary.
+    # - test:removal:electron drives a packaged Windows build (win-unpacked).
+    # - test:removal:browser drives the built renderer in Playwright's
+    #   Chromium; it is a UI suite, not a database one.
+    # - test:removal and test:removal:legacy: removal-core.test.ts and
+    #   removal-legacy.test.ts replay the contract-system retirement migration
+    #   0003, which the migration squash (eb63ea4) deleted. Restoring or
+    #   formally retiring that path is an owner decision
+    #   (docs/AUDIT_AND_ROADMAP.md, section 2.1). Their third file runs below
+    #   as test:removal:backup.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: dalaly-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+      DB_HOST: 127.0.0.1
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: dalaly-ci
+      # The tsx suites connect here only to create and drop their own databases.
+      DB_NAME: postgres
+      # node:test prints TAP when stdout is not a terminal; spec reads better.
+      NODE_OPTIONS: --test-reporter=spec
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - id: install
+        run: pnpm install --frozen-lockfile
+      # The runtime suites start the bundled server from server/dist.
+      - id: build
+        run: pnpm --filter @dalaly/server build
+      # One step per suite, each run even after an earlier one failed, so a
+      # single run reports every failure. The runtime suites need the build and
+      # print the server log when a check fails; the tsx suites need only the
+      # install.
+      - name: test:runtime
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:runtime
+      - name: test:runtime:phase1
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:runtime:phase1
+      - name: test:runtime:phase2
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:runtime:phase2
+      - name: test:runtime:phase3
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:runtime:phase3
+      - name: test:runtime:phase4
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:runtime:phase4
+      - name: test:runtime:phase5
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:runtime:phase5
+      - name: test:runtime:spaces
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:runtime:spaces
+      - name: test:permissions
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:permissions
+      - name: test:backup:safety
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:backup:safety
+      - name: test:limits
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:limits
+      - name: test:codes
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:codes
+      - name: test:transactions
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:transactions
+      - name: test:restore:large
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:restore:large
+      - name: test:paging
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:paging
+      - name: test:removal:backup
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:removal:backup
+      - name: test:maps:runtime
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:maps:runtime
