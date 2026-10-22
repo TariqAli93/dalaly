@@ -23,7 +23,23 @@ test("anonymous setup mutations reject remote addresses and untrusted origins", 
     assert.equal(foreign.statusCode, 403, url);
     const nullOrigin = await app.inject({ method: "POST", url, payload: {}, headers: { origin: "null" } });
     assert.equal(nullOrigin.statusCode, 403, url);
+    // cloudflared connects from 127.0.0.1 but adds forwarding headers.
+    for (const header of ["cf-connecting-ip", "x-forwarded-for"]) {
+      const tunneled = await app.inject({ method: "POST", url, payload: {}, headers: { [header]: "198.51.100.7" } });
+      assert.equal(tunneled.statusCode, 403, `${url} via ${header}`);
+    }
   }
+});
+
+test("a locked-out account is refused before the PIN is checked", async () => {
+  const { loginThrottle } = await import("../src/modules/auth/login-throttle.js");
+  for (let attempt = 0; attempt < 5; attempt += 1) loginThrottle.recordFailure("login:locked-user");
+  // No database is configured here, so reaching the PIN check would fail with 500.
+  const result = await app.inject({ method: "POST", url: "/api/auth/login", payload: { username: "locked-user", pin: "1234" } });
+  assert.equal(result.statusCode, 429);
+  assert.equal(result.json().code, "TOO_MANY_ATTEMPTS");
+  assert.ok(Number(result.headers["retry-after"]) > 0);
+  loginThrottle.recordSuccess("login:locked-user");
 });
 
 test("database-dependent endpoints still require authentication before setup", async () => {

@@ -5,7 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "test": "tsx --test scripts/startup.test.ts scripts/setup-security.test.ts scripts/location.test.ts",
+    "test": "tsx --test scripts/startup.test.ts scripts/setup-security.test.ts scripts/login-throttle.test.ts scripts/location.test.ts",
     "test:startup": "tsx --test scripts/startup.test.ts scripts/setup-security.test.ts",
     "test:startup:electron": "node scripts/startup-electron.mjs",
     "dev": "tsx watch src/index.ts",

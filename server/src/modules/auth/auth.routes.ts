@@ -1,4 +1,4 @@
-import { type FastifyPluginAsync } from "fastify";
+import { type FastifyPluginAsync, type FastifyReply } from "fastify";
 import { getSetupStatus } from "../../infrastructure/database/health.js";
 import { createFirstAdmin, SetupError } from "../setup/setup.service.js";
 import { requireLocalSetup } from "../setup/setup.security.js";
@@ -14,6 +14,17 @@ import {
   loginSchema,
   setupAdminSchema,
 } from "./auth.schema.js";
+import { lockedOutMessage, loginThrottle } from "./login-throttle.js";
+
+function sendLockedOut(reply: FastifyReply, retryAfterMs: number) {
+  return reply
+    .code(429)
+    .header("Retry-After", String(Math.ceil(retryAfterMs / 1000)))
+    .send({
+      code: "TOO_MANY_ATTEMPTS",
+      message: lockedOutMessage(retryAfterMs),
+    });
+}
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   app.get("/setup-status", async () => getSetupStatus());
@@ -35,16 +46,22 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
   );
 
   app.post("/login", async (request, reply) => {
-    await cleanupExpiredSessions();
     const payload = loginSchema.parse(request.body);
+    const throttleKey = `login:${payload.username}`;
+    const retryAfterMs = loginThrottle.retryAfterMs(throttleKey);
+    if (retryAfterMs > 0) return sendLockedOut(reply, retryAfterMs);
+
+    await cleanupExpiredSessions();
     const result = await login(payload.username, payload.pin);
 
     if (!result) {
+      loginThrottle.recordFailure(throttleKey);
       return reply
         .code(401)
         .send({ message: "اسم المستخدم أو الرمز السري غير صحيح." });
     }
 
+    loginThrottle.recordSuccess(throttleKey);
     return result;
   });
 
@@ -66,11 +83,19 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const payload = changePinSchema.parse(request.body);
+      const throttleKey = `change-pin:${request.user.id}`;
+      const retryAfterMs = loginThrottle.retryAfterMs(throttleKey);
+      if (retryAfterMs > 0) return sendLockedOut(reply, retryAfterMs);
+
       const result = await changePin(
         request.user.id,
         payload.current_pin,
         payload.new_pin,
       );
+
+      if (result.ok) loginThrottle.recordSuccess(throttleKey);
+      else if (result.reason === "invalid_pin")
+        loginThrottle.recordFailure(throttleKey);
 
       if (!result.ok) {
         const message =
