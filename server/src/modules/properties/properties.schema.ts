@@ -16,7 +16,10 @@ import {
   optionalId,
   optionalText,
 } from "../../shared/validation/fields.js";
-import { pageFields } from "../../shared/validation/paging.js";
+import {
+  favoritesOnlyField,
+  pageFields,
+} from "../../shared/validation/paging.js";
 
 export const propertyPayloadSchema = z
   .object({
@@ -130,6 +133,7 @@ export const propertyPageQuerySchema = propertyFiltersSchema
   .omit({ limit: true, offset: true })
   .extend({
     ...pageFields,
+    ...favoritesOnlyField,
     sort_by: z.enum(PROPERTY_SORT_KEYS).default("created_at"),
   });
 

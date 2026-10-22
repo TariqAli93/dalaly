@@ -17,5 +17,9 @@ export const pageFields = {
     .max(MAX_PAGE_SIZE)
     .default(DEFAULT_PAGE_SIZE),
   sort_order: z.enum(["asc", "desc"]).default("desc"),
+};
+
+/** للقوائم التي لها مفضلة (العروض والإيجارات). */
+export const favoritesOnlyField = {
   favorites_only: z.enum(["true", "false"]).optional(),
 };
