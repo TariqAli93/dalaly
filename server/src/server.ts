@@ -1,5 +1,5 @@
 import cors from "@fastify/cors";
-import Fastify from "fastify";
+import Fastify, { type FastifyServerOptions } from "fastify";
 import { ZodError } from "zod";
 import { config } from "./infrastructure/config.js";
 import { DuplicatePlotError, DocumentError } from "./shared/errors.js";
@@ -40,11 +40,48 @@ function localizedValidationMessage(issue: ZodError["issues"][number]) {
   return "القيمة المدخلة غير صالحة.";
 }
 
+/** Arabic messages for Fastify's own client errors (bad JSON, size, type). */
+const clientErrorMessages: Record<number, string> = {
+  413: "حجم البيانات المرسلة أكبر من المسموح.",
+  415: "نوع المحتوى المرسل غير مدعوم.",
+};
+
+/** Requests slower than this are logged even when they succeed. */
+const SLOW_REQUEST_MS = 1000;
+
 export async function buildServer(options: { logger?: boolean } = {}) {
+  const logger: FastifyServerOptions["logger"] = options.logger !== false && {
+    level: process.env.LOG_LEVEL?.trim() || "info",
+    serializers: {
+      // Image, document and backup URLs carry the session token in the
+      // query string, and production logs end up in electron-log's file.
+      req: (request) => ({
+        method: request.method,
+        url: request.url.split("?")[0],
+      }),
+    },
+  };
   // bodyLimit مرفوع لدعم رفع صور العقارات عبر base64.
   const app = Fastify({
-    logger: options.logger ?? true,
+    logger,
+    // Per-request lines are written synchronously by electron-log in the
+    // main process; only slow or failed requests are logged (onResponse).
+    disableRequestLogging: true,
     bodyLimit: 50 * 1024 * 1024,
+  });
+
+  app.addHook("onResponse", async (request, reply) => {
+    const ms = Math.round(reply.elapsedTime);
+    if (reply.statusCode < 500 && ms < SLOW_REQUEST_MS) return;
+    request.log.warn(
+      {
+        method: request.method,
+        route: request.routeOptions.url ?? request.url.split("?")[0],
+        status: reply.statusCode,
+        ms,
+      },
+      reply.statusCode >= 500 ? "request failed" : "slow request",
+    );
   });
 
   await app.register(cors, {
@@ -68,7 +105,7 @@ export async function buildServer(options: { logger?: boolean } = {}) {
     return { ok: true, ...status };
   });
 
-  app.setErrorHandler((error, _request, reply) => {
+  app.setErrorHandler((error, request, reply) => {
     if (error instanceof ZodError) {
       return reply.code(400).send({
         code: "VALIDATION_ERROR",
@@ -91,23 +128,40 @@ export async function buildServer(options: { logger?: boolean } = {}) {
 
     if (error instanceof DocumentError)
       return reply.code(error.statusCode).send({ message: error.message });
-    if (
-      error &&
-      typeof error === "object" &&
-      "code" in error &&
-      error.code === "23503"
-    )
+    // PostgreSQL SQLSTATE or Fastify FST_* code.
+    const errorCode =
+      error && typeof error === "object" && "code" in error
+        ? error.code
+        : undefined;
+    if (errorCode === "23503")
       return reply.code(409).send({
         message: "لا يمكن تنفيذ العملية بسبب ارتباط السجل ببيانات أخرى.",
       });
-    if (
-      error instanceof Error &&
-      "statusCode" in error &&
-      error.statusCode === 403
-    ) {
-      return reply.code(403).send({ message: error.message });
+    if (errorCode === "23505")
+      return reply.code(409).send({
+        code: "DUPLICATE_VALUE",
+        message: "القيمة مستخدمة مسبقاً في سجل آخر.",
+      });
+    const statusCode =
+      error instanceof Error && "statusCode" in error
+        ? Number(error.statusCode)
+        : 0;
+    if (statusCode === 403) {
+      return reply.code(403).send({ message: (error as Error).message });
     }
-    app.log.error(error);
+    // Client errors keep their status instead of becoming a 500. Fastify's
+    // own (malformed JSON, body too large, wrong content type) carry English
+    // messages; errors thrown by our modules already carry Arabic ones.
+    if (statusCode >= 400 && statusCode < 500) {
+      const fastifyError = String(errorCode ?? "").startsWith("FST_");
+      return reply.code(statusCode).send({
+        code: "BAD_REQUEST",
+        message: fastifyError
+          ? (clientErrorMessages[statusCode] ?? "بيانات الطلب غير صالحة.")
+          : (error as Error).message,
+      });
+    }
+    request.log.error({ err: error }, "unhandled error");
     return reply.code(500).send({
       code: "INTERNAL_ERROR",
       messageKey: "error.generic",

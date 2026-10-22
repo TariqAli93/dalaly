@@ -22,7 +22,13 @@ Electron main (apps/desktop/src)
   health, setup and login (`publicPaths` in `modules/auth/auth.hooks.ts`)
   requires a bearer session token; `requirePermission` checks RBAC keys per
   route. Anonymous setup mutations are further limited to local callers by
-  `requireLocalSetup`.
+  `requireLocalSetup`, which also refuses requests forwarded by the optional
+  Cloudflare tunnel (they arrive from 127.0.0.1). Wrong PINs are throttled
+  per account in `modules/auth/login-throttle.ts`.
+- **Logging**: the API's pino output is piped into electron-log in
+  production. Request URLs are logged without their query string (image and
+  download URLs carry the session token), and only failed (5xx) or slow
+  (≥ 1 s) requests are logged, at warn level.
 - **Renderer** owns UI state and presentation. Business data goes over HTTP
   through `apps/renderer/src/services/*.service.ts`; only native operations go
   over IPC, through `apps/renderer/src/platform/` (a browser fallback exists

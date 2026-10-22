@@ -1,9 +1,37 @@
 import vue from "@vitejs/plugin-vue";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import vueDevTools from "vite-plugin-vue-devtools";
 import tailwindcss from "@tailwindcss/vite";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+/**
+ * @mdi/font declares EOT, WOFF2, WOFF and TTF sources and Vite bundles all
+ * four (~3.6 MB). Electron's Chromium only ever loads the WOFF2, so the
+ * @font-face is rewritten to reference it alone.
+ */
+function mdiWoff2Only(): Plugin {
+  return {
+    name: "dalaly:mdi-woff2-only",
+    enforce: "pre",
+    transform(code, id) {
+      if (!/@mdi[\\/]font[\\/]css[\\/]materialdesignicons\.css/.test(id))
+        return;
+      const woff2 = code.match(
+        /url\(("[^"]*materialdesignicons-webfont\.woff2[^"]*")\)/,
+      )?.[1];
+      const rewritten = woff2
+        ? code.replace(
+            /src:[^;]+;\s*src:[^;]+;/,
+            `src: url(${woff2}) format("woff2");`,
+          )
+        : code;
+      if (rewritten === code)
+        this.warn("MDI @font-face not recognised; shipping every format.");
+      return rewritten;
+    },
+  };
+}
 
 export default defineConfig(({ mode }) => {
   // وضع web-demo مخصص للتصوير: لوحة Vue DevTools العائمة تظهر فوق الواجهة
@@ -14,6 +42,7 @@ export default defineConfig(({ mode }) => {
   return {
     base: "./",
     plugins: [
+      mdiWoff2Only(),
       vue(),
       ...(isWebDemo ? [] : [vueDevTools({ appendTo: "/src/main.ts" })]),
       tailwindcss(),

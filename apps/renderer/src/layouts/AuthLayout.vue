@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useSetup } from "../composables/useSetup";
 import ThemeToggle from "../components/app/ThemeToggle.vue";
-import loginResidence from "../assets/login-residence.png";
+import loginResidence from "../assets/login-residence.webp";
 defineProps<{ subtitle?: string }>();
 const { status } = useSetup();
 </script>

@@ -38,6 +38,11 @@ if (profileDirectory) {
   fs.mkdirSync(resolvedProfileDirectory, { recursive: true });
   app.setPath("userData", resolvedProfileDirectory);
 }
+// The lock is per userData folder, so isolated test profiles still run side
+// by side. A second launch would otherwise start another API on the same port
+// and talk to the first one with the wrong internal token.
+const hasInstanceLock = app.requestSingleInstanceLock();
+if (!hasInstanceLock) app.quit();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..", "..", "..");
@@ -484,7 +489,14 @@ async function runStartup() {
   }
 }
 
+app.on("second-instance", () => {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.focus();
+});
+
 app.whenReady().then(() => {
+  if (!hasInstanceLock) return;
   if (process.platform === "win32")
     app.setAppUserModelId(
       isPackaged ? "codel.dalaly.desktop" : process.execPath,

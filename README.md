@@ -73,6 +73,7 @@ local PostgreSQL. They read `DB_HOST`, `DB_PORT`, `DB_USER` and `DB_PASSWORD`
 pnpm --filter @dalaly/server build            # runtime suites start server/dist
 pnpm --filter @dalaly/server test:runtime     # also :phase1 … :phase5, :spaces
 pnpm --filter @dalaly/server test:removal     # backup restore + retired-module checks
+pnpm --filter @dalaly/server test:restore:large  # restore beyond one INSERT's bind limit
 pnpm --filter @dalaly/server test:maps:runtime
 pnpm --filter @dalaly/server test:startup:electron  # real Electron startup (needs a display)
 ```

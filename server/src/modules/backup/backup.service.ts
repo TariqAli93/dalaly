@@ -40,6 +40,8 @@ import {
   isActiveSettingKey,
 } from "../rbac/key-policy.js";
 const BACKUP_VERSION = 3;
+/** PostgreSQL's limit on bind parameters in one statement is 65535. */
+const MAX_BIND_PARAMETERS = 60_000;
 const TABLE_SPECS = [
   {
     name: "governorates",
@@ -555,7 +557,21 @@ export async function restoreBackup(
                   target: (spec.table as typeof users).id,
                   set: row,
                 });
-          } else await tx.insert(spec.table).values(rows as never);
+          } else {
+            // One multi-row INSERT binds a parameter per column per row and
+            // PostgreSQL allows 65535, so large tables go in chunks.
+            const chunkSize = Math.max(
+              1,
+              Math.floor(
+                MAX_BIND_PARAMETERS /
+                  Object.keys(getTableColumns(spec.table)).length,
+              ),
+            );
+            for (let start = 0; start < rows.length; start += chunkSize)
+              await tx
+                .insert(spec.table)
+                .values(rows.slice(start, start + chunkSize) as never);
+          }
         }
       }
     });

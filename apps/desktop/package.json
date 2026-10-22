@@ -32,6 +32,10 @@
     "productName": "دلالي",
     "asar": true,
     "compression": "normal",
+    "electronLanguages": [
+      "ar",
+      "en-US"
+    ],
     "directories": {
       "output": "release",
       "buildResources": "build"
