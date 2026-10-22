@@ -159,4 +159,7 @@ export type PropertyFilters = {
   price_min: string;
   price_max: string;
   q: string;
+  // عروض مالك مسجَّل (تفاصيل الشخص)، ومعها المؤرشفة عند "true".
+  owner_person_id?: number | null;
+  include_archived?: "true" | "";
 };
