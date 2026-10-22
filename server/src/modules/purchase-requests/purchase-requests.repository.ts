@@ -15,6 +15,7 @@ import type {
   PurchaseRequestFilters,
   PurchaseRequestPayload,
 } from "./purchase-requests.schema.js";
+import { withUniqueCodeRetry } from "../../shared/utils/postgres-errors.js";
 
 function apiRow(
   request: Record<string, unknown>,
@@ -114,10 +115,15 @@ export async function getPurchaseRequest(id: number) {
   return row ? apiRow(row.request, row.personName, row.personCode) : null;
 }
 export async function createPurchaseRequest(payload: PurchaseRequestPayload) {
-  const [row] = await db
-    .insert(purchaseRequests)
-    .values({ ...(await normalize(payload)), code: await generateCode() })
-    .returning();
+  const values = await normalize(payload);
+  const [row] = await withUniqueCodeRetry(
+    "purchase_requests_code_unique",
+    async () =>
+      db
+        .insert(purchaseRequests)
+        .values({ ...values, code: await generateCode() })
+        .returning(),
+  );
   return getPurchaseRequest(row.id);
 }
 export async function updatePurchaseRequest(

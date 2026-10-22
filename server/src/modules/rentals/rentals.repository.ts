@@ -23,6 +23,7 @@ import {
 } from "../locations/locations.repository.js";
 import { listEntityAudit, recordAudit } from "../audit/audit.service.js";
 import { type RentalFilters, type RentalPayload } from "./rentals.schema.js";
+import { withUniqueCodeRetry } from "../../shared/utils/postgres-errors.js";
 
 const ENTITY = "rental";
 const SEARCHABLE_COLUMNS = [
@@ -177,13 +178,13 @@ async function generateRentalCode() {
 }
 
 export async function createRental(payload: RentalPayload, userId?: number) {
-  const [row] = await db
-    .insert(rentals)
-    .values({
-      ...(await normalizePayload(payload)),
-      code: await generateRentalCode(),
-    })
-    .returning();
+  const values = await normalizePayload(payload);
+  const [row] = await withUniqueCodeRetry("rentals_code_unique", async () =>
+    db
+      .insert(rentals)
+      .values({ ...values, code: await generateRentalCode() })
+      .returning(),
+  );
   const result = toApiObject(row, "rentals");
   await recordAudit({
     entityType: ENTITY,

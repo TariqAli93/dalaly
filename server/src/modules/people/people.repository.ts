@@ -6,6 +6,7 @@ import {
 } from "../../infrastructure/database/schema.js";
 import { toApiObject, toApiObjects } from "../../shared/utils/case.js";
 import type { PersonFilters, PersonPayload } from "./people.schema.js";
+import { withUniqueCodeRetry } from "../../shared/utils/postgres-errors.js";
 
 function normalize(payload: PersonPayload): Omit<NewPerson, "code"> {
   return {
@@ -76,10 +77,12 @@ export async function getPerson(id: number) {
 }
 
 export async function createPerson(payload: PersonPayload) {
-  const [row] = await db
-    .insert(people)
-    .values({ ...normalize(payload), code: await generateCode() })
-    .returning();
+  const [row] = await withUniqueCodeRetry("people_code_unique", async () =>
+    db
+      .insert(people)
+      .values({ ...normalize(payload), code: await generateCode() })
+      .returning(),
+  );
   return toApiObject(row, "people");
 }
 

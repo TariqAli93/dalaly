@@ -36,6 +36,10 @@ import {
   type PropertyFilters,
   type PropertyPayload,
 } from "./properties.schema.js";
+import {
+  postgresError,
+  withUniqueCodeRetry,
+} from "../../shared/utils/postgres-errors.js";
 
 const ENTITY = "property";
 const PLOT_UNIQUE_INDEX = "uq_properties_plot_identity";
@@ -84,10 +88,10 @@ async function findDuplicatePlotOwner(
 
 /** هل الخطأ ناتج عن انتهاك فهرس تفرّد القطعة (طبقة الأمان)؟ */
 function isUniquePlotViolation(error: unknown): boolean {
-  const pgError = error as { code?: string; constraint?: string } | null;
+  const pgError = postgresError(error);
   return (
     pgError?.code === "23505" &&
-    (pgError?.constraint ?? "").includes(PLOT_UNIQUE_INDEX)
+    (pgError.constraint ?? "").includes(PLOT_UNIQUE_INDEX)
   );
 }
 
@@ -260,14 +264,16 @@ export async function createProperty(
 
   const property = await (async () => {
     try {
-      return await db.transaction(async (tx) => {
-        const code = await generatePropertyCode(payload.property_type);
-        const [created] = await tx
-          .insert(properties)
-          .values({ ...values, code })
-          .returning();
-        return created;
-      });
+      return await withUniqueCodeRetry("properties_code_unique", () =>
+        db.transaction(async (tx) => {
+          const code = await generatePropertyCode(payload.property_type);
+          const [created] = await tx
+            .insert(properties)
+            .values({ ...values, code })
+            .returning();
+          return created;
+        }),
+      );
     } catch (error) {
       // طبقة أمان: لو فات الفحص بسبب تسابق، حوّل انتهاك الفهرس إلى 409.
       if (isUniquePlotViolation(error)) {

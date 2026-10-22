@@ -15,6 +15,7 @@ import type {
   RentalRequestFilters,
   RentalRequestPayload,
 } from "./rental-requests.schema.js";
+import { withUniqueCodeRetry } from "../../shared/utils/postgres-errors.js";
 
 function apiRow(
   request: Record<string, unknown>,
@@ -134,10 +135,15 @@ export async function getRentalRequest(id: number) {
 }
 
 export async function createRentalRequest(payload: RentalRequestPayload) {
-  const [row] = await db
-    .insert(rentalRequests)
-    .values({ ...(await normalize(payload)), code: await generateCode() })
-    .returning();
+  const values = await normalize(payload);
+  const [row] = await withUniqueCodeRetry(
+    "rental_requests_code_unique",
+    async () =>
+      db
+        .insert(rentalRequests)
+        .values({ ...values, code: await generateCode() })
+        .returning(),
+  );
   return getRentalRequest(row.id);
 }
 
