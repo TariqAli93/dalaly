@@ -122,8 +122,9 @@ These are not code-quality calls; they change history, data or behavior.
 - **Error shapes** vary (`{code,messageKey,message}` / `{message}` /
   `{ok:false,message}`); several routes return raw driver text as 400;
   `DocumentError` is dead; `z.coerce.boolean()` turns `"false"` into `true`.
-- Already good: no `any`, consistent-snapshot export, single-transaction
-  restore with validation first, path-traversal guards, advisory-locked
+- Already good: no `any`, snapshot export and single-transaction restore
+  with validation first (effective since Phase 1 made `db.transaction` real),
+  path-traversal guards, advisory-locked
   migrations, scrypt PINs and hashed session tokens, streamed file serving.
 
 ### Renderer
@@ -208,16 +209,23 @@ phases below:
    permissions.
 4. Done: auth runs on `onRequest`; 1 MB global body limit, 50 MB on the
    eight upload/import/restore routes.
-5. Done: record codes retry on their own unique constraint. Also fixed:
+5. Done: record codes are allocated inside a transaction holding a
+   per-table advisory lock, so simultaneous creates take turns. Also fixed:
    Drizzle wraps PostgreSQL errors, so the 23505/23503 → 409 mapping from
    the first batch never matched; it now reads the SQLSTATE through `cause`.
+   **Found on the way:** `db.transaction` was never a real transaction. The
+   pool is a `Proxy` that Drizzle did not recognize as a pool, so `BEGIN`,
+   each statement and `COMMIT` could run on different connections under
+   concurrency (restore, the backup snapshot, property creation). The proxy
+   now reports `pg.Pool`'s prototype.
 6. Done: atomic `config.json` writes with a `.bak` used when the file is
    torn.
 7. Open: runtime smoke suites still hardcode credentials and fixed database
    names.
 
 New DB-backed suites: `test:permissions`, `test:backup:safety`,
-`test:limits`, `test:codes` (each fails without its fix).
+`test:limits`, `test:codes`, `test:transactions` (each fails without its
+fix).
 
 ### Phase 2 — backend efficiency
 

@@ -78,6 +78,7 @@ pnpm --filter @dalaly/server test:backup:safety  # no config.json, one operation
 pnpm --filter @dalaly/server test:permissions    # dashboard/matching follow read permissions
 pnpm --filter @dalaly/server test:limits         # auth before body parsing, 1 MB limit off upload routes
 pnpm --filter @dalaly/server test:codes          # concurrent saves get distinct codes; duplicates are 409
+pnpm --filter @dalaly/server test:transactions   # db.transaction stays on one connection under load
 pnpm --filter @dalaly/server test:maps:runtime
 pnpm --filter @dalaly/server test:startup:electron  # real Electron startup (needs a display)
 ```
