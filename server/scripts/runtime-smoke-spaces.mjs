@@ -8,28 +8,19 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import pg from "pg";
+import { adminConnection, dropTestDatabase, testDatabaseName } from "./runtime-smoke-db.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SERVER_ENTRY = path.join(__dirname, "..", "dist", "index.js");
 const MIGRATIONS_SRC = path.join(__dirname, "..", "drizzle");
 const PORT = 45995;
 const BASE = `http://127.0.0.1:${PORT}/api`;
-const TEST_DB = "dalaly_spaces_test";
-const ADMIN = { host: "127.0.0.1", port: 5432, user: "postgres", password: "root" };
+const TEST_DB = testDatabaseName("spaces");
 const PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
 
 let passed = 0, failed = 0;
 const check = (n, c, e) => { if (c) { passed++; console.log("  PASS " + n); } else { failed++; console.log("  FAIL " + n + (e !== undefined ? " -> " + JSON.stringify(e) : "")); } };
 
-async function adminQuery(sql, params) {
-  const p = new pg.Pool({ ...ADMIN, database: "postgres", connectionTimeoutMillis: 4000 });
-  try { return await p.query(sql, params); } finally { await p.end().catch(() => {}); }
-}
-async function dropDb() {
-  try { await adminQuery(`DROP DATABASE IF EXISTS "${TEST_DB}" WITH (FORCE)`); }
-  catch { await adminQuery(`DROP DATABASE IF EXISTS "${TEST_DB}"`).catch(() => {}); }
-}
 async function req(method, p, { token, body } = {}) {
   const headers = {};
   if (body !== undefined) headers["Content-Type"] = "application/json";
@@ -46,7 +37,7 @@ async function waitHealth(ms = 20000) {
 }
 
 async function main() {
-  await dropDb();
+  console.log(`== Throwaway database: ${TEST_DB} ==`);
 
   // كل المجلدات تحتوي فراغات في أسمائها.
   const base = fs.mkdtempSync(path.join(os.tmpdir(), "Futer House "));
@@ -58,7 +49,7 @@ async function main() {
   fs.mkdirSync(runDir, { recursive: true });
   fs.mkdirSync(path.dirname(migrationsDir), { recursive: true });
   fs.cpSync(MIGRATIONS_SRC, migrationsDir, { recursive: true });
-  // config.json داخل مسار فيه فراغات (يُقرأ أثناء النسخ الاحتياطي).
+  // config.json داخل مسار فيه فراغات: يحمل كلمة مرور قاعدة البيانات، فيجب ألا يدخل النسخة الاحتياطية.
   fs.writeFileSync(path.join(appData, "config.json"), JSON.stringify({ databaseUrl: "x", note: "spaces test" }));
 
   console.log("BASE PATH:", base);
@@ -82,7 +73,7 @@ async function main() {
     await waitHealth();
     check("backend started from path with spaces", true);
 
-    const init = await req("POST", "/setup/initialize", { body: { host: "127.0.0.1", port: 5432, adminUsername: "postgres", adminPassword: "root", databaseName: TEST_DB, firstAdminUsername: "admin", firstAdminPin: "4321" } });
+    const init = await req("POST", "/setup/initialize", { body: { ...adminConnection(TEST_DB), firstAdminUsername: "admin", firstAdminPin: "4321" } });
     check("migrations ran from spaced dir + DB initialized", init.body?.ok === true, init.body);
 
     const token = (await req("POST", "/auth/login", { body: { username: "admin", pin: "4321" } })).body.token;
@@ -113,7 +104,7 @@ async function main() {
       const AdmZip = (await import("adm-zip")).default;
       const zip = new AdmZip(exportTarget);
       check("export archive contains data.json", !!zip.getEntry("data.json"));
-      check("export archive contains config.json (read from spaced path)", !!zip.getEntry("config.json"));
+      check("export archive leaves out config.json (it holds the database password)", !zip.getEntry("config.json"));
       check("export archive contains image", zip.getEntries().some(e => e.entryName.startsWith("images/properties/")));
     }
 
@@ -128,7 +119,7 @@ async function main() {
   } catch (e) {
     failed++; console.log("FATAL", e?.stack || e?.message || e); console.log(logs.join(""));
   } finally {
-    child.kill(); await new Promise(r => setTimeout(r, 500)); await dropDb();
+    child.kill(); await new Promise(r => setTimeout(r, 500)); await dropTestDatabase(TEST_DB);
     try { fs.rmSync(base, { recursive: true, force: true }); } catch {}
   }
 

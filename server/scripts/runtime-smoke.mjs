@@ -6,15 +6,14 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import pg from "pg";
+import { ADMIN, adminConnection, dropTestDatabase, testDatabaseName } from "./runtime-smoke-db.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SERVER_ENTRY = path.join(__dirname, "..", "dist", "index.js");
 const MIGRATIONS_DIR = path.join(__dirname, "..", "drizzle");
 const PORT = 45999;
 const BASE = `http://127.0.0.1:${PORT}/api`;
-const TEST_DB = "dalaly_runtime_test";
-const ADMIN = { host: "127.0.0.1", port: 5432, user: "postgres", password: "root" };
+const TEST_DB = testDatabaseName("runtime");
 
 let passed = 0;
 let failed = 0;
@@ -25,27 +24,6 @@ function check(name, cond, extra) {
   } else {
     failed++;
     console.log(`  FAIL  ${name}${extra ? ` -> ${JSON.stringify(extra)}` : ""}`);
-  }
-}
-
-async function adminQuery(sql, params) {
-  const p = new pg.Pool({ ...ADMIN, database: "postgres", connectionTimeoutMillis: 4000 });
-  try {
-    return await p.query(sql, params);
-  } finally {
-    await p.end().catch(() => {});
-  }
-}
-
-async function dropTestDb() {
-  try {
-    await adminQuery(`DROP DATABASE IF EXISTS "${TEST_DB}" WITH (FORCE)`);
-  } catch {
-    await adminQuery(
-      `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname=$1`,
-      [TEST_DB],
-    ).catch(() => {});
-    await adminQuery(`DROP DATABASE IF EXISTS "${TEST_DB}"`).catch(() => {});
   }
 }
 
@@ -83,8 +61,7 @@ async function waitForHealth(timeoutMs = 20000) {
 }
 
 async function main() {
-  console.log("== Cleanup: drop throwaway DB if present ==");
-  await dropTestDb();
+  console.log(`== Throwaway database: ${TEST_DB} ==`);
 
   // Clean temp cwd so dotenv loads nothing -> simulates a fresh client (db not configured).
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "dalaly-rt-"));
@@ -122,12 +99,12 @@ async function main() {
 
     console.log("== Step 2: test-postgres ==");
     const tBad = await req("POST", "/setup/test-postgres", {
-      body: { host: "127.0.0.1", port: 5432, adminUsername: "postgres", adminPassword: "wrong-pass", databaseName: TEST_DB },
+      body: { ...adminConnection(TEST_DB), adminPassword: `${ADMIN.password}-wrong` },
     });
     check("test-postgres wrong password -> 400", tBad.status === 400, tBad);
 
     const tGood = await req("POST", "/setup/test-postgres", {
-      body: { host: "127.0.0.1", port: 5432, adminUsername: "postgres", adminPassword: "root", databaseName: TEST_DB },
+      body: adminConnection(TEST_DB),
     });
     check("test-postgres ok", tGood.status === 200 && tGood.body?.ok === true, tGood);
     check("test-postgres database_exists false", tGood.body?.database_exists === false, tGood.body);
@@ -135,11 +112,7 @@ async function main() {
     console.log("== Step 3: initialize (create db + migrate + seed + admin) ==");
     const init = await req("POST", "/setup/initialize", {
       body: {
-        host: "127.0.0.1",
-        port: 5432,
-        adminUsername: "postgres",
-        adminPassword: "root",
-        databaseName: TEST_DB,
+        ...adminConnection(TEST_DB),
         firstAdminUsername: "admin",
         firstAdminPin: "4321",
       },
@@ -326,11 +299,7 @@ async function main() {
     console.log("== Step 10: initialize is refused once the system is set up ==");
     const init2 = await req("POST", "/setup/initialize", {
       body: {
-        host: "127.0.0.1",
-        port: 5432,
-        adminUsername: "postgres",
-        adminPassword: "root",
-        databaseName: TEST_DB,
+        ...adminConnection(TEST_DB),
         firstAdminUsername: "admin",
         firstAdminPin: "4321",
       },
@@ -349,7 +318,7 @@ async function main() {
   } finally {
     child.kill();
     await new Promise((r) => setTimeout(r, 500));
-    await dropTestDb();
+    await dropTestDatabase(TEST_DB);
     try { fs.rmSync(tmpRoot, { recursive: true, force: true }); } catch {}
   }
 
