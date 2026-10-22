@@ -1,0 +1,5 @@
+# The migration runner hashes each migration file's raw bytes, so a shipped
+# migration's line endings must never change between checkouts. These pins
+# match the bytes already recorded by existing databases and packaged builds.
+server/drizzle/*.sql text eol=lf
+server/drizzle/0001_default_document_types.sql text eol=crlf
