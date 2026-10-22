@@ -17,6 +17,2922 @@
       "lastAccessed": "2026-10-21T23:26:01.977Z",
       "accessCount": 0,
       "expiresAt": "2026-11-20T23:26:01.977Z"
+    },
+    "cmd-1792628384709": {
+      "key": "cmd-1792628384709",
+      "value": "{\"command\":\"ls -la \\\"C:/Users/dev/.claude/projects/D--dev-projects-dalaly/memory/\\\" 2>/dev/null; cat \\\"C:/Users/dev/.claude/projects/D--dev-projects-dalaly/memory/MEMORY.md\\\" 2>/dev/null; cd /d/dev_projects/dalaly && git show --stat a1b5e08 | head -40; ls -a\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T00:19:44.709Z",
+      "lastAccessed": "2026-10-22T00:19:44.709Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T00:19:44.709Z"
+    },
+    "cmd-1792628389026": {
+      "key": "cmd-1792628389026",
+      "value": "{\"command\":\"cat .claude/settings.json .claude-flow/harness-active-policy.json .claude-flow/memory/store.json .claude-flow/mods/session.json .claude/proven-config.json 2>/dev/null; git log --oneline | wc -l; git log --format='%an' | sort | uniq -c; ls docs server/scripts 2>/dev/null | head -50\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T00:19:49.026Z",
+      "lastAccessed": "2026-10-22T00:19:49.026Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T00:19:49.026Z"
+    },
+    "cmd-1792628405799": {
+      "key": "cmd-1792628405799",
+      "value": "{\"command\":\"cat .gitignore; git check-ignore -v .claude-flow/memory/store.json || echo \\\"store.json NOT ignored\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T00:20:05.799Z",
+      "lastAccessed": "2026-10-22T00:20:05.799Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T00:20:05.799Z"
+    },
+    "cmd-1792628897028": {
+      "key": "cmd-1792628897028",
+      "value": "{\"command\":\"git ls-files | grep -E '\\\\.(ts|vue|js|mjs|cjs)$' | grep -v -E '^server/drizzle/' | xargs wc -l 2>/dev/null | sort -rn | head -40; echo; git ls-files | grep -E '\\\\.(ts|vue|js|mjs|cjs)$' | awk -F/ '{print $1\\\"/\\\"$2\\\"/\\\"$3}' | sort | uniq -c | sort -rn | head -25\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T00:28:17.028Z",
+      "lastAccessed": "2026-10-22T00:28:17.028Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T00:28:17.028Z"
+    },
+    "cmd-1792628897804": {
+      "key": "cmd-1792628897804",
+      "value": "{\"command\":\"sed -n '1,200p' docs/ARCHITECTURE.md | head -150; ls server/src/modules apps/renderer/src apps/renderer/src/pages apps/renderer/src/components 2>/dev/null\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T00:28:17.804Z",
+      "lastAccessed": "2026-10-22T00:28:17.804Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T00:28:17.804Z"
+    },
+    "cmd-1792628909228": {
+      "key": "cmd-1792628909228",
+      "value": "{\"command\":\"for p in \\\"server/src/modules/images:server/src/modules/rental-images\\\" \\\"server/src/modules/favorites:server/src/modules/rental-favorites\\\" \\\"server/src/modules/followups:server/src/modules/rental-followups\\\" \\\"server/src/modules/purchase-requests:server/src/modules/rental-requests\\\"; do a=${p%%:*}; b=${p##*:}; echo \\\"== $a vs $b\\\"; ls $a $b | tr '\\\\n' ' '; echo; for f in $a/*.ts; do g=$b/$(basename $f | sed \\\"s/^$(basename $a)/$(basename $b)/\\\"); [ -f \\\"$g\\\" ] && echo \\\"$(basename $f): $(wc -l <$f) vs $(wc -l <$g) lines, diff lines: $(diff -w $f $g | grep -c '^[<>]')\\\"; done; done; echo; for p in \\\"properties/PropertyFilters.vue:rentals/RentalFilters.vue\\\" \\\"properties/PropertyImages.vue:rentals/RentalImages.vue\\\" \\\"../components/shared/PropertySummary.vue:rentals/RentalSummary.vue\\\"; do a=apps/renderer/src/components/${p%%:*}; b=apps/renderer/src/components/${p##*:}; echo \\\"$a vs $b: $(wc -l <$a)/$(wc -l <$b), diff lines $(diff -w $a $b | grep -c '^[<>]')\\\"; done; ls server/src/modules/customers server/src/modules/stats server/src/modules/permissions server/src/modules/rbac server/src/modules/settings server/src/modules/company-settings\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T00:28:29.228Z",
+      "lastAccessed": "2026-10-22T00:28:29.228Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T00:28:29.228Z"
+    },
+    "cmd-1792628925840": {
+      "key": "cmd-1792628925840",
+      "value": "{\"command\":\"ls .github/workflows 2>/dev/null || echo \\\"no CI workflows\\\"; git ls-files server/src/modules/customers | wc -l; grep -n '\\\"test' package.json server/package.json | head -20\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T00:28:45.840Z",
+      "lastAccessed": "2026-10-22T00:28:45.840Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T00:28:45.840Z"
+    },
+    "cmd-1792630686567": {
+      "key": "cmd-1792630686567",
+      "value": "{\"command\":\"cat docs/ARCHITECTURE.md && ls docs && git log --oneline | head -20 && cat package.json && ls -la && git ls-files | grep -v '^\\\\.claude-flow' | head -400 | wc -l\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T00:58:06.567Z",
+      "lastAccessed": "2026-10-22T00:58:06.567Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T00:58:06.567Z"
+    },
+    "cmd-1792630692898": {
+      "key": "cmd-1792630692898",
+      "value": "{\"command\":\"git ls-files | grep -vE '^\\\\.claude-flow|^docs/|\\\\.png$|\\\\.jpg$|\\\\.webp$|drizzle/meta' | xargs wc -l 2>/dev/null | sort -rn | head -70; echo; git ls-files | grep -vE '^\\\\.claude-flow' | awk -F/ '{print $1\\\"/\\\"$2\\\"/\\\"$3}' | sort | uniq -c | sort -rn | head -40\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T00:58:12.898Z",
+      "lastAccessed": "2026-10-22T00:58:12.898Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T00:58:12.898Z"
+    },
+    "cmd-1792630732726": {
+      "key": "cmd-1792630732726",
+      "value": "{\"command\":\"git ls-files -z server/data tools | xargs -0 du -ch 2>/dev/null | tail -1; git ls-files server/data | head -80; du -sh .git; cat .gitignore; ls apps/desktop; cat apps/desktop/package.json\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T00:58:52.726Z",
+      "lastAccessed": "2026-10-22T00:58:52.726Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T00:58:52.726Z"
+    },
+    "cmd-1792630783680": {
+      "key": "cmd-1792630783680",
+      "value": "{\"command\":\"cat docs/ARCHITECTURE.md && cat -n server/src/server.ts server/src/index.ts server/src/infrastructure/database/pool.ts server/src/infrastructure/database/db.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T00:59:43.680Z",
+      "lastAccessed": "2026-10-22T00:59:43.680Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T00:59:43.680Z"
+    },
+    "cmd-1792630784410": {
+      "key": "cmd-1792630784410",
+      "value": "{\"command\":\"cat docs/ARCHITECTURE.md docs/STARTUP_FLOW.md\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T00:59:44.410Z",
+      "lastAccessed": "2026-10-22T00:59:44.410Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T00:59:44.410Z"
+    },
+    "cmd-1792630786810": {
+      "key": "cmd-1792630786810",
+      "value": "{\"command\":\"cat -n apps/desktop/src/main.js\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T00:59:46.810Z",
+      "lastAccessed": "2026-10-22T00:59:46.810Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T00:59:46.810Z"
+    },
+    "cmd-1792630790481": {
+      "key": "cmd-1792630790481",
+      "value": "{\"command\":\"cat -n server/src/modules/rbac/rbac.service.ts server/src/modules/auth/auth.schema.ts server/src/modules/setup/setup.security.ts server/src/modules/setup/setup.routes.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T00:59:50.481Z",
+      "lastAccessed": "2026-10-22T00:59:50.481Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T00:59:50.481Z"
+    },
+    "cmd-1792630793829": {
+      "key": "cmd-1792630793829",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer && cat src/assets/fonts/fonts.css; du -ah src/assets | sort -h; ls -la dist dist/assets 2>/dev/null | head -80; du -sh dist\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T00:59:53.829Z",
+      "lastAccessed": "2026-10-22T00:59:53.829Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T00:59:53.829Z"
+    },
+    "cmd-1792630795697": {
+      "key": "cmd-1792630795697",
+      "value": "{\"command\":\"cat -n server/src/infrastructure/database/schema.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T00:59:55.697Z",
+      "lastAccessed": "2026-10-22T00:59:55.697Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T00:59:55.697Z"
+    },
+    "cmd-1792630798778": {
+      "key": "cmd-1792630798778",
+      "value": "{\"command\":\"grep -n \\\"pgTable(\\\\|index(\\\\|unique\\\\|references(\\\\|primaryKey(\\\\|\\\\.on(\\\" server/src/infrastructure/database/schema.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T00:59:58.778Z",
+      "lastAccessed": "2026-10-22T00:59:58.778Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T00:59:58.778Z"
+    },
+    "cmd-1792630799228": {
+      "key": "cmd-1792630799228",
+      "value": "{\"command\":\"cat -n apps/desktop/src/backup.js apps/desktop/src/document-export.js apps/desktop/src/preload.cjs apps/desktop/src/splash-preload.cjs apps/desktop/src/external-links.js\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T00:59:59.228Z",
+      "lastAccessed": "2026-10-22T00:59:59.228Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T00:59:59.228Z"
+    },
+    "cmd-1792630805779": {
+      "key": "cmd-1792630805779",
+      "value": "{\"command\":\"ls server/drizzle && grep -n -i \\\"pg_trgm\\\\|gin\\\\|CREATE UNIQUE\\\\|sequence\\\\|lower(\\\" server/drizzle/*.sql | head -40\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:00:05.779Z",
+      "lastAccessed": "2026-10-22T01:00:05.779Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:00:05.779Z"
+    },
+    "cmd-1792630807145": {
+      "key": "cmd-1792630807145",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer && grep -c \\\"SheetJS\\\\|XLSX\\\" dist/assets/PropertiesPage-DxsfpjLL.js; grep -o \\\"Chart.js v[0-9.]*\\\" dist/assets/DashboardPage-DVAIvt7J.js | head -2; grep -o \\\"SheetJS\\\" dist/assets/*.js | sort | uniq -c; grep -l \\\"materialdesignicons\\\" dist/assets/*.css; head -c 400 dist/assets/_plugin-vue_export-helper-DtN0q4An.css; echo; grep -o \\\"\\\\.mdi-[a-z0-9-]*:before\\\" dist/assets/*.css | wc -l; git log -1 --format=%cd -- src\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:00:07.145Z",
+      "lastAccessed": "2026-10-22T01:00:07.145Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:00:07.145Z"
+    },
+    "cmd-1792630811318": {
+      "key": "cmd-1792630811318",
+      "value": "{\"command\":\"cat -n server/src/modules/properties/properties.repository.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:00:11.318Z",
+      "lastAccessed": "2026-10-22T01:00:11.318Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:00:11.318Z"
+    },
+    "cmd-1792630811472": {
+      "key": "cmd-1792630811472",
+      "value": "{\"command\":\"grep -n \\\"CREATE INDEX\\\\|UNIQUE\\\" server/drizzle/0000_remarkable_shinobi_shaw.sql | wc -l && grep -n \\\"DuplicatePlot\\\\|plot\\\" -r server/src --include=*.ts | grep -v seed | head -20\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:00:11.472Z",
+      "lastAccessed": "2026-10-22T01:00:11.472Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:00:11.472Z"
+    },
+    "cmd-1792630816403": {
+      "key": "cmd-1792630816403",
+      "value": "{\"command\":\"grep -rn \\\"requestSingleInstanceLock\\\\|second-instance\\\\|crashReporter\\\\|maxSize\\\\|archiveLog\\\\|log.transports\\\\|child-process-gone\\\\|render-process-gone\\\\|setPermissionRequestHandler\\\\|will-attach-webview\\\\|webSecurity\\\\|protocol\\\\.\\\" apps/desktop/src server/src | head -30; ls apps/desktop/scripts apps/desktop/build; cat apps/desktop/scripts/*.mjs | head -60\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:00:16.403Z",
+      "lastAccessed": "2026-10-22T01:00:16.403Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:00:16.403Z"
+    },
+    "cmd-1792630817747": {
+      "key": "cmd-1792630817747",
+      "value": "{\"command\":\"grep -rn \\\"uq_properties_plot_identity\\\" server/ --include=*.sql --include=*.ts --include=*.json --include=*.mjs | grep -v node_modules | head; grep -n \\\"properties\\\" server/drizzle/0000_remarkable_shinobi_shaw.sql | grep -i \\\"index\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:00:17.747Z",
+      "lastAccessed": "2026-10-22T01:00:17.747Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:00:17.747Z"
+    },
+    "cmd-1792630822730": {
+      "key": "cmd-1792630822730",
+      "value": "{\"command\":\"cat -n server/src/index.ts && sed -n 1,200p server/src/server.ts | cat -n && cat -n server/tsup.config.ts server/package.json\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:00:22.730Z",
+      "lastAccessed": "2026-10-22T01:00:22.730Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:00:22.730Z"
+    },
+    "cmd-1792630824138": {
+      "key": "cmd-1792630824138",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 150,180p components/shared/OfferTrendChart.vue; echo ----; sed -n 1,80p utils/excel.ts; grep -n \\\"excel\\\\|xlsx\\\" utils/listingExport.ts utils/exportProperty.ts components/properties/PropertyExportMenu.vue components/rentals/RentalExportMenu.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:00:24.138Z",
+      "lastAccessed": "2026-10-22T01:00:24.138Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:00:24.138Z"
+    },
+    "cmd-1792630826810": {
+      "key": "cmd-1792630826810",
+      "value": "{\"command\":\"git log --oneline --stat -3 -- server/drizzle | head -40; git log --all --oneline -S \\\"uq_properties_plot_identity\\\" | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:00:26.810Z",
+      "lastAccessed": "2026-10-22T01:00:26.810Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:00:26.810Z"
+    },
+    "cmd-1792630829133": {
+      "key": "cmd-1792630829133",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && grep -rn \\\"export \\\\(async \\\\)\\\\?function\\\\|export const\\\\|export function\\\" utils/excel.ts; grep -rn \\\"exportPropertiesToXlsx\\\\|exportRentalsToXlsx\\\\|parseExcel\\\\|readExcel\\\\|from \\\\\\\"../../utils/excel\\\\\\\"\\\\|from \\\\\\\"../utils/excel\\\\\\\"\\\" --include=*.vue --include=*.ts . | grep -v \\\"^./utils/excel.ts\\\"; grep -n \\\"RENT_PERIOD\\\" constants/domain.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:00:29.133Z",
+      "lastAccessed": "2026-10-22T01:00:29.133Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:00:29.133Z"
+    },
+    "cmd-1792630835997": {
+      "key": "cmd-1792630835997",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && cat composables/useProperties.ts services/properties.service.ts composables/useRefresh.ts composables/useFavorites.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:00:35.997Z",
+      "lastAccessed": "2026-10-22T01:00:35.997Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:00:35.997Z"
+    },
+    "cmd-1792630839217": {
+      "key": "cmd-1792630839217",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 1,200p components/properties/PropertyFilters.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:00:39.217Z",
+      "lastAccessed": "2026-10-22T01:00:39.217Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:00:39.217Z"
+    },
+    "cmd-1792630839768": {
+      "key": "cmd-1792630839768",
+      "value": "{\"command\":\"ls apps/renderer; cat -n apps/renderer/vite.config.* ; find apps/renderer/dist -name \\\"*.map\\\" | head; ls apps/renderer/dist apps/renderer/dist/assets | head -50; du -sh apps/renderer/dist/assets/* | sort -h | tail -15\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:00:39.768Z",
+      "lastAccessed": "2026-10-22T01:00:39.768Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:00:39.768Z"
+    },
+    "cmd-1792630845161": {
+      "key": "cmd-1792630845161",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 200,329p pages/PropertiesPage.vue; sed -n 200,260p components/properties/PropertyFilters.vue | grep -n \\\"watch\\\\|governorate\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:00:45.161Z",
+      "lastAccessed": "2026-10-22T01:00:45.161Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:00:45.161Z"
+    },
+    "cmd-1792630848314": {
+      "key": "cmd-1792630848314",
+      "value": "{\"command\":\"grep -l \\\"devtools\\\\|__VUE_DEVTOOLS\\\" apps/renderer/dist/assets/*.js | head; grep -o \\\"vite-plugin-vue-devtools[^\\\\\\\"']\\\\{0,40\\\\}\\\" apps/renderer/dist/assets/*.js | head -3; grep -n \\\"apply\\\" apps/renderer/node_modules/vite-plugin-vue-devtools/dist/vite.mjs 2>/dev/null | head -5; ls apps/renderer/node_modules/vite-plugin-vue-devtools/dist 2>/dev/null\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:00:48.314Z",
+      "lastAccessed": "2026-10-22T01:00:48.314Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:00:48.314Z"
+    },
+    "cmd-1792630850881": {
+      "key": "cmd-1792630850881",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && grep -rn \\\"v-data-table\\\\|v-virtual-scroll\\\\|v-pagination\\\\|items-per-page\\\\|:page=\\\\|v-infinite-scroll\\\\|v-data-iterator\\\" --include=*.vue .\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:00:50.881Z",
+      "lastAccessed": "2026-10-22T01:00:50.881Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:00:50.881Z"
+    },
+    "cmd-1792630854261": {
+      "key": "cmd-1792630854261",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src/modules && ls; grep -n \\\"limit\\\\|offset\\\\|page\\\" properties/*.ts rentals/*.ts people/*.ts requests/*.ts documents/*.ts 2>/dev/null | head -40\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:00:54.261Z",
+      "lastAccessed": "2026-10-22T01:00:54.261Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:00:54.261Z"
+    },
+    "cmd-1792630857515": {
+      "key": "cmd-1792630857515",
+      "value": "{\"command\":\"cat -n server/src/modules/dashboard/dashboard.repository.ts server/src/modules/dashboard/dashboard.routes.ts server/src/modules/stats/stats.repository.ts server/src/modules/stats/stats.routes.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:00:57.515Z",
+      "lastAccessed": "2026-10-22T01:00:57.515Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:00:57.515Z"
+    },
+    "cmd-1792630859085": {
+      "key": "cmd-1792630859085",
+      "value": "{\"command\":\"cat -n server/src/infrastructure/config.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:00:59.085Z",
+      "lastAccessed": "2026-10-22T01:00:59.085Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:00:59.085Z"
+    },
+    "cmd-1792630861820": {
+      "key": "cmd-1792630861820",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src && sed -n 85,125p modules/properties/properties.schema.ts; cat shared/utils/case.ts | head -80\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:01.820Z",
+      "lastAccessed": "2026-10-22T01:01:01.820Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:01.820Z"
+    },
+    "cmd-1792630864213": {
+      "key": "cmd-1792630864213",
+      "value": "{\"command\":\"grep -rn \\\"stats/summary\\\\|/api/stats\\\\|'/stats\\\\|\\\\\\\"/stats\\\" apps/renderer/src | head; cat -n server/src/modules/followups/followups.repository.ts | sed -n '1,91p'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:04.213Z",
+      "lastAccessed": "2026-10-22T01:01:04.213Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:04.213Z"
+    },
+    "cmd-1792630867490": {
+      "key": "cmd-1792630867490",
+      "value": "{\"command\":\"cat -n server/src/modules/matching/matching.service.ts server/src/modules/matching/matching.routes.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:07.490Z",
+      "lastAccessed": "2026-10-22T01:01:07.490Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:07.490Z"
+    },
+    "cmd-1792630870194": {
+      "key": "cmd-1792630870194",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src && sed -n 186,250p infrastructure/database/schema.ts; grep -n \\\"STATUSES\\\\s*=\\\" -A 12 shared/constants/domain.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:10.194Z",
+      "lastAccessed": "2026-10-22T01:01:10.194Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:10.194Z"
+    },
+    "cmd-1792630873322": {
+      "key": "cmd-1792630873322",
+      "value": "{\"command\":\"cat -n server/src/shared/utils/case.ts server/src/shared/errors.ts server/src/shared/utils/parse-id.ts server/src/shared/validation/fields.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:13.322Z",
+      "lastAccessed": "2026-10-22T01:01:13.322Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:13.322Z"
+    },
+    "cmd-1792630873710": {
+      "key": "cmd-1792630873710",
+      "value": "{\"command\":\"(time pnpm build) > \\\"$TEMP/dalaly-build.log\\\" 2>&1; tail -60 \\\"$TEMP/dalaly-build.log\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:13.710Z",
+      "lastAccessed": "2026-10-22T01:01:13.710Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:13.710Z"
+    },
+    "cmd-1792630875139": {
+      "key": "cmd-1792630875139",
+      "value": "{\"command\":\"sed -n 47,75p server/src/shared/constants/domain.ts; file server/src/infrastructure/database/schema.ts; grep -c \\\"Ø\\\" server/src/infrastructure/database/schema.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:15.139Z",
+      "lastAccessed": "2026-10-22T01:01:15.139Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:15.139Z"
+    },
+    "cmd-1792630880139": {
+      "key": "cmd-1792630880139",
+      "value": "{\"command\":\"grep -rn \\\"23505\\\\|23503\\\\|throw new Error\\\\|statusCode\\\" server/src --include=*.ts | grep -v \\\"seed\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:20.139Z",
+      "lastAccessed": "2026-10-22T01:01:20.139Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:20.139Z"
+    },
+    "cmd-1792630882645": {
+      "key": "cmd-1792630882645",
+      "value": "{\"command\":\"ls -laS apps/renderer/dist/assets | head -40; echo; ls apps/renderer/dist/assets | sed 's/.*\\\\.//' | sort | uniq -c\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:22.645Z",
+      "lastAccessed": "2026-10-22T01:01:22.645Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:22.645Z"
+    },
+    "cmd-1792630887162": {
+      "key": "cmd-1792630887162",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 80,140p types/rental.types.ts; grep -rn \\\"\\\\.image\\\\b\\\" --include=*.vue --include=*.ts . | grep -v \\\"images\\\" | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:27.162Z",
+      "lastAccessed": "2026-10-22T01:01:27.162Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:27.162Z"
+    },
+    "cmd-1792630887522": {
+      "key": "cmd-1792630887522",
+      "value": "{\"command\":\"cat -n server/src/modules/users/users.routes.ts | sed -n '1,121p'; sed -n '1,60p' server/src/modules/users/users.repository.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:27.522Z",
+      "lastAccessed": "2026-10-22T01:01:27.522Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:27.522Z"
+    },
+    "cmd-1792630890431": {
+      "key": "cmd-1792630890431",
+      "value": "{\"command\":\"ls -la apps/desktop/release 2>/dev/null | head; ls -la tools/cloudflared; cat apps/renderer/vite.config.* ; cat apps/renderer/package.json; cat server/package.json; cat server/tsup.config.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:30.431Z",
+      "lastAccessed": "2026-10-22T01:01:30.431Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:30.431Z"
+    },
+    "cmd-1792630892124": {
+      "key": "cmd-1792630892124",
+      "value": "{\"command\":\"sed -n '60,143p' server/src/modules/users/users.repository.ts; cat -n server/src/modules/roles/roles.repository.ts | sed -n '1,91p'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:32.124Z",
+      "lastAccessed": "2026-10-22T01:01:32.124Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:32.124Z"
+    },
+    "cmd-1792630894691": {
+      "key": "cmd-1792630894691",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 1,140p components/properties/PropertyImages.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:34.691Z",
+      "lastAccessed": "2026-10-22T01:01:34.691Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:34.691Z"
+    },
+    "cmd-1792630896942": {
+      "key": "cmd-1792630896942",
+      "value": "{\"command\":\"cat -n server/src/modules/rentals/rentals.repository.ts | sed -n '1,274p'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:36.942Z",
+      "lastAccessed": "2026-10-22T01:01:36.942Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:36.942Z"
+    },
+    "cmd-1792630900627": {
+      "key": "cmd-1792630900627",
+      "value": "{\"command\":\"grep -n \\\"limit\\\\|offset\\\" server/src/modules/*/*.schema.ts; grep -rn \\\"limit\\\" apps/renderer/src/services/*.ts | head -20\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:40.627Z",
+      "lastAccessed": "2026-10-22T01:01:40.627Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:40.627Z"
+    },
+    "cmd-1792630903338": {
+      "key": "cmd-1792630903338",
+      "value": "{\"command\":\"ls apps/renderer/src/services/; grep -rn \\\"limit\\\\|offset\\\\|page\\\" apps/renderer/src/services/properties.service.ts apps/renderer/src/services/rentals.service.ts 2>/dev/null | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:43.338Z",
+      "lastAccessed": "2026-10-22T01:01:43.338Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:43.338Z"
+    },
+    "cmd-1792630907486": {
+      "key": "cmd-1792630907486",
+      "value": "{\"command\":\"sed -n '1,60p' apps/renderer/src/services/properties.service.ts; grep -rn \\\"listProperties\\\\|getProperties\\\\|fetchProperties\\\" apps/renderer/src --include=*.vue --include=*.ts | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:47.486Z",
+      "lastAccessed": "2026-10-22T01:01:47.486Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:47.486Z"
+    },
+    "cmd-1792630907811": {
+      "key": "cmd-1792630907811",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/desktop/release && du -sh win-unpacked removal-check 2>/dev/null; du -sh win-unpacked/* 2>/dev/null | sort -h | tail -8; du -sh win-unpacked/resources/* 2>/dev/null; ls -la win-unpacked/resources/; cat builder-debug.yml | head -20; cd /d/dev_projects/dalaly && grep -l \\\"devtools\\\" apps/renderer/dist/assets/*.js | head; grep -o \\\"__VUE_DEVTOOLS[A-Z_]*\\\" apps/renderer/dist/assets/main-*.js | sort | uniq -c | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:47.811Z",
+      "lastAccessed": "2026-10-22T01:01:47.811Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:47.811Z"
+    },
+    "cmd-1792630911540": {
+      "key": "cmd-1792630911540",
+      "value": "{\"command\":\"sed -n '85,120p' apps/renderer/src/pages/PersonDetailsPage.vue; sed -n '55,75p' apps/renderer/src/pages/DashboardPage.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:51.540Z",
+      "lastAccessed": "2026-10-22T01:01:51.540Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:51.540Z"
+    },
+    "cmd-1792630913180": {
+      "key": "cmd-1792630913180",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src/modules && grep -n \\\"\\\\.get(\\\\|thumb\\\\|sharp\\\\|resize\\\\|Cache-Control\\\\|cache\\\" images/*.ts rental-images/*.ts | head -20\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:53.180Z",
+      "lastAccessed": "2026-10-22T01:01:53.180Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:53.180Z"
+    },
+    "cmd-1792630917880": {
+      "key": "cmd-1792630917880",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 1,330p pages/DashboardPage.vue | grep -n \\\"import\\\\|await\\\\|Promise\\\\|onMounted\\\\|setInterval\\\\|setTimeout\\\\|watch(\\\\|computed(\\\\|Service\\\\.\\\\|service\\\\.\\\" | head -80; cat services/dashboard.service.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:57.880Z",
+      "lastAccessed": "2026-10-22T01:01:57.880Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:57.880Z"
+    },
+    "cmd-1792630918126": {
+      "key": "cmd-1792630918126",
+      "value": "{\"command\":\"cat -n server/src/modules/rental-requests/rental-requests.repository.ts | sed -n '1,154p'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:01:58.126Z",
+      "lastAccessed": "2026-10-22T01:01:58.126Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:01:58.126Z"
+    },
+    "cmd-1792630922642": {
+      "key": "cmd-1792630922642",
+      "value": "{\"command\":\"cat -n server/src/modules/locations/locations.repository.ts | sed -n '1,200p'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:02:02.642Z",
+      "lastAccessed": "2026-10-22T01:02:02.642Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:02:02.642Z"
+    },
+    "cmd-1792630922807": {
+      "key": "cmd-1792630922807",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 26,92p pages/DashboardPage.vue; sed -n 170,280p pages/DashboardPage.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:02:02.807Z",
+      "lastAccessed": "2026-10-22T01:02:02.807Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:02:02.807Z"
+    },
+    "cmd-1792630927660": {
+      "key": "cmd-1792630927660",
+      "value": "{\"command\":\"sed -n '1,60p' server/src/modules/locations/locations.routes.ts; cat -n server/src/modules/locations/map-link.service.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:02:07.660Z",
+      "lastAccessed": "2026-10-22T01:02:07.660Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:02:07.660Z"
+    },
+    "cmd-1792630929834": {
+      "key": "cmd-1792630929834",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && cat layouts/AppLayout.vue; grep -n \\\"onMounted\\\\|await\\\\|service\\\\|Service\\\\|setInterval\\\\|addEventListener\\\\|removeEventListener\\\\|onBeforeUnmount\\\\|onUnmounted\\\\|import \\\" components/app/AppSidebar.vue components/app/AppTopbar.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:02:09.834Z",
+      "lastAccessed": "2026-10-22T01:02:09.834Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:02:09.834Z"
+    },
+    "cmd-1792630931696": {
+      "key": "cmd-1792630931696",
+      "value": "{\"command\":\"cat -n server/src/modules/images/images.service.ts server/src/modules/images/images.routes.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:02:11.696Z",
+      "lastAccessed": "2026-10-22T01:02:11.696Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:02:11.696Z"
+    },
+    "cmd-1792630934698": {
+      "key": "cmd-1792630934698",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && grep -ln \\\"<AppLayout\\\" pages/*.vue components -r | wc -l; grep -L \\\"<AppLayout\\\" pages/*.vue; cat pages/RentalRequestsPage.vue; grep -rn \\\"setRefreshHandler(\\\" --include=*.vue . | wc -l; grep -rLn \\\"setRefreshHandler\\\" pages/*.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:02:14.698Z",
+      "lastAccessed": "2026-10-22T01:02:14.698Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:02:14.698Z"
+    },
+    "cmd-1792630939362": {
+      "key": "cmd-1792630939362",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && grep -rn \\\"setRefreshHandler(\\\" --include=*.vue . ; grep -n \\\"refresh\\\" components/app/AppTopbar.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:02:19.362Z",
+      "lastAccessed": "2026-10-22T01:02:19.362Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:02:19.362Z"
+    },
+    "cmd-1792630941865": {
+      "key": "cmd-1792630941865",
+      "value": "{\"command\":\"cat -n server/src/modules/documents/documents.storage.ts; sed -n '1,131p' server/src/modules/documents/documents.routes.ts; cat server/src/modules/documents/documents.schema.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:02:21.865Z",
+      "lastAccessed": "2026-10-22T01:02:21.865Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:02:21.865Z"
+    },
+    "cmd-1792630944811": {
+      "key": "cmd-1792630944811",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 1,60p components/app/AppTopbar.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:02:24.811Z",
+      "lastAccessed": "2026-10-22T01:02:24.811Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:02:24.811Z"
+    },
+    "cmd-1792630947866": {
+      "key": "cmd-1792630947866",
+      "value": "{\"command\":\"cat -n server/src/modules/documents/documents.repository.ts | sed -n '1,215p'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:02:27.866Z",
+      "lastAccessed": "2026-10-22T01:02:27.866Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:02:27.866Z"
+    },
+    "cmd-1792630952937": {
+      "key": "cmd-1792630952937",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 130,270p pages/RentalsPage.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:02:32.937Z",
+      "lastAccessed": "2026-10-22T01:02:32.937Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:02:32.937Z"
+    },
+    "cmd-1792630956012": {
+      "key": "cmd-1792630956012",
+      "value": "{\"command\":\"sed -n '175,225p;283,420p;505,611p' server/src/modules/backup/backup.service.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:02:36.012Z",
+      "lastAccessed": "2026-10-22T01:02:36.012Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:02:36.012Z"
+    },
+    "cmd-1792630959657": {
+      "key": "cmd-1792630959657",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 1,80p components/rentals/RentalFilters.vue | grep -n \\\"watch\\\\|Timer\\\\|setTimeout\\\\|emit\\\\|loadLocations\\\\|addEventListener\\\\|onMounted\\\\|onBeforeUnmount\\\"; grep -n \\\"apply\\\" pages/RentalsPage.vue; diff <(sed -n '/<template>/,$p' components/properties/PropertyFilters.vue) <(sed -n '/<template>/,$p' components/rentals/RentalFilters.vue) | wc -l; sed -n '/<style/,$p' components/rentals/RentalFilters.vue | wc -l;  diff <(sed -n '/<style/,$p' components/properties/PropertyFilters.vue) <(sed -n '/<style/,$p' components/rentals/RentalFilters.vue) | wc -l\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:02:39.657Z",
+      "lastAccessed": "2026-10-22T01:02:39.657Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:02:39.657Z"
+    },
+    "cmd-1792630964031": {
+      "key": "cmd-1792630964031",
+      "value": "{\"command\":\"sed -n '1,175p' server/src/modules/backup/backup.service.ts | grep -n \\\"name:\\\\|SCOPE_TABLES\\\\|full:\\\\|SERIAL_TABLES\\\\|chunk\\\" ; sed -n '417,455p' server/src/modules/backup/backup.service.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:02:44.031Z",
+      "lastAccessed": "2026-10-22T01:02:44.031Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:02:44.031Z"
+    },
+    "cmd-1792630965344": {
+      "key": "cmd-1792630965344",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && cat composables/useLocations.ts composables/usePermissions.ts composables/useAuth.ts; grep -rn \\\"loadLocations(\\\" --include=*.vue --include=*.ts . | grep -v \\\"function loadLocations\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:02:45.344Z",
+      "lastAccessed": "2026-10-22T01:02:45.344Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:02:45.344Z"
+    },
+    "cmd-1792630971342": {
+      "key": "cmd-1792630971342",
+      "value": "{\"command\":\"echo \\\"--- as any / : any / as unknown as / as never / @ts- per file\\\"; grep -rcE \\\"as any\\\\b|: any\\\\b|<any>|as unknown as|as never|@ts-ignore|@ts-expect-error\\\" server/src --include=*.ts | grep -v \\\":0$\\\"; echo \\\"--- non-null !.\\\"; grep -rcE \\\"[a-zA-Z\\\\)\\\\]]!\\\\.\\\" server/src --include=*.ts | grep -v \\\":0$\\\"; echo \\\"--- request.params/query casts\\\"; grep -rcE \\\"request\\\\.(params|query|body) as\\\" server/src --include=*.ts | grep -v \\\":0$\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:02:51.342Z",
+      "lastAccessed": "2026-10-22T01:02:51.342Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:02:51.342Z"
+    },
+    "cmd-1792630971590": {
+      "key": "cmd-1792630971590",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 1,82p pages/PeoplePage.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:02:51.590Z",
+      "lastAccessed": "2026-10-22T01:02:51.590Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:02:51.590Z"
+    },
+    "cmd-1792630976381": {
+      "key": "cmd-1792630976381",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 1,140p components/requests/RequestManager.vue | grep -n \\\"watch\\\\|onMounted\\\\|await\\\\|Promise.all\\\\|setTimeout\\\\|listPeople\\\\|list\\\\w*(\\\\|computed(\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:02:56.381Z",
+      "lastAccessed": "2026-10-22T01:02:56.381Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:02:56.381Z"
+    },
+    "cmd-1792630976529": {
+      "key": "cmd-1792630976529",
+      "value": "{\"command\":\"grep -rhoE \\\"request\\\\.(params|query|body) as\\\" server/src --include=*.ts | wc -l; grep -rn \\\"user!\\\\|as Record<string, unknown>\\\\|as Record<string\\\" server/src/modules --include=*.ts | grep -v seed | wc -l; grep -rn \\\"\\\\.parse(request\\\\.\\\\(query\\\\|params\\\\)\\\" server/src/modules | wc -l; grep -rLn \\\"schema.parse\\\\|Schema.parse\\\" server/src/modules/*/*.routes.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:02:56.529Z",
+      "lastAccessed": "2026-10-22T01:02:56.529Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:02:56.529Z"
+    },
+    "cmd-1792630979753": {
+      "key": "cmd-1792630979753",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 60,140p components/requests/RequestManager.vue; sed -n 140,275p components/requests/RequestManager.vue | grep -n \\\"onMounted\\\\|await\\\\|setRefresh\\\\|listPeople\\\\|listProperties\\\\|listRentals\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:02:59.753Z",
+      "lastAccessed": "2026-10-22T01:02:59.753Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:02:59.753Z"
+    },
+    "cmd-1792630981195": {
+      "key": "cmd-1792630981195",
+      "value": "{\"command\":\"grep -rnE \\\"\\\\b(readFileSync|writeFileSync|existsSync|mkdirSync|statSync|unlinkSync|readdirSync|rmSync|copyFileSync|renameSync|execSync|spawnSync)\\\\b|addLocalFolder|addLocalFile|writeZip|getData\\\\(\\\\)\\\" server/src --include=*.ts | grep -v \\\"seed\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:01.195Z",
+      "lastAccessed": "2026-10-22T01:03:01.195Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:01.195Z"
+    },
+    "cmd-1792630985112": {
+      "key": "cmd-1792630985112",
+      "value": "{\"command\":\"cat -n server/src/modules/company-settings/company-settings.routes.ts; cat -n server/src/modules/import/import.service.ts server/src/modules/import/import.routes.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:05.112Z",
+      "lastAccessed": "2026-10-22T01:03:05.112Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:05.112Z"
+    },
+    "cmd-1792630985324": {
+      "key": "cmd-1792630985324",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 1,80p pages/DocumentsPage.vue | grep -n \\\"onMounted\\\\|await\\\\|search\\\\|computed\\\\|filter\\\"; sed -n 1,240p pages/LocationsPage.vue | grep -n \\\"onMounted\\\\|await \\\\|computed(\\\\|watch(\\\\|filter(\\\\|search\\\\|setRefresh\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:05.324Z",
+      "lastAccessed": "2026-10-22T01:03:05.324Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:05.324Z"
+    },
+    "cmd-1792630989912": {
+      "key": "cmd-1792630989912",
+      "value": "{\"command\":\"cat -n server/src/modules/remote-access/remote-access.service.ts; ls -la tools tools/*; du -sh tools/*\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:09.912Z",
+      "lastAccessed": "2026-10-22T01:03:09.912Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:09.912Z"
+    },
+    "cmd-1792630990062": {
+      "key": "cmd-1792630990062",
+      "value": "{\"command\":\"grep -rln \\\"seedIraqLocations\\\\|iraq\\\" server/src --include=*.ts | head; grep -n \\\"v-for\\\" apps/renderer/src/pages/LocationsPage.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:10.062Z",
+      "lastAccessed": "2026-10-22T01:03:10.062Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:10.062Z"
+    },
+    "cmd-1792630997215": {
+      "key": "cmd-1792630997215",
+      "value": "{\"command\":\"grep -n \\\"electron-log\\\" apps/desktop/package.json; grep -rn \\\"transports.file\\\\.\\\\(sync\\\\|maxSize\\\\)\\\" apps/desktop/src | head; sed -n '255,300p' apps/desktop/src/main.js; grep -n \\\"DATABASE_URL\\\\|password\\\\|connectionString\\\" apps/desktop/src/main.js | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:17.215Z",
+      "lastAccessed": "2026-10-22T01:03:17.215Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:17.215Z"
+    },
+    "cmd-1792630998977": {
+      "key": "cmd-1792630998977",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && echo \\\"== : any / <any> / any[]\\\"; grep -rnE \\\":\\\\s*any\\\\b|<any>|any\\\\[\\\\]|as any\\\\b\\\" --include=*.vue --include=*.ts . | grep -v \\\"^\\\\./env.d.ts\\\" ; echo \\\"== as unknown as\\\"; grep -rnc \\\"as unknown as\\\" --include=*.vue --include=*.ts . | grep -v \\\":0\\\"; echo \\\"== @ts-ignore/expect-error\\\"; grep -rn \\\"@ts-ignore\\\\|@ts-expect-error\\\\|@ts-nocheck\\\" --include=*.vue --include=*.ts . ; echo \\\"== non-null !\\\"; grep -rnoE \\\"[a-zA-Z\\\\)\\\\]]![.;) ,]\\\" --include=*.vue . | wc -l\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:18.977Z",
+      "lastAccessed": "2026-10-22T01:03:18.977Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:18.977Z"
+    },
+    "cmd-1792630999562": {
+      "key": "cmd-1792630999562",
+      "value": "{\"command\":\"cat -n server/src/modules/remote-access/remote-access.routes.ts; sed -n 1,80p server/src/modules/setup/setup.security.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:19.562Z",
+      "lastAccessed": "2026-10-22T01:03:19.562Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:19.562Z"
+    },
+    "cmd-1792631003300": {
+      "key": "cmd-1792631003300",
+      "value": "{\"command\":\"cat -n server/src/modules/remote-access/remote-access.service.ts server/src/modules/remote-access/remote-access.routes.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:23.300Z",
+      "lastAccessed": "2026-10-22T01:03:23.300Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:23.300Z"
+    },
+    "cmd-1792631007348": {
+      "key": "cmd-1792631007348",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && grep -rnoE \\\"\\\\bas [A-Z][A-Za-z<>\\\\[\\\\]]+\\\" --include=*.vue --include=*.ts . | grep -v \\\"as const\\\" | awk -F: '{print $1}' | sort | uniq -c | sort -rn | head -15; grep -rn \\\"unknown\\\" types/*.ts | head -20; cat tsconfig.json 2>/dev/null || cat ../tsconfig.json\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:27.348Z",
+      "lastAccessed": "2026-10-22T01:03:27.348Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:27.348Z"
+    },
+    "cmd-1792631008705": {
+      "key": "cmd-1792631008705",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && cat types/index.ts; wc -l types/*.ts; cat types/phase2.types.ts | head -129\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:28.705Z",
+      "lastAccessed": "2026-10-22T01:03:28.705Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:28.705Z"
+    },
+    "cmd-1792631011741": {
+      "key": "cmd-1792631011741",
+      "value": "{\"command\":\"cat -n server/src/modules/documents/documents.storage.ts server/src/modules/documents/documents.routes.ts; sed -n 1,57p server/src/modules/documents/documents.schema.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:31.741Z",
+      "lastAccessed": "2026-10-22T01:03:31.741Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:31.741Z"
+    },
+    "cmd-1792631014276": {
+      "key": "cmd-1792631014276",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && for t in $(grep -oE \\\"export type [A-Za-z]+\\\" types/*.ts | awk '{print $3}'); do n=$(grep -rlw \\\"$t\\\" --include=*.vue --include=*.ts . | grep -v \\\"^./types/\\\" | wc -l); [ \\\"$n\\\" = \\\"0\\\" ] && echo \\\"UNUSED type: $t\\\"; done; echo; grep -n \\\"export\\\" types/crm.types.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:34.276Z",
+      "lastAccessed": "2026-10-22T01:03:34.276Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:34.276Z"
+    },
+    "cmd-1792631017132": {
+      "key": "cmd-1792631017132",
+      "value": "{\"command\":\"cat -n server/src/modules/backup/backup.routes.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:37.132Z",
+      "lastAccessed": "2026-10-22T01:03:37.132Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:37.132Z"
+    },
+    "cmd-1792631018670": {
+      "key": "cmd-1792631018670",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src/modules && ls dashboard stats; grep -n \\\"return\\\\|latest\\\\|recent_activity\\\\|needs_review\\\\|reminders\\\\|top_\\\\|counts\\\\|financial\\\\|sales\\\\|rentals:\\\" dashboard/*.ts | head -60\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:38.670Z",
+      "lastAccessed": "2026-10-22T01:03:38.670Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:38.670Z"
+    },
+    "cmd-1792631022232": {
+      "key": "cmd-1792631022232",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src/modules && sed -n 20,52p dashboard/dashboard.repository.ts; sed -n 184,245p dashboard/dashboard.repository.ts; grep -n \\\"listUpcomingReminders\\\" -A 30 followups/followups.repository.ts | grep -n \\\"select\\\\|:\\\" | head -20\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:42.232Z",
+      "lastAccessed": "2026-10-22T01:03:42.232Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:42.232Z"
+    },
+    "cmd-1792631028302": {
+      "key": "cmd-1792631028302",
+      "value": "{\"command\":\"grep -rn \\\"/health\\\\|setup/status\\\\|setInterval\\\" apps/renderer/src --include=*.ts --include=*.vue | head; grep -n \\\"health\\\\|setInterval\\\\|POLL\\\" apps/desktop/src/main.js apps/desktop/src/startup.js | head -20\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:48.302Z",
+      "lastAccessed": "2026-10-22T01:03:48.302Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:48.302Z"
+    },
+    "cmd-1792631032534": {
+      "key": "cmd-1792631032534",
+      "value": "{\"command\":\"cat -n apps/renderer/src/utils/files.ts | head -60; grep -n \\\"imageUrl\\\\|fetch\\\\|base64\\\\|data:image\\\\|toDataURL\\\\|readAsDataURL\\\" apps/renderer/src/utils/exportProperty.ts apps/renderer/src/utils/listingExport.ts | head -20\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:52.534Z",
+      "lastAccessed": "2026-10-22T01:03:52.534Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:52.534Z"
+    },
+    "cmd-1792631032820": {
+      "key": "cmd-1792631032820",
+      "value": "{\"command\":\"sed -n '1,113p' server/src/modules/images/images.repository.ts | grep -n \\\"for \\\\|await\\\\|transaction\\\\|export async\\\" ; grep -n \\\"for \\\\|await\\\\|transaction\\\\|export async\\\" server/src/modules/rental-images/rental-images.repository.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:52.820Z",
+      "lastAccessed": "2026-10-22T01:03:52.820Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:52.820Z"
+    },
+    "cmd-1792631035950": {
+      "key": "cmd-1792631035950",
+      "value": "{\"command\":\"sed -n '1,55p;90,113p' server/src/modules/images/images.repository.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:55.950Z",
+      "lastAccessed": "2026-10-22T01:03:55.950Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:55.950Z"
+    },
+    "cmd-1792631039495": {
+      "key": "cmd-1792631039495",
+      "value": "{\"command\":\"grep -rn \\\"exportPdf\\\" apps/renderer/src --include=*.ts --include=*.vue | head; grep -rn \\\"<img\\\" apps/renderer/src/utils/*.ts | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:03:59.495Z",
+      "lastAccessed": "2026-10-22T01:03:59.495Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:03:59.495Z"
+    },
+    "cmd-1792631042538": {
+      "key": "cmd-1792631042538",
+      "value": "{\"command\":\"sed -n 1,260p server/src/modules/backup/backup.service.ts | cat -n\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:04:02.538Z",
+      "lastAccessed": "2026-10-22T01:04:02.538Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:04:02.538Z"
+    },
+    "cmd-1792631044594": {
+      "key": "cmd-1792631044594",
+      "value": "{\"command\":\"grep -rn \\\"listImages\\\\|listRentalImages\\\\|images/.*file?token\\\\|token=\\\" apps/renderer/src --include=*.ts --include=*.vue | head -15\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:04:04.594Z",
+      "lastAccessed": "2026-10-22T01:04:04.594Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:04:04.594Z"
+    },
+    "cmd-1792631047086": {
+      "key": "cmd-1792631047086",
+      "value": "{\"command\":\"sed -n 260,611p server/src/modules/backup/backup.service.ts | cat -n | sed 's/^ *\\\\([0-9]*\\\\)/\\\\1+259/'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:04:07.086Z",
+      "lastAccessed": "2026-10-22T01:04:07.086Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:04:07.086Z"
+    },
+    "cmd-1792631051925": {
+      "key": "cmd-1792631051925",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && for f in $(find components composables utils services constants layouts platform plugins -type f \\\\( -name \\\"*.vue\\\" -o -name \\\"*.ts\\\" \\\\)); do b=$(basename \\\"$f\\\"); b=\\\"${b%.*}\\\"; n=$(grep -rlE \\\"[/\\\\\\\"']$b(\\\\.vue|\\\\.ts)?[\\\\\\\"']\\\" --include=*.vue --include=*.ts . | grep -v \\\"^./$f$\\\" | wc -l); [ \\\"$n\\\" = \\\"0\\\" ] && echo \\\"UNIMPORTED: $f\\\"; done\",\"exitCode\":1,\"success\":false}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:04:11.925Z",
+      "lastAccessed": "2026-10-22T01:04:11.925Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:04:11.925Z"
+    },
+    "cmd-1792631063465": {
+      "key": "cmd-1792631063465",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src && cat server.ts && ls -R modules | head -100 && cat infrastructure/database/*.ts | grep -n \\\"Pool\\\\|max\\\\|idle\\\\|timeout\\\" | head -30\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:04:23.465Z",
+      "lastAccessed": "2026-10-22T01:04:23.465Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:04:23.465Z"
+    },
+    "cmd-1792631066200": {
+      "key": "cmd-1792631066200",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && find components composables utils services constants layouts platform plugins -type f \\\\( -name \\\"*.vue\\\" -o -name \\\"*.ts\\\" \\\\) | while read f; do b=$(basename \\\"$f\\\"); b=\\\"${b%.*}\\\"; n=$(grep -rlE \\\"/$b(\\\\.vue|\\\\.ts)?[\\\\\\\"']\\\" --include=*.vue --include=*.ts . | wc -l); if [ \\\"$n\\\" = \\\"0\\\" ]; then echo \\\"UNIMPORTED: $f\\\"; fi; done; echo done\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:04:26.200Z",
+      "lastAccessed": "2026-10-22T01:04:26.200Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:04:26.200Z"
+    },
+    "cmd-1792631067432": {
+      "key": "cmd-1792631067432",
+      "value": "{\"command\":\"cat \\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/tasks/bzekjna71.output\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:04:27.432Z",
+      "lastAccessed": "2026-10-22T01:04:27.432Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:04:27.432Z"
+    },
+    "cmd-1792631069180": {
+      "key": "cmd-1792631069180",
+      "value": "{\"command\":\"grep -on 'pgTable(\\\\s*\\\"[a-z_]*\\\"' server/src/infrastructure/database/schema.ts | sed 's/.*\\\"\\\\(.*\\\\)\\\"/\\\\1/' | tr '\\\\n' ' '; echo; grep -rn \\\"pgTable(\\\" server/src/infrastructure/database/schema.ts | wc -l; grep -rn \\\"retention\\\\|prune\\\\|keepLast\\\\|maxBackups\\\\|unlinkSync\\\\|rmSync\\\" server/src/modules/backup | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:04:29.180Z",
+      "lastAccessed": "2026-10-22T01:04:29.180Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:04:29.180Z"
+    },
+    "cmd-1792631072913": {
+      "key": "cmd-1792631072913",
+      "value": "{\"command\":\"tail -8 \\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/tasks/bs7qdtb8l.output\\\"; grep -n 'pgTable(' server/src/infrastructure/database/schema.ts | head -40\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:04:32.913Z",
+      "lastAccessed": "2026-10-22T01:04:32.913Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:04:32.913Z"
+    },
+    "cmd-1792631076043": {
+      "key": "cmd-1792631076043",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/desktop && SCR=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\" && (time npx electron-builder --win --dir --x64 --publish never -c.directories.output=\\\"$SCR/pkg-baseline\\\") > \\\"$SCR/pkg-baseline.log\\\" 2>&1; tail -15 \\\"$SCR/pkg-baseline.log\\\"; du -sh \\\"$SCR/pkg-baseline/win-unpacked\\\"; du -sh \\\"$SCR/pkg-baseline/win-unpacked/resources/\\\"*; du -sh \\\"$SCR/pkg-baseline/win-unpacked/locales\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:04:36.043Z",
+      "lastAccessed": "2026-10-22T01:04:36.043Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:04:36.043Z"
+    },
+    "cmd-1792631079088": {
+      "key": "cmd-1792631079088",
+      "value": "{\"command\":\"cat .gitignore; echo ---; git ls-files server/data tools | head -40; echo; git ls-files server/data tools | wc -l\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:04:39.088Z",
+      "lastAccessed": "2026-10-22T01:04:39.088Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:04:39.088Z"
+    },
+    "cmd-1792631082301": {
+      "key": "cmd-1792631082301",
+      "value": "{\"command\":\"cat modules/auth/auth.routes.ts modules/auth/auth.hooks.ts && sed -n 1,80p modules/setup/setup.routes.ts && cat infrastructure/config.ts | head -80\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:04:42.301Z",
+      "lastAccessed": "2026-10-22T01:04:42.301Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:04:42.301Z"
+    },
+    "cmd-1792631086797": {
+      "key": "cmd-1792631086797",
+      "value": "{\"command\":\"cat modules/auth/auth.schema.ts && sed -n 1,200p modules/auth/auth.service.ts && cat modules/setup/setup.security.ts && ls modules/remote-access && sed -n 1,60p modules/remote-access/*.service.ts 2>/dev/null | head -80\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:04:46.797Z",
+      "lastAccessed": "2026-10-22T01:04:46.797Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:04:46.797Z"
+    },
+    "cmd-1792631089948": {
+      "key": "cmd-1792631089948",
+      "value": "{\"command\":\"git check-ignore -v --no-index server/data/documents/customers-1/cf40f976-30c4-4434-9840-e74262a6184d.txt server/data/backups/before-document-templates.dump tools/cloudflared/cloudflared.exe server/data/images/properties/1/3877bd87-b1fe-4e10-8f03-4a73e6e1b230.png tools/chromium/x; echo \\\"rc=$?\\\"; git log --oneline --format=\\\"%h %ad %s\\\" --date=short -- tools/cloudflared/cloudflared.exe server/data/backups | head; git count-objects -vH\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:04:49.948Z",
+      "lastAccessed": "2026-10-22T01:04:49.948Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:04:49.948Z"
+    },
+    "cmd-1792631095692": {
+      "key": "cmd-1792631095692",
+      "value": "{\"command\":\"head -c 200 server/data/documents/customers-1/cf40f976-30c4-4434-9840-e74262a6184d.txt; echo; head -c 5 server/data/backups/before-document-templates.dump | od -c | head -2; git ls-files | grep -iE \\\"\\\\.env|secret|\\\\.pem|\\\\.key$|\\\\.dump$|\\\\.exe$|\\\\.msi$\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:04:55.692Z",
+      "lastAccessed": "2026-10-22T01:04:55.692Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:04:55.692Z"
+    },
+    "cmd-1792631096375": {
+      "key": "cmd-1792631096375",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && for f in $(find services utils constants composables platform -name \\\"*.ts\\\"); do for s in $(grep -oE \\\"export (async )?(function|const) [A-Za-z0-9_]+\\\" \\\"$f\\\" | awk '{print $NF}'); do n=$(grep -rwl \\\"$s\\\" --include=*.vue --include=*.ts . | grep -v \\\"^./$f$\\\" | wc -l); if [ \\\"$n\\\" = \\\"0\\\" ]; then echo \\\"$f: $s\\\"; fi; done; done\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:04:56.375Z",
+      "lastAccessed": "2026-10-22T01:04:56.375Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:04:56.375Z"
+    },
+    "cmd-1792631097690": {
+      "key": "cmd-1792631097690",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server && grep -n \\\"export async function\\\\|SetupError(\\\\|READY\\\\|adminExists\\\\|alreadyInit\\\\|status\\\" src/modules/setup/setup.service.ts | head -40; sed -n 1,60p scripts/setup-security.test.ts; grep -rn \\\"remote\\\\|tunnel\\\\|x-forwarded\\\\|cf-connecting\\\" src --include=*.ts -il\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:04:57.690Z",
+      "lastAccessed": "2026-10-22T01:04:57.690Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:04:57.690Z"
+    },
+    "cmd-1792631102714": {
+      "key": "cmd-1792631102714",
+      "value": "{\"command\":\"grep -rnE \\\"DROP DATABASE|dropDatabase|drop database|CREATE DATABASE|createDatabase\\\" server/scripts scripts server/src apps/desktop/src | head -40\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:05:02.714Z",
+      "lastAccessed": "2026-10-22T01:05:02.714Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:05:02.714Z"
+    },
+    "cmd-1792631105237": {
+      "key": "cmd-1792631105237",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server && for n in userHasPermission googleMapsUrl databaseErrorCode IRAQ_GOVERNORATES FOLLOWUP_TYPES getSummaryStats settings.repository; do echo \\\"== $n\\\"; grep -rnw \\\"$n\\\" src scripts | grep -v \\\"export \\\" | head -3; done; cat src/modules/settings/settings.repository.ts; grep -rn \\\"settings.repository\\\" src | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:05:05.237Z",
+      "lastAccessed": "2026-10-22T01:05:05.237Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:05:05.237Z"
+    },
+    "cmd-1792631106266": {
+      "key": "cmd-1792631106266",
+      "value": "{\"command\":\"for f in server/scripts/runtime-smoke.mjs server/scripts/runtime-smoke-phase1.mjs server/scripts/runtime-smoke-phase5.mjs server/scripts/runtime-smoke-spaces.mjs; do echo \\\"== $f\\\"; sed -n 1,60p $f | grep -nE \\\"TEST_DB|DB_|postgres|password|PASSWORD|adminQuery|DATABASE_URL\\\" ; done\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:05:06.266Z",
+      "lastAccessed": "2026-10-22T01:05:06.266Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:05:06.266Z"
+    },
+    "cmd-1792631119387": {
+      "key": "cmd-1792631119387",
+      "value": "{\"command\":\"cat .env.example; echo ---; cat .env.web-demo; echo ---; cat apps/renderer/.env.example apps/renderer/.env.web-demo; echo ---; cat server/drizzle.config.ts; grep -n \\\"DB_\\\\|password\\\\|PASSWORD\\\" server/scripts/removal-test-context.ts server/scripts/removal-legacy.test.ts server/scripts/removal-rehearsal.ts server/scripts/removal-backup.test.ts server/scripts/startup.test.ts server/scripts/setup-security.test.ts | head -20\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:05:19.387Z",
+      "lastAccessed": "2026-10-22T01:05:19.387Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:05:19.387Z"
+    },
+    "cmd-1792631128592": {
+      "key": "cmd-1792631128592",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer && grep -rhoE \\\"mdi-[a-z0-9-]+\\\" src | sort -u | wc -l; grep -rhoE \\\"<v-[a-z-]+\\\" src --include=*.vue | sort -u | wc -l; grep -c \\\"\\\" dist/assets/main-D1PEmUSG.css; grep -o \\\"\\\\.v-[a-z-]*\\\" dist/assets/_plugin-vue_export-helper-DtN0q4An.css | sort -u | wc -l; grep -o \\\"\\\\.v-[a-z-]*\\\" dist/assets/main-D1PEmUSG.css | sort -u | wc -l; head -c 300 dist/assets/main-D1PEmUSG.css\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:05:28.592Z",
+      "lastAccessed": "2026-10-22T01:05:28.592Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:05:28.592Z"
+    },
+    "cmd-1792631134716": {
+      "key": "cmd-1792631134716",
+      "value": "{\"command\":\"cat -n server/scripts/removal-test-context.ts | cut -c1-400; sed -n 25,62p server/scripts/removal-legacy.test.ts | cat -n | cut -c1-300\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:05:34.716Z",
+      "lastAccessed": "2026-10-22T01:05:34.716Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:05:34.716Z"
+    },
+    "cmd-1792631136052": {
+      "key": "cmd-1792631136052",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && ffprobe -v error -show_entries stream=width,height,pix_fmt -of csv=p=0 assets/login-residence.png assets/images/splash-background.png 2>&1; grep -n \\\"skyline\\\\|loginResidence\\\" -A3 components/splash/SplashScreen.vue layouts/AuthLayout.vue | head -40\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:05:36.052Z",
+      "lastAccessed": "2026-10-22T01:05:36.052Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:05:36.052Z"
+    },
+    "cmd-1792631139662": {
+      "key": "cmd-1792631139662",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && grep -n \\\"@import\\\\|@layer\\\\|@theme\\\\|@source\\\\|font-family\\\" styles.css | head -30; grep -rn \\\"fonts.css\\\\|font-family\\\\|appearance.font\\\\|FONT\\\" --include=*.ts --include=*.vue --include=*.css . | grep -v \\\"^./assets/fonts/fonts.css\\\" | head -20\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:05:39.662Z",
+      "lastAccessed": "2026-10-22T01:05:39.662Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:05:39.662Z"
+    },
+    "cmd-1792631141536": {
+      "key": "cmd-1792631141536",
+      "value": "{\"command\":\"sed -n 1,60p server/scripts/startup-electron.mjs | cat -n | cut -c1-260; echo ...; sed -n 160,195p server/scripts/startup-electron.mjs | cat -n | cut -c1-260; echo ...; sed -n 270,291p server/scripts/startup-electron.mjs | cut -c1-260\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:05:41.536Z",
+      "lastAccessed": "2026-10-22T01:05:41.536Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:05:41.536Z"
+    },
+    "cmd-1792631142428": {
+      "key": "cmd-1792631142428",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 1,137p composables/useAppearance.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:05:42.428Z",
+      "lastAccessed": "2026-10-22T01:05:42.428Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:05:42.428Z"
+    },
+    "cmd-1792631142951": {
+      "key": "cmd-1792631142951",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src/assets && for f in login-residence.png images/splash-background.png; do ffprobe -v error -show_entries stream=width,height,pix_fmt -of csv=p=0 \\\"$f\\\"; done; ffmpeg -hide_banner -encoders 2>/dev/null | grep -i webp\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:05:42.951Z",
+      "lastAccessed": "2026-10-22T01:05:42.951Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:05:42.951Z"
+    },
+    "cmd-1792631146959": {
+      "key": "cmd-1792631146959",
+      "value": "{\"command\":\"sed -n 1,75p server/scripts/runtime-smoke.mjs | cut -c1-220\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:05:46.959Z",
+      "lastAccessed": "2026-10-22T01:05:46.959Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:05:46.959Z"
+    },
+    "cmd-1792631148247": {
+      "key": "cmd-1792631148247",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer && grep -rn \\\"splash-background\\\\|login-residence\\\" src splash.html index.html; file src/assets/images/splash-background.png src/assets/login-residence.png\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:05:48.247Z",
+      "lastAccessed": "2026-10-22T01:05:48.247Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:05:48.247Z"
+    },
+    "cmd-1792631153207": {
+      "key": "cmd-1792631153207",
+      "value": "{\"command\":\"S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad/img\\\" && mkdir -p \\\"$S\\\" && for f in login-residence images/splash-background; do b=$(basename $f); ffmpeg -v error -y -i \\\"$f.png\\\" -c:v libwebp -quality 82 -compression_level 6 \\\"$S/$b.webp\\\"; ffmpeg -v error -y -i \\\"$f.png\\\" -q:v 3 \\\"$S/$b.jpg\\\"; done; ls -la \\\"$S\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:05:53.207Z",
+      "lastAccessed": "2026-10-22T01:05:53.207Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:05:53.207Z"
+    },
+    "cmd-1792631153518": {
+      "key": "cmd-1792631153518",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && grep -rn \\\"setInterval\\\\|setTimeout\\\\|addEventListener\\\\|ResizeObserver\\\\|MutationObserver\\\\|IntersectionObserver\\\\|\\\\.on(\\\\|onBeforeUnmount\\\\|onUnmounted\\\\|clearInterval\\\\|clearTimeout\\\\|removeEventListener\\\\|\\\\.remove()\\\\|\\\\.off(\\\" --include=*.vue --include=*.ts . | grep -v \\\"^./components/properties/PropertyFilters.vue\\\\|^./components/rentals/RentalFilters.vue\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:05:53.518Z",
+      "lastAccessed": "2026-10-22T01:05:53.518Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:05:53.518Z"
+    },
+    "cmd-1792631158593": {
+      "key": "cmd-1792631158593",
+      "value": "{\"command\":\"cat -n scripts/web-demo-env.mjs | sed -n 1,59p | cut -c1-200; sed -n 30,60p scripts/demo-reset.mjs | cat -n\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:05:58.593Z",
+      "lastAccessed": "2026-10-22T01:05:58.593Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:05:58.593Z"
+    },
+    "cmd-1792631162593": {
+      "key": "cmd-1792631162593",
+      "value": "{\"command\":\"cat \\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/tasks/bs0re43ib.output\\\" | tail -25\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:02.593Z",
+      "lastAccessed": "2026-10-22T01:06:02.593Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:02.593Z"
+    },
+    "cmd-1792631165373": {
+      "key": "cmd-1792631165373",
+      "value": "{\"command\":\"sed -n 88,130p server/src/infrastructure/database/seed.ts; sed -n 890,910p server/src/infrastructure/database/seed.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:05.373Z",
+      "lastAccessed": "2026-10-22T01:06:05.373Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:05.373Z"
+    },
+    "cmd-1792631168109": {
+      "key": "cmd-1792631168109",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 1,60p pages/PropertyDetailsPage.vue | grep -n \\\"await\\\\|load\\\\|import\\\"; grep -n \\\"await\\\\|onMounted\\\\|watch(\\\\|Promise.all\\\\|loadFavoriteIds\\\\|getProperty\\\\|listImages\\\" components/properties/PropertyDetailsPanel.vue components/properties/FollowupsTab.vue components/properties/FavoriteButton.vue components/shared/RecordNotes.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:08.109Z",
+      "lastAccessed": "2026-10-22T01:06:08.109Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:08.109Z"
+    },
+    "cmd-1792631169051": {
+      "key": "cmd-1792631169051",
+      "value": "{\"command\":\"P=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad/pkg-baseline/win-unpacked\\\"; du -sb \\\"$P\\\"; cd \\\"$P\\\" && du -sb * | sort -n | tail -10; du -sb resources/*\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:09.051Z",
+      "lastAccessed": "2026-10-22T01:06:09.051Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:09.051Z"
+    },
+    "cmd-1792631172030": {
+      "key": "cmd-1792631172030",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 14,56p pages/PropertyDetailsPage.vue; sed -n 25,95p components/properties/PropertyDetailsPanel.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:12.030Z",
+      "lastAccessed": "2026-10-22T01:06:12.030Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:12.030Z"
+    },
+    "cmd-1792631174602": {
+      "key": "cmd-1792631174602",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && git remote -v; gh auth status 2>&1 | head -3; ls .github 2>/dev/null; git branch -a\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:14.602Z",
+      "lastAccessed": "2026-10-22T01:06:14.602Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:14.602Z"
+    },
+    "cmd-1792631177098": {
+      "key": "cmd-1792631177098",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && grep -rn \\\"deep: true\\\\|reactive(\\\\|shallowRef\\\\|markRaw\\\\|shallowReactive\\\" --include=*.vue --include=*.ts .\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:17.098Z",
+      "lastAccessed": "2026-10-22T01:06:17.098Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:17.098Z"
+    },
+    "cmd-1792631178589": {
+      "key": "cmd-1792631178589",
+      "value": "{\"command\":\"grep -n \\\"async function generate\\\\|Code()\\\\|code: await\\\" server/src/modules/*/*.repository.ts; grep -rn \\\"\\\\.transaction(\\\" server/src --include=*.ts | grep -v seed\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:18.589Z",
+      "lastAccessed": "2026-10-22T01:06:18.589Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:18.589Z"
+    },
+    "cmd-1792631182573": {
+      "key": "cmd-1792631182573",
+      "value": "{\"command\":\"grep -n \\\"import\\\\|DB_\\\\|pg\\\\.\\\\|Pool\\\" server/scripts/startup.test.ts server/scripts/setup-security.test.ts server/scripts/location.test.ts | cut -c1-200 | head -40; grep -rln \\\"backup-schedule\\\\|isScheduleDue\\\\|external-links\\\\|ipc-guard\\\" server/scripts apps | grep -v node_modules\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:22.573Z",
+      "lastAccessed": "2026-10-22T01:06:22.573Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:22.573Z"
+    },
+    "cmd-1792631183916": {
+      "key": "cmd-1792631183916",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && grep -rn \\\"useAppearance()\\\" --include=*.vue --include=*.ts .; sed -n 30,60p pages/FavoritesPage.vue; grep -n \\\"watch\\\\|computed\\\" components/properties/PropertiesTable.vue | head; sed -n 1,60p components/properties/PropertiesTable.vue | grep -n \\\"rowProps\\\\|headers\\\\|usePermissions\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:23.916Z",
+      "lastAccessed": "2026-10-22T01:06:23.916Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:23.916Z"
+    },
+    "cmd-1792631186449": {
+      "key": "cmd-1792631186449",
+      "value": "{\"command\":\"grep -A15 '\\\"scripts\\\"' apps/renderer/package.json; grep -n \\\"removal-browser\\\\|location-ui\\\\|location-electron\\\\|removal-inventory\\\\|removal-rehearsal\\\" server/package.json package.json; ls apps/desktop/release; du -sh apps/desktop/release 2>/dev/null\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:26.449Z",
+      "lastAccessed": "2026-10-22T01:06:26.449Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:26.449Z"
+    },
+    "cmd-1792631188759": {
+      "key": "cmd-1792631188759",
+      "value": "{\"command\":\"head -5 apps/desktop/package-lock.json && rm apps/desktop/package-lock.json && git status --short | grep -v claude-flow\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:28.759Z",
+      "lastAccessed": "2026-10-22T01:06:28.759Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:28.759Z"
+    },
+    "cmd-1792631190977": {
+      "key": "cmd-1792631190977",
+      "value": "{\"command\":\"ls -la apps/desktop/release/win-unpacked/resources; du -sh apps/desktop/release/win-unpacked/resources/* 2>/dev/null; ls apps/desktop/release/win-unpacked/resources/tools/cloudflared 2>/dev/null; grep -ln \\\"location-ui\\\\|location-electron\\\\|removal-inventory\\\\|removal-rehearsal\\\" server/scripts/*.ts | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:30.977Z",
+      "lastAccessed": "2026-10-22T01:06:30.977Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:30.977Z"
+    },
+    "cmd-1792631194258": {
+      "key": "cmd-1792631194258",
+      "value": "{\"command\":\"du -sh apps/desktop/release/win-unpacked/resources/tools/* ; ls -la apps/desktop/release/win-unpacked/resources/tools; ls -la --time-style=long-iso apps/desktop/release/*.exe 2>/dev/null; cat apps/desktop/release/builder-debug.yml | head -40\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:34.258Z",
+      "lastAccessed": "2026-10-22T01:06:34.258Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:34.258Z"
+    },
+    "cmd-1792631199644": {
+      "key": "cmd-1792631199644",
+      "value": "{\"command\":\"ls -la apps/desktop/src/splash; git ls-files apps/desktop/src/splash | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:39.644Z",
+      "lastAccessed": "2026-10-22T01:06:39.644Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:39.644Z"
+    },
+    "cmd-1792631201635": {
+      "key": "cmd-1792631201635",
+      "value": "{\"command\":\"cat server/src/modules/auth/crypto.ts; grep -n \\\"catch\\\\|error\\\\|message\\\" apps/renderer/src/pages/LoginPage.vue | head -20; grep -n \\\"class ApiError\\\\|status\\\\|message\\\" apps/renderer/src/services/api.service.ts | head -30\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:41.635Z",
+      "lastAccessed": "2026-10-22T01:06:41.635Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:41.635Z"
+    },
+    "cmd-1792631204462": {
+      "key": "cmd-1792631204462",
+      "value": "{\"command\":\"grep -rn \\\"imageFileUrl\\\\|rentalImageUrl\\\\|<img\\\\|v-img\\\" apps/renderer/src/components/shared/ListingImage.vue apps/renderer/src/components/properties/PropertiesTable.vue 2>/dev/null | head; grep -rln \\\"ListingImage\\\" apps/renderer/src | head; grep -rn \\\"loading=\\\\\\\"lazy\\\\\\\"\\\\|loading: \\\\\\\"lazy\\\\\\\"\\\" apps/renderer/src | wc -l\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:44.462Z",
+      "lastAccessed": "2026-10-22T01:06:44.462Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:44.462Z"
+    },
+    "cmd-1792631206027": {
+      "key": "cmd-1792631206027",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 120,132p components/rentals/RentalDetailsDialog.vue; sed -n 250,258p components/rentals/RentalDetailsDialog.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:46.027Z",
+      "lastAccessed": "2026-10-22T01:06:46.027Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:46.027Z"
+    },
+    "cmd-1792631208462": {
+      "key": "cmd-1792631208462",
+      "value": "{\"command\":\"grep -rn \\\"primary_image\\\\|cover\\\\|thumbnail\\\" apps/renderer/src/components/properties/*.vue apps/renderer/src/pages/PropertiesPage.vue 2>/dev/null | head -8; grep -rn \\\"readFileAsDataUrl\\\\|uploadImages\\\\|size >\\\" apps/renderer/src/components/properties/PropertyImages.vue apps/renderer/src/components/rentals/RentalImages.vue apps/renderer/src/components/documents/*.vue 2>/dev/null | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:48.462Z",
+      "lastAccessed": "2026-10-22T01:06:48.462Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:48.462Z"
+    },
+    "cmd-1792631208652": {
+      "key": "cmd-1792631208652",
+      "value": "{\"command\":\"grep -rn \\\"login(\\\" --include=*.vue --include=*.ts . | grep -v \\\"^./services/api\\\" | head; grep -n \\\"\\\" pages/LoginPage.vue | sed -n 1,60p\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:48.652Z",
+      "lastAccessed": "2026-10-22T01:06:48.652Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:48.652Z"
+    },
+    "cmd-1792631215509": {
+      "key": "cmd-1792631215509",
+      "value": "{\"command\":\"sed -n 1,39p apps/renderer/src/components/properties/PropertyImages.vue; grep -n \\\"onMounted\\\\|watch(\\\" apps/renderer/src/components/properties/PropertyImages.vue; sed -n 165,200p apps/renderer/src/components/properties/PropertyImages.vue; sed -n 105,125p apps/renderer/src/components/properties/PropertiesTable.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:55.509Z",
+      "lastAccessed": "2026-10-22T01:06:55.509Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:55.509Z"
+    },
+    "cmd-1792631217812": {
+      "key": "cmd-1792631217812",
+      "value": "{\"command\":\"grep -rni \\\"rate.limit\\\\|ratelimit\\\\|attempt\\\\|lockout\\\\|redact\\\\|genReqId\\\\|requestTimeout\\\\|connectionTimeout\\\\|trustProxy\\\\|disableRequestLogging\\\" server/src | head; grep -rn \\\"console\\\\.\\\\(log\\\\|error\\\\|info\\\\|warn\\\\)\\\" server/src --include=*.ts | grep -v seed | wc -l\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:57.812Z",
+      "lastAccessed": "2026-10-22T01:06:57.812Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:57.812Z"
+    },
+    "cmd-1792631219471": {
+      "key": "cmd-1792631219471",
+      "value": "{\"command\":\"sed -n 155,166p apps/renderer/src/components/properties/PropertyImages.vue; sed -n 200,240p apps/renderer/src/components/properties/PropertyImages.vue | grep -n \\\"primaryOnly\\\\|ListingImage\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:06:59.471Z",
+      "lastAccessed": "2026-10-22T01:06:59.471Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:06:59.471Z"
+    },
+    "cmd-1792631221416": {
+      "key": "cmd-1792631221416",
+      "value": "{\"command\":\"cat server/src/modules/setup/setup.schema.ts; sed -n '140,275p' server/src/modules/setup/setup.service.ts | grep -n \\\"createFirstAdmin\\\\|recoverSystem\\\\|installationInitialized\\\\|admin_setup_allowed\\\\|SetupError(\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:07:01.416Z",
+      "lastAccessed": "2026-10-22T01:07:01.416Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:07:01.416Z"
+    },
+    "cmd-1792631225778": {
+      "key": "cmd-1792631225778",
+      "value": "{\"command\":\"f=$(find apps/desktop/node_modules/electron-log/src -name \\\"file\\\" -type d | head -1); grep -rn \\\"maxSize\\\" apps/desktop/node_modules/electron-log/src/node/transports/file/index.js 2>/dev/null | head -3; grep -rn \\\"logger\\\\b\\\\|logger:\\\" server/src/server.ts | head; grep -rn \\\"disableRequestLogging\\\\|logLevel\\\" server/src | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:07:05.778Z",
+      "lastAccessed": "2026-10-22T01:07:05.778Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:07:05.778Z"
+    },
+    "cmd-1792631228931": {
+      "key": "cmd-1792631228931",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer && ls -la dist/ dist/assets 2>&1 | head -12; ls node_modules/vite-plugin-vue-devtools/ 2>&1 | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:07:08.931Z",
+      "lastAccessed": "2026-10-22T01:07:08.931Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:07:08.931Z"
+    },
+    "cmd-1792631231315": {
+      "key": "cmd-1792631231315",
+      "value": "{\"command\":\"grep -rn \\\"restore\\\\|lastError\\\\|last_error\\\" apps/renderer/src/pages/*Backup* apps/renderer/src/components/backup/*.vue 2>/dev/null | head -15; ls apps/renderer/src/pages | grep -i backup; ls apps/renderer/src/components | head -30\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:07:11.315Z",
+      "lastAccessed": "2026-10-22T01:07:11.315Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:07:11.315Z"
+    },
+    "cmd-1792631234315": {
+      "key": "cmd-1792631234315",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer && ls -laS dist/assets | head -24 | awk '{print $5, $9}'; cat dist/index.html | grep -o 'assets/[^\\\"]*'; grep -rl \\\"SheetJS\\\" dist/assets/*.js; grep -o 'apply: *\\\"serve\\\"' node_modules/vite-plugin-vue-devtools/dist/*.js node_modules/vite-plugin-vue-devtools/dist/*.mjs 2>/dev/null | head -2\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:07:14.315Z",
+      "lastAccessed": "2026-10-22T01:07:14.315Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:07:14.315Z"
+    },
+    "cmd-1792631237005": {
+      "key": "cmd-1792631237005",
+      "value": "{\"command\":\"grep -n \\\"key:\\\" server/src/modules/rbac/rbac.constants.ts | head -60\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:07:17.005Z",
+      "lastAccessed": "2026-10-22T01:07:17.005Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:07:17.005Z"
+    },
+    "cmd-1792631237563": {
+      "key": "cmd-1792631237563",
+      "value": "{\"command\":\"sed -n 135,180p apps/renderer/src/components/setup/BackupSettings.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:07:17.563Z",
+      "lastAccessed": "2026-10-22T01:07:17.563Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:07:17.563Z"
+    },
+    "cmd-1792631240667": {
+      "key": "cmd-1792631240667",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer && cat src/splash.ts; cat dist/splash.html | grep -o 'assets/[^\\\"]*'; grep -o \\\"\\\\.v-[a-z]*\\\" dist/assets/_plugin-vue_export-helper-DtN0q4An.css | sort | uniq -c | sort -rn | head -5; grep -c \\\"mdi-\\\" dist/assets/_plugin-vue_export-helper-DtN0q4An.css\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:07:20.667Z",
+      "lastAccessed": "2026-10-22T01:07:20.667Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:07:20.667Z"
+    },
+    "cmd-1792631245715": {
+      "key": "cmd-1792631245715",
+      "value": "{\"command\":\"grep -n \\\"export async function getSetupStatus\\\" -A 40 server/src/infrastructure/database/health.ts | head -60\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:07:25.715Z",
+      "lastAccessed": "2026-10-22T01:07:25.715Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:07:25.715Z"
+    },
+    "cmd-1792631250213": {
+      "key": "cmd-1792631250213",
+      "value": "{\"command\":\"grep -rn \\\"setInterval\\\" apps/renderer/src | head; grep -rn \\\"api/health\\\\|/health\\\\b\\\\|getHealth\\\\|getStartupHealth\\\" apps/renderer/src --include=*.ts --include=*.vue | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:07:30.213Z",
+      "lastAccessed": "2026-10-22T01:07:30.213Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:07:30.213Z"
+    },
+    "cmd-1792631253736": {
+      "key": "cmd-1792631253736",
+      "value": "{\"command\":\"grep -n \\\"getSetupStatus\\\\|fetchSetupStatus\\\\|startupHealth\\\\|beforeEach\\\" apps/renderer/src/router/index.ts | head; grep -n \\\"export async function\\\\|export function\\\" apps/renderer/src/services/setup.service.ts | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:07:33.736Z",
+      "lastAccessed": "2026-10-22T01:07:33.736Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:07:33.736Z"
+    },
+    "cmd-1792631256230": {
+      "key": "cmd-1792631256230",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && grep -rhoE 'class=\\\"[^\\\"]*\\\"' --include=*.vue . | tr ' \\\"' '\\\\n\\\\n' | grep -E '^(flex|grid|gap-[0-9]|p[xytblr]?-[0-9]+|m[xytblr]?-[0-9]+|text-(xs|sm|base|lg|xl|[0-9]xl)|w-|h-|min-w-|max-w-|rounded-(sm|md|xl|2xl|full)|bg-(gray|slate|white|black)|items-|justify-|space-[xy]|col-span|grid-cols|font-(bold|semibold|medium)|truncate|hidden|block|inline-flex|overflow-|shadow-(sm|md|lg)|border-(gray|slate))' | sort | uniq -c | sort -rn | head -20; grep -n \\\"tailwind\\\\|@apply\\\\|@theme\\\\|@utility\\\" styles.css | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:07:36.230Z",
+      "lastAccessed": "2026-10-22T01:07:36.230Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:07:36.230Z"
+    },
+    "cmd-1792631258162": {
+      "key": "cmd-1792631258162",
+      "value": "{\"command\":\"sed -n '1,43p' server/src/modules/favorites/favorites.repository.ts | grep -n \\\"select\\\\|join\\\\|where\\\\|orderBy\\\\|limit\\\"; grep -n \\\"select\\\\|join\\\\|where\\\\|orderBy\\\" server/src/modules/rental-followups/rental-followups.repository.ts | head; grep -n \\\"listPurchaseRequests\\\" -A30 server/src/modules/purchase-requests/purchase-requests.repository.ts | grep -n \\\"ilike\\\\|orderBy\\\\|limit\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:07:38.162Z",
+      "lastAccessed": "2026-10-22T01:07:38.162Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:07:38.162Z"
+    },
+    "cmd-1792631267933": {
+      "key": "cmd-1792631267933",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sim(){ a=$(wc -l < \\\"$1\\\"); b=$(wc -l < \\\"$2\\\"); c=$(diff \\\"$1\\\" \\\"$2\\\" | grep -c '^[<>]'); echo \\\"$1 ($a) vs $2 ($b): changed lines $c\\\"; }; sim components/properties/PropertyFilters.vue components/rentals/RentalFilters.vue; sim components/properties/PropertyImages.vue components/rentals/RentalImages.vue; sim components/properties/FollowupsTab.vue components/rentals/RentalFollowupsTab.vue; sim pages/FavoritesPage.vue pages/RentalFavoritesPage.vue; sim components/properties/PropertiesTable.vue components/rentals/RentalTable.vue; sim components/shared/PropertySummary.vue components/rentals/RentalSummary.vue; sim components/properties/PropertyDetailsPanel.vue components/rentals/RentalDetailsDialog.vue; sim services/followups.service.ts services/rental-followups.service.ts; diff <(sed -n '/<style/,$p' components/properties/PropertiesTable.vue) <(sed -n '/<style/,$p' components/rentals/RentalTable.vue) | grep -c '^[<>]'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:07:47.933Z",
+      "lastAccessed": "2026-10-22T01:07:47.933Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:07:47.933Z"
+    },
+    "cmd-1792631270304": {
+      "key": "cmd-1792631270304",
+      "value": "{\"command\":\"d=$(ls -d server/node_modules/tsx/dist); ls $d | head -30; grep -l \\\"disconnect\\\" $d/*.cjs $d/*.mjs 2>/dev/null | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:07:50.304Z",
+      "lastAccessed": "2026-10-22T01:07:50.304Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:07:50.304Z"
+    },
+    "cmd-1792631275106": {
+      "key": "cmd-1792631275106",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/node_modules/tsx && ls dist | head -30; grep -l \\\"disconnect\\\" dist/*.cjs dist/*.mjs 2>/dev/null | head; grep -o \\\"process.on(\\\\\\\"disconnect\\\\\\\"[^;]\\\\{0,80\\\\}\\\\|\\\\.on(\\\\\\\"disconnect\\\\\\\"[^;]\\\\{0,80\\\\}\\\" dist/*.cjs dist/*.mjs 2>/dev/null | head -3\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:07:55.106Z",
+      "lastAccessed": "2026-10-22T01:07:55.106Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:07:55.106Z"
+    },
+    "cmd-1792631276893": {
+      "key": "cmd-1792631276893",
+      "value": "{\"command\":\"ls server/node_modules | head; ls server/node_modules/.bin 2>/dev/null | grep tsx\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:07:56.893Z",
+      "lastAccessed": "2026-10-22T01:07:56.893Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:07:56.893Z"
+    },
+    "cmd-1792631280472": {
+      "key": "cmd-1792631280472",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 120,200p components/rentals/RentalImages.vue | grep -n \\\"primaryOnly\\\\|@click\\\\|paste\\\"; sed -n 260,300p components/properties/PropertyImages.vue | grep -n \\\"pending\\\\|primaryOnly\\\\|v-if\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:00.472Z",
+      "lastAccessed": "2026-10-22T01:08:00.472Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:00.472Z"
+    },
+    "cmd-1792631286238": {
+      "key": "cmd-1792631286238",
+      "value": "{\"command\":\"grep -n \\\"sessions\\\" server/drizzle/0000_remarkable_shinobi_shaw.sql | head; grep -n \\\"owner_person_id\\\\|created_at\\\\|updated_at\\\" server/drizzle/0000_remarkable_shinobi_shaw.sql | grep -i index\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:06.238Z",
+      "lastAccessed": "2026-10-22T01:08:06.238Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:06.238Z"
+    },
+    "cmd-1792631287754": {
+      "key": "cmd-1792631287754",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && grep -n 'setPrimary(image)\\\\|window.addEventListener(\\\"paste\\\"\\\\|pending.value.push\\\\|v-if=\\\"pending' components/properties/PropertyImages.vue; grep -n \\\"item-value\\\\|key=\\\" components/properties/PropertiesTable.vue | head -3\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:07.754Z",
+      "lastAccessed": "2026-10-22T01:08:07.754Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:07.754Z"
+    },
+    "cmd-1792631290374": {
+      "key": "cmd-1792631290374",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 240,248p components/properties/PropertyImages.vue; sed -n 300,316p components/properties/PropertyImages.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:10.374Z",
+      "lastAccessed": "2026-10-22T01:08:10.374Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:10.374Z"
+    },
+    "cmd-1792631292944": {
+      "key": "cmd-1792631292944",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server && sed -i 's#\\\"test\\\": \\\"tsx --test scripts/startup.test.ts scripts/setup-security.test.ts scripts/location.test.ts\\\"#\\\"test\\\": \\\"tsx --test scripts/startup.test.ts scripts/setup-security.test.ts scripts/login-throttle.test.ts scripts/location.test.ts\\\"#' package.json && grep '\\\"test\\\"' package.json && npx prettier --write src/modules/auth/auth.routes.ts src/modules/auth/login-throttle.ts src/modules/setup/setup.security.ts >/dev/null && pnpm exec tsx --test scripts/login-throttle.test.ts scripts/setup-security.test.ts 2>&1 | grep -E \\\"^# (pass|fail)|not ok|Error\\\" ; pnpm exec tsc -p tsconfig.json --noEmit && echo TSC-OK\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:12.944Z",
+      "lastAccessed": "2026-10-22T01:08:12.944Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:12.944Z"
+    },
+    "cmd-1792631293442": {
+      "key": "cmd-1792631293442",
+      "value": "{\"command\":\"f=$(find node_modules/.pnpm -path \\\"*electron-log*/src/node/transports/file/index.js\\\" 2>/dev/null | head -1); echo \\\"$f\\\"; [ -n \\\"$f\\\" ] && grep -n \\\"sync\\\\|maxSize\\\" \\\"$f\\\" | head -8\",\"exitCode\":1,\"success\":false}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:13.442Z",
+      "lastAccessed": "2026-10-22T01:08:13.442Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:13.442Z"
+    },
+    "cmd-1792631297181": {
+      "key": "cmd-1792631297181",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 60,125p pages/PersonDetailsPage.vue | grep -n \\\"await\\\\|Promise.all\\\\|listProperties\\\\|listRentals\\\\|watch\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:17.181Z",
+      "lastAccessed": "2026-10-22T01:08:17.181Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:17.181Z"
+    },
+    "cmd-1792631298700": {
+      "key": "cmd-1792631298700",
+      "value": "{\"command\":\"f=$(find . -path \\\"*electron-log*\\\" -name \\\"*.js\\\" -path \\\"*file*\\\" 2>/dev/null | grep -v release | head -5); echo \\\"$f\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:18.700Z",
+      "lastAccessed": "2026-10-22T01:08:18.700Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:18.700Z"
+    },
+    "cmd-1792631299918": {
+      "key": "cmd-1792631299918",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 84,125p pages/PersonDetailsPage.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:19.918Z",
+      "lastAccessed": "2026-10-22T01:08:19.918Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:19.918Z"
+    },
+    "cmd-1792631301313": {
+      "key": "cmd-1792631301313",
+      "value": "{\"command\":\"grep -n \\\"sync\\\\|maxSize\\\" apps/desktop/node_modules/electron-log/src/node/transports/file/index.js | head -8\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:21.313Z",
+      "lastAccessed": "2026-10-22T01:08:21.313Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:21.313Z"
+    },
+    "cmd-1792631304379": {
+      "key": "cmd-1792631304379",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad/img\\\" && cp \\\"$S/login-residence.webp\\\" apps/renderer/src/assets/login-residence.webp && cp \\\"$S/splash-background.webp\\\" apps/renderer/src/assets/images/splash-background.webp && git rm -q apps/renderer/src/assets/login-residence.png apps/renderer/src/assets/images/splash-background.png && sed -i 's#assets/login-residence.png#assets/login-residence.webp#' apps/renderer/src/layouts/AuthLayout.vue && sed -i 's#assets/images/splash-background.png#assets/images/splash-background.webp#' apps/renderer/src/components/splash/SplashScreen.vue && grep -rn \\\"login-residence\\\\|splash-background\\\" apps/renderer scripts --include=*.vue --include=*.ts --include=*.mjs --include=*.html --include=*.json | grep -v node_modules | grep -v dist/\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:24.379Z",
+      "lastAccessed": "2026-10-22T01:08:24.379Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:24.379Z"
+    },
+    "cmd-1792631304571": {
+      "key": "cmd-1792631304571",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && grep -rn \\\"listPeople(\\\\|listProperties(\\\\|listRentals(\\\" --include=*.vue --include=*.ts . | grep -v \\\"export function\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:24.571Z",
+      "lastAccessed": "2026-10-22T01:08:24.571Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:24.571Z"
+    },
+    "cmd-1792631309142": {
+      "key": "cmd-1792631309142",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 205,240p pages/PropertyFormPage.vue; sed -n 168,190p pages/RentalFormPage.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:29.142Z",
+      "lastAccessed": "2026-10-22T01:08:29.142Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:29.142Z"
+    },
+    "cmd-1792631310039": {
+      "key": "cmd-1792631310039",
+      "value": "{\"command\":\"git add .gitignore apps/renderer/src/assets/login-residence.webp apps/renderer/src/assets/images/splash-background.webp && git status --short | grep -v claude-flow\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:30.039Z",
+      "lastAccessed": "2026-10-22T01:08:30.039Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:30.039Z"
+    },
+    "cmd-1792631312786": {
+      "key": "cmd-1792631312786",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && grep -n \\\"query\\\\|useRoute\\\" components/requests/RequestManager.vue | head; sed -n 240,256p components/requests/RequestManager.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:32.786Z",
+      "lastAccessed": "2026-10-22T01:08:32.786Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:32.786Z"
+    },
+    "cmd-1792631319695": {
+      "key": "cmd-1792631319695",
+      "value": "{\"command\":\"git add server/package.json server/scripts/setup-security.test.ts server/scripts/login-throttle.test.ts server/src/modules/auth/auth.routes.ts server/src/modules/auth/login-throttle.ts server/src/modules/setup/setup.security.ts && git commit -q -F - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:39.695Z",
+      "lastAccessed": "2026-10-22T01:08:39.695Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:39.695Z"
+    },
+    "cmd-1792631319943": {
+      "key": "cmd-1792631319943",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && grep -n \\\"await\\\\|Promise.all\\\\|onMounted\\\" pages/RolesPage.vue pages/UsersPage.vue pages/SettingsPage.vue | head -30\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:39.943Z",
+      "lastAccessed": "2026-10-22T01:08:39.943Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:39.943Z"
+    },
+    "cmd-1792631323779": {
+      "key": "cmd-1792631323779",
+      "value": "{\"command\":\"git show --stat --format=%s HEAD~1 | cat; git show --stat --format=%s HEAD | cat\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:43.779Z",
+      "lastAccessed": "2026-10-22T01:08:43.779Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:43.779Z"
+    },
+    "cmd-1792631325824": {
+      "key": "cmd-1792631325824",
+      "value": "{\"command\":\"grep -n '\\\"files\\\"\\\\|extraResources\\\\|renderer' -A3 apps/desktop/package.json | head -30; grep -rn \\\"sourcemap\\\\|minify\\\\|target\\\" apps/renderer/vite.config.ts; grep -n \\\"webPreferences\\\\|v8CacheOptions\\\\|backgroundThrottling\\\\|spellcheck\\\" apps/desktop/src/main.js | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:45.824Z",
+      "lastAccessed": "2026-10-22T01:08:45.824Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:45.824Z"
+    },
+    "cmd-1792631332041": {
+      "key": "cmd-1792631332041",
+      "value": "{\"command\":\"MSG1=$(git log -1 --format=%B HEAD~1) && MSG2=$(git log -1 --format=%B HEAD) && git reset -q --soft a1b5e08 && git reset -q && git add server/package.json server/scripts/setup-security.test.ts server/scripts/login-throttle.test.ts server/src/modules/auth/auth.routes.ts server/src/modules/auth/login-throttle.ts server/src/modules/setup/setup.security.ts && git commit -q -m \\\"$MSG1\\\" && git add .gitignore apps/renderer/src/components/splash/SplashScreen.vue apps/renderer/src/layouts/AuthLayout.vue apps/renderer/src/assets/login-residence.png apps/renderer/src/assets/login-residence.webp apps/renderer/src/assets/images/splash-background.png apps/renderer/src/assets/images/splash-background.webp && git commit -q -m \\\"$MSG2\\\" && git show --stat --format=%s HEAD~1 | cat && git show --stat --format=%s HEAD | cat && git status --short | grep -v claude-flow\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:52.041Z",
+      "lastAccessed": "2026-10-22T01:08:52.041Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:52.041Z"
+    },
+    "cmd-1792631334297": {
+      "key": "cmd-1792631334297",
+      "value": "{\"command\":\"git log --oneline --format=\\\"%h %ad %s\\\" --date=short -- tools/cloudflared/cloudflared.exe | head -3; git log --oneline --format=\\\"%h %ad %s\\\" --date=short -- server/data/backups/*.dump | head -3; git ls-files -s tools/cloudflared/cloudflared.exe; grep -rln \\\"removal-inventory\\\\|removal-rehearsal\\\" server package.json docs 2>/dev/null | grep -v node_modules | head; grep -n \\\"removalTestContext\\\\|import\\\" server/scripts/removal-backup.test.ts | head -5\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:54.297Z",
+      "lastAccessed": "2026-10-22T01:08:54.297Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:54.297Z"
+    },
+    "cmd-1792631337662": {
+      "key": "cmd-1792631337662",
+      "value": "{\"command\":\"grep -n \\\"as never\\\" server/src/modules/backup/backup.service.ts; grep -c \\\"^\\\\s*[a-zA-Z]*: \\\\(text\\\\|numeric\\\\|integer\\\\|bigint\\\\|boolean\\\\|jsonb\\\\|timestamp\\\\|bigserial\\\\)(\\\" <(sed -n '185,248p' server/src/infrastructure/database/schema.ts); grep -n \\\"z.coerce.boolean\\\" server/src/modules/*/*.schema.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:08:57.662Z",
+      "lastAccessed": "2026-10-22T01:08:57.662Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:08:57.662Z"
+    },
+    "cmd-1792631341963": {
+      "key": "cmd-1792631341963",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/desktop && node -e '\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:09:01.963Z",
+      "lastAccessed": "2026-10-22T01:09:01.963Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:09:01.963Z"
+    },
+    "cmd-1792631344638": {
+      "key": "cmd-1792631344638",
+      "value": "{\"command\":\"grep -n \\\"Content-Security-Policy\\\" apps/renderer/index.html apps/renderer/splash.html; grep -rn \\\"v-html\\\" apps/renderer/src --include=*.vue | head -5\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:09:04.638Z",
+      "lastAccessed": "2026-10-22T01:09:04.638Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:09:04.638Z"
+    },
+    "cmd-1792631346305": {
+      "key": "cmd-1792631346305",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer && grep -rn \\\"mdi/font\\\\|vuetify/styles\\\\|from \\\\\\\"vuetify\\\\|vuetify/components\\\\|vuetify/directives\\\\|tailwind\\\" src/main.ts src/plugins 2>/dev/null | head; ls src; grep -n \\\"@font-face\\\" -A6 node_modules/@mdi/font/css/materialdesignicons.css | head -12\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:09:06.305Z",
+      "lastAccessed": "2026-10-22T01:09:06.305Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:09:06.305Z"
+    },
+    "cmd-1792631350370": {
+      "key": "cmd-1792631350370",
+      "value": "{\"command\":\"grep -rn \\\"manifest\\\" --include=*.js --include=*.mjs --include=*.ts --include=*.json -l . 2>/dev/null | grep -v node_modules | grep -v \\\"/dist/\\\" | head; sed -n 150,175p apps/desktop/src/main.js; grep '\\\"electron\\\"' apps/desktop/package.json\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:09:10.370Z",
+      "lastAccessed": "2026-10-22T01:09:10.370Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:09:10.370Z"
+    },
+    "cmd-1792631350683": {
+      "key": "cmd-1792631350683",
+      "value": "{\"command\":\"grep -n \\\"escape\\\\|&lt;\\\\|replace(/</\\\" apps/renderer/src/utils/exportProperty.ts apps/renderer/src/platform/*.ts | head -5; grep -rn \\\"export async function exportPdf\\\\|export function exportPdf\\\" -A 12 apps/renderer/src/utils/*.ts | head -20\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:09:10.683Z",
+      "lastAccessed": "2026-10-22T01:09:10.683Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:09:10.683Z"
+    },
+    "cmd-1792631354798": {
+      "key": "cmd-1792631354798",
+      "value": "{\"command\":\"grep -rn \\\"chromium\\\" apps/desktop/package.json apps/desktop/src 2>/dev/null | head -5; ls -la apps/desktop/release 2>/dev/null | head; grep -n \\\"manifest\\\" scripts/assert-production-assets.mjs | head -5\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:09:14.798Z",
+      "lastAccessed": "2026-10-22T01:09:14.798Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:09:14.798Z"
+    },
+    "cmd-1792631355026": {
+      "key": "cmd-1792631355026",
+      "value": "{\"command\":\"grep -n \\\"export async function prepareDatabase\\\" -A 30 server/src/infrastructure/database/startup.ts | grep -n \\\"try\\\\|catch\\\\|finally\\\" | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:09:15.026Z",
+      "lastAccessed": "2026-10-22T01:09:15.026Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:09:15.026Z"
+    },
+    "cmd-1792631357952": {
+      "key": "cmd-1792631357952",
+      "value": "{\"command\":\"grep -n \\\"prepareDatabase\\\\|catch\\\\|try {\\\" server/src/infrastructure/database/startup.ts | head -15\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:09:17.952Z",
+      "lastAccessed": "2026-10-22T01:09:17.952Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:09:17.952Z"
+    },
+    "cmd-1792631360181": {
+      "key": "cmd-1792631360181",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 40,75p components/properties/PropertiesTable.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:09:20.181Z",
+      "lastAccessed": "2026-10-22T01:09:20.181Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:09:20.181Z"
+    },
+    "cmd-1792631360628": {
+      "key": "cmd-1792631360628",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && cat scripts/assert-production-assets.mjs\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:09:20.628Z",
+      "lastAccessed": "2026-10-22T01:09:20.628Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:09:20.628Z"
+    },
+    "cmd-1792631364387": {
+      "key": "cmd-1792631364387",
+      "value": "{\"command\":\"grep -rn \\\"rate\\\\|attempt\\\\|lockout\\\\|failed_login\\\\|throttle\\\" server/src/modules/auth/*.ts | head -5\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:09:24.387Z",
+      "lastAccessed": "2026-10-22T01:09:24.387Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:09:24.387Z"
+    },
+    "cmd-1792631370434": {
+      "key": "cmd-1792631370434",
+      "value": "{\"command\":\"du -sh server/drizzle server/drizzle/meta; ls server/drizzle | head; du -sh node_modules/.pnpm/nodemailer@*/node_modules/nodemailer/lib 2>/dev/null; ls apps/desktop/node_modules 2>/dev/null\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:09:30.434Z",
+      "lastAccessed": "2026-10-22T01:09:30.434Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:09:30.434Z"
+    },
+    "cmd-1792631374429": {
+      "key": "cmd-1792631374429",
+      "value": "{\"command\":\"sed -n 14,35p server/src/modules/documents/documents.repository.ts; grep -n \\\"export const personDocuments\\\\|export const documents = \\\\|pgTable(\\\\\\\"person_documents\\\\\\\"\\\\|pgTable(\\\\\\\"documents\\\\\\\"\\\" server/src/infrastructure/database/schema.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:09:34.429Z",
+      "lastAccessed": "2026-10-22T01:09:34.429Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:09:34.429Z"
+    },
+    "cmd-1792631376139": {
+      "key": "cmd-1792631376139",
+      "value": "{\"command\":\"git log --oneline --name-status -3 -- server/drizzle | head -20; grep -n \\\"0001\\\\|0002\\\\|0003\\\" server/src/infrastructure/database/run-migrations.ts | head -5\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:09:36.139Z",
+      "lastAccessed": "2026-10-22T01:09:36.139Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:09:36.139Z"
+    },
+    "cmd-1792631379281": {
+      "key": "cmd-1792631379281",
+      "value": "{\"command\":\"grep -n \\\"identityDocuments\\\\|personDocuments\\\" server/src/modules/documents/documents.repository.ts | head -3; grep -n \\\"pgTable(\\\\s*$\\\\|pgTable(\\\\\\\"\\\" server/src/infrastructure/database/schema.ts | head -40\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:09:39.281Z",
+      "lastAccessed": "2026-10-22T01:09:39.281Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:09:39.281Z"
+    },
+    "cmd-1792631380975": {
+      "key": "cmd-1792631380975",
+      "value": "{\"command\":\"grep -n \\\"0003\\\\|0001\\\\|0002\\\\|remove_contract\\\\|outstanding_alex\\\\|approvedRetirement\\\" server/scripts/*.ts server/scripts/*.mjs | cut -c1-200 | head -10\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:09:40.975Z",
+      "lastAccessed": "2026-10-22T01:09:40.975Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:09:40.975Z"
+    },
+    "cmd-1792631387640": {
+      "key": "cmd-1792631387640",
+      "value": "{\"command\":\"pnpm --filter @dalaly/renderer exec vite build > \\\"$TEMP/r.log\\\" 2>&1; grep -iE \\\"warn|error|MDI\\\" \\\"$TEMP/r.log\\\" | head; ls apps/renderer/dist/assets | grep -i materialdesign; grep -o '@font-face{font-family:\\\"Material Design Icons\\\"[^}]*}' apps/renderer/dist/assets/*.css; du -sb apps/renderer/dist; node scripts/assert-production-assets.mjs\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:09:47.640Z",
+      "lastAccessed": "2026-10-22T01:09:47.640Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:09:47.640Z"
+    },
+    "cmd-1792631389485": {
+      "key": "cmd-1792631389485",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && cat utils/format.ts | head -56\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:09:49.485Z",
+      "lastAccessed": "2026-10-22T01:09:49.485Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:09:49.485Z"
+    },
+    "cmd-1792631395648": {
+      "key": "cmd-1792631395648",
+      "value": "{\"command\":\"grep -o 'font-family:Material Design Icons[^}]*}\\\\|font-family:\\\"Material Design Icons\\\";src[^}]*}' apps/renderer/dist/assets/*.css | head -3\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:09:55.648Z",
+      "lastAccessed": "2026-10-22T01:09:55.648Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:09:55.648Z"
+    },
+    "cmd-1792631402358": {
+      "key": "cmd-1792631402358",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && cat composables/useThemeMode.ts; grep -rn \\\"useThemeMode()\\\" --include=*.vue .\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:10:02.358Z",
+      "lastAccessed": "2026-10-22T01:10:02.358Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:10:02.358Z"
+    },
+    "cmd-1792631404007": {
+      "key": "cmd-1792631404007",
+      "value": "{\"command\":\"npx prettier --write apps/renderer/vite.config.ts >/dev/null 2>&1; git add apps/renderer/vite.config.ts scripts/assert-production-assets.mjs && git commit -q -F - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:10:04.007Z",
+      "lastAccessed": "2026-10-22T01:10:04.007Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:10:04.007Z"
+    },
+    "cmd-1792631410144": {
+      "key": "cmd-1792631410144",
+      "value": "{\"command\":\"git show --stat --format='%h %ad %s' eb63ea4 | cat; ls server/drizzle server/drizzle/meta; cat server/drizzle/meta/_journal.json; git log --format='%h %ad %s' --date=short -- server/drizzle | cat\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:10:10.144Z",
+      "lastAccessed": "2026-10-22T01:10:10.144Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:10:10.144Z"
+    },
+    "cmd-1792631410546": {
+      "key": "cmd-1792631410546",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 1,70p components/app/AppSidebar.vue | grep -n \\\"rail\\\\|localStorage\\\\|defineModel\\\\|expand-on-hover\\\\|expandOnHover\\\"; grep -n \\\"expand-on-hover\\\\|:rail\\\\|v-model\\\" components/app/AppSidebar.vue | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:10:10.546Z",
+      "lastAccessed": "2026-10-22T01:10:10.546Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:10:10.546Z"
+    },
+    "cmd-1792631418591": {
+      "key": "cmd-1792631418591",
+      "value": "{\"command\":\"git show eb63ea4 -- server/drizzle/meta/_journal.json | cat; sed -n 1,140p server/src/infrastructure/database/run-migrations.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:10:18.591Z",
+      "lastAccessed": "2026-10-22T01:10:18.591Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:10:18.591Z"
+    },
+    "cmd-1792631421961": {
+      "key": "cmd-1792631421961",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer && for f in dist/assets/main-*.js dist/assets/_plugin-vue_export-helper-*.js; do echo \\\"$f: intlify=$(grep -o 'intlify' $f | wc -l) VDataTable=$(grep -o 'VDataTable' $f | wc -l) VColorPicker=$(grep -o 'VColorPicker' $f | wc -l) VCalendar=$(grep -o 'VCalendar' $f | wc -l) VTreeview=$(grep -o 'VTreeview' $f | wc -l) router=$(grep -o 'vue-router' $f | wc -l)\\\"; done; grep -rhoE \\\"<v-[a-z-]+\\\" src --include=*.vue | sort -u | tr '\\\\n' ' '\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:10:21.961Z",
+      "lastAccessed": "2026-10-22T01:10:21.961Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:10:21.961Z"
+    },
+    "cmd-1792631429494": {
+      "key": "cmd-1792631429494",
+      "value": "{\"command\":\"grep -rln \\\"0003_remove_contract_system\\\\|0001_contract_studio\\\\|approvedRetirement\\\" server/scripts server/src docs CLAUDE.md | cat; grep -c \\\"uq_properties_plot_identity\\\\|gin_trgm\\\\|pg_trgm\\\" server/drizzle/0000_remarkable_shinobi_shaw.sql; git show 152c7a5 --stat | grep drizzle | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:10:29.494Z",
+      "lastAccessed": "2026-10-22T01:10:29.494Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:10:29.494Z"
+    },
+    "cmd-1792631440965": {
+      "key": "cmd-1792631440965",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && grep -n \\\"onMounted(() => void load())\\\" components/rentals/RentalImages.vue; grep -n \\\"v-skeleton-loader\\\" components/properties/PropertiesTable.vue components/rentals/RentalTable.vue; grep -n \\\"rentPeriodLabels: Record\\\" utils/excel.ts; grep -n \\\"as unknown as\\\" components/properties/PropertyFilters.vue components/rentals/RentalFilters.vue; grep -n \\\"loadLocations()\\\" components/rentals/RentalFilters.vue pages/RentalsPage.vue; grep -n \\\"formatAmenities\\\\|export function isWebDemo\\\\|export const isWebDemo\\\\|isCaptureMode\\\" utils/amenities.ts platform/index.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:10:40.965Z",
+      "lastAccessed": "2026-10-22T01:10:40.965Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:10:40.965Z"
+    },
+    "cmd-1792631441730": {
+      "key": "cmd-1792631441730",
+      "value": "{\"command\":\"sed -n 260,300p apps/desktop/src/main.js; grep -n \\\"log\\\\.\\\\(transports\\\\|initialize\\\\)\\\\|electron-log\\\" apps/desktop/src/*.js | head; grep -rn \\\"token=\\\" apps/renderer/src/services | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:10:41.730Z",
+      "lastAccessed": "2026-10-22T01:10:41.730Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:10:41.730Z"
+    },
+    "cmd-1792631445248": {
+      "key": "cmd-1792631445248",
+      "value": "{\"command\":\"grep -rn \\\"\\\\.name ||\\\\|\\\\.name ??\\\" apps/renderer/src --include=*.vue --include=*.ts | head; grep -rn \\\"name == null\\\\|tableName\\\" server/src/shared/utils/case.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:10:45.248Z",
+      "lastAccessed": "2026-10-22T01:10:45.248Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:10:45.248Z"
+    },
+    "cmd-1792631461377": {
+      "key": "cmd-1792631461377",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server && cat src/index.ts | head -60; grep -rn \\\"statusCode = 403\\\\|statusCode: 403\\\\|statusCode = 4\\\" src | head; grep -rn \\\"buildServer(\\\" scripts src | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:11:01.377Z",
+      "lastAccessed": "2026-10-22T01:11:01.377Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:11:01.377Z"
+    },
+    "cmd-1792631465193": {
+      "key": "cmd-1792631465193",
+      "value": "{\"command\":\"grep -rn \\\"403\\\" src --include=*.ts | grep -v \\\"code(403)\\\" | head; grep -rn \\\"23505\\\" src | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:11:05.193Z",
+      "lastAccessed": "2026-10-22T01:11:05.193Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:11:05.193Z"
+    },
+    "cmd-1792631515083": {
+      "key": "cmd-1792631515083",
+      "value": "{\"command\":\"npx prettier --write src/server.ts >/dev/null 2>&1; pnpm exec tsc -p tsconfig.json --noEmit && echo TSC-OK; pnpm test 2>&1 | grep -E \\\"^# (pass|fail)|^not ok\\\" ; cat > \\\"$TEMP/logcheck.ts\\\" <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:11:55.083Z",
+      "lastAccessed": "2026-10-22T01:11:55.083Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:11:55.083Z"
+    },
+    "cmd-1792631538770": {
+      "key": "cmd-1792631538770",
+      "value": "{\"command\":\"npx prettier --write src/server.ts >/dev/null 2>&1; pnpm exec tsc -p tsconfig.json --noEmit && echo TSC-OK; mv \\\"$TEMP/logcheck.ts\\\" scripts/.logcheck.tmp.mts 2>/dev/null; sed -i 's#await import(process.argv\\\\[2\\\\])#await import(\\\"../src/server.js\\\")#' scripts/.logcheck.tmp.mts; pnpm exec tsx scripts/.logcheck.tmp.mts 2>&1 | grep -v \\\"^npm warn\\\" | cut -c1-300; echo \\\"token occurrences: $(pnpm exec tsx scripts/.logcheck.tmp.mts 2>&1 | grep -c SECRET-TOKEN)\\\"; rm scripts/.logcheck.tmp.mts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:12:18.770Z",
+      "lastAccessed": "2026-10-22T01:12:18.770Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:12:18.770Z"
+    },
+    "cmd-1792631552170": {
+      "key": "cmd-1792631552170",
+      "value": "{\"command\":\"pnpm test 2>&1 | grep -E \\\"^# (pass|fail)|^not ok\\\"; cd .. && git add server/src/server.ts server/scripts/setup-security.test.ts && git commit -q -F - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:12:32.170Z",
+      "lastAccessed": "2026-10-22T01:12:32.170Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:12:32.170Z"
+    },
+    "cmd-1792631566446": {
+      "key": "cmd-1792631566446",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/desktop/src && sed -n 95,185p backup.js; grep -n \\\"whenReady\\\\|app.on(\\\\|before-quit\\\\|requestSingleInstance\\\\|mainWindow =\\\" main.js | head -20\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:12:46.446Z",
+      "lastAccessed": "2026-10-22T01:12:46.446Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:12:46.446Z"
+    },
+    "cmd-1792631578212": {
+      "key": "cmd-1792631578212",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && sed -n 480,525p apps/desktop/src/main.js; grep -n \\\"spawn\\\\|userData\\\\|user-data-dir\\\\|APPDATA\\\\|setPath\\\" server/scripts/startup-electron.mjs apps/desktop/src/main.js | head -20\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:12:58.212Z",
+      "lastAccessed": "2026-10-22T01:12:58.212Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:12:58.212Z"
+    },
+    "cmd-1792631596454": {
+      "key": "cmd-1792631596454",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/desktop && sed -n 1,20p src/backup.js\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:13:16.454Z",
+      "lastAccessed": "2026-10-22T01:13:16.454Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:13:16.454Z"
+    },
+    "cmd-1792631603967": {
+      "key": "cmd-1792631603967",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && npx prettier --check apps/desktop/src/main.js apps/desktop/src/backup.js; pnpm --filter @dalaly/desktop typecheck 2>&1 | tail -1\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:13:23.967Z",
+      "lastAccessed": "2026-10-22T01:13:23.967Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:13:23.967Z"
+    },
+    "cmd-1792631612324": {
+      "key": "cmd-1792631612324",
+      "value": "{\"command\":\"for f in apps/desktop/src/main.js apps/desktop/src/backup.js; do git show HEAD:$f | npx prettier --stdin-filepath $f 2>/dev/null | diff -q - <(git show HEAD:$f) >/dev/null && echo \\\"$f clean at HEAD\\\" || echo \\\"$f NOT clean at HEAD\\\"; done; npx prettier --write apps/desktop/src/main.js apps/desktop/src/backup.js >/dev/null 2>&1; git diff --stat | cat\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:13:32.324Z",
+      "lastAccessed": "2026-10-22T01:13:32.324Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:13:32.324Z"
+    },
+    "cmd-1792631618852": {
+      "key": "cmd-1792631618852",
+      "value": "{\"command\":\"sed -n 15,40p server/scripts/startup-electron.mjs\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:13:38.852Z",
+      "lastAccessed": "2026-10-22T01:13:38.852Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:13:38.852Z"
+    },
+    "cmd-1792631623866": {
+      "key": "cmd-1792631623866",
+      "value": "{\"command\":\"(time pnpm --filter @dalaly/server test:startup:electron) > \\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad/startup-electron.log\\\" 2>&1; tail -30 \\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad/startup-electron.log\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:13:43.866Z",
+      "lastAccessed": "2026-10-22T01:13:43.866Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:13:43.866Z"
+    },
+    "cmd-1792631631514": {
+      "key": "cmd-1792631631514",
+      "value": "{\"command\":\"sed -n 545,565p server/src/modules/backup/backup.service.ts; echo ----; sed -n 105,125p server/src/infrastructure/database/seed.ts; echo ----; cat server/src/shared/utils/case.ts | head -30; echo ----; sed -n 155,170p apps/renderer/src/components/properties/PropertyImages.vue; sed -n 240,250p apps/renderer/src/components/properties/PropertyImages.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:13:51.514Z",
+      "lastAccessed": "2026-10-22T01:13:51.514Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:13:51.514Z"
+    },
+    "cmd-1792631647114": {
+      "key": "cmd-1792631647114",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src/components/properties && grep -n \\\"primaryOnly\\\\|canManage\\\\|onPaste\\\\|setPrimary\\\\|pending\\\" PropertyImages.vue | head -40; grep -n \\\"primary-only\\\\|primaryOnly\\\\|paste\\\\|setPrimary\\\" ../rentals/RentalImages.vue | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:14:07.114Z",
+      "lastAccessed": "2026-10-22T01:14:07.114Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:14:07.114Z"
+    },
+    "cmd-1792631651397": {
+      "key": "cmd-1792631651397",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && grep -rn \\\"<PropertyImages\\\" --include=*.vue . | cat\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:14:11.397Z",
+      "lastAccessed": "2026-10-22T01:14:11.397Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:14:11.397Z"
+    },
+    "cmd-1792631668583": {
+      "key": "cmd-1792631668583",
+      "value": "{\"command\":\"grep -n \\\"const props\\\\|defineProps\\\" components/properties/PropertyImages.vue; sed -n 145,160p components/properties/PropertyDetailsPanel.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:14:28.583Z",
+      "lastAccessed": "2026-10-22T01:14:28.583Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:14:28.583Z"
+    },
+    "cmd-1792631672047": {
+      "key": "cmd-1792631672047",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src/modules/backup && sed -n 1,40p backup.service.ts | grep -n \\\"import\\\" ; sed -n 520,545p backup.service.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:14:32.047Z",
+      "lastAccessed": "2026-10-22T01:14:32.047Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:14:32.047Z"
+    },
+    "cmd-1792631677353": {
+      "key": "cmd-1792631677353",
+      "value": "{\"command\":\"grep -n \\\"^const \\\\|^export const \\\\|^type \\\" backup.service.ts | head -15\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:14:37.353Z",
+      "lastAccessed": "2026-10-22T01:14:37.353Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:14:37.353Z"
+    },
+    "cmd-1792631688849": {
+      "key": "cmd-1792631688849",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && npx prettier --write server/src/modules/backup/backup.service.ts apps/renderer/src/components/properties/PropertyImages.vue >/dev/null 2>&1; pnpm --filter @dalaly/server typecheck 2>&1 | tail -2; git diff --stat -- server apps | cat; ls server/scripts | grep -i backup; grep -n \\\"restoreBackup\\\\|test(\\\" server/scripts/removal-backup.test.ts | head -20\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:14:48.849Z",
+      "lastAccessed": "2026-10-22T01:14:48.849Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:14:48.849Z"
+    },
+    "cmd-1792631692081": {
+      "key": "cmd-1792631692081",
+      "value": "{\"command\":\"tail -30 \\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad/startup-electron.log\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:14:52.081Z",
+      "lastAccessed": "2026-10-22T01:14:52.081Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:14:52.081Z"
+    },
+    "cmd-1792631713071": {
+      "key": "cmd-1792631713071",
+      "value": "{\"command\":\"S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\" && cat > \\\"$S/second-instance.mjs\\\" <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:15:13.071Z",
+      "lastAccessed": "2026-10-22T01:15:13.071Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:15:13.071Z"
+    },
+    "cmd-1792631726787": {
+      "key": "cmd-1792631726787",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server && cat scripts/removal-test-context.ts | head -50; sed -n 1,30p scripts/removal-backup.test.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:15:26.787Z",
+      "lastAccessed": "2026-10-22T01:15:26.787Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:15:26.787Z"
+    },
+    "cmd-1792631734079": {
+      "key": "cmd-1792631734079",
+      "value": "{\"command\":\"sed -n 205,240p scripts/removal-backup.test.ts; grep -n \\\"export async function exportBackup\\\\|export async function restoreBackup\\\" -A6 src/modules/backup/backup.service.ts | head -20\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:15:34.079Z",
+      "lastAccessed": "2026-10-22T01:15:34.079Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:15:34.079Z"
+    },
+    "cmd-1792631752013": {
+      "key": "cmd-1792631752013",
+      "value": "{\"command\":\"echo \\\"== with fix ==\\\" && pnpm exec tsx --test scripts/backup-restore-large.test.ts 2>&1 | grep -E \\\"^# (pass|fail)|not ok|error|Error\\\" | head -8; git stash push -q src/modules/backup/backup.service.ts && echo \\\"== without fix ==\\\" && pnpm exec tsx --test scripts/backup-restore-large.test.ts 2>&1 | grep -E \\\"^# (pass|fail)|not ok|bind|parameter\\\" | head -6; git stash pop -q && git diff --stat src/modules/backup/backup.service.ts | cat; psql --version >/dev/null 2>&1; PGPASSWORD= true\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:15:52.013Z",
+      "lastAccessed": "2026-10-22T01:15:52.013Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:15:52.013Z"
+    },
+    "cmd-1792631758639": {
+      "key": "cmd-1792631758639",
+      "value": "{\"command\":\"cat > scripts/.dbcheck.tmp.mts <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:15:58.639Z",
+      "lastAccessed": "2026-10-22T01:15:58.639Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:15:58.639Z"
+    },
+    "cmd-1792631764093": {
+      "key": "cmd-1792631764093",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/data/removal-tests && ls -d *_large* && rm -rf ./dalaly_removal_test_*_large && ls | wc -l\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:16:04.093Z",
+      "lastAccessed": "2026-10-22T01:16:04.093Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:16:04.093Z"
+    },
+    "cmd-1792631776009": {
+      "key": "cmd-1792631776009",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && node -e '\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:16:16.009Z",
+      "lastAccessed": "2026-10-22T01:16:16.009Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:16:16.009Z"
+    },
+    "cmd-1792631784033": {
+      "key": "cmd-1792631784033",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server && pnpm exec tsx --test scripts/removal-backup.test.ts 2>&1 | grep -E \\\"^# (pass|fail)|^not ok|^    not ok\\\" | head; ls data/removal-tests | wc -l\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:16:24.033Z",
+      "lastAccessed": "2026-10-22T01:16:24.033Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:16:24.033Z"
+    },
+    "cmd-1792631788114": {
+      "key": "cmd-1792631788114",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/data/removal-tests && newest=$(ls -td */ | head -1) && echo \\\"$newest\\\" && case \\\"$newest\\\" in dalaly_removal_test_*) rm -rf \\\"./$newest\\\";; esac; ls | wc -l\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:16:28.114Z",
+      "lastAccessed": "2026-10-22T01:16:28.114Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:16:28.114Z"
+    },
+    "cmd-1792631798842": {
+      "key": "cmd-1792631798842",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && git add server/src/modules/backup/backup.service.ts server/scripts/backup-restore-large.test.ts server/package.json && git commit -q -F - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:16:38.842Z",
+      "lastAccessed": "2026-10-22T01:16:38.842Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:16:38.842Z"
+    },
+    "cmd-1792631802787": {
+      "key": "cmd-1792631802787",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src/infrastructure/database && sed -n 1,104p seed.ts | grep -n \\\"reset\\\\|seeded\\\\|function\\\\|const seed\\\\|import\\\" | head -40; grep -n \\\"seededPropertyCodes\\\\|properties.code\\\\|code:\\\" seed.ts | head; grep -n \\\"\\\\-\\\\-reset\\\\|resetSeed\\\\|argv\\\" seed.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:16:42.787Z",
+      "lastAccessed": "2026-10-22T01:16:42.787Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:16:42.787Z"
+    },
+    "cmd-1792631806029": {
+      "key": "cmd-1792631806029",
+      "value": "{\"command\":\"sed -n 125,145p seed.ts; sed -n 880,960p seed.ts; grep -n \\\"SEED_PROPERTIES\\\\|createProperty(\\\" seed.ts | head; grep -n \\\"code\\\" seed.data.ts | grep -i \\\"P-\\\\|prop\\\" | head -5\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:16:46.029Z",
+      "lastAccessed": "2026-10-22T01:16:46.029Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:16:46.029Z"
+    },
+    "cmd-1792631808643": {
+      "key": "cmd-1792631808643",
+      "value": "{\"command\":\"sed -n 375,425p seed.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:16:48.643Z",
+      "lastAccessed": "2026-10-22T01:16:48.643Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:16:48.643Z"
+    },
+    "cmd-1792631841411": {
+      "key": "cmd-1792631841411",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && npx prettier --write server/src/infrastructure/database/seed.ts >/dev/null 2>&1; pnpm --filter @dalaly/server typecheck 2>&1 | grep -E \\\"error|TS\\\" | head -5; echo TC-DONE; git diff --stat server/src/infrastructure/database/seed.ts | cat\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:17:21.411Z",
+      "lastAccessed": "2026-10-22T01:17:21.411Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:17:21.411Z"
+    },
+    "cmd-1792631866139": {
+      "key": "cmd-1792631866139",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server && DBN=\\\"dalaly_seedguard_$(date +%s)\\\" && export DB_NAME=\\\"$DBN\\\" && cat > scripts/.sql.tmp.mts <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:17:46.139Z",
+      "lastAccessed": "2026-10-22T01:17:46.139Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:17:46.139Z"
+    },
+    "cmd-1792631871100": {
+      "key": "cmd-1792631871100",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && git status --short | grep -v \\\"^ M .claude-flow\\\\|^?? .claude-flow\\\\|^?? .swarm\\\" | head -20; git status --short --ignored server/data | head -20\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:17:51.100Z",
+      "lastAccessed": "2026-10-22T01:17:51.100Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:17:51.100Z"
+    },
+    "cmd-1792631879963": {
+      "key": "cmd-1792631879963",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/data && find . -newermt \\\"-20 minutes\\\" -type f -not -path \\\"./removal-tests/*\\\" | awk -F/ '{print $2\\\"/\\\"$3}' | sort | uniq -c; echo; find . -newermt \\\"-20 minutes\\\" -type f -not -path \\\"./removal-tests/*\\\" | wc -l; echo \\\"untracked in git:\\\"; cd /d/dev_projects/dalaly && git status --short --untracked-files=all server/data | wc -l; echo \\\"older untracked/ignored files in those dirs:\\\"; find server/data/images server/data/documents -type f ! -newermt \\\"-20 minutes\\\" | wc -l\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:17:59.963Z",
+      "lastAccessed": "2026-10-22T01:17:59.963Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:17:59.963Z"
+    },
+    "cmd-1792631887015": {
+      "key": "cmd-1792631887015",
+      "value": "{\"command\":\"git status --short --untracked-files=all server/data | sed 's/^?? //' > \\\"$TEMP/seed-files.txt\\\" && wc -l < \\\"$TEMP/seed-files.txt\\\" && while read -r f; do rm -- \\\"$f\\\"; done < \\\"$TEMP/seed-files.txt\\\" && find server/data/images -mindepth 1 -type d -empty -newermt \\\"-25 minutes\\\" -print -delete | wc -l; git status --short --untracked-files=all server/data | wc -l; find server/data/images -type f | wc -l\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:18:07.015Z",
+      "lastAccessed": "2026-10-22T01:18:07.015Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:18:07.015Z"
+    },
+    "cmd-1792631893001": {
+      "key": "cmd-1792631893001",
+      "value": "{\"command\":\"git add server/src/infrastructure/database/seed.ts && git commit -q -F - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:18:13.001Z",
+      "lastAccessed": "2026-10-22T01:18:13.001Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:18:13.001Z"
+    },
+    "cmd-1792631906070": {
+      "key": "cmd-1792631906070",
+      "value": "{\"command\":\"cp pnpm-lock.yaml \\\"$TEMP/lock.bak\\\" && pnpm install --lockfile-only --frozen-lockfile 2>&1 | grep -v \\\"npm warn\\\" | tail -5; git diff --stat pnpm-lock.yaml | cat; cat pnpm-workspace.yaml\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:18:26.070Z",
+      "lastAccessed": "2026-10-22T01:18:26.070Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:18:26.070Z"
+    },
+    "cmd-1792631910215": {
+      "key": "cmd-1792631910215",
+      "value": "{\"command\":\"pnpm install --lockfile-only --frozen-lockfile 2>&1 | grep -iE \\\"ERR|outdated|up to date|Lockfile|Done\\\" | head -5; echo \\\"exit=${PIPESTATUS[0]}\\\"; git status --short pnpm-lock.yaml\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:18:30.215Z",
+      "lastAccessed": "2026-10-22T01:18:30.215Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:18:30.215Z"
+    },
+    "cmd-1792631915234": {
+      "key": "cmd-1792631915234",
+      "value": "{\"command\":\"git diff pnpm-lock.yaml | head -5; cmp -s pnpm-lock.yaml \\\"$TEMP/lock.bak\\\" && echo \\\"identical bytes to before\\\" || (cp \\\"$TEMP/lock.bak\\\" pnpm-lock.yaml && echo \\\"restored original bytes\\\"); git status --short pnpm-lock.yaml\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:18:35.234Z",
+      "lastAccessed": "2026-10-22T01:18:35.234Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:18:35.234Z"
+    },
+    "cmd-1792631927074": {
+      "key": "cmd-1792631927074",
+      "value": "{\"command\":\"grep -n \\\"three\\\\|Tests\\\\|pnpm test\\\" CLAUDE.md README.md | head; grep -n \\\"Every route except\\\\|requireLocalSetup\\\" docs/ARCHITECTURE.md\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:18:47.074Z",
+      "lastAccessed": "2026-10-22T01:18:47.074Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:18:47.074Z"
+    },
+    "cmd-1792631929702": {
+      "key": "cmd-1792631929702",
+      "value": "{\"command\":\"sed -n 18,30p docs/ARCHITECTURE.md; sed -n 61,80p README.md\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:18:49.702Z",
+      "lastAccessed": "2026-10-22T01:18:49.702Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:18:49.702Z"
+    },
+    "cmd-1792631943041": {
+      "key": "cmd-1792631943041",
+      "value": "{\"command\":\"npx prettier --check docs/ARCHITECTURE.md README.md .github/workflows/ci.yml 2>&1 | grep -v \\\"npm warn\\\"; git add .github/workflows/ci.yml && git commit -q -F - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:19:03.041Z",
+      "lastAccessed": "2026-10-22T01:19:03.041Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:19:03.041Z"
+    },
+    "cmd-1792631949632": {
+      "key": "cmd-1792631949632",
+      "value": "{\"command\":\"for f in docs/ARCHITECTURE.md README.md; do git show HEAD:$f | npx prettier --stdin-filepath $f 2>/dev/null | diff -q - <(git show HEAD:$f) >/dev/null && echo \\\"$f clean at HEAD\\\" || echo \\\"$f NOT clean at HEAD\\\"; done\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:19:09.632Z",
+      "lastAccessed": "2026-10-22T01:19:09.632Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:19:09.632Z"
+    },
+    "cmd-1792631954445": {
+      "key": "cmd-1792631954445",
+      "value": "{\"command\":\"npx prettier --write docs/ARCHITECTURE.md >/dev/null 2>&1; git diff docs/ARCHITECTURE.md | cat\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:19:14.445Z",
+      "lastAccessed": "2026-10-22T01:19:14.445Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:19:14.445Z"
+    },
+    "cmd-1792631960960": {
+      "key": "cmd-1792631960960",
+      "value": "{\"command\":\"S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\" && pnpm build > \\\"$S/build-after.log\\\" 2>&1 && echo BUILD-OK && du -sb apps/renderer/dist server/dist && ls -laS apps/renderer/dist/assets | head -8 && cd apps/desktop && npx electron-builder --win --dir --x64 --publish never -c.directories.output=\\\"$S/pkg-after\\\" > \\\"$S/pkg-after.log\\\" 2>&1; rm -f package-lock.json; P=\\\"$S/pkg-after/win-unpacked\\\"; du -sb \\\"$P\\\"; cd \\\"$P\\\" && du -sb locales resources/* ; ls locales\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:19:20.960Z",
+      "lastAccessed": "2026-10-22T01:19:20.960Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:19:20.960Z"
+    },
+    "cmd-1792632023915": {
+      "key": "cmd-1792632023915",
+      "value": "{\"command\":\"cat \\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/tasks/b6y8df37c.output\\\" | grep -v \\\"^\\\\s*$\\\" | tail -25; cd /d/dev_projects/dalaly && git status --short | grep -v claude-flow\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:20:23.915Z",
+      "lastAccessed": "2026-10-22T01:20:23.915Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:20:23.915Z"
+    },
+    "cmd-1792632047783": {
+      "key": "cmd-1792632047783",
+      "value": "{\"command\":\"npx prettier --write docs/AUDIT_AND_ROADMAP.md >/dev/null 2>&1; npx prettier --check docs/AUDIT_AND_ROADMAP.md docs/ARCHITECTURE.md 2>&1 | tail -1; git add docs/AUDIT_AND_ROADMAP.md docs/ARCHITECTURE.md CLAUDE.md README.md && git commit -q -F - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:20:47.783Z",
+      "lastAccessed": "2026-10-22T01:20:47.783Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:20:47.783Z"
+    },
+    "cmd-1792632092741": {
+      "key": "cmd-1792632092741",
+      "value": "{\"command\":\"pnpm typecheck 2>&1 | grep -E \\\"error|verified\\\" | head -5; pnpm test 2>&1 | grep -E \\\"^# (pass|fail)\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:21:32.741Z",
+      "lastAccessed": "2026-10-22T01:21:32.741Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:21:32.741Z"
+    },
+    "cmd-1792632292678": {
+      "key": "cmd-1792632292678",
+      "value": "{\"command\":\"git status --short | grep -v \\\"claude-flow\\\\|.swarm\\\"; git log --oneline main..HEAD | wc -l; git push -u origin refactor/audit-and-quick-wins 2>&1 | tail -5\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:24:52.678Z",
+      "lastAccessed": "2026-10-22T01:24:52.678Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:24:52.678Z"
+    },
+    "cmd-1792632315196": {
+      "key": "cmd-1792632315196",
+      "value": "{\"command\":\"gh pr create --repo TariqAli93/dalaly --base main --head refactor/audit-and-quick-wins --title \\\"Audit, roadmap and first batch of safety, backup and size fixes\\\" --body-file \\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad/pr-body.md\\\" 2>&1 | tail -3\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:25:15.196Z",
+      "lastAccessed": "2026-10-22T01:25:15.196Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:25:15.196Z"
+    },
+    "cmd-1792632611693": {
+      "key": "cmd-1792632611693",
+      "value": "{\"command\":\"git switch -c perf/measurement-harness main 2>&1 | tail -1 && sed -n 40,200p server/scripts/startup-electron.mjs\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:30:11.693Z",
+      "lastAccessed": "2026-10-22T01:30:11.693Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:30:11.693Z"
+    },
+    "cmd-1792632619131": {
+      "key": "cmd-1792632619131",
+      "value": "{\"command\":\"grep -n \\\"API_BASE\\\\s*=\\\" -A3 apps/renderer/src/services/api.service.ts | head; sed -n 225,262p apps/desktop/src/main.js; sed -n 380,400p apps/desktop/src/main.js; grep -n \\\"renderer-ready\\\\|startup:renderer-ready\\\" apps/desktop/src/*.js apps/renderer/src -r | head -5\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:30:19.131Z",
+      "lastAccessed": "2026-10-22T01:30:19.131Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:30:19.131Z"
+    },
+    "cmd-1792632648291": {
+      "key": "cmd-1792632648291",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server && for t in properties rentals people rental_requests purchase_requests audit_logs; do echo \\\"== $t\\\"; awk \\\"/CREATE TABLE \\\\\\\"$t\\\\\\\"/,/^\\\\);/\\\" drizzle/0000_remarkable_shinobi_shaw.sql | grep \\\"NOT NULL\\\" | grep -v \\\"DEFAULT\\\" ; done\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:30:48.291Z",
+      "lastAccessed": "2026-10-22T01:30:48.291Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:30:48.291Z"
+    },
+    "cmd-1792632654869": {
+      "key": "cmd-1792632654869",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && grep -n '\\\"status\\\"\\\\|\\\"rent_period\\\"\\\\|\\\"area_unit\\\"\\\\|\\\"pricing_method\\\"\\\\|\\\"legal_type\\\"\\\\|\\\"property_type\\\"' server/drizzle/0000_remarkable_shinobi_shaw.sql | grep -E \\\"properties|rentals|DEFAULT\\\" | head -12; grep -rhoE 'request<[^>]*>\\\\(\\\\s*`[^`]+`|request<[^>]*>\\\\(\\\\s*\\\"[^\\\"]+\\\"' apps/renderer/src/services | sort -u | head -40; grep -n \\\"export const PROPERTY_STATUSES\\\\|export const RENTAL_STATUSES\\\\|RENT_PERIODS =\\\" -A3 server/src/shared/*.ts | head -20\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:30:54.869Z",
+      "lastAccessed": "2026-10-22T01:30:54.869Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:30:54.869Z"
+    },
+    "cmd-1792632659883": {
+      "key": "cmd-1792632659883",
+      "value": "{\"command\":\"sed -n 1,40p apps/renderer/src/services/properties.service.ts; grep -n \\\"request\\\" apps/renderer/src/services/rentals.service.ts | head -5; grep -n \\\"request\\\" apps/renderer/src/services/people.service.ts | head -3; grep -rn \\\"matching\\\" apps/renderer/src/services/*.ts | head -3; grep -n \\\"status.*enum\\\\|STATUSES\\\" server/src/modules/properties/properties.schema.ts | head -5\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:30:59.883Z",
+      "lastAccessed": "2026-10-22T01:30:59.883Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:30:59.883Z"
+    },
+    "cmd-1792632665081": {
+      "key": "cmd-1792632665081",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && sed -n 1,50p composables/useProperties.ts | grep -n \\\"filters\\\\|status\\\\|search\\\\|listProperties\\\" | head -15; grep -n \\\"search\\\\b\\\\|search:\\\" ../../../server/src/modules/properties/properties.schema.ts | head -3; grep -n \\\"export const STATUSES\\\" -A2 ../../../server/src/shared/*.ts; grep -n \\\"RENTAL_STATUSES =\\\" -A2 ../../../server/src/shared/*.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:31:05.081Z",
+      "lastAccessed": "2026-10-22T01:31:05.081Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:31:05.081Z"
+    },
+    "cmd-1792632669049": {
+      "key": "cmd-1792632669049",
+      "value": "{\"command\":\"grep -rn \\\"STATUSES\\\\b.*=\\\\|STATUSES = \\\" server/src/shared server/src/modules/properties server/src/modules/rentals | head -5; grep -rn \\\"export const STATUSES\\\\|const STATUSES\\\" server/src | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:31:09.049Z",
+      "lastAccessed": "2026-10-22T01:31:09.049Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:31:09.049Z"
+    },
+    "cmd-1792632673409": {
+      "key": "cmd-1792632673409",
+      "value": "{\"command\":\"sed -n 1,60p server/src/shared/constants/domain.ts | grep -vE \\\"^\\\\s*//\\\" | tr -s '\\\\n' | head -60; sed -n 138,146p server/src/shared/constants/domain.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:31:13.409Z",
+      "lastAccessed": "2026-10-22T01:31:13.409Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:31:13.409Z"
+    },
+    "cmd-1792632714082": {
+      "key": "cmd-1792632714082",
+      "value": "{\"command\":\"sed -n 8,13p apps/renderer/src/services/people.service.ts; grep -n \\\"rental-requests\\\\|purchase-requests\\\" apps/renderer/src/services/requests.service.ts | head -4; grep -n \\\"RENT_PERIODS = \\\" -A3 server/src/shared/constants/domain.ts; awk '/CREATE TABLE \\\"audit_logs\\\"/,/^\\\\);/' server/drizzle/0000_remarkable_shinobi_shaw.sql\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:31:54.082Z",
+      "lastAccessed": "2026-10-22T01:31:54.082Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:31:54.082Z"
+    },
+    "cmd-1792632721507": {
+      "key": "cmd-1792632721507",
+      "value": "{\"command\":\"grep -n \\\"entityType\\\\|entity_type\\\" server/src/modules/dashboard/dashboard.repository.ts server/src/modules/audit/audit.service.ts | head -6; grep -rn \\\"recordAudit(\\\" server/src/modules/properties/*.ts | head -3\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:32:01.507Z",
+      "lastAccessed": "2026-10-22T01:32:01.507Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:32:01.507Z"
+    },
+    "cmd-1792632776899": {
+      "key": "cmd-1792632776899",
+      "value": "{\"command\":\"sed -i -E 's/\\\\$([0-9]+)::text\\\\[\\\\]\\\\[/(\\\\$\\\\1::text[])[/g' scripts/perf/lib.mjs && grep -c '::text\\\\[\\\\])\\\\[' scripts/perf/lib.mjs && grep -n 'text\\\\[\\\\]\\\\[' scripts/perf/lib.mjs | head -3\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:32:56.899Z",
+      "lastAccessed": "2026-10-22T01:32:56.899Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:32:56.899Z"
+    },
+    "cmd-1792632839001": {
+      "key": "cmd-1792632839001",
+      "value": "{\"command\":\"node -e '\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:33:59.001Z",
+      "lastAccessed": "2026-10-22T01:33:59.001Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:33:59.001Z"
+    },
+    "cmd-1792632865266": {
+      "key": "cmd-1792632865266",
+      "value": "{\"command\":\"S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\" && timeout 300 node scripts/perf/measure.mjs --app \\\"$S/pkg-baseline/win-unpacked\\\" --label smoke --properties 500 --skip-startup 2>&1 | tail -40\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:34:25.266Z",
+      "lastAccessed": "2026-10-22T01:34:25.266Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:34:25.266Z"
+    },
+    "cmd-1792632914830": {
+      "key": "cmd-1792632914830",
+      "value": "{\"command\":\"S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\" && timeout 400 node scripts/perf/measure.mjs --app \\\"$S/pkg-baseline/win-unpacked\\\" --label smoke --properties 500 --runs 1 --skip-api 2>&1 | tail -60\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:35:14.830Z",
+      "lastAccessed": "2026-10-22T01:35:14.830Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:35:14.830Z"
+    },
+    "cmd-1792632939136": {
+      "key": "cmd-1792632939136",
+      "value": "{\"command\":\"S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\" && cat > \\\"$S/child-debug.mjs\\\" <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:35:39.136Z",
+      "lastAccessed": "2026-10-22T01:35:39.136Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:35:39.136Z"
+    },
+    "cmd-1792632991350": {
+      "key": "cmd-1792632991350",
+      "value": "{\"command\":\"S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\" && timeout 400 node scripts/perf/measure.mjs --app \\\"$S/pkg-baseline/win-unpacked\\\" --label smoke --properties 500 --runs 1 --skip-api 2>&1 | grep -A9 \\\"Memory and idle CPU at login\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:36:31.350Z",
+      "lastAccessed": "2026-10-22T01:36:31.350Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:36:31.350Z"
+    },
+    "cmd-1792633000479": {
+      "key": "cmd-1792633000479",
+      "value": "{\"command\":\"S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\" && rm -f perf-results/smoke.json && node scripts/perf/measure.mjs --app \\\"$S/pkg-baseline/win-unpacked\\\" --label main-a1b5e08 > \\\"$S/perf-main.log\\\" 2>&1; echo \\\"main exit=$?\\\"; node scripts/perf/measure.mjs --app \\\"$S/pkg-after/win-unpacked\\\" --label pr2-c798039 > \\\"$S/perf-pr2.log\\\" 2>&1; echo \\\"pr2 exit=$?\\\"; tail -5 \\\"$S/perf-main.log\\\" \\\"$S/perf-pr2.log\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:36:40.479Z",
+      "lastAccessed": "2026-10-22T01:36:40.479Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:36:40.479Z"
+    },
+    "cmd-1792633013220": {
+      "key": "cmd-1792633013220",
+      "value": "{\"command\":\"cat .prettierignore; npx prettier --write scripts/perf/lib.mjs scripts/perf/measure.mjs 2>&1 | grep -v \\\"npm warn\\\"; node --check scripts/perf/lib.mjs && node --check scripts/perf/measure.mjs && echo OK\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:36:53.220Z",
+      "lastAccessed": "2026-10-22T01:36:53.220Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:36:53.220Z"
+    },
+    "cmd-1792633018108": {
+      "key": "cmd-1792633018108",
+      "value": "{\"command\":\"grep -n \\\"pnpm test\\\\b\\\\|demo:reset\\\" CLAUDE.md README.md | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:36:58.108Z",
+      "lastAccessed": "2026-10-22T01:36:58.108Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:36:58.108Z"
+    },
+    "cmd-1792633024339": {
+      "key": "cmd-1792633024339",
+      "value": "{\"command\":\"git branch --show-current; git log --oneline -3 | cat; git log --oneline -3 main | cat; git status --short | grep -v \\\"claude-flow\\\\|.swarm\\\"; git diff main --stat | cat\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:37:04.339Z",
+      "lastAccessed": "2026-10-22T01:37:04.339Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:37:04.339Z"
+    },
+    "cmd-1792633051469": {
+      "key": "cmd-1792633051469",
+      "value": "{\"command\":\"sed -n 60,82p README.md\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:37:31.469Z",
+      "lastAccessed": "2026-10-22T01:37:31.469Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:37:31.469Z"
+    },
+    "cmd-1792633060255": {
+      "key": "cmd-1792633060255",
+      "value": "{\"command\":\"grep -n \\\"Not yet measured\\\\|Phase 0\\\\|^### \\\\|^## \\\" docs/AUDIT_AND_ROADMAP.md | head -30\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:37:40.255Z",
+      "lastAccessed": "2026-10-22T01:37:40.255Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:37:40.255Z"
+    },
+    "cmd-1792633068200": {
+      "key": "cmd-1792633068200",
+      "value": "{\"command\":\"sleep 1; echo waiting\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:37:48.200Z",
+      "lastAccessed": "2026-10-22T01:37:48.200Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:37:48.200Z"
+    },
+    "cmd-1792633162846": {
+      "key": "cmd-1792633162846",
+      "value": "{\"command\":\"S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\"; grep -v \\\"^\\\\s*$\\\" \\\"$S/perf-main.log\\\" | head -60\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:39:22.846Z",
+      "lastAccessed": "2026-10-22T01:39:22.846Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:39:22.846Z"
+    },
+    "cmd-1792633179172": {
+      "key": "cmd-1792633179172",
+      "value": "{\"command\":\"grep -n \\\"SESSION_KEY\\\\|localStorage\\\\|sessionStorage\\\" apps/renderer/src/services/api.service.ts | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:39:39.172Z",
+      "lastAccessed": "2026-10-22T01:39:39.172Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:39:39.172Z"
+    },
+    "cmd-1792633317062": {
+      "key": "cmd-1792633317062",
+      "value": "{\"command\":\"S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\"; grep -v \\\"^\\\\s*$\\\" \\\"$S/perf-pr2.log\\\" | sed -n 8,40p; cd /d/dev_projects/dalaly/server && cat > scripts/.dbcheck.tmp.mts <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:41:57.062Z",
+      "lastAccessed": "2026-10-22T01:41:57.062Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:41:57.062Z"
+    },
+    "cmd-1792633329704": {
+      "key": "cmd-1792633329704",
+      "value": "{\"command\":\"S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\" && rm -f \\\"$S\\\"/perf-*.log && for round in 1 2; do for build in main pr2; do dir=$([ $build = main ] && echo pkg-baseline || echo pkg-after); node scripts/perf/measure.mjs --app \\\"$S/$dir/win-unpacked\\\" --label \\\"$build-r$round\\\" > \\\"$S/perf-$build-r$round.log\\\" 2>&1; echo \\\"$build-r$round exit=$?\\\"; done; done\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:42:09.704Z",
+      "lastAccessed": "2026-10-22T01:42:09.704Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:42:09.704Z"
+    },
+    "cmd-1792633345012": {
+      "key": "cmd-1792633345012",
+      "value": "{\"command\":\"node --check scripts/perf/compare.mjs && echo OK\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:42:25.012Z",
+      "lastAccessed": "2026-10-22T01:42:25.012Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:42:25.012Z"
+    },
+    "cmd-1792633882629": {
+      "key": "cmd-1792633882629",
+      "value": "{\"command\":\"cat \\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/tasks/brkcbh3ef.output\\\"; node scripts/perf/compare.mjs perf-results/main-r1.json perf-results/pr2-r1.json perf-results/main-r2.json perf-results/pr2-r2.json\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:51:22.629Z",
+      "lastAccessed": "2026-10-22T01:51:22.629Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:51:22.629Z"
+    },
+    "cmd-1792633900548": {
+      "key": "cmd-1792633900548",
+      "value": "{\"command\":\"node -e '\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:51:40.548Z",
+      "lastAccessed": "2026-10-22T01:51:40.548Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:51:40.548Z"
+    },
+    "cmd-1792633917069": {
+      "key": "cmd-1792633917069",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/desktop && S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\" && for b in baseline after; do (time npx electron-builder --win nsis --x64 --publish never --prepackaged \\\"$S/pkg-$b/win-unpacked\\\" -c.directories.output=\\\"$S/nsis-$b\\\") > \\\"$S/nsis-$b.log\\\" 2>&1; echo \\\"$b exit=$?\\\"; ls -la \\\"$S/nsis-$b\\\"/*.exe 2>/dev/null | awk '{print $5, $NF}'; done; rm -f package-lock.json; git -C /d/dev_projects/dalaly status --short apps/desktop\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:51:57.069Z",
+      "lastAccessed": "2026-10-22T01:51:57.069Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:51:57.069Z"
+    },
+    "cmd-1792633937965": {
+      "key": "cmd-1792633937965",
+      "value": "{\"command\":\"cat >> docs/PERFORMANCE.md <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:52:17.965Z",
+      "lastAccessed": "2026-10-22T01:52:17.965Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:52:17.965Z"
+    },
+    "cmd-1792633969762": {
+      "key": "cmd-1792633969762",
+      "value": "{\"command\":\"grep -n \\\"Owner filter and server pagination\\\" -A2 docs/AUDIT_AND_ROADMAP.md; grep -n \\\"Index migration for measured\\\" docs/AUDIT_AND_ROADMAP.md\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:52:49.762Z",
+      "lastAccessed": "2026-10-22T01:52:49.762Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:52:49.762Z"
+    },
+    "cmd-1792633978617": {
+      "key": "cmd-1792633978617",
+      "value": "{\"command\":\"grep -n \\\"search_text\\\\|trigram\\\" docs/AUDIT_AND_ROADMAP.md | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:52:58.617Z",
+      "lastAccessed": "2026-10-22T01:52:58.617Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:52:58.617Z"
+    },
+    "cmd-1792633997632": {
+      "key": "cmd-1792633997632",
+      "value": "{\"command\":\"npx prettier --write docs/PERFORMANCE.md docs/AUDIT_AND_ROADMAP.md >/dev/null 2>&1; npx prettier --check docs/PERFORMANCE.md docs/AUDIT_AND_ROADMAP.md 2>&1 | tail -1; git status --short | grep -v \\\"claude-flow\\\\|.swarm\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:53:17.632Z",
+      "lastAccessed": "2026-10-22T01:53:17.632Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:53:17.632Z"
+    },
+    "cmd-1792634008505": {
+      "key": "cmd-1792634008505",
+      "value": "{\"command\":\"git add scripts/perf/lib.mjs scripts/perf/measure.mjs scripts/perf/compare.mjs package.json .gitignore && git commit -q -F - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:53:28.505Z",
+      "lastAccessed": "2026-10-22T01:53:28.505Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:53:28.505Z"
+    },
+    "cmd-1792634038557": {
+      "key": "cmd-1792634038557",
+      "value": "{\"command\":\"cat \\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/tasks/bljm142dq.output\\\"; S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\"; ls -la \\\"$S\\\"/nsis-*/ 2>/dev/null | grep -i \\\"\\\\.exe\\\"; grep -E \\\"real|error|⨯\\\" \\\"$S\\\"/nsis-*.log | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:53:58.557Z",
+      "lastAccessed": "2026-10-22T01:53:58.557Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:53:58.557Z"
+    },
+    "cmd-1792634043855": {
+      "key": "cmd-1792634043855",
+      "value": "{\"command\":\"grep -n \\\"Unpacked app\\\\|Chromium \\\\`locales\\\\`\\\\|resources/renderer\\\" docs/AUDIT_AND_ROADMAP.md; grep -n \\\"^## Baseline\\\\|^Memory split\\\" docs/PERFORMANCE.md\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:54:03.855Z",
+      "lastAccessed": "2026-10-22T01:54:03.855Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:54:03.855Z"
+    },
+    "cmd-1792634064166": {
+      "key": "cmd-1792634064166",
+      "value": "{\"command\":\"npx prettier --write docs/PERFORMANCE.md docs/AUDIT_AND_ROADMAP.md >/dev/null 2>&1; git diff --stat | grep -v claude-flow | cat; git add docs/PERFORMANCE.md docs/AUDIT_AND_ROADMAP.md CLAUDE.md README.md && git commit -q -F - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:54:24.166Z",
+      "lastAccessed": "2026-10-22T01:54:24.166Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:54:24.166Z"
+    },
+    "cmd-1792634072712": {
+      "key": "cmd-1792634072712",
+      "value": "{\"command\":\"S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\"; rm -rf \\\"$S\\\"/nsis-baseline \\\"$S\\\"/nsis-after; du -sh \\\"$S\\\"/pkg-* 2>/dev/null; cd /d/dev_projects/dalaly && git check-ignore -q perf-results && echo \\\"perf-results ignored\\\"; ls perf-results\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T01:54:32.712Z",
+      "lastAccessed": "2026-10-22T01:54:32.712Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T01:54:32.712Z"
+    },
+    "cmd-1792652249433": {
+      "key": "cmd-1792652249433",
+      "value": "{\"command\":\"git fetch -q origin && git log --oneline origin/main -1 | cat && git log --oneline origin/main..HEAD | cat && git push -u origin perf/measurement-harness 2>&1 | tail -3\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T06:57:29.433Z",
+      "lastAccessed": "2026-10-22T06:57:29.433Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T06:57:29.433Z"
+    },
+    "cmd-1792652454953": {
+      "key": "cmd-1792652454953",
+      "value": "{\"command\":\"gh api repos/TariqAli93/dalaly/pulls/3/comments --jq '.[] | \\\"---\\\\nid: \\\\(.id)\\\\nfile: \\\\(.path):\\\\(.line // .original_line)\\\\nby: \\\\(.user.login)\\\\n\\\\(.body)\\\"' 2>&1 | head -80\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:00:54.953Z",
+      "lastAccessed": "2026-10-22T07:00:54.953Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:00:54.953Z"
+    },
+    "cmd-1792652511707": {
+      "key": "cmd-1792652511707",
+      "value": "{\"command\":\"S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\" && timeout 300 node scripts/perf/measure.mjs --app \\\"$S/pkg-after/win-unpacked\\\" --label feature/perf --properties 300 --skip-startup 2>&1 | grep -E \\\"Seeded|Wrote|Error\\\"; node -e 'console.log(\\\"label in JSON:\\\", JSON.parse(require(\\\"fs\\\").readFileSync(\\\"perf-results/feature-perf.json\\\",\\\"utf8\\\")).label)'; rm -f perf-results/feature-perf.json; ls \\\"$TEMP\\\" | grep -c \\\"dalaly-perf-\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:01:51.707Z",
+      "lastAccessed": "2026-10-22T07:01:51.707Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:01:51.707Z"
+    },
+    "cmd-1792652529199": {
+      "key": "cmd-1792652529199",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server && cat > scripts/.dbcheck.tmp.mts <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:02:09.199Z",
+      "lastAccessed": "2026-10-22T07:02:09.199Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:02:09.199Z"
+    },
+    "cmd-1792652551443": {
+      "key": "cmd-1792652551443",
+      "value": "{\"command\":\"git fetch -q origin && git log --oneline -1 origin/perf/measurement-harness | cat && gh api repos/TariqAli93/dalaly/pulls/3/comments/4345423734/replies -f body=\\\"Fixed in 5ebbf59: labels are made filesystem-safe (\\\\`feature/perf\\\\` → \\\\`feature-perf\\\\`) for temp folders and the result file (the JSON keeps the original label), and the database is now created inside the try so the finally always drops it; verified with \\\\`--label feature/perf\\\\`.\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:02:31.443Z",
+      "lastAccessed": "2026-10-22T07:02:31.443Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:02:31.443Z"
+    },
+    "cmd-1792652558996": {
+      "key": "cmd-1792652558996",
+      "value": "{\"command\":\"THREAD=$(gh api graphql -f query='query { repository(owner:\\\"TariqAli93\\\", name:\\\"dalaly\\\") { pullRequest(number:3) { reviewThreads(first:50) { nodes { id isResolved comments(first:1) { nodes { databaseId } } } } } } }' --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.comments.nodes[0].databaseId == 4345423734) | .id') && echo \\\"thread: $THREAD\\\" && gh api graphql -f query=\\\"mutation { resolveReviewThread(input:{threadId:\\\\\\\"$THREAD\\\\\\\"}) { thread { isResolved } } }\\\" --jq '.data.resolveReviewThread.thread.isResolved'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:02:38.996Z",
+      "lastAccessed": "2026-10-22T07:02:38.996Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:02:38.996Z"
     }
   },
   "version": "3.0.0"
