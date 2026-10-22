@@ -94,6 +94,13 @@ Conventions:
   and return snake_case objects (`toApiObject`).
 - Use `parseId` from `shared/utils/parse-id.ts` for route ids and
   `shared/validation/fields.ts` for optional text/id/number fields.
+- Large lists have a paged form next to the plain array: `GET
+/<domain>/paged` takes the same filters plus `page`, `page_size` (max
+  100), a whitelisted `sort_by`, `sort_order` and `favorites_only`, and
+  returns `{ items, total, page, page_size }` (properties and rentals so
+  far; helpers in `shared/utils/paging.ts`). Every sort ends on a unique
+  tie-breaker so rows never repeat across pages. The array endpoints stay
+  for callers that need every row.
 - User-facing messages are Arabic. Keep request/response shapes stable: the
   renderer types in `apps/renderer/src/types` mirror them by hand.
 - Add a service file only when a repository alone would mix concerns; most
@@ -120,6 +127,12 @@ Conventions: Arabic UI and RTL throughout; numbers and dates use Latin digits
 (`formatMoney`, `formatNumber`, `formatDateTime`); option lists and their label
 maps come from `constants/` (for example `RENT_PERIODS` /
 `RENT_PERIOD_LABELS`) rather than per-component copies.
+
+Server-paged tables (`PropertiesTable`, `RentalTable` when given a `total`)
+use `v-data-table-server` with their page, size and sort state in
+`createPagedList` (`composables/usePagedList.ts`). It aborts a superseded
+request and only the newest one writes its result; header keys of sortable
+columns are the API's sort keys.
 
 The layout is by type with domain subfolders. It is consistent and small
 enough that a move to feature folders would cost more review and history churn
