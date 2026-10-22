@@ -4,27 +4,18 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import pg from "pg";
+import { adminConnection, dropTestDatabase, testDatabaseName } from "./runtime-smoke-db.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SERVER_ENTRY = path.join(__dirname, "..", "dist", "index.js");
 const MIGRATIONS_DIR = path.join(__dirname, "..", "drizzle");
 const PORT = 45997;
 const BASE = `http://127.0.0.1:${PORT}/api`;
-const TEST_DB = "dalaly_phase1_test";
-const ADMIN = { host: "127.0.0.1", port: 5432, user: "postgres", password: "root" };
+const TEST_DB = testDatabaseName("phase1");
 
 let passed = 0, failed = 0;
 const check = (n, c, e) => { if (c) { passed++; console.log("  PASS " + n); } else { failed++; console.log("  FAIL " + n + (e ? " -> " + JSON.stringify(e) : "")); } };
 
-async function adminQuery(sql, params) {
-  const p = new pg.Pool({ ...ADMIN, database: "postgres", connectionTimeoutMillis: 4000 });
-  try { return await p.query(sql, params); } finally { await p.end().catch(() => {}); }
-}
-async function dropDb() {
-  try { await adminQuery(`DROP DATABASE IF EXISTS "${TEST_DB}" WITH (FORCE)`); }
-  catch { await adminQuery(`DROP DATABASE IF EXISTS "${TEST_DB}"`).catch(() => {}); }
-}
 async function req(method, p, { token, body } = {}) {
   const headers = {};
   if (body !== undefined) headers["Content-Type"] = "application/json";
@@ -41,7 +32,7 @@ async function waitHealth(ms = 20000) {
 }
 
 async function main() {
-  await dropDb();
+  console.log(`== Throwaway database: ${TEST_DB} ==`);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dalaly-p1-"));
   const runDir = path.join(tmp, "run"); fs.mkdirSync(runDir, { recursive: true });
   const child = spawn(process.execPath, [SERVER_ENTRY], {
@@ -54,7 +45,7 @@ async function main() {
   try {
     await waitHealth();
     // init
-    const init = await req("POST", "/setup/initialize", { body: { host: "127.0.0.1", port: 5432, adminUsername: "postgres", adminPassword: "root", databaseName: TEST_DB, firstAdminUsername: "admin", firstAdminPin: "4321" } });
+    const init = await req("POST", "/setup/initialize", { body: { ...adminConnection(TEST_DB), firstAdminUsername: "admin", firstAdminPin: "4321" } });
     check("initialize ok", init.body?.ok === true, init.body);
     const login = await req("POST", "/auth/login", { body: { username: "admin", pin: "4321" } });
     const token = login.body?.token;
@@ -143,7 +134,7 @@ async function main() {
   } catch (e) {
     failed++; console.log("FATAL", e?.message ?? e); console.log(logs.join(""));
   } finally {
-    child.kill(); await new Promise(r => setTimeout(r, 500)); await dropDb();
+    child.kill(); await new Promise(r => setTimeout(r, 500)); await dropTestDatabase(TEST_DB);
     try { fs.rmSync(tmp, { recursive: true, force: true }); } catch {}
   }
 
