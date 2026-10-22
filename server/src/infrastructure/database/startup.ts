@@ -17,6 +17,23 @@ import {
 
 let preparation: Promise<void> | null = null;
 
+/**
+ * Resolves when the running database preparation settles (or at once when
+ * none is running), but no later than `timeoutMs`. Lets /api/health?wait=1
+ * answer the moment the database is ready instead of on the caller's next poll.
+ */
+export async function waitForDatabasePreparation(timeoutMs: number) {
+  if (!preparation) return;
+  let timer: NodeJS.Timeout | undefined;
+  await Promise.race([
+    preparation,
+    new Promise<void>((resolve) => {
+      timer = setTimeout(resolve, timeoutMs);
+    }),
+  ]);
+  clearTimeout(timer);
+}
+
 export function prepareDatabase(): Promise<void> {
   if (preparation) return preparation;
   setDatabaseChecking(true);

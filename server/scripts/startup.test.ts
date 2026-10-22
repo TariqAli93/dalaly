@@ -63,6 +63,29 @@ test("backend delay is polled until a terminal startup state", async () => {
   } finally { server.closeAllConnections(); await new Promise<void>((resolve) => server.close(() => resolve())); }
 });
 
+test("after the first CHECKING the poll waits on the API instead of sleeping", async () => {
+  const urls: string[] = [];
+  let checkingCalls = 0;
+  const server = createServer((request, response) => {
+    urls.push(request.url ?? "");
+    response.setHeader("Content-Type", "application/json");
+    // Without ?wait=1 the database is still being prepared; with it, the API
+    // answers once preparation settles (here after 120 ms).
+    if (!request.url?.includes("wait=1")) return response.end(JSON.stringify({ ok: true, ...classifyStartup(ready, true) }));
+    setTimeout(() => response.end(JSON.stringify({ ok: true, ...classifyStartup(ready, false) })), 120);
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const address = server.address() as { port: number };
+    const started = Date.now();
+    const result = await pollApiHealth(`http://127.0.0.1:${address.port}/api/health`, 2000, () => checkingCalls++);
+    assert.equal(result.startup_state, "READY");
+    assert.deepEqual(urls, ["/api/health", "/api/health?wait=1"]);
+    assert.equal(checkingCalls, 1, "the splash still shows the database stage");
+    assert.ok(Date.now() - started < 350, "no retry interval between CHECKING and READY");
+  } finally { server.closeAllConnections(); await new Promise<void>((resolve) => server.close(() => resolve())); }
+});
+
 test("a backend that never responds and a renderer promise that never resolves are bounded", async () => {
   const server = createServer(() => {});
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
