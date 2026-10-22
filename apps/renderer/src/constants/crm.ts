@@ -26,6 +26,9 @@ export const DOCUMENTS_DEFAULT_SORT: ListSortOption<DocumentSortKey> = {
   order: "desc",
 };
 
+/** عدد الأشخاص في قائمة الاختيار المبحوثة في الخادم (PersonPicker). */
+export const PERSON_PICKER_SIZE = 20;
+
 export function personStatusLabel(value: string) {
   return (
     (

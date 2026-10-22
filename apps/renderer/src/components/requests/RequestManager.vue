@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import LocationSelects from "../properties/LocationSelects.vue";
+import PersonPicker from "../people/PersonPicker.vue";
 import StatusChip from "../shared/StatusChip.vue";
 import NumberField from "../app/NumberField.vue";
 import AppLayout from "../../layouts/AppLayout.vue";
@@ -13,7 +14,6 @@ import {
   RENTAL_PROPERTY_TYPES,
 } from "../../constants/domain";
 import { REQUESTS_DEFAULT_SORT } from "../../constants/crm";
-import * as peopleService from "../../services/people.service";
 import * as requests from "../../services/requests.service";
 import { getErrorMessage } from "../../services/api.service";
 import { usePermissions } from "../../composables/usePermissions";
@@ -21,7 +21,6 @@ import { useSnackbar } from "../../composables/useSnackbar";
 import { createPagedList } from "../../composables/usePagedList";
 import { formatMoney } from "../../utils/format";
 import type {
-  PersonRecord,
   MatchResult,
   PageQuery,
   PurchaseRequestRecord,
@@ -35,9 +34,6 @@ const route = useRoute();
 const router = useRouter();
 const { can } = usePermissions();
 const { notifyError, notifySuccess } = useSnackbar();
-// قائمة اختيار العميل في النموذج فقط، فتُحمَّل عند فتحه أول مرة لا مع كل بحث.
-const people = ref<PersonRecord[]>([]);
-let peopleLoaded = false;
 const dialog = ref(false);
 const matchDialog = ref(false);
 const saving = ref(false);
@@ -136,7 +132,7 @@ function handleRowClick(
   _event: Event,
   context: { item: RentalRequestRecord | PurchaseRequestRecord },
 ) {
-  void openEdit(context.item);
+  openEdit(context.item);
 }
 function numberOrNull(value: unknown) {
   if (value === "" || value === null || value === undefined) return null;
@@ -147,17 +143,7 @@ function numberOrNull(value: unknown) {
 function load() {
   return list.loadFirstPage();
 }
-async function ensurePeople() {
-  if (peopleLoaded) return true;
-  try {
-    people.value = await peopleService.listPeople();
-    peopleLoaded = true;
-    return true;
-  } catch (error) {
-    notifyError(getErrorMessage(error));
-    return false;
-  }
-}
+
 function resetForm() {
   form.value = {
     person_id: null,
@@ -184,14 +170,12 @@ function resetForm() {
   };
   amenitiesInput.value = "";
 }
-async function openCreate() {
-  if (!(await ensurePeople())) return;
+function openCreate() {
   editing.value = null;
   resetForm();
   dialog.value = true;
 }
-async function openEdit(item: RentalRequestRecord | PurchaseRequestRecord) {
-  if (!(await ensurePeople())) return;
+function openEdit(item: RentalRequestRecord | PurchaseRequestRecord) {
   editing.value = item;
   form.value = {
     person_id: item.person_id,
@@ -286,7 +270,7 @@ onMounted(async () => {
   const requestedId = Number(route.query.open);
   if (!requestedId) return;
   try {
-    await openEdit(
+    openEdit(
       props.mode === "rental"
         ? await requests.getRentalRequest(requestedId)
         : await requests.getPurchaseRequest(requestedId),
@@ -362,13 +346,7 @@ onBeforeUnmount(() => list.cancel());
           >{{ editing ? "تعديل" : "إضافة" }} {{ endpointLabel }}</v-card-title
         ><v-card-text
           ><div class="form-grid">
-            <v-select
-              v-model="form.person_id"
-              :items="people"
-              item-title="full_name"
-              item-value="id"
-              label="العميل"
-            /><v-select
+            <PersonPicker v-model="form.person_id" label="العميل" /><v-select
               v-model="form.property_type"
               :items="propertyItems"
               item-title="title"

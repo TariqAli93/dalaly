@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import AppLayout from "../layouts/AppLayout.vue";
-import * as peopleService from "../services/people.service";
+import PersonPicker from "../components/people/PersonPicker.vue";
 import * as documentsService from "../services/documents.service";
 import { getErrorMessage } from "../services/api.service";
 import { usePermissions } from "../composables/usePermissions";
@@ -14,12 +14,10 @@ import type {
   DocumentRecord,
   DocumentSortKey,
   DocumentTypeRecord,
-  PersonRecord,
 } from "../types";
 
 const { can } = usePermissions();
 const { notifyError, notifySuccess } = useSnackbar();
-const people = ref<PersonRecord[]>([]);
 const types = ref<DocumentTypeRecord[]>([]);
 const personId = ref<number | null>(null);
 const file = ref<File | null>(null);
@@ -91,15 +89,12 @@ function openFile(id: number) {
   window.open(documentsService.fileUrl(id), "_blank");
 }
 watch(personId, () => list.loadFirstPage());
-// القائمة لا تنتظر قائمتي الأشخاص والأنواع، ويبدأ طلبها قبل أن يُظهر الجدول
-// خياراته الأولى فلا يُطلب مرتين.
+// القائمة لا تنتظر قائمة الأنواع، ويبدأ طلبها قبل أن يُظهر الجدول خياراته
+// الأولى فلا يُطلب مرتين. الأشخاص يُبحث عنهم في الخادم من حقل التصفية.
 void list.reload();
 onMounted(async () => {
   try {
-    [people.value, types.value] = await Promise.all([
-      peopleService.listPeople(),
-      documentsService.listDocumentTypes(),
-    ]);
+    types.value = await documentsService.listDocumentTypes();
   } catch (cause) {
     notifyError(getErrorMessage(cause));
   }
@@ -113,11 +108,8 @@ onBeforeUnmount(() => list.cancel());
   >
     <v-card variant="flat" border class="mb-3"
       ><v-card-text class="toolbar"
-        ><v-autocomplete
+        ><PersonPicker
           v-model="personId"
-          :items="people"
-          item-title="full_name"
-          item-value="id"
           label="تصفية حسب الشخص"
           clearable
         /><v-file-input

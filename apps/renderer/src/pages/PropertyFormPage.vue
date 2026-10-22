@@ -8,11 +8,9 @@ import { getErrorMessage } from "../services/api.service";
 import { useProperties } from "../composables/useProperties";
 import { useSnackbar } from "../composables/useSnackbar";
 import * as requests from "../services/requests.service";
-import * as peopleService from "../services/people.service";
 import { toNumber } from "../utils/format";
 import MatchingResultsDialog from "../components/requests/MatchingResultsDialog.vue";
 import type {
-  PersonRecord,
   MatchResult,
   PropertyForm as PropertyFormType,
   PropertyRecord,
@@ -22,7 +20,6 @@ const route = useRoute();
 const router = useRouter();
 const { service, loadProperties } = useProperties();
 const { notifySuccess, notifyError } = useSnackbar();
-const people = ref<PersonRecord[]>([]);
 
 function defaultForm(): PropertyFormType {
   return {
@@ -218,7 +215,6 @@ function openMatch(match: MatchResult) {
 }
 
 onMounted(async () => {
-  people.value = await peopleService.listPeople().catch(() => []);
   const idParam = route.params.id;
   if (idParam) {
     const id = Number(idParam);
@@ -239,7 +235,6 @@ onMounted(async () => {
     <PropertyForm
       ref="formRef"
       v-model="form"
-      :people="people"
       :editing="isEditing"
       :saving="saving"
       @submit="save"

@@ -2,18 +2,18 @@
 import { RENT_PERIODS, RENTAL_PROPERTY_TYPES } from "../../constants/domain";
 import { computed, ref } from "vue";
 import { AREA_UNITS } from "../../constants/domain";
-import type { PersonRecord, RentalForm as RentalFormType } from "../../types";
+import type { RentalForm as RentalFormType } from "../../types";
 import LocationSelects from "../properties/LocationSelects.vue";
 import PropertyLocationEditor from "../shared/PropertyLocationEditor.vue";
 import NumberField from "../app/NumberField.vue";
 import RentalImages from "./RentalImages.vue";
+import PersonPicker from "../people/PersonPicker.vue";
 import { AMENITY_OPTIONS } from "../../utils/amenities";
 const model = defineModel<RentalFormType>({ required: true });
 const props = defineProps<{
   editing?: boolean;
   saving?: boolean;
   rentalId?: number | null;
-  people?: PersonRecord[];
 }>();
 const emit = defineEmits<{ submit: []; cancel: [] }>();
 const formRef = ref<{ validate: () => Promise<{ valid: boolean }> } | null>(
@@ -150,11 +150,8 @@ defineExpose({ validate });
             v-model="model.owner_name"
             :rules="[required]"
             label="اسم المالك"
-          /><v-autocomplete
+          /><PersonPicker
             v-model="model.owner_person_id"
-            :items="props.people ?? []"
-            item-title="full_name"
-            item-value="id"
             clearable
             label="ربط المالك بعميل"
           /><v-text-field

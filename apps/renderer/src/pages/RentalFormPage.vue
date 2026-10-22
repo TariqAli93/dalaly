@@ -6,12 +6,10 @@ import RentalForm from "../components/rentals/RentalForm.vue";
 import MatchingResultsDialog from "../components/requests/MatchingResultsDialog.vue";
 import * as rentals from "../services/rentals.service";
 import * as requests from "../services/requests.service";
-import * as peopleService from "../services/people.service";
 import { getErrorMessage } from "../services/api.service";
 import { useLocations } from "../composables/useLocations";
 import { useSnackbar } from "../composables/useSnackbar";
 import type {
-  PersonRecord,
   MatchResult,
   RentalForm as RentalFormType,
   RentalRecord,
@@ -89,7 +87,6 @@ function toForm(item: RentalRecord): RentalFormType {
 }
 
 const form = ref<RentalFormType>(empty());
-const people = ref<PersonRecord[]>([]);
 const editingId = ref<number | null>(null);
 const saving = ref(false);
 const formRef = ref<{ validate: () => Promise<boolean> } | null>(null);
@@ -174,7 +171,6 @@ function openMatch(match: MatchResult) {
 
 onMounted(async () => {
   await loadLocations();
-  people.value = await peopleService.listPeople().catch(() => []);
   const id = Number(route.params.id);
   if (id) {
     try {
@@ -200,7 +196,6 @@ onMounted(async () => {
       :editing="isEditing"
       :saving="saving"
       :rental-id="editingId"
-      :people="people"
       @submit="save"
       @cancel="router.push('/rentals')"
     />
