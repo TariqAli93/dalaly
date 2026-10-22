@@ -2933,6 +2933,1131 @@
       "lastAccessed": "2026-10-22T07:02:38.996Z",
       "accessCount": 0,
       "expiresAt": "2026-11-21T07:02:38.996Z"
+    },
+    "cmd-1792653009138": {
+      "key": "cmd-1792653009138",
+      "value": "{\"command\":\"sed -n 1,12p server/src/modules/dashboard/dashboard.routes.ts; grep -n \\\"config.json\\\\|appConfig\\\\|addLocalFile\\\" server/src/modules/backup/backup.service.ts | head -5; grep -rn \\\"process.on(\\\\\\\"exit\\\\\\\"\\\\|SIGTERM\\\\|disconnect\\\" server/src | head -5\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:10:09.138Z",
+      "lastAccessed": "2026-10-22T07:10:09.138Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:10:09.138Z"
+    },
+    "cmd-1792653109273": {
+      "key": "cmd-1792653109273",
+      "value": "{\"command\":\"git fetch -q origin && git switch -c fix/phase1-safety origin/main 2>&1 | tail -1 && git log --oneline -1 | cat && git status --short | grep -v \\\"claude-flow\\\\|.swarm\\\"; sed -n 1,60p server/src/modules/dashboard/dashboard.repository.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:11:49.273Z",
+      "lastAccessed": "2026-10-22T07:11:49.273Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:11:49.273Z"
+    },
+    "cmd-1792653113810": {
+      "key": "cmd-1792653113810",
+      "value": "{\"command\":\"git log --oneline -6 | cat; git show --stat --format='%h %an %s' HEAD | head -15; git status --short | head -5\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:11:53.810Z",
+      "lastAccessed": "2026-10-22T07:11:53.810Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:11:53.810Z"
+    },
+    "cmd-1792653119534": {
+      "key": "cmd-1792653119534",
+      "value": "{\"command\":\"sed -n 60,282p server/src/modules/dashboard/dashboard.repository.ts | grep -nE \\\"^\\\\s*(const|return|  [a-z_]+:)|from\\\\(|listUpcoming|recent|rental\\\" | head -60\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:11:59.534Z",
+      "lastAccessed": "2026-10-22T07:11:59.534Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:11:59.534Z"
+    },
+    "cmd-1792653124521": {
+      "key": "cmd-1792653124521",
+      "value": "{\"command\":\"sed -n 180,282p server/src/modules/dashboard/dashboard.repository.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:12:04.521Z",
+      "lastAccessed": "2026-10-22T07:12:04.521Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:12:04.521Z"
+    },
+    "cmd-1792653129915": {
+      "key": "cmd-1792653129915",
+      "value": "{\"command\":\"grep -rhoE '\\\"(rentals|audit|followups|properties|users|requests|rental_requests|purchase_requests|people|matching)\\\\.[a-z_.]+\\\"' server/src/modules/rbac/rbac.service.ts server/src/shared/constants/*.ts 2>/dev/null | sort -u | head -40; grep -rn \\\"requirePermission(\\\" server/src/modules/followups/followups.routes.ts server/src/modules/matching/matching.routes.ts server/src/modules/properties/properties.routes.ts | grep -i \\\"audit\\\\|followup\\\\|matching\\\\|get(\\\" | head -12\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:12:09.915Z",
+      "lastAccessed": "2026-10-22T07:12:09.915Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:12:09.915Z"
+    },
+    "cmd-1792653133870": {
+      "key": "cmd-1792653133870",
+      "value": "{\"command\":\"sed -n 1,60p server/src/modules/matching/matching.routes.ts; grep -n \\\"key:\\\\s*\\\\\\\"\\\\(rentals\\\\|audit\\\\|followups\\\\|requests\\\\|people\\\\)\\\\.read\\\\\\\"\\\" -r server/src | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:12:13.870Z",
+      "lastAccessed": "2026-10-22T07:12:13.870Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:12:13.870Z"
+    },
+    "cmd-1792653146389": {
+      "key": "cmd-1792653146389",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && grep -n \\\"can(\\\\|hasPermission\\\\|rentals\\\\.\\\\|recent_activity\\\\|reminders\\\\|summary\\\\.rentals\\\\|\\\\.rentals\\\" pages/DashboardPage.vue | head -30; grep -rn \\\"MatchingResultsDialog\\\\|findMatches\\\\|matching\\\" --include=*.vue . | grep -v \\\"^./components/requests/MatchingResultsDialog.vue\\\" | head -10\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:12:26.389Z",
+      "lastAccessed": "2026-10-22T07:12:26.389Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:12:26.389Z"
+    },
+    "cmd-1792653150557": {
+      "key": "cmd-1792653150557",
+      "value": "{\"command\":\"sed -n 175,200p pages/DashboardPage.vue; grep -n \\\"EMPTY_RENTALS\\\" -A12 pages/DashboardPage.vue | head -20; grep -n \\\"matching\\\\|Matching\\\\|can(\\\" pages/RentalFormPage.vue pages/PropertyFormPage.vue components/requests/RequestManager.vue | head -20\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:12:30.557Z",
+      "lastAccessed": "2026-10-22T07:12:30.557Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:12:30.557Z"
+    },
+    "cmd-1792653159698": {
+      "key": "cmd-1792653159698",
+      "value": "{\"command\":\"sed -n 138,155p pages/RentalFormPage.vue; grep -n \\\"salesMode\\\\|mode ===\\\\|v-btn-toggle\\\\|'rentals'\\\\|\\\\\\\"rentals\\\\\\\"\\\" pages/DashboardPage.vue | head -15\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:12:39.698Z",
+      "lastAccessed": "2026-10-22T07:12:39.698Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:12:39.698Z"
+    },
+    "cmd-1792653163667": {
+      "key": "cmd-1792653163667",
+      "value": "{\"command\":\"sed -n 365,392p pages/DashboardPage.vue; sed -n 440,450p pages/DashboardPage.vue; grep -n \\\"const can\\\\|useAuth\\\\|usePermissions\\\" pages/DashboardPage.vue\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:12:43.667Z",
+      "lastAccessed": "2026-10-22T07:12:43.667Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:12:43.667Z"
+    },
+    "cmd-1792653170125": {
+      "key": "cmd-1792653170125",
+      "value": "{\"command\":\"grep -n \\\"<v-card\\\\|reminder\\\\|recent_activity\\\\|النشاط\\\\|التذكير\\\\|المتابع\\\" pages/DashboardPage.vue | sed -n 1,40p\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:12:50.125Z",
+      "lastAccessed": "2026-10-22T07:12:50.125Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:12:50.125Z"
+    },
+    "cmd-1792653174564": {
+      "key": "cmd-1792653174564",
+      "value": "{\"command\":\"sed -n 612,618p pages/DashboardPage.vue; sed -n 692,700p pages/DashboardPage.vue; grep -n \\\"rentals?:\\\\|rentals:\\\\|recent_activity\\\\|reminders\\\" types/*.ts | grep -i dashboard -A0 | head; grep -rn \\\"interface DashboardSummary\\\\|type DashboardSummary\\\" types/\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:12:54.564Z",
+      "lastAccessed": "2026-10-22T07:12:54.564Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:12:54.564Z"
+    },
+    "cmd-1792653190984": {
+      "key": "cmd-1792653190984",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src/modules/dashboard && python3 - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:13:10.984Z",
+      "lastAccessed": "2026-10-22T07:13:10.984Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:13:10.984Z"
+    },
+    "cmd-1792653234661": {
+      "key": "cmd-1792653234661",
+      "value": "{\"command\":\"python3 - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:13:54.661Z",
+      "lastAccessed": "2026-10-22T07:13:54.661Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:13:54.661Z"
+    },
+    "cmd-1792653238498": {
+      "key": "cmd-1792653238498",
+      "value": "{\"command\":\"git diff -w server/src/modules/dashboard/dashboard.repository.ts | head -150\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:13:58.498Z",
+      "lastAccessed": "2026-10-22T07:13:58.498Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:13:58.498Z"
+    },
+    "cmd-1792653253691": {
+      "key": "cmd-1792653253691",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src/pages && python3 - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:14:13.691Z",
+      "lastAccessed": "2026-10-22T07:14:13.691Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:14:13.691Z"
+    },
+    "cmd-1792653268420": {
+      "key": "cmd-1792653268420",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src/modules/matching && python3 - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:14:28.420Z",
+      "lastAccessed": "2026-10-22T07:14:28.420Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:14:28.420Z"
+    },
+    "cmd-1792653284548": {
+      "key": "cmd-1792653284548",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server && for t in roles role_permissions user_roles users; do echo \\\"== $t\\\"; awk \\\"/CREATE TABLE \\\\\\\"$t\\\\\\\"/,/^\\\\);/\\\" drizzle/0000_remarkable_shinobi_shaw.sql | grep -v CONSTRAINT; done | grep -v \\\"^\\\\s*$\\\" | head -40\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:14:44.548Z",
+      "lastAccessed": "2026-10-22T07:14:44.548Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:14:44.548Z"
+    },
+    "cmd-1792653320744": {
+      "key": "cmd-1792653320744",
+      "value": "{\"command\":\"pnpm exec tsx --test scripts/permissions-scope.test.ts 2>&1 | grep -E \\\"^# (pass|fail)|not ok|AssertionError|expected|actual|Error\\\" | head -20\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:15:20.744Z",
+      "lastAccessed": "2026-10-22T07:15:20.744Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:15:20.744Z"
+    },
+    "cmd-1792653333859": {
+      "key": "cmd-1792653333859",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && git stash push -q server/src/modules/dashboard server/src/modules/matching && (cd server && pnpm exec tsx --test scripts/permissions-scope.test.ts 2>&1 | grep -E \\\"^# (pass|fail)|^    not ok\\\" | head); git stash pop -q && git diff --stat server/src | cat; ls server/data/removal-tests | grep -c scope\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:15:33.859Z",
+      "lastAccessed": "2026-10-22T07:15:33.859Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:15:33.859Z"
+    },
+    "cmd-1792653388101": {
+      "key": "cmd-1792653388101",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && node -e '\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:16:28.101Z",
+      "lastAccessed": "2026-10-22T07:16:28.101Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:16:28.101Z"
+    },
+    "cmd-1792653395363": {
+      "key": "cmd-1792653395363",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && git add server/src/modules/dashboard server/src/modules/matching server/scripts/permissions-scope.test.ts server/package.json apps/renderer/src/pages/DashboardPage.vue && git commit -q -F - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:16:35.363Z",
+      "lastAccessed": "2026-10-22T07:16:35.363Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:16:35.363Z"
+    },
+    "cmd-1792653400723": {
+      "key": "cmd-1792653400723",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src/modules/backup && sed -n 170,190p backup.service.ts; sed -n 285,330p backup.service.ts; grep -n \\\"config.json\\\\|configJson\\\\|restoreConfig\\\\|cfg\\\" backup.service.ts; grep -n \\\"export async function\\\\|export function\\\" backup.service.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:16:40.723Z",
+      "lastAccessed": "2026-10-22T07:16:40.723Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:16:40.723Z"
+    },
+    "cmd-1792653408263": {
+      "key": "cmd-1792653408263",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server && grep -rn \\\"config.json\\\" scripts/*.ts scripts/*.mjs | head -5; sed -n 360,400p src/modules/backup/backup.service.ts; sed -n 505,520p src/modules/backup/backup.service.ts; grep -n \\\"app\\\\.\\\\(get\\\\|post\\\\)\\\\|createBackup\\\\|exportBackup\\\\|restoreBackup\\\\|internal-run\\\" src/modules/backup/backup.routes.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:16:48.263Z",
+      "lastAccessed": "2026-10-22T07:16:48.263Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:16:48.263Z"
+    },
+    "cmd-1792653412562": {
+      "key": "cmd-1792653412562",
+      "value": "{\"command\":\"grep -n \\\"config.json\\\" -B2 -A8 scripts/runtime-smoke-phase2.mjs | grep -n \\\"assert\\\\|config\\\" | head; grep -n \\\"config.json\\\" -A10 scripts/runtime-smoke-phase3.mjs scripts/runtime-smoke-phase4.mjs | grep \\\"assert\\\" | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:16:52.562Z",
+      "lastAccessed": "2026-10-22T07:16:52.562Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:16:52.562Z"
+    },
+    "cmd-1792653416465": {
+      "key": "cmd-1792653416465",
+      "value": "{\"command\":\"grep -n \\\"config\\\" scripts/runtime-smoke-phase2.mjs | head; grep -n \\\"getEntry\\\\|entries\\\\|zip\\\" scripts/runtime-smoke-phase2.mjs | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:16:56.465Z",
+      "lastAccessed": "2026-10-22T07:16:56.465Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:16:56.465Z"
+    },
+    "cmd-1792653427692": {
+      "key": "cmd-1792653427692",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && sed -n 68,180p server/src/modules/backup/backup.routes.ts; grep -n \\\"backupJobs = \\\\|type:\\\" server/src/infrastructure/database/schema.ts | grep -A0 -i \\\"backup\\\" | head; grep -rn \\\"manual_export\\\\|\\\\\\\"scheduled\\\\\\\"\\\\|'email'\\\\|BACKUP_TYPE\\\" apps/renderer/src --include=*.ts --include=*.vue | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:17:07.692Z",
+      "lastAccessed": "2026-10-22T07:17:07.692Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:17:07.692Z"
+    },
+    "cmd-1792653434871": {
+      "key": "cmd-1792653434871",
+      "value": "{\"command\":\"grep -rn \\\"manual\\\\b\\\\|\\\\\\\"manual\\\\\\\"\\\\|manual:\\\" apps/renderer/src --include=*.ts --include=*.vue | head -8; sed -n 662,676p server/src/infrastructure/database/schema.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:17:14.871Z",
+      "lastAccessed": "2026-10-22T07:17:14.871Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:17:14.871Z"
+    },
+    "cmd-1792653438833": {
+      "key": "cmd-1792653438833",
+      "value": "{\"command\":\"grep -rln \\\"backup/history\\\\|BackupHistory\\\" apps/renderer/src | head; grep -rn \\\"\\\\.type\\\\b\\\" apps/renderer/src/components/setup/BackupSettings.vue | head -5\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:17:18.833Z",
+      "lastAccessed": "2026-10-22T07:17:18.833Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:17:18.833Z"
+    },
+    "cmd-1792653458813": {
+      "key": "cmd-1792653458813",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server && grep -n \\\"CreateBackupResult\\\" -A8 src/modules/backup/backup.service.ts | head -12; grep -n \\\"backup_jobs\\\\|backupJobs\\\" src/modules/backup/backup.service.ts | head -5; sed -n 43,50p src/modules/backup/backup.service.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:17:38.813Z",
+      "lastAccessed": "2026-10-22T07:17:38.813Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:17:38.813Z"
+    },
+    "cmd-1792653485471": {
+      "key": "cmd-1792653485471",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src/modules/backup && python3 - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:18:05.471Z",
+      "lastAccessed": "2026-10-22T07:18:05.471Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:18:05.471Z"
+    },
+    "cmd-1792653489126": {
+      "key": "cmd-1792653489126",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src/modules/backup && sed -n 1,40p backup.routes.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:18:09.126Z",
+      "lastAccessed": "2026-10-22T07:18:09.126Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:18:09.126Z"
+    },
+    "cmd-1792653512320": {
+      "key": "cmd-1792653512320",
+      "value": "{\"command\":\"python3 - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:18:32.320Z",
+      "lastAccessed": "2026-10-22T07:18:32.320Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:18:32.320Z"
+    },
+    "cmd-1792653555478": {
+      "key": "cmd-1792653555478",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server && pnpm exec tsx --test scripts/backup-safety.test.ts 2>&1 | grep -E \\\"^# (pass|fail)|not ok|Error|expected|actual\\\" | head -12; pnpm exec tsx --test scripts/removal-backup.test.ts 2>&1 | grep -E \\\"^# (pass|fail)|^\\\\s+not ok\\\" | head; pnpm exec tsx --test scripts/backup-restore-large.test.ts 2>&1 | grep -E \\\"^# (pass|fail)\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:19:15.478Z",
+      "lastAccessed": "2026-10-22T07:19:15.478Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:19:15.478Z"
+    },
+    "cmd-1792653574364": {
+      "key": "cmd-1792653574364",
+      "value": "{\"command\":\"sed -n '/export async function getBackupDir/,/^}/p' src/modules/backup/backup.service.ts; sed -n '/^async function writeBackupTo/,/zip.writeZip/p' src/modules/backup/backup.service.ts; sed -n '/^async function assembleBackupZip/,/^}/p' src/modules/backup/backup.service.ts | head -8\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:19:34.364Z",
+      "lastAccessed": "2026-10-22T07:19:34.364Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:19:34.364Z"
+    },
+    "cmd-1792653582411": {
+      "key": "cmd-1792653582411",
+      "value": "{\"command\":\"sed -n '/^export async function createBackup/,/^}/p' src/modules/backup/backup.service.ts; sed -n '/^let operationRunning/,/^}/p' src/modules/backup/backup.service.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:19:42.411Z",
+      "lastAccessed": "2026-10-22T07:19:42.411Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:19:42.411Z"
+    },
+    "cmd-1792653598973": {
+      "key": "cmd-1792653598973",
+      "value": "{\"command\":\"cat > scripts/.busy-debug.tmp.ts <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:19:58.973Z",
+      "lastAccessed": "2026-10-22T07:19:58.973Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:19:58.973Z"
+    },
+    "cmd-1792653620306": {
+      "key": "cmd-1792653620306",
+      "value": "{\"command\":\"for i in 1 2; do pnpm exec tsx --test scripts/backup-safety.test.ts 2>&1 | grep -E \\\"^# (pass|fail)|^    not ok|actual\\\" | tr '\\\\n' ' '; echo; done\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:20:20.306Z",
+      "lastAccessed": "2026-10-22T07:20:20.306Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:20:20.306Z"
+    },
+    "cmd-1792653638421": {
+      "key": "cmd-1792653638421",
+      "value": "{\"command\":\"sed 's#const rejected = results.filter((result) => result.status === \\\"rejected\\\");#console.log(\\\"DEBUG\\\", results.map((r) => r.status === \\\"fulfilled\\\" ? [\\\"ok\\\", (r as any).value.file_path] : [\\\"rej\\\", String((r as any).reason)])); const rejected = results.filter((result) => result.status === \\\"rejected\\\");#' scripts/backup-safety.test.ts > scripts/.backup-safety-debug.tmp.test.ts && pnpm exec tsx --test scripts/.backup-safety-debug.tmp.test.ts 2>&1 | grep -A3 \\\"DEBUG\\\" | head -8; rm scripts/.backup-safety-debug.tmp.test.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:20:38.421Z",
+      "lastAccessed": "2026-10-22T07:20:38.421Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:20:38.421Z"
+    },
+    "cmd-1792653651123": {
+      "key": "cmd-1792653651123",
+      "value": "{\"command\":\"sed 's#const rejected = results.filter((result) => result.status === \\\"rejected\\\");#console.log(\\\"DEBUG\\\", JSON.stringify(results.map((r) => r.status === \\\"fulfilled\\\" ? \\\"ok \\\" + (r as any).value.ok + \\\" \\\" + (r as any).value.job_id : \\\"rej \\\" + String((r as any).reason))));const rejected = results.filter((result) => result.status === \\\"rejected\\\");#' scripts/backup-safety.test.ts > scripts/.backup-safety-debug.tmp.test.ts && pnpm exec tsx --test scripts/.backup-safety-debug.tmp.test.ts 2>&1 | grep \\\"DEBUG\\\" | head -3; rm scripts/.backup-safety-debug.tmp.test.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:20:51.123Z",
+      "lastAccessed": "2026-10-22T07:20:51.123Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:20:51.123Z"
+    },
+    "cmd-1792653665535": {
+      "key": "cmd-1792653665535",
+      "value": "{\"command\":\"sed -n '/export async function getSetting/,/^}/p' src/modules/settings/settings.repository.ts; grep -n \\\"max\\\\b\\\\|max:\\\" src/infrastructure/database/pool.ts src/infrastructure/config.ts | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:21:05.535Z",
+      "lastAccessed": "2026-10-22T07:21:05.535Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:21:05.535Z"
+    },
+    "cmd-1792653688548": {
+      "key": "cmd-1792653688548",
+      "value": "{\"command\":\"cp src/modules/backup/backup.service.ts \\\"$TEMP/backup.service.ts.bak\\\" && sed -i 's#  if (operationRunning) throw new BackupBusyError();#  console.log(\\\"EXCL enter\\\", operationRunning, Date.now() % 100000);\\\\n  if (operationRunning) throw new BackupBusyError();#' src/modules/backup/backup.service.ts && sed -i 's#    operationRunning = false;#    operationRunning = false;\\\\n    console.log(\\\"EXCL leave\\\", Date.now() % 100000);#' src/modules/backup/backup.service.ts && sed -i 's#  const dir = await getBackupDir();#  console.log(\\\"CB start\\\", Date.now() % 100000);\\\\n  const dir = await getBackupDir();\\\\n  console.log(\\\"CB dir\\\", Date.now() % 100000);#' src/modules/backup/backup.service.ts && pnpm exec tsx --test scripts/backup-safety.test.ts 2>&1 | grep -E \\\"EXCL|CB \\\" | head -20; cp \\\"$TEMP/backup.service.ts.bak\\\" src/modules/backup/backup.service.ts && git diff --stat src/modules/backup/backup.service.ts | cat\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:21:28.548Z",
+      "lastAccessed": "2026-10-22T07:21:28.548Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:21:28.548Z"
+    },
+    "cmd-1792653730660": {
+      "key": "cmd-1792653730660",
+      "value": "{\"command\":\"npx prettier --write src/modules/backup/backup.service.ts >/dev/null 2>&1; pnpm exec tsc -p tsconfig.json --noEmit && echo TSC-OK; for i in 1 2; do pnpm exec tsx --test scripts/backup-safety.test.ts 2>&1 | grep -E \\\"^# (pass|fail)\\\" | tr '\\\\n' ' '; echo; done\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:22:10.660Z",
+      "lastAccessed": "2026-10-22T07:22:10.660Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:22:10.660Z"
+    },
+    "cmd-1792653746607": {
+      "key": "cmd-1792653746607",
+      "value": "{\"command\":\"grep -c \\\"EXCL\\\\|CB start\\\" src/modules/backup/backup.service.ts; pnpm exec tsx --test scripts/removal-backup.test.ts scripts/backup-restore-large.test.ts 2>&1 | grep -E \\\"^# (pass|fail)\\\"; ls data/removal-tests | grep -cE \\\"_(safety|dbg|scope|backup|large)$\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:22:26.607Z",
+      "lastAccessed": "2026-10-22T07:22:26.607Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:22:26.607Z"
+    },
+    "cmd-1792653751842": {
+      "key": "cmd-1792653751842",
+      "value": "{\"command\":\"ls data/removal-tests | wc -l; ls -t data/removal-tests | head -3\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:22:31.842Z",
+      "lastAccessed": "2026-10-22T07:22:31.842Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:22:31.842Z"
+    },
+    "cmd-1792653764032": {
+      "key": "cmd-1792653764032",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/data/removal-tests && rm -rf ./dalaly_removal_test_1792653734677_backup ./dalaly_removal_test_1792653536686_backup && ls | wc -l && cd /d/dev_projects/dalaly && node -e '\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:22:44.032Z",
+      "lastAccessed": "2026-10-22T07:22:44.032Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:22:44.032Z"
+    },
+    "cmd-1792653769844": {
+      "key": "cmd-1792653769844",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/renderer/src && grep -n \\\"restore\\\" components/setup/BackupSettings.vue | head -20; grep -n \\\"restoreBackup\\\\|RestoreResult\\\\|restore\\\" services/backup.service.ts types/phase2.types.ts | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:22:49.844Z",
+      "lastAccessed": "2026-10-22T07:22:49.844Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:22:49.844Z"
+    },
+    "cmd-1792653773475": {
+      "key": "cmd-1792653773475",
+      "value": "{\"command\":\"sed -n 143,175p components/setup/BackupSettings.vue; sed -n 39,50p services/backup.service.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:22:53.475Z",
+      "lastAccessed": "2026-10-22T07:22:53.475Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:22:53.475Z"
+    },
+    "cmd-1792653808364": {
+      "key": "cmd-1792653808364",
+      "value": "{\"command\":\"python3 - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:23:28.364Z",
+      "lastAccessed": "2026-10-22T07:23:28.364Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:23:28.364Z"
+    },
+    "cmd-1792653813664": {
+      "key": "cmd-1792653813664",
+      "value": "{\"command\":\"git add apps/renderer/src/components/setup/BackupSettings.vue apps/renderer/src/services/backup.service.ts && git commit -q -F - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:23:33.664Z",
+      "lastAccessed": "2026-10-22T07:23:33.664Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:23:33.664Z"
+    },
+    "cmd-1792653833655": {
+      "key": "cmd-1792653833655",
+      "value": "{\"command\":\"grep -n \\\"stopLocalApi\\\\|startLocalApi\\\\|serverProcess\\\" apps/desktop/src/main.js | head -20; sed -n '/^function stopLocalApi/,/^}/p' apps/desktop/src/main.js; cat server/src/index.ts; sed -n '/export function disableRemoteAccess/,/^}/p' server/src/modules/remote-access/remote-access.service.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:23:53.655Z",
+      "lastAccessed": "2026-10-22T07:23:53.655Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:23:53.655Z"
+    },
+    "cmd-1792653890605": {
+      "key": "cmd-1792653890605",
+      "value": "{\"command\":\"npx prettier --write apps/desktop/src/main.js server/src/index.ts server/src/modules/remote-access/remote-access.service.ts >/dev/null 2>&1; pnpm --filter @dalaly/server typecheck 2>&1 | grep -c \\\"error TS\\\"; pnpm --filter @dalaly/desktop typecheck 2>&1 | tail -1; pnpm test 2>&1 | grep -E \\\"^# (pass|fail)\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:24:50.605Z",
+      "lastAccessed": "2026-10-22T07:24:50.605Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:24:50.605Z"
+    },
+    "cmd-1792653907359": {
+      "key": "cmd-1792653907359",
+      "value": "{\"command\":\"S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\" && cat > scripts/perf/.orphan-check.tmp.mjs <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:25:07.359Z",
+      "lastAccessed": "2026-10-22T07:25:07.359Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:25:07.359Z"
+    },
+    "cmd-1792653916459": {
+      "key": "cmd-1792653916459",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src && grep -rn \\\"base64\\\\|dataUrl\\\\|data_url\\\\|\\\\.data\\\\b\\\" modules/*/[a-z]*.schema.ts modules/*/*.routes.ts | grep -v \\\"^.*//\\\" | head -20; grep -rn \\\"app.post\\\\|app.put\\\\|app.patch\\\" modules/images/images.routes.ts modules/rental-images/rental-images.routes.ts modules/documents/documents.routes.ts modules/company-settings/company-settings.routes.ts modules/import/import.routes.ts modules/backup/backup.routes.ts | head -30\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:25:16.459Z",
+      "lastAccessed": "2026-10-22T07:25:16.459Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:25:16.459Z"
+    },
+    "cmd-1792653922023": {
+      "key": "cmd-1792653922023",
+      "value": "{\"command\":\"grep -rn \\\"z.string()\\\" modules/documents/documents.schema.ts modules/company-settings/company-settings.schema.ts | grep -i \\\"file\\\\|data\\\\|logo\\\\|content\\\" | head; sed -n 20,40p modules/company-settings/company-settings.routes.ts; sed -n 25,35p modules/documents/documents.routes.ts; sed -n 112,120p modules/documents/documents.routes.ts; sed -n 8,30p modules/import/import.routes.ts; sed -n 70,80p modules/images/images.routes.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:25:22.023Z",
+      "lastAccessed": "2026-10-22T07:25:22.023Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:25:22.023Z"
+    },
+    "cmd-1792653927598": {
+      "key": "cmd-1792653927598",
+      "value": "{\"command\":\"sed -n 1,20p modules/documents/documents.schema.ts; grep -n \\\"app\\\\.\\\\(post\\\\|put\\\\)\\\\|Schema.parse\\\\|createIdentityDocument\\\\|updateIdentityDocument\\\" modules/documents/documents.routes.ts modules/documents/documents.repository.ts | head -20; grep -n \\\"file:\\\" modules/documents/documents.schema.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:25:27.598Z",
+      "lastAccessed": "2026-10-22T07:25:27.598Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:25:27.598Z"
+    },
+    "cmd-1792653935769": {
+      "key": "cmd-1792653935769",
+      "value": "{\"command\":\"grep -n \\\"images\\\\|data:\\\" modules/properties/properties.schema.ts modules/rentals/rentals.schema.ts modules/people/people.schema.ts | head; grep -rn \\\"JSON.stringify\\\" ../../apps/renderer/src/services/*.ts | grep -v \\\"payload\\\\|input\\\\|filters\\\" | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:25:35.769Z",
+      "lastAccessed": "2026-10-22T07:25:35.769Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:25:35.769Z"
+    },
+    "cmd-1792653959343": {
+      "key": "cmd-1792653959343",
+      "value": "{\"command\":\"S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\"; tail -2 \\\"$S/p1-build.log\\\"; tail -1 \\\"$S/p1-pkg.log\\\" 2>/dev/null | cut -c1-120\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:25:59.343Z",
+      "lastAccessed": "2026-10-22T07:25:59.343Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:25:59.343Z"
+    },
+    "cmd-1792653967223": {
+      "key": "cmd-1792653967223",
+      "value": "{\"command\":\"grep -n \\\"bodyLimit\\\\|base64\\\" server.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:26:07.223Z",
+      "lastAccessed": "2026-10-22T07:26:07.223Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:26:07.223Z"
+    },
+    "cmd-1792653980135": {
+      "key": "cmd-1792653980135",
+      "value": "{\"command\":\"python3 - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:26:20.135Z",
+      "lastAccessed": "2026-10-22T07:26:20.135Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:26:20.135Z"
+    },
+    "cmd-1792653985422": {
+      "key": "cmd-1792653985422",
+      "value": "{\"command\":\"git diff modules/images/images.routes.ts modules/auth/auth.hooks.ts server.ts | grep \\\"^[+-]\\\" | grep -v \\\"^+++\\\\|^---\\\"; head -20 modules/images/images.routes.ts | grep -n \\\"import\\\\|from\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:26:25.422Z",
+      "lastAccessed": "2026-10-22T07:26:25.422Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:26:25.422Z"
+    },
+    "cmd-1792654007461": {
+      "key": "cmd-1792654007461",
+      "value": "{\"command\":\"python3 - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:26:47.461Z",
+      "lastAccessed": "2026-10-22T07:26:47.461Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:26:47.461Z"
+    },
+    "cmd-1792654017516": {
+      "key": "cmd-1792654017516",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src && sed -n 14,40p modules/images/images.service.ts; sed -n 25,40p modules/images/images.routes.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:26:57.516Z",
+      "lastAccessed": "2026-10-22T07:26:57.516Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:26:57.516Z"
+    },
+    "cmd-1792654036549": {
+      "key": "cmd-1792654036549",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server && pnpm exec tsx --test scripts/request-limits.test.ts 2>&1 | grep -E \\\"^# (pass|fail)|not ok|expected|actual|statusCode\\\" | head -12\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:27:16.549Z",
+      "lastAccessed": "2026-10-22T07:27:16.549Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:27:16.549Z"
+    },
+    "cmd-1792654064394": {
+      "key": "cmd-1792654064394",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && echo \\\"== with change\\\" && (cd server && pnpm exec tsx --test scripts/request-limits.test.ts 2>&1 | grep -E \\\"^# (pass|fail)\\\") && git stash push -q server/src/server.ts server/src/modules/auth/auth.hooks.ts server/src/modules/images server/src/modules/rental-images server/src/modules/documents server/src/modules/company-settings server/src/modules/import server/src/modules/backup/backup.routes.ts && mv server/src/shared/constants/limits.ts \\\"$TEMP/limits.ts\\\" && echo \\\"== without change\\\" && (cd server && pnpm exec tsx --test scripts/request-limits.test.ts 2>&1 | grep -E \\\"^# (pass|fail)|^    not ok\\\"); mv \\\"$TEMP/limits.ts\\\" server/src/shared/constants/limits.ts; git stash pop -q; git status --short | grep -v \\\"claude-flow\\\\|.swarm\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:27:44.394Z",
+      "lastAccessed": "2026-10-22T07:27:44.394Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:27:44.394Z"
+    },
+    "cmd-1792654079525": {
+      "key": "cmd-1792654079525",
+      "value": "{\"command\":\"node -e '\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:27:59.525Z",
+      "lastAccessed": "2026-10-22T07:27:59.525Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:27:59.525Z"
+    },
+    "cmd-1792654087956": {
+      "key": "cmd-1792654087956",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src/modules && grep -n \\\"Code\\\\b\\\\|nextCode\\\\|generateCode\\\\|code:\\\" properties/properties.repository.ts | head -12; sed -n '/async function generatePropertyCode\\\\|function nextPropertyCode\\\\|async function nextCode/,/^}/p' properties/properties.repository.ts | head -30\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:28:07.956Z",
+      "lastAccessed": "2026-10-22T07:28:07.956Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:28:07.956Z"
+    },
+    "cmd-1792654093420": {
+      "key": "cmd-1792654093420",
+      "value": "{\"command\":\"sed -n 250,290p properties/properties.repository.ts; for f in rentals/rentals.repository.ts people/people.repository.ts rental-requests/rental-requests.repository.ts purchase-requests/purchase-requests.repository.ts documents/documents.repository.ts; do echo \\\"== $f\\\"; grep -n \\\"Code(\\\\|function .*Code\\\\|code:\\\" $f | head -6; done\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:28:13.420Z",
+      "lastAccessed": "2026-10-22T07:28:13.420Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:28:13.420Z"
+    },
+    "cmd-1792654103504": {
+      "key": "cmd-1792654103504",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server && grep -o '\\\"[a-z_]*_code_unique\\\"' drizzle/0000_remarkable_shinobi_shaw.sql | sort -u; sed -n 80,100p src/modules/properties/properties.repository.ts; ls src/shared/utils/\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:28:23.504Z",
+      "lastAccessed": "2026-10-22T07:28:23.504Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:28:23.504Z"
+    },
+    "cmd-1792654124272": {
+      "key": "cmd-1792654124272",
+      "value": "{\"command\":\"cat > scripts/.dup-check.tmp.ts <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:28:44.272Z",
+      "lastAccessed": "2026-10-22T07:28:44.272Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:28:44.272Z"
+    },
+    "cmd-1792654142219": {
+      "key": "cmd-1792654142219",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src/modules && sed -n 176,195p rentals/rentals.repository.ts; sed -n 76,86p people/people.repository.ts; sed -n 134,144p rental-requests/rental-requests.repository.ts; sed -n 114,124p purchase-requests/purchase-requests.repository.ts; sed -n 113,135p documents/documents.repository.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:29:02.219Z",
+      "lastAccessed": "2026-10-22T07:29:02.219Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:29:02.219Z"
+    },
+    "cmd-1792654155324": {
+      "key": "cmd-1792654155324",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src && grep -n \\\"errorCode\\\\|23503\\\\|23505\\\" server.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:29:15.324Z",
+      "lastAccessed": "2026-10-22T07:29:15.324Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:29:15.324Z"
+    },
+    "cmd-1792654177822": {
+      "key": "cmd-1792654177822",
+      "value": "{\"command\":\"python3 - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:29:37.822Z",
+      "lastAccessed": "2026-10-22T07:29:37.822Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:29:37.822Z"
+    },
+    "cmd-1792654182373": {
+      "key": "cmd-1792654182373",
+      "value": "{\"command\":\"cat \\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/tasks/btxh779nk.output\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:29:42.373Z",
+      "lastAccessed": "2026-10-22T07:29:42.373Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:29:42.373Z"
+    },
+    "cmd-1792654259244": {
+      "key": "cmd-1792654259244",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\" && timeout 60 node scripts/perf/.orphan-check.tmp.mjs \\\"$S/pkg-after/win-unpacked\\\" 2>&1 | grep -v \\\"^\\\\s*at \\\" | head -15\",\"exitCode\":143,\"success\":false}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:30:59.244Z",
+      "lastAccessed": "2026-10-22T07:30:59.244Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:30:59.244Z"
+    },
+    "cmd-1792654317360": {
+      "key": "cmd-1792654317360",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\" && sed -i 's#^const electron = await _electron.launch#console.log(\\\"launching\\\");\\\\nconst electron = await _electron.launch#; s#^let api = \\\\[\\\\];#console.log(\\\"launched\\\");\\\\nlet api = [];#; s#  const mainPid = await electron.evaluate(() => process.pid);#  const mainPid = await electron.evaluate(() => process.pid);\\\\n  console.log(\\\"main\\\", mainPid, \\\"children\\\", JSON.stringify(childPids(mainPid, /./)));#' scripts/perf/.orphan-check.tmp.mjs && timeout 45 node scripts/perf/.orphan-check.tmp.mjs \\\"$S/pkg-after/win-unpacked\\\" 2>&1 | grep -v \\\"^\\\\s*at \\\" | head -12\",\"exitCode\":143,\"success\":false}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:31:57.360Z",
+      "lastAccessed": "2026-10-22T07:31:57.360Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:31:57.360Z"
+    },
+    "cmd-1792654367422": {
+      "key": "cmd-1792654367422",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\" && timeout 40 node scripts/perf/.orphan-check.tmp.mjs \\\"$S/pkg-after/win-unpacked\\\" > \\\"$S/orphan.log\\\" 2>&1; echo \\\"exit=$?\\\"; head -c 1500 \\\"$S/orphan.log\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:32:47.422Z",
+      "lastAccessed": "2026-10-22T07:32:47.422Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:32:47.422Z"
+    },
+    "cmd-1792654391882": {
+      "key": "cmd-1792654391882",
+      "value": "{\"command\":\"S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\" && cat > scripts/perf/.children.tmp.mjs <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:33:11.882Z",
+      "lastAccessed": "2026-10-22T07:33:11.882Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:33:11.882Z"
+    },
+    "cmd-1792654447049": {
+      "key": "cmd-1792654447049",
+      "value": "{\"command\":\"S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\" && echo \\\"== old package\\\" && timeout 80 node scripts/perf/.orphan-check.tmp.mjs \\\"$S/pkg-after/win-unpacked\\\" > \\\"$S/o1.log\\\" 2>&1; grep -v \\\"^\\\\s*at \\\" \\\"$S/o1.log\\\" | head -6; echo \\\"== this branch\\\" && timeout 80 node scripts/perf/.orphan-check.tmp.mjs \\\"$S/pkg-phase1/win-unpacked\\\" > \\\"$S/o2.log\\\" 2>&1; grep -v \\\"^\\\\s*at \\\" \\\"$S/o2.log\\\" | head -6\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:34:07.049Z",
+      "lastAccessed": "2026-10-22T07:34:07.049Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:34:07.049Z"
+    },
+    "cmd-1792654478143": {
+      "key": "cmd-1792654478143",
+      "value": "{\"command\":\"git diff --stat apps/desktop/src/main.js server/src/index.ts server/src/modules/remote-access/remote-access.service.ts | cat && git restore apps/desktop/src/main.js server/src/index.ts server/src/modules/remote-access/remote-access.service.ts && rm scripts/perf/.orphan-check.tmp.mjs && git status --short | grep -v \\\"claude-flow\\\\|.swarm\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:34:38.143Z",
+      "lastAccessed": "2026-10-22T07:34:38.143Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:34:38.143Z"
+    },
+    "cmd-1792654501427": {
+      "key": "cmd-1792654501427",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src && python3 - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:35:01.427Z",
+      "lastAccessed": "2026-10-22T07:35:01.427Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:35:01.427Z"
+    },
+    "cmd-1792654539259": {
+      "key": "cmd-1792654539259",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server && echo \\\"== with change\\\"; pnpm exec tsx --test scripts/postgres-errors.test.ts scripts/record-codes.test.ts 2>&1 | grep -E \\\"^# (pass|fail)|not ok|actual|expected\\\" | head; cd .. && git stash push -q server/src/server.ts server/src/modules/properties server/src/modules/rentals server/src/modules/people server/src/modules/rental-requests server/src/modules/purchase-requests server/src/modules/documents && echo \\\"== without change\\\" && (cd server && pnpm exec tsx --test scripts/record-codes.test.ts 2>&1 | grep -E \\\"^# (pass|fail)|^    not ok|actual\\\" | head -6); git stash pop -q; git status --short | grep -v \\\"claude-flow\\\\|.swarm\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:35:39.259Z",
+      "lastAccessed": "2026-10-22T07:35:39.259Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:35:39.259Z"
+    },
+    "cmd-1792654557229": {
+      "key": "cmd-1792654557229",
+      "value": "{\"command\":\"node -e '\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:35:57.229Z",
+      "lastAccessed": "2026-10-22T07:35:57.229Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:35:57.229Z"
+    },
+    "cmd-1792654562127": {
+      "key": "cmd-1792654562127",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/desktop && sed -n '/export function readAppConfig/,$p' src/app-config.js; grep -n \\\"^import\\\\|^export\\\" src/app-config.js | head; ls scripts; grep -rn \\\"app-config\\\" ../../server/scripts/*.ts | head -3\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:36:02.127Z",
+      "lastAccessed": "2026-10-22T07:36:02.127Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:36:02.127Z"
+    },
+    "cmd-1792654576868": {
+      "key": "cmd-1792654576868",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && grep -rn \\\"unlink\\\\|rmSync\\\\|config.json\\\" apps/desktop/src/*.js | head; grep -n \\\"import\\\" server/scripts/startup.test.ts | head -5\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:36:16.868Z",
+      "lastAccessed": "2026-10-22T07:36:16.868Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:36:16.868Z"
+    },
+    "cmd-1792654591333": {
+      "key": "cmd-1792654591333",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/apps/desktop/src && python3 - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:36:31.333Z",
+      "lastAccessed": "2026-10-22T07:36:31.333Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:36:31.333Z"
+    },
+    "cmd-1792654616260": {
+      "key": "cmd-1792654616260",
+      "value": "{\"command\":\"sed -i '/^import fs from \\\"node:fs\\\";$/d' app-config.js && head -12 app-config.js && cat > /d/dev_projects/dalaly/server/scripts/json-file.test.ts <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:36:56.260Z",
+      "lastAccessed": "2026-10-22T07:36:56.260Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:36:56.260Z"
+    },
+    "cmd-1792654620615": {
+      "key": "cmd-1792654620615",
+      "value": "{\"command\":\"grep -n \\\"app-config.js\\\" docs/ARCHITECTURE.md\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:37:00.615Z",
+      "lastAccessed": "2026-10-22T07:37:00.615Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:37:00.615Z"
+    },
+    "cmd-1792654633946": {
+      "key": "cmd-1792654633946",
+      "value": "{\"command\":\"python3 - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:37:13.946Z",
+      "lastAccessed": "2026-10-22T07:37:13.946Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:37:13.946Z"
+    },
+    "cmd-1792654643792": {
+      "key": "cmd-1792654643792",
+      "value": "{\"command\":\"S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\" && { echo \\\"== typecheck\\\"; pnpm typecheck 2>&1 | grep -E \\\"error|verified\\\"; echo \\\"== unit\\\"; pnpm test 2>&1 | grep -E \\\"^# (pass|fail)\\\"; echo \\\"== build\\\"; pnpm build > \\\"$S/p1-final-build.log\\\" 2>&1 && echo build-ok || echo build-FAILED; echo \\\"== db suites\\\"; cd server; for s in test:permissions test:backup:safety test:limits test:codes test:restore:large; do printf \\\"%s: \\\" $s; pnpm run -s $s 2>&1 | grep -E \\\"^# (pass|fail)\\\" | tr '\\\\n' ' '; echo; done; printf \\\"removal-backup: \\\"; pnpm exec tsx --test scripts/removal-backup.test.ts 2>&1 | grep -E \\\"^# (pass|fail)\\\" | tr '\\\\n' ' '; echo; echo \\\"== electron startup\\\"; pnpm run -s test:startup:electron 2>&1 | grep -E \\\"PASS|FAIL|passed|Error\\\" | tail -12; } > \\\"$S/p1-verify.log\\\" 2>&1; cat \\\"$S/p1-verify.log\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:37:23.792Z",
+      "lastAccessed": "2026-10-22T07:37:23.792Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:37:23.792Z"
+    },
+    "cmd-1792654649002": {
+      "key": "cmd-1792654649002",
+      "value": "{\"command\":\"grep -n \\\"### Phase 1\\\" -A16 docs/AUDIT_AND_ROADMAP.md; grep -n \\\"API child is not supervised\\\" -A3 docs/AUDIT_AND_ROADMAP.md; grep -n \\\"Record codes\\\\|RBAC leak\\\\|Backup contents\\\\|Remote access defaults\\\" docs/AUDIT_AND_ROADMAP.md\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:37:29.002Z",
+      "lastAccessed": "2026-10-22T07:37:29.002Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:37:29.002Z"
+    },
+    "cmd-1792654666218": {
+      "key": "cmd-1792654666218",
+      "value": "{\"command\":\"python3 - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:37:46.218Z",
+      "lastAccessed": "2026-10-22T07:37:46.218Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:37:46.218Z"
+    },
+    "cmd-1792654681410": {
+      "key": "cmd-1792654681410",
+      "value": "{\"command\":\"python3 - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:38:01.410Z",
+      "lastAccessed": "2026-10-22T07:38:01.410Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:38:01.410Z"
+    },
+    "cmd-1792654695299": {
+      "key": "cmd-1792654695299",
+      "value": "{\"command\":\"sed -n 196,225p docs/AUDIT_AND_ROADMAP.md && npx prettier --check docs/AUDIT_AND_ROADMAP.md 2>&1 | tail -1\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:38:15.299Z",
+      "lastAccessed": "2026-10-22T07:38:15.299Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:38:15.299Z"
+    },
+    "cmd-1792654701919": {
+      "key": "cmd-1792654701919",
+      "value": "{\"command\":\"grep -n \\\"Restore\\\\|restore\\\" docs/AUDIT_AND_ROADMAP.md | grep -i \\\"pre-restore\\\\|safety backup\\\" | head -5; grep -n \\\"no backup/restore mutex\\\\|pre-restore safety backup\\\" docs/AUDIT_AND_ROADMAP.md\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:38:21.919Z",
+      "lastAccessed": "2026-10-22T07:38:21.919Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:38:21.919Z"
+    },
+    "cmd-1792654716879": {
+      "key": "cmd-1792654716879",
+      "value": "{\"command\":\"python3 - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:38:36.879Z",
+      "lastAccessed": "2026-10-22T07:38:36.879Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:38:36.879Z"
+    },
+    "cmd-1792654857170": {
+      "key": "cmd-1792654857170",
+      "value": "{\"command\":\"cat \\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/tasks/b88cd8bvu.output\\\"; cd /d/dev_projects/dalaly && ls -t server/data/removal-tests | head -3; git status --short | grep -v \\\"claude-flow\\\\|.swarm\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:40:57.170Z",
+      "lastAccessed": "2026-10-22T07:40:57.170Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:40:57.170Z"
+    },
+    "cmd-1792654868921": {
+      "key": "cmd-1792654868921",
+      "value": "{\"command\":\"rm -rf server/data/removal-tests/dalaly_removal_test_1792654754232_backup && git add README.md docs/AUDIT_AND_ROADMAP.md && git commit -q -F - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:41:08.921Z",
+      "lastAccessed": "2026-10-22T07:41:08.921Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:41:08.921Z"
+    },
+    "cmd-1792655715075": {
+      "key": "cmd-1792655715075",
+      "value": "{\"command\":\"git fetch -q origin && git log --oneline -1 origin/main | cat && git merge-base --is-ancestor origin/main HEAD && echo \\\"based on current origin/main\\\" ; git push -u origin fix/phase1-safety 2>&1 | tail -2\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:55:15.075Z",
+      "lastAccessed": "2026-10-22T07:55:15.075Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:55:15.075Z"
+    },
+    "cmd-1792655736859": {
+      "key": "cmd-1792655736859",
+      "value": "{\"command\":\"gh pr create --repo TariqAli93/dalaly --base main --head fix/phase1-safety --title \\\"Phase 1 safety: RBAC scope, backup safety, body limits, race-safe codes\\\" --body-file \\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad/pr4-body.md\\\" 2>&1 | tail -2\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T07:55:36.859Z",
+      "lastAccessed": "2026-10-22T07:55:36.859Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T07:55:36.859Z"
+    },
+    "cmd-1792656392089": {
+      "key": "cmd-1792656392089",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src/modules && for f in properties/properties.repository.ts rentals/rentals.repository.ts people/people.repository.ts rental-requests/rental-requests.repository.ts purchase-requests/purchase-requests.repository.ts documents/documents.repository.ts; do echo \\\"=== $f\\\"; awk '/^async function generate[A-Za-z]*Code/,/^}/' $f; grep -n \\\"withUniqueCodeRetry\\\\|postgres-errors\\\" $f; done\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:06:32.089Z",
+      "lastAccessed": "2026-10-22T08:06:32.089Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:06:32.089Z"
+    },
+    "cmd-1792656396994": {
+      "key": "cmd-1792656396994",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && git branch --show-current && git status --short | grep -v \\\"claude-flow\\\\|.swarm\\\"; git fetch -q origin && git log --oneline -1 origin/fix/phase1-safety | cat; git log --oneline -1 | cat\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:06:36.994Z",
+      "lastAccessed": "2026-10-22T08:06:36.994Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:06:36.994Z"
+    },
+    "cmd-1792656410251": {
+      "key": "cmd-1792656410251",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src/modules && sed -n 262,280p properties/properties.repository.ts; sed -n 180,190p rentals/rentals.repository.ts; sed -n 78,87p people/people.repository.ts; sed -n 136,148p rental-requests/rental-requests.repository.ts; sed -n 116,128p purchase-requests/purchase-requests.repository.ts; sed -n 119,126p documents/documents.repository.ts; sed -n 36,43p properties/properties.repository.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:06:50.251Z",
+      "lastAccessed": "2026-10-22T08:06:50.251Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:06:50.251Z"
+    },
+    "cmd-1792656470545": {
+      "key": "cmd-1792656470545",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server && python3 - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:07:50.545Z",
+      "lastAccessed": "2026-10-22T08:07:50.545Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:07:50.545Z"
+    },
+    "cmd-1792656527253": {
+      "key": "cmd-1792656527253",
+      "value": "{\"command\":\"pnpm test 2>&1 | grep -E \\\"^# (pass|fail)\\\"; echo \\\"== lock version\\\"; (cd server && for i in 1 2; do pnpm exec tsx --test scripts/record-codes.test.ts 2>&1 | grep -E \\\"^# (pass|fail)|^    not ok\\\" | tr '\\\\n' ' '; echo; done); git stash push -q server/src/modules server/src/shared/utils/postgres-errors.ts && echo \\\"== previous retry version\\\" && (cd server && pnpm exec tsx --test scripts/record-codes.test.ts 2>&1 | grep -E \\\"^# (pass|fail)|^    not ok|duplicate key\\\" | head -4); git stash pop -q; git status --short | grep -v \\\"claude-flow\\\\|.swarm\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:08:47.253Z",
+      "lastAccessed": "2026-10-22T08:08:47.253Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:08:47.253Z"
+    },
+    "cmd-1792656541316": {
+      "key": "cmd-1792656541316",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server && pnpm exec tsx --test scripts/record-codes.test.ts 2>&1 | grep -vE \\\"^\\\\s+at |^npm warn|injected env\\\" | sed -n '/not ok 1/,/not ok 2/p' | head -40\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:09:01.316Z",
+      "lastAccessed": "2026-10-22T08:09:01.316Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:09:01.316Z"
+    },
+    "cmd-1792656562490": {
+      "key": "cmd-1792656562490",
+      "value": "{\"command\":\"grep -n \\\"generateCode\\\\|withRecordCodeLock\\\\|await tx\\\\|await db\\\" src/modules/people/people.repository.ts | head; cat > scripts/.lock-check.tmp.ts <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:09:22.490Z",
+      "lastAccessed": "2026-10-22T08:09:22.490Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:09:22.490Z"
+    },
+    "cmd-1792656591385": {
+      "key": "cmd-1792656591385",
+      "value": "{\"command\":\"cat > scripts/.lock-check.tmp.ts <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:09:51.385Z",
+      "lastAccessed": "2026-10-22T08:09:51.385Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:09:51.385Z"
+    },
+    "cmd-1792656614272": {
+      "key": "cmd-1792656614272",
+      "value": "{\"command\":\"sed -n 30,46p src/modules/people/people.repository.ts; sed -n 80,92p src/modules/people/people.repository.ts; cat > scripts/.lock-check.tmp.ts <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:10:14.272Z",
+      "lastAccessed": "2026-10-22T08:10:14.272Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:10:14.272Z"
+    },
+    "cmd-1792656637167": {
+      "key": "cmd-1792656637167",
+      "value": "{\"command\":\"f=$(find ../node_modules/.pnpm -path \\\"*drizzle-orm@*/node_modules/drizzle-orm/node-postgres/session.js\\\" | head -1); echo \\\"$f\\\"; grep -n \\\"instanceof Pool\\\\|instanceof\\\\b\\\" \\\"$f\\\" | head; sed -n '/export const pool = new Proxy/,/});/p' src/infrastructure/database/pool.ts\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:10:37.167Z",
+      "lastAccessed": "2026-10-22T08:10:37.167Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:10:37.167Z"
+    },
+    "cmd-1792656643436": {
+      "key": "cmd-1792656643436",
+      "value": "{\"command\":\"node -e 'console.log(require.resolve(\\\"drizzle-orm/node-postgres\\\"))' 2>/dev/null; f=$(dirname \\\"$(node -e 'console.log(require.resolve(\\\"drizzle-orm/node-postgres\\\"))')\\\")/session.js; ls -la \\\"$f\\\"; grep -n \\\"instanceof\\\" \\\"$f\\\" | head; grep -n \\\"async transaction\\\" -A12 \\\"$f\\\" | head -30\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:10:43.436Z",
+      "lastAccessed": "2026-10-22T08:10:43.436Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:10:43.436Z"
+    },
+    "cmd-1792656665476": {
+      "key": "cmd-1792656665476",
+      "value": "{\"command\":\"grep -n \\\"export const pool = new Proxy\\\" -B12 src/infrastructure/database/pool.ts | head -30\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:11:05.476Z",
+      "lastAccessed": "2026-10-22T08:11:05.476Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:11:05.476Z"
+    },
+    "cmd-1792656703438": {
+      "key": "cmd-1792656703438",
+      "value": "{\"command\":\"pnpm exec tsc -p tsconfig.json --noEmit && echo TSC-OK; echo \\\"== with fix\\\"; pnpm exec tsx --test scripts/transactions.test.ts scripts/record-codes.test.ts 2>&1 | grep -E \\\"^# (pass|fail)|^    not ok|^not ok\\\"; git stash push -q src/infrastructure/database/pool.ts && echo \\\"== without pool fix\\\" && pnpm exec tsx --test scripts/transactions.test.ts 2>&1 | grep -E \\\"^# (pass|fail)|^not ok|expected|actual\\\" | head -6; git stash pop -q; git diff --stat src/infrastructure/database/pool.ts | cat\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:11:43.438Z",
+      "lastAccessed": "2026-10-22T08:11:43.438Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:11:43.438Z"
+    },
+    "cmd-1792656726367": {
+      "key": "cmd-1792656726367",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && node -e '\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:12:06.367Z",
+      "lastAccessed": "2026-10-22T08:12:06.367Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:12:06.367Z"
+    },
+    "cmd-1792656732491": {
+      "key": "cmd-1792656732491",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly && grep -n \\\"5. Done: record codes\\\" -A3 docs/AUDIT_AND_ROADMAP.md; grep -n \\\"New DB-backed suites\\\" -A1 docs/AUDIT_AND_ROADMAP.md; grep -n \\\"Already good: no \\\\`any\\\\`, consistent-snapshot export, single-transaction\\\" -A3 docs/AUDIT_AND_ROADMAP.md\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:12:12.491Z",
+      "lastAccessed": "2026-10-22T08:12:12.491Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:12:12.491Z"
+    },
+    "cmd-1792656748237": {
+      "key": "cmd-1792656748237",
+      "value": "{\"command\":\"python3 - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:12:28.237Z",
+      "lastAccessed": "2026-10-22T08:12:28.237Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:12:28.237Z"
+    },
+    "cmd-1792656758922": {
+      "key": "cmd-1792656758922",
+      "value": "{\"command\":\"S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\" && { echo \\\"== typecheck\\\"; pnpm typecheck 2>&1 | grep -E \\\"error TS|verified\\\"; echo \\\"== unit\\\"; pnpm test 2>&1 | grep -E \\\"^# (pass|fail)\\\"; echo \\\"== build\\\"; pnpm build > \\\"$S/p1b-build.log\\\" 2>&1 && echo build-ok || echo build-FAILED; echo \\\"== db suites\\\"; cd server; for s in test:transactions test:codes test:permissions test:backup:safety test:limits test:restore:large; do printf \\\"%s: \\\" $s; pnpm run -s $s 2>&1 | grep -E \\\"^# (pass|fail)\\\" | tr '\\\\n' ' '; echo; done; printf \\\"removal-backup: \\\"; pnpm exec tsx --test scripts/removal-backup.test.ts 2>&1 | grep -E \\\"^# (pass|fail)\\\" | tr '\\\\n' ' '; echo; echo \\\"== electron startup\\\"; pnpm run -s test:startup:electron 2>&1 | grep -E \\\"PASS|FAIL|passed|Error\\\" | tail -12; } > \\\"$S/p1b-verify.log\\\" 2>&1; cat \\\"$S/p1b-verify.log\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:12:38.922Z",
+      "lastAccessed": "2026-10-22T08:12:38.922Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:12:38.922Z"
+    },
+    "cmd-1792657065950": {
+      "key": "cmd-1792657065950",
+      "value": "{\"command\":\"cat \\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/tasks/b6r67j1ax.output\\\"; cd /d/dev_projects/dalaly && ls -t server/data/removal-tests | head -2; git status --short | grep -v \\\"claude-flow\\\\|.swarm\\\"\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:17:45.950Z",
+      "lastAccessed": "2026-10-22T08:17:45.950Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:17:45.950Z"
+    },
+    "cmd-1792657066108": {
+      "key": "cmd-1792657066108",
+      "value": "{\"command\":\"rm -rf server/data/removal-tests/dalaly_removal_test_1792656927089_backup && git add README.md docs/AUDIT_AND_ROADMAP.md && git commit -q -F - <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:17:46.108Z",
+      "lastAccessed": "2026-10-22T08:17:46.108Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:17:46.108Z"
+    },
+    "cmd-1792657076304": {
+      "key": "cmd-1792657076304",
+      "value": "{\"command\":\"S=\\\"C:/Users/dev/AppData/Local/Temp/claude/D--dev-projects-dalaly/7be8bb25-95e6-41b0-b94e-bfb5ca4b1b3d/scratchpad\\\"; python3 - \\\"$S/pr4-body.md\\\" <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:17:56.304Z",
+      "lastAccessed": "2026-10-22T08:17:56.304Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:17:56.304Z"
+    },
+    "cmd-1792657348674": {
+      "key": "cmd-1792657348674",
+      "value": "{\"command\":\"cd /d/dev_projects/dalaly/server/src && grep -rn \\\"\\\\.transaction(\\\" --include=*.ts . | grep -v \\\"^./infrastructure/database/record-codes.ts\\\" | cat\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:22:28.674Z",
+      "lastAccessed": "2026-10-22T08:22:28.674Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:22:28.674Z"
+    },
+    "cmd-1792657358678": {
+      "key": "cmd-1792657358678",
+      "value": "{\"command\":\"for spec in \\\"infrastructure/database/iraq-locations.seed.ts:291\\\" \\\"modules/backup/backup.service.ts:205\\\" \\\"modules/backup/backup.service.ts:579\\\" \\\"modules/images/images.repository.ts:57\\\" \\\"modules/images/images.repository.ts:75\\\" \\\"modules/rbac/rbac.service.ts:157\\\" \\\"modules/rbac/rbac.service.ts:181\\\" \\\"modules/rental-images/rental-images.repository.ts:54\\\" \\\"modules/rental-images/rental-images.repository.ts:71\\\"; do f=${spec%%:*}; l=${spec##*:}; echo \\\"=== $spec\\\"; awk -v s=$l 'NR>=s { print NR\\\": \\\"$0; if (NR>s && /^  }\\\\)|^    }\\\\)|^  \\\\}, *\\\\{|^    \\\\}\\\\);/) exit }' $f | grep -nE \\\"\\\\bdb\\\\.|await [a-zA-Z]+\\\\(\\\" | head -8; done\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:22:38.678Z",
+      "lastAccessed": "2026-10-22T08:22:38.678Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:22:38.678Z"
+    },
+    "cmd-1792657363858": {
+      "key": "cmd-1792657363858",
+      "value": "{\"command\":\"sed -n 205,232p modules/backup/backup.service.ts | grep -n \\\"db\\\\.\\\\|tx\\\\.\\\\|isolationLevel\\\\|^  );\\\" ; echo ---; sed -n 291,300p infrastructure/database/iraq-locations.seed.ts; echo ---; sed -n 57,90p modules/images/images.repository.ts | grep -n \\\"db\\\\.\\\\|tx\\\\.\\\\|});\\\"; echo ---; sed -n 157,200p modules/rbac/rbac.service.ts | grep -n \\\"db\\\\.\\\\|tx\\\\.\\\\|});\\\\|await [a-z]\\\"; echo ---; sed -n 54,85p modules/rental-images/rental-images.repository.ts | grep -n \\\"db\\\\.\\\\|tx\\\\.\\\\|});\\\"; echo ---; sed -n 579,620p modules/backup/backup.service.ts | grep -n \\\"await db\\\\|await [a-z][A-Za-z]*(\\\" | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:22:43.858Z",
+      "lastAccessed": "2026-10-22T08:22:43.858Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:22:43.858Z"
+    },
+    "cmd-1792657368042": {
+      "key": "cmd-1792657368042",
+      "value": "{\"command\":\"sed -n 57,72p modules/images/images.repository.ts; sed -n 205,225p modules/backup/backup.service.ts; awk 'NR>=291 && NR<=345' infrastructure/database/iraq-locations.seed.ts | grep -n \\\"await db\\\\|await [a-z][A-Za-z]*(\\\" | head\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-22T08:22:48.042Z",
+      "lastAccessed": "2026-10-22T08:22:48.042Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-21T08:22:48.042Z"
     }
   },
   "version": "3.0.0"
