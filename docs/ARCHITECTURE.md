@@ -110,6 +110,11 @@ Conventions:
   migrations by tag (`0001_contract_studio`/`0002_studio_ux`) and gates
   `0003_remove_contract_system` behind explicit approval; the current
   `0001_default_document_types` is unrelated and runs normally.
+- The runner hashes each migration's raw bytes, so line endings are part of a
+  shipped migration. `.gitattributes` pins `server/drizzle/*.sql` to LF (what
+  drizzle-kit writes and what packaged builds and existing databases recorded),
+  with `0001_default_document_types.sql` as the one CRLF exception. A new
+  migration stays LF; never change a shipped migration's pin.
 - Reference rows the app needs on a fresh install (default document types) are
   inserted by a data migration once per database; system permissions and the
   Super Admin role are re-seeded on every startup by `seedSystemRbac`.
