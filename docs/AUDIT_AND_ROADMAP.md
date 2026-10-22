@@ -63,11 +63,17 @@ These are not code-quality calls; they change history, data or behavior.
      `test:removal` (`removal-core.test.ts`) reads the deleted files and fails;
    - an installation that has not yet retired the contract system can no
      longer do so through `0003`;
-   - the plot-identity unique index (`uq_properties_plot_identity`) and the
-     `pg_trgm` search indexes from older migrations are absent from `0000`, so
-     fresh installs lack them while older ones have them. Re-adding the unique
-     index needs a migration that first checks for duplicates, or startup
-     fails on databases that already contain them.
+   - _Resolved:_ the plot-identity unique index (`uq_properties_plot_identity`)
+     and the five `pg_trgm` search indexes on `properties` were absent from
+     `0000`, so fresh installs lacked them. `0002_restore_property_indexes`
+     re-creates them with `IF NOT EXISTS` (databases that have them are
+     untouched); like the originals, each block catches its own failure, so
+     existing duplicate plots or an unusable `pg_trgm` skip that block, and
+     the runner now logs the notice. Such a database stays without the index
+     until the duplicates are removed and it is created by hand. The
+     duplicate check in `properties.repository.ts` sent `'s+'` instead of
+     `'\s+'` (the `sql` tag uses the cooked string), so it missed
+     whitespace variants; on fresh installs those were saved silently.
    - _Resolved:_ the default document types were inserted only by the old data
      migrations, which an earlier consolidation (`152c7a5`) replaced with a
      schema-only baseline, so fresh installs had an empty type list.
