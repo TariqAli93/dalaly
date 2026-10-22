@@ -109,6 +109,9 @@ export const propertyFiltersSchema = z.object({
   price_max: z.coerce.number().optional(),
   q: z.string().optional(),
   search: z.string().optional(),
+  // عروض مالك مسجَّل (تفاصيل الشخص)؛ include_archived يضم المؤرشفة إلى بقية الحالات.
+  owner_person_id: z.coerce.number().int().positive().optional(),
+  include_archived: z.enum(["true", "false"]).optional(),
   // جاهزية الـ pagination من قاعدة البيانات (اختياري؛ بدونها تُرجع كل النتائج).
   limit: z.coerce.number().int().positive().max(500).optional(),
   offset: z.coerce.number().int().nonnegative().optional(),
