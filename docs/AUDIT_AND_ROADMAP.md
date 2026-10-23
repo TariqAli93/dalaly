@@ -321,8 +321,27 @@ fix).
    floating promises in `.js` (Electron main has no type information) and in
    the test scripts (node:test's `test()` returns a promise), and the root
    `scripts/` tooling (perf harness, web demo).
-2. One `DomainError(status, message)`; remove route catch-alls; one error
-   response shape; fix `z.coerce.boolean()`.
+2. Done: `DomainError(status, message, code?)` in `shared/errors.ts`, handled
+   by the central error handler; `DuplicatePlotError`, `SetupError` and
+   `BackupBusyError` extend it, `ThumbnailError` and the dead `DocumentError`
+   are gone. Every error body is `{ code, message }` (`issues` added for
+   validation), Arabic message; a `preSerialization` hook gives the plain
+   `reply.code(…).send({ message })` answers their status's code, and unknown
+   routes answer 404 in Arabic. Removed: the catch-alls in the users, roles,
+   locations, backup, setup and setup-admin routes. Their Arabic business
+   messages are `DomainError`s now (same text and status); unexpected
+   failures, which used to send the driver's or file system's English text
+   (400 in users/roles/locations, 500 `{ ok: false }` in backup), are a 409
+   for unique/foreign-key violations and otherwise a generic 500. Setup keeps
+   showing PostgreSQL's reason on purpose (`setupFailure`). Status changes:
+   a backup file that cannot be read, the archive checks and the export-path
+   checks are 400s (were 500s), and so is an empty document or image upload
+   (was a generic 500). `booleanField` replaces
+   `z.coerce.boolean()` (documents, properties, rentals). Shape changes:
+   `ok: false` (backup, setup errors) and `messageKey` are gone, `code` is
+   added; no caller read either (the renderer and Electron read `message`
+   and the HTTP status). Fast test: `scripts/error-shape.test.ts` in
+   `pnpm test`.
 3. Shared renderer pieces where duplication is real: `FilterBar` +
    `useDebouncedApply`, one `ImageGallery` with a service adapter,
    `useListingSort`.

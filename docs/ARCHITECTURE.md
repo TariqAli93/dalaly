@@ -95,6 +95,21 @@ Conventions:
 - Routes parse input with the module's zod schema (`schema.parse` errors become
   localized 400s in the central error handler), call a repository or service,
   and return snake_case objects (`toApiObject`).
+- Errors: a failure the user should read is a
+  `DomainError(status, message, code?)` from `shared/errors.ts`, thrown
+  wherever it is detected; routes do not catch errors to reword them. The central handler in `server.ts` answers
+  every error with one body, `{ code, message }` (plus `issues` for
+  validation), the message in Arabic: zod → 400 `VALIDATION_ERROR`,
+  `DomainError` → its status and code, unique/foreign-key violations → 409
+  `DUPLICATE_VALUE`/`RECORD_IN_USE`, Fastify's own client errors → their
+  status with an Arabic message, anything else → 500 `INTERNAL_ERROR` with a
+  generic message (the error goes to the log). A route that answers
+  `reply.code(404).send({ message })` gets the status's `code` from a
+  `preSerialization` hook. The one place that shows a driver's text is setup
+  (`setupFailure` in `setup.service.ts`): the person installing needs
+  PostgreSQL's own reason.
+- Boolean body fields use `booleanField` from `shared/validation/fields.ts`;
+  `z.coerce.boolean()` reads the string `"false"` as `true`.
 - Use `parseId` from `shared/utils/parse-id.ts` for route ids and
   `shared/validation/fields.ts` for optional text/id/number fields.
 - Large lists have a paged form next to the plain array: `GET
