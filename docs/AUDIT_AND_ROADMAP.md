@@ -120,9 +120,11 @@ These are not code-quality calls; they change history, data or behavior.
   for its owner's offers; Phase 2.6. The person pickers search the server
   too.)
 - **Search**: properties ORs `ILIKE` over ~28 columns plus casts per token;
-  `%`/`_` not escaped; duplicate-plot check is a sequential scan per save.
-- **N+1**: `listUsers` (2 per user), `listRoles`, location names (3 lookups per
-  save), Excel import (~7 queries per row, no transaction or row cap).
+  `%`/`_` not escaped. (The duplicate-plot check before a save is an index
+  scan since Phase 2.5.)
+- **N+1**: fixed in Phase 2.5 for the users and roles lists, location names
+  and the Excel import, which also commits in one transaction and caps the
+  file at 5,000 rows.
 - **Non-atomic writes**: entity write and audit row are separate, audit errors
   are swallowed; files are written before their row, orphaned on failure.
 - **Backup/restore block the event loop**: resolved in Phase 4.1. adm-zip
@@ -266,7 +268,23 @@ fix).
    8 ms at 50,000, so no index yet (`docs/PERFORMANCE.md`, "Paging the
    remaining lists").
 4. Pool tuning and a statement timeout (exempting backup/restore).
-5. Fix N+1s: users/roles listing, location names, import (transaction + cap).
+5. Done: N+1s and the import. The users and roles lists load every listed
+   row's roles and permissions together (3 and 2 queries instead of
+   1 + 2 per user and 1 + 1 per role); saving a property, rental or
+   request reads its picked locations' names in one query instead of
+   three; the duplicate-plot check states its index's predicate, so it is
+   an index scan (0.02 ms) instead of a scan of every listing (3 ms at
+   5,000, 25 ms at 50,000). The Excel import commits in one transaction
+   holding the properties code lock, so a failure part-way saves nothing;
+   it reads what the rows need once per file and inserts 100 rows per
+   statement: 5,000 rows in ~1.6 s instead of ~33 s, 66 statements
+   instead of ~35,000. Validate and commit refuse files over 5,000 rows.
+   Cost: a listing saved during an import waits for its commit (up to
+   ~1 s at 5,000 rows). Results in `docs/PERFORMANCE.md`, "Excel import
+   and N+1 queries". **Found on the way:** both import steps report zod's
+   built-in messages in English (`Too small: expected string…`), only the
+   custom checks are Arabic; a missing linked owner used to come back as
+   the driver's `Failed query: insert …` text (now Arabic).
 6. Done: server pagination end to end. `GET /properties/paged` and
    `/rentals/paged` (page, size, whitelisted sort including area in m²,
    total), then `/people/paged`, `/rental-requests/paged`,

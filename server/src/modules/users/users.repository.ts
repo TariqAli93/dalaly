@@ -4,6 +4,7 @@ import { users } from "../../infrastructure/database/schema.js";
 import { hashPin } from "../auth/crypto.js";
 import {
   countActiveSuperAdmins,
+  getRolesAndPermissionsForUsers,
   getSuperAdminRole,
   getUserRolesAndPermissions,
   setUserRoleIds,
@@ -16,7 +17,10 @@ export async function listUsers() {
     .select()
     .from(users)
     .orderBy(desc(users.createdAt), desc(users.id));
-  return Promise.all(rows.map(toUserDto));
+  const access = await getRolesAndPermissionsForUsers(
+    rows.map((user) => user.id),
+  );
+  return rows.map((user) => userDto(user, access.get(user.id)!));
 }
 
 export async function getUser(id: number) {
@@ -128,7 +132,16 @@ export async function deleteUser(id: number, currentUserId: number) {
 }
 
 async function toUserDto(user: typeof users.$inferSelect) {
-  const { roles, permissions } = await getUserRolesAndPermissions(user.id);
+  return userDto(user, await getUserRolesAndPermissions(user.id));
+}
+
+function userDto(
+  user: typeof users.$inferSelect,
+  {
+    roles,
+    permissions,
+  }: Awaited<ReturnType<typeof getUserRolesAndPermissions>>,
+) {
   return {
     id: user.id,
     username: user.username,

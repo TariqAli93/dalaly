@@ -19,6 +19,7 @@ import {
   favoriteProperties,
   properties,
   type NewProperty,
+  type Property,
 } from "../../infrastructure/database/schema.js";
 import {
   PROPERTY_TYPE_PREFIX,
@@ -29,12 +30,12 @@ import {
 import { calculateTotalPrice } from "../../shared/utils/pricing.js";
 import { toApiObject, toApiObjects } from "../../shared/utils/case.js";
 import { DuplicatePlotError } from "../../shared/errors.js";
+import { getLocationNames } from "../locations/locations.repository.js";
 import {
-  getDistrictName,
-  getGovernorateName,
-  getNeighborhoodName,
-} from "../locations/locations.repository.js";
-import { listEntityAudit, recordAudit } from "../audit/audit.service.js";
+  listEntityAudit,
+  recordAudit,
+  recordAudits,
+} from "../audit/audit.service.js";
 import {
   type PropertyFilters,
   type PropertyPageQuery,
@@ -62,25 +63,73 @@ function normalizeKeyPart(value?: string | null): string {
   return (value ?? "").trim().replace(/\s+/g, " ");
 }
 
+type PlotValues = Pick<
+  NewProperty,
+  "governorate" | "district" | "neighborhood" | "plotNumber" | "plotLetter"
+>;
+
+// Same expression as uq_properties_plot_identity. The sql tag reads the
+// cooked template, where '\s' would reach PostgreSQL as a plain 's'.
+const norm = (column: AnyPgColumn) =>
+  sql`regexp_replace(btrim(coalesce(${column}, '')), '\\s+', ' ', 'g')`;
+
+// The index covers only listings with a plot number; stating its predicate
+// lets the planner use it instead of scanning every listing.
+const hasPlotNumber = sql`${properties.plotNumber} is not null and btrim(${properties.plotNumber}) <> ''`;
+
+/** هوية القطعة المطبّعة كمفتاح نصي، أو null إن لم يوجد رقم قطعة. */
+export function plotIdentityKey(values: PlotValues): string | null {
+  const plotNumber = normalizeKeyPart(values.plotNumber);
+  if (!plotNumber) return null;
+  return JSON.stringify([
+    normalizeKeyPart(values.governorate),
+    normalizeKeyPart(values.district),
+    normalizeKeyPart(values.neighborhood),
+    plotNumber,
+    normalizeKeyPart(values.plotLetter),
+  ]);
+}
+
+/**
+ * أسماء مالكي القطع المسجَّلة مسبقاً المطابقة لأي من هذه القطع، مفهرسة
+ * بـ plotIdentityKey، باستعلام واحد مهما كان عددها (للاستيراد).
+ */
+export async function findPlotOwners(
+  tx: Transaction,
+  rows: PlotValues[],
+): Promise<Map<string, string>> {
+  const keys = [
+    ...new Set(rows.map(plotIdentityKey).filter((key) => key !== null)),
+  ];
+  const owners = new Map<string, string>();
+  if (keys.length === 0) return owners;
+
+  const result = await tx.execute<{ key: string; owner_name: string }>(sql`
+    select k.key, ${properties.ownerName} as owner_name
+    from json_array_elements_text(${JSON.stringify(keys)}::json) as k(key)
+    join ${properties}
+      on ${norm(properties.governorate)} = k.key::json->>0
+     and ${norm(properties.district)} = k.key::json->>1
+     and ${norm(properties.neighborhood)} = k.key::json->>2
+     and ${norm(properties.plotNumber)} = k.key::json->>3
+     and ${norm(properties.plotLetter)} = k.key::json->>4
+     and ${hasPlotNumber}`);
+  for (const row of result.rows)
+    if (!owners.has(row.key)) owners.set(row.key, row.owner_name);
+  return owners;
+}
+
 /**
  * يرجع اسم مالك العرض المسجَّل مسبقاً إن وُجدت قطعة مطابقة، وإلا null.
  * المطابقة على القيم المطبّعة لـ (المحافظة، المنطقة، الحي، رقم القطعة، حرف القطعة).
  * يتم تخطّي الفحص إذا لم يوجد رقم قطعة. excludeId يستثني السجل الحالي عند التعديل.
  */
 async function findDuplicatePlotOwner(
-  values: Pick<
-    NewProperty,
-    "governorate" | "district" | "neighborhood" | "plotNumber" | "plotLetter"
-  >,
+  values: PlotValues,
   excludeId?: number,
 ): Promise<string | null> {
   const plotNumber = normalizeKeyPart(values.plotNumber);
   if (!plotNumber) return null;
-
-  // Same expression as uq_properties_plot_identity. The sql tag reads the
-  // cooked template, where '\s' would reach PostgreSQL as a plain 's'.
-  const norm = (column: AnyPgColumn) =>
-    sql`regexp_replace(btrim(coalesce(${column}, '')), '\\s+', ' ', 'g')`;
 
   const conditions = [
     sql`${norm(properties.governorate)} = ${normalizeKeyPart(values.governorate)}`,
@@ -88,6 +137,7 @@ async function findDuplicatePlotOwner(
     sql`${norm(properties.neighborhood)} = ${normalizeKeyPart(values.neighborhood)}`,
     sql`${norm(properties.plotNumber)} = ${plotNumber}`,
     sql`${norm(properties.plotLetter)} = ${normalizeKeyPart(values.plotLetter)}`,
+    hasPlotNumber,
   ];
   if (excludeId !== undefined) {
     conditions.push(ne(properties.id, excludeId));
@@ -410,6 +460,53 @@ export async function createProperty(
   return result;
 }
 
+/**
+ * يُدرج عروضاً جديدة بالترتيب المعطى، بدفعات من 100 صف، داخل معاملة تحمل
+ * قفل رموز العروض (withRecordCodeLock("properties")). لا يفحص التكرار ولا
+ * يكتب سجل التغييرات (recordPropertiesCreated بعد انتهاء المعاملة).
+ */
+export async function insertProperties(
+  tx: Transaction,
+  rows: Array<Omit<NewProperty, "code">>,
+) {
+  const typeOf = (row: Omit<NewProperty, "code">) =>
+    row.propertyType as PropertyType;
+  const nextCode = await propertyCodeAllocator(tx, rows.map(typeOf));
+  const coded = rows.map((row) => ({ ...row, code: nextCode(typeOf(row)) }));
+  const created: Property[] = [];
+  // Drizzle builds a statement synchronously, about 0.1 ms per row here (55
+  // ms for 500 rows), so a smaller batch keeps other requests moving.
+  for (let start = 0; start < coded.length; start += 100) {
+    created.push(
+      ...(await tx
+        .insert(properties)
+        .values(coded.slice(start, start + 100))
+        .returning()),
+    );
+  }
+  return created;
+}
+
+/** حدث "أُنشئ" لكل عرض أدرجه insertProperties، كما يكتبه createProperty. */
+export async function recordPropertiesCreated(
+  created: Property[],
+  userId?: number,
+) {
+  // 500 at a time, so building thousands of entries does not hold up
+  // other requests.
+  for (let start = 0; start < created.length; start += 500) {
+    await recordAudits(
+      created.slice(start, start + 500).map((property) => ({
+        entityType: ENTITY,
+        entityId: property.id,
+        action: "created" as const,
+        newValue: toApiObject(property, "properties"),
+        userId,
+      })),
+    );
+  }
+}
+
 export async function updateProperty(
   id: number,
   payload: PropertyPayload,
@@ -542,33 +639,64 @@ async function generatePropertyCode(
   tx: Transaction,
   propertyType: PropertyType,
 ) {
-  const prefix = PROPERTY_TYPE_PREFIX[propertyType] ?? "P";
-  const [lastProperty] = await tx
-    .select({ code: properties.code })
-    .from(properties)
-    .where(ilike(properties.code, `${prefix}-%`))
-    .orderBy(desc(properties.id))
-    .limit(1);
+  const nextCode = await propertyCodeAllocator(tx, [propertyType]);
+  return nextCode(propertyType);
+}
 
-  const lastCode = lastProperty?.code;
-  const nextNumber = lastCode ? Number(lastCode.split("-")[1] ?? 0) + 1 : 1;
-  return `${prefix}-${String(nextNumber).padStart(4, "0")}`;
+/**
+ * يوزّع رموز عروض جديدة بالتتابع، ويقرأ آخر رمز لكل بادئة مرة واحدة. يُستدعى
+ * داخل withRecordCodeLock("properties")، وتُدرج العروض بترتيب توزيع رموزها.
+ */
+export async function propertyCodeAllocator(
+  tx: Transaction,
+  propertyTypes: PropertyType[],
+) {
+  const prefixOf = (type: PropertyType) => PROPERTY_TYPE_PREFIX[type] ?? "P";
+  const lastNumbers = new Map<string, number>();
+  for (const prefix of new Set(propertyTypes.map(prefixOf))) {
+    const [lastProperty] = await tx
+      .select({ code: properties.code })
+      .from(properties)
+      .where(ilike(properties.code, `${prefix}-%`))
+      .orderBy(desc(properties.id))
+      .limit(1);
+    const lastCode = lastProperty?.code;
+    lastNumbers.set(prefix, lastCode ? Number(lastCode.split("-")[1] ?? 0) : 0);
+  }
+
+  return (propertyType: PropertyType) => {
+    const prefix = prefixOf(propertyType);
+    const nextNumber = (lastNumbers.get(prefix) ?? 0) + 1;
+    lastNumbers.set(prefix, nextNumber);
+    return `${prefix}-${String(nextNumber).padStart(4, "0")}`;
+  };
 }
 
 async function normalizePayload(
   payload: PropertyPayload,
 ): Promise<Omit<NewProperty, "code">> {
+  return propertyValues(payload, await getLocationNames(payload));
+}
+
+/**
+ * قيم أعمدة العرض من الطلب، بعد جلب أسماء المواقع المختارة من القوائم
+ * (getLocationNames لعرض واحد، getLocationNamesByIds للاستيراد).
+ */
+export function propertyValues(
+  payload: PropertyPayload,
+  names: Awaited<ReturnType<typeof getLocationNames>>,
+): Omit<NewProperty, "code"> {
   const total_price = calculateTotalPrice(payload);
 
   // حلّ اسم المحافظة/المنطقة/الحي: من القائمة (id) أو نص يدوي.
   const governorateName = payload.governorate_id
-    ? await getGovernorateName(payload.governorate_id)
+    ? names.governorate
     : (payload.governorate_text ?? payload.governorate ?? null);
   const districtName = payload.district_id
-    ? await getDistrictName(payload.district_id)
+    ? names.district
     : (payload.district_text ?? payload.district ?? null);
   const neighborhoodName = payload.neighborhood_id
-    ? await getNeighborhoodName(payload.neighborhood_id)
+    ? names.neighborhood
     : (payload.neighborhood_text ?? null);
 
   return {
