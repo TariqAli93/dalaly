@@ -157,23 +157,7 @@ export async function getDashboard(access: DashboardAccess) {
     .limit(10);
 
   // Audit rows carry usernames and history; only audit.read may see them.
-  const recentActivity = access.audit
-    ? await db
-        .select({
-          id: auditLogs.id,
-          action: auditLogs.action,
-          entity_id: auditLogs.entityId,
-          property_code: properties.code,
-          user_name: users.username,
-          created_at: auditLogs.createdAt,
-        })
-        .from(auditLogs)
-        .leftJoin(users, eq(auditLogs.userId, users.id))
-        .leftJoin(properties, eq(auditLogs.entityId, properties.id))
-        .where(eq(auditLogs.entityType, "property"))
-        .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id))
-        .limit(20)
-    : [];
+  const recentActivity = access.audit ? await getRecentActivity() : [];
 
   const topGovernorates = await db
     .select({ name: properties.governorate, count: sql<number>`count(*)::int` })
@@ -242,6 +226,39 @@ export async function getDashboard(access: DashboardAccess) {
     },
     rentals: rentalSummary,
   };
+}
+
+/**
+ * The 20 newest property audit rows, joined to their user and property
+ * after the limit rather than before it.
+ */
+function getRecentActivity() {
+  const recent = db
+    .select({
+      id: auditLogs.id,
+      action: auditLogs.action,
+      entityId: auditLogs.entityId,
+      userId: auditLogs.userId,
+      createdAt: auditLogs.createdAt,
+    })
+    .from(auditLogs)
+    .where(eq(auditLogs.entityType, "property"))
+    .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id))
+    .limit(20)
+    .as("recent");
+  return db
+    .select({
+      id: recent.id,
+      action: recent.action,
+      entity_id: recent.entityId,
+      property_code: properties.code,
+      user_name: users.username,
+      created_at: recent.createdAt,
+    })
+    .from(recent)
+    .leftJoin(users, eq(recent.userId, users.id))
+    .leftJoin(properties, eq(recent.entityId, properties.id))
+    .orderBy(desc(recent.createdAt), desc(recent.id));
 }
 
 async function getRentalSummary() {
