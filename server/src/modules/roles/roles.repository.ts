@@ -1,6 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import { roles } from "../../infrastructure/database/schema.js";
+import { DomainError } from "../../shared/errors.js";
 import {
   grantAllPermissionsToRole,
   getRolePermissionIds,
@@ -48,10 +49,10 @@ export async function deleteRole(id: number) {
   const role = await getRawRole(id);
   if (!role) return null;
   if (role.name === SUPER_ADMIN_ROLE || role.isSystem) {
-    throw new Error("لا يمكن حذف دور نظامي.");
+    throw new DomainError(400, "لا يمكن حذف دور نظامي.");
   }
   if (await hasAnyUserWithRole(id)) {
-    throw new Error("لا يمكن حذف دور مرتبط بمستخدمين.");
+    throw new DomainError(400, "لا يمكن حذف دور مرتبط بمستخدمين.");
   }
 
   const [deleted] = await db.delete(roles).where(eq(roles.id, id)).returning();

@@ -412,10 +412,10 @@ export async function exportBackup(
 ): Promise<CreateBackupResult> {
   const target = (outputPath ?? "").trim();
   if (!target) {
-    throw new Error("لم يتم تحديد مسار الحفظ.");
+    throw new DomainError(400, "لم يتم تحديد مسار الحفظ.");
   }
   if (!path.isAbsolute(target)) {
-    throw new Error("مسار الحفظ غير صالح.");
+    throw new DomainError(400, "مسار الحفظ غير صالح.");
   }
   return exclusive(() => writeBackupTo(target, "manual_export", userId));
 }
@@ -453,7 +453,7 @@ function extractImagesFromZip(zip: AdmZip) {
     const relative = entry.entryName.replace(/^images\/properties\//, "");
     const target = path.resolve(config.imagesDir, relative);
     if (!target.startsWith(path.resolve(config.imagesDir) + path.sep))
-      throw new Error("مسار صورة في النسخة غير صالح.");
+      throw new DomainError(400, "مسار صورة في النسخة غير صالح.");
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, entry.getData());
   }
@@ -483,20 +483,25 @@ function validateBackupSchema(
   database: Record<string, Record<string, unknown>[]>,
 ) {
   const manifestEntry = zip.getEntry("manifest.json");
-  if (!manifestEntry) throw new Error("بيانات تعريف النسخة الاحتياطية مفقودة.");
+  if (!manifestEntry)
+    throw new DomainError(400, "بيانات تعريف النسخة الاحتياطية مفقودة.");
   const manifest = JSON.parse(manifestEntry.getData().toString("utf8"));
   if (!manifest || manifest.version !== BACKUP_VERSION)
-    throw new Error(
+    throw new DomainError(
+      400,
       "صيغة النسخة لا تتوافق مع مخطط هذا الإصدار. استعد النسخ السابقة باستخدام إصدارها في بيئة معزولة.",
     );
   if (!database || typeof database !== "object" || Array.isArray(database))
-    throw new Error("بيانات النسخة الاحتياطية غير صالحة.");
+    throw new DomainError(400, "بيانات النسخة الاحتياطية غير صالحة.");
   const tableNames = new Set<string>(TABLE_SPECS.map((spec) => spec.name));
   if (
     Object.keys(database).some((name) => !tableNames.has(name)) ||
     TABLE_SPECS.some((spec) => !Object.hasOwn(database, spec.name))
   )
-    throw new Error("مخطط جداول النسخة الاحتياطية لا يطابق هذا الإصدار.");
+    throw new DomainError(
+      400,
+      "مخطط جداول النسخة الاحتياطية لا يطابق هذا الإصدار.",
+    );
   for (const spec of TABLE_SPECS) {
     const rows = database[spec.name];
     const columns = new Set(Object.keys(getTableColumns(spec.table)));
@@ -510,7 +515,10 @@ function validateBackupSchema(
           Object.keys(row).some((key) => !columns.has(key)),
       )
     )
-      throw new Error("حقول النسخة الاحتياطية لا تطابق المخطط الحالي.");
+      throw new DomainError(
+        400,
+        "حقول النسخة الاحتياطية لا تطابق المخطط الحالي.",
+      );
   }
   if (
     database.permissions.some(
@@ -520,7 +528,8 @@ function validateBackupSchema(
       (row) => typeof row.key !== "string" || !isActiveSettingKey(row.key),
     )
   )
-    throw new Error(
+    throw new DomainError(
+      400,
       "تحتوي النسخة على صلاحيات أو إعدادات ضمن مساحات أسماء متقاعدة.",
     );
   const permissionIds = new Set(database.permissions.map((row) => row.id));
@@ -529,7 +538,7 @@ function validateBackupSchema(
       (row) => !permissionIds.has(row.permissionId),
     )
   )
-    throw new Error("تحتوي النسخة على علاقات صلاحيات غير صالحة.");
+    throw new DomainError(400, "تحتوي النسخة على علاقات صلاحيات غير صالحة.");
 }
 
 /** يسترجع نسخة احتياطية من محتوى ZIP حسب النطاق المحدد. */
@@ -552,7 +561,10 @@ async function restoreArchive(
     const zip = new AdmZip(zipBuffer);
     const dataEntry = zip.getEntry("data.json");
     if (!dataEntry) {
-      throw new Error("ملف النسخة الاحتياطية غير صالح (data.json مفقود).");
+      throw new DomainError(
+        400,
+        "ملف النسخة الاحتياطية غير صالح (data.json مفقود).",
+      );
     }
     const database = JSON.parse(dataEntry.getData().toString("utf8")) as Record<
       string,
@@ -653,7 +665,15 @@ async function restoreArchive(
       safety_backup_path: safetyBackup.file_path,
     };
   } catch (error) {
-    if (!schemaValidated) throw error;
+    // Until the schema check passes, only the archive has been read: a
+    // failure here means the file is not a readable Dalaly backup.
+    if (!schemaValidated)
+      throw error instanceof DomainError
+        ? error
+        : new DomainError(
+            400,
+            "تعذر قراءة ملف النسخة الاحتياطية. تأكد أنه نسخة من دلالي وأنه غير تالف.",
+          );
     const message = error instanceof Error ? error.message : String(error);
     const [job] = await db
       .insert(backupJobs)

@@ -42,7 +42,8 @@ export function saveScopedImageToDisk(
   originalName?: string,
 ) {
   const { buffer, ext } = decodeImage(data, originalName);
-  if (!buffer.length) throw new Error("ملف الصورة فارغ أو غير صالح.");
+  if (!buffer.length)
+    throw new DomainError(400, "ملف الصورة فارغ أو غير صالح.");
   const dir = scope
     ? path.join(config.imagesDir, scope, String(entityId))
     : path.join(config.imagesDir, String(entityId));

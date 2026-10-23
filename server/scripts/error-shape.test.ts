@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import net from "node:net";
 import { test } from "node:test";
 
 // Keep these API tests independent of the developer's database/.env.
@@ -47,6 +48,25 @@ test("validation and Fastify's own client errors share the shape", async () => {
   }
   assertErrorShape(await app.inject({ method: "POST", url: "/api/auth/login", payload: "{bad", headers: { "content-type": "application/json" } }), 400, "BAD_REQUEST");
   assertErrorShape(await app.inject({ method: "POST", url: "/api/auth/login", payload: "x", headers: { "content-type": "application/x-unknown" } }), 415, "UNSUPPORTED_MEDIA_TYPE");
+});
+
+test("a DomainError thrown below a route reaches the user with its status and message", async () => {
+  // A server that hangs up at once: PostgreSQL's client fails immediately.
+  const server = net.createServer((socket) => socket.destroy());
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const { port } = server.address() as net.AddressInfo;
+    const result = await app.inject({
+      method: "POST",
+      url: "/api/setup/test-postgres",
+      payload: { host: "127.0.0.1", port, adminUsername: "postgres", adminPassword: "x", databaseName: "dalaly" },
+    });
+    const body = assertErrorShape(result, 400, "BAD_REQUEST");
+    // Setup deliberately appends PostgreSQL's own reason (setupFailure).
+    assert.match(String(body.message), /^تعذر الاتصال بـ PostgreSQL: /);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
 });
 
 test("an unexpected failure is a generic 500, without the driver's text", async () => {

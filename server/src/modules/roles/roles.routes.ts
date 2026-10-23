@@ -57,15 +57,9 @@ export const rolesRoutes: FastifyPluginAsync = async (app) => {
     async (request, reply) => {
       const id = parseId((request.params as { id: string }).id);
       if (!id) return reply.code(400).send({ message: "معرف الدور غير صحيح." });
-      try {
-        const role = await deleteRole(id);
-        if (!role) return reply.code(404).send({ message: "الدور غير موجود." });
-        return { deleted: true, role };
-      } catch (error) {
-        return reply.code(400).send({
-          message: error instanceof Error ? error.message : "تعذر حذف الدور.",
-        });
-      }
+      const role = await deleteRole(id);
+      if (!role) return reply.code(404).send({ message: "الدور غير موجود." });
+      return { deleted: true, role };
     },
   );
 
