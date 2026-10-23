@@ -125,6 +125,10 @@ Conventions:
   Searching a new column means a new migration that redefines the column's
   expression, and adding the column to the reference search in
   `server/scripts/search-text.test.ts`.
+- User-typed text reaches a `LIKE`/`ILIKE` pattern only through
+  `containsPattern` (`shared/utils/search.ts`), which escapes `%`, `_` and
+  `\`, so a search or text filter matches what was typed (people, requests,
+  the property district and plot filters, and `searchTextContains`).
 - Each row of the paged property and rental lists, and of the two favorites
   lists, carries `primary_image: { id, thumbnail } | null`: the image its
   table shows (the primary one, else the first in order) and whether that

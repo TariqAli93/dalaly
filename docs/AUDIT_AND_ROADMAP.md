@@ -122,9 +122,10 @@ These are not code-quality calls; they change history, data or behavior.
   for its owner's offers; Phase 2.6. The person pickers search the server
   too.)
 - **Search**: property and rental search use one indexed `search_text`
-  column (Phase 2.7); people and requests search still OR unescaped `ILIKE`
-  (`%`/`_` act as wildcards). (The duplicate-plot check before a save is
-  an index scan since Phase 2.5.)
+  column, and every search and text filter escapes `%`, `_` and `\`
+  (Phase 2.7). People and requests search still OR `ILIKE` over a few
+  columns with no index; their cost has not been measured. (The
+  duplicate-plot check before a save is an index scan since Phase 2.5.)
 - **N+1**: fixed in Phase 2.5 for the users and roles lists, location names
   and the Excel import, which also commits in one transaction and caps the
   file at 5,000 rows.
@@ -329,9 +330,10 @@ fix).
    noise through the API in one of two rounds; up to +70 ms at 50,000); the
    first start after the update runs the migration (~0.5 s at 5,000, ~5 s
    at 50,000). See `docs/PERFORMANCE.md`, "Search on one indexed column".
+   People, rental and purchase request search and the property district and
+   plot filters escape `%`, `_` and `\` the same way (`containsPattern`).
    Not done: Arabic letter normalization (hamza forms, ة/ه, ى/ي), a product
-   decision since it widens what matches; people and requests search still
-   use unescaped `ILIKE`.
+   decision since it widens what matches.
 
 ### Phase 3 — renderer startup and responsiveness
 
