@@ -39,6 +39,7 @@ import {
   isActivePermissionKey,
   isActiveSettingKey,
 } from "../rbac/key-policy.js";
+import { writeArchive } from "./backup.archive.js";
 const BACKUP_VERSION = 3;
 /** PostgreSQL's limit on bind parameters in one statement is 65535. */
 const MAX_BIND_PARAMETERS = 60_000;
@@ -56,7 +57,7 @@ export class BackupBusyError extends Error {
 let operationRunning = false;
 /**
  * Runs one backup, export or restore at a time: a backup reads every table
- * and file while a restore rewrites them, and each archive is built in memory.
+ * and file while a restore rewrites them.
  */
 async function exclusive<T>(operation: () => Promise<T>): Promise<T> {
   if (operationRunning) throw new BackupBusyError();
@@ -226,15 +227,6 @@ async function exportDatabase() {
   );
 }
 
-function addImagesToZip(zip: AdmZip) {
-  if (fs.existsSync(config.imagesDir)) {
-    zip.addLocalFolder(config.imagesDir, "images/properties");
-  }
-  if (fs.existsSync(config.documentsDir)) {
-    zip.addLocalFolder(config.documentsDir, "documents");
-  }
-}
-
 function timestampLabel(now: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
   return (
@@ -306,7 +298,7 @@ export type CreateBackupResult = {
  * deliberately left out: it holds the database URL with its password, restore
  * never used it, and scheduled backups are emailed.
  */
-async function assembleBackupZip(backupType: string) {
+async function writeBackupArchive(filePath: string, backupType: string) {
   const database = await exportDatabase();
   const manifest = {
     version: BACKUP_VERSION,
@@ -315,13 +307,20 @@ async function assembleBackupZip(backupType: string) {
     backup_type: backupType,
     tables_count: Object.keys(database).length,
   };
-
-  const zip = new AdmZip();
-  zip.addFile("manifest.json", Buffer.from(JSON.stringify(manifest, null, 2)));
-  zip.addFile("data.json", Buffer.from(JSON.stringify(database)));
-
-  addImagesToZip(zip);
-  return zip;
+  await writeArchive(
+    filePath,
+    [
+      {
+        name: "manifest.json",
+        data: Buffer.from(JSON.stringify(manifest, null, 2)),
+      },
+      { name: "data.json", data: Buffer.from(JSON.stringify(database)) },
+    ],
+    [
+      { dir: config.imagesDir, prefix: "images/properties" },
+      { dir: config.documentsDir, prefix: "documents" },
+    ],
+  );
 }
 
 /** المنطق المشترك: يبني الأرشيف ويكتبه إلى المسار ويسجّل النتيجة في backup_jobs/backup_logs. */
@@ -332,11 +331,10 @@ async function writeBackupTo(
 ): Promise<CreateBackupResult> {
   const startedAt = Date.now();
   try {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    const zip = await assembleBackupZip(type);
-    zip.writeZip(filePath);
+    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+    await writeBackupArchive(filePath, type);
 
-    const fileSize = fs.statSync(filePath).size;
+    const { size: fileSize } = await fs.promises.stat(filePath);
     const durationMs = Date.now() - startedAt;
 
     const [job] = await db
