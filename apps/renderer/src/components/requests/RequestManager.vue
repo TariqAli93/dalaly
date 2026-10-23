@@ -1,27 +1,32 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import LocationSelects from "../properties/LocationSelects.vue";
+import PersonPicker from "../people/PersonPicker.vue";
 import StatusChip from "../shared/StatusChip.vue";
 import NumberField from "../app/NumberField.vue";
 import AppLayout from "../../layouts/AppLayout.vue";
 import {
+  LIST_PAGE_SIZES,
   PROPERTY_TYPES,
   RENT_PERIOD_LABELS,
   RENT_PERIODS,
   RENTAL_PROPERTY_TYPES,
 } from "../../constants/domain";
-import * as peopleService from "../../services/people.service";
+import { REQUESTS_DEFAULT_SORT } from "../../constants/crm";
 import * as requests from "../../services/requests.service";
 import { getErrorMessage } from "../../services/api.service";
 import { usePermissions } from "../../composables/usePermissions";
 import { useSnackbar } from "../../composables/useSnackbar";
+import { createPagedList } from "../../composables/usePagedList";
 import { formatMoney } from "../../utils/format";
 import type {
-  PersonRecord,
   MatchResult,
+  PageQuery,
   PurchaseRequestRecord,
+  PurchaseRequestSortKey,
   RentalRequestRecord,
+  RentalRequestSortKey,
 } from "../../types";
 
 const props = defineProps<{ mode: "rental" | "purchase" }>();
@@ -29,9 +34,6 @@ const route = useRoute();
 const router = useRouter();
 const { can } = usePermissions();
 const { notifyError, notifySuccess } = useSnackbar();
-const rows = ref<Array<RentalRequestRecord | PurchaseRequestRecord>>([]);
-const people = ref<PersonRecord[]>([]);
-const loading = ref(false);
 const dialog = ref(false);
 const matchDialog = ref(false);
 const saving = ref(false);
@@ -86,6 +88,32 @@ const headers = computed(() => [
 ]);
 const isRental = computed(() => props.mode === "rental");
 
+// صفحة واحدة من الخادم؛ البحث والترتيب هناك. مفاتيح الأعمدة هي مفاتيح الترتيب
+// (عمود نوع الإيجار لا يظهر في طلبات الشراء، فلا يصل مفتاحه إليها).
+const list = createPagedList<
+  RentalRequestRecord | PurchaseRequestRecord,
+  RentalRequestSortKey
+>(
+  (page, signal) =>
+    props.mode === "rental"
+      ? requests.listRentalRequestsPage({ q: q.value }, page, signal)
+      : requests.listPurchaseRequestsPage(
+          { q: q.value },
+          page as PageQuery<PurchaseRequestSortKey>,
+          signal,
+        ),
+  REQUESTS_DEFAULT_SORT,
+);
+const {
+  items: rows,
+  total,
+  loading,
+  page,
+  pageSize,
+  sortBy,
+  onTableOptions,
+} = list;
+
 function requestPropertyTypeLabel(value: string) {
   if (!isRental.value) return value;
   return (
@@ -111,20 +139,11 @@ function numberOrNull(value: unknown) {
   const parsed = Number(String(value).replace(/,/g, ""));
   return Number.isFinite(parsed) ? parsed : null;
 }
-async function load() {
-  loading.value = true;
-  try {
-    rows.value =
-      props.mode === "rental"
-        ? await requests.listRentalRequests({ q: q.value })
-        : await requests.listPurchaseRequests({ q: q.value });
-    people.value = await peopleService.listPeople();
-  } catch (error) {
-    notifyError(getErrorMessage(error));
-  } finally {
-    loading.value = false;
-  }
+/** بحث جديد: من الصفحة الأولى. */
+function load() {
+  return list.loadFirstPage();
 }
+
 function resetForm() {
   form.value = {
     person_id: null,
@@ -226,7 +245,7 @@ async function save() {
         : await requests.purchaseOfferMatches(saved.id);
     matches.value = result.matches;
     dialog.value = false;
-    await load();
+    await list.reload();
     notifySuccess(
       `تم حفظ ${endpointLabel.value}. العروض المطابقة: ${result.count}.`,
     );
@@ -244,13 +263,23 @@ function openMatch(match: MatchResult) {
     props.mode === "rental" ? `/rentals/${id}/edit` : `/properties/${id}`,
   );
 }
+// قبل أن يُظهر الجدول خياراته الأولى، فلا يطلب الصفحة نفسها مرتين.
+void list.reload();
 onMounted(async () => {
-  await load();
+  // ?open=<id> من شاشة مطابقة العرض: الطلب قد لا يكون في الصفحة الأولى.
   const requestedId = Number(route.query.open);
   if (!requestedId) return;
-  const item = rows.value.find((row) => row.id === requestedId);
-  if (item) openEdit(item);
+  try {
+    openEdit(
+      props.mode === "rental"
+        ? await requests.getRentalRequest(requestedId)
+        : await requests.getPurchaseRequest(requestedId),
+    );
+  } catch (error) {
+    notifyError(getErrorMessage(error));
+  }
 });
+onBeforeUnmount(() => list.cancel());
 </script>
 <template>
   <AppLayout :title="title" subtitle="طلبات العملاء ومطابقتها بالعروض المتاحة.">
@@ -273,14 +302,20 @@ onMounted(async () => {
       /><v-btn variant="tonal" @click="load">بحث</v-btn>
     </div>
     <v-card variant="flat" border
-      ><v-data-table
+      ><v-data-table-server
+        v-model:page="page"
+        v-model:items-per-page="pageSize"
+        v-model:sort-by="sortBy"
         :headers="headers"
         :items="rows"
+        :items-length="total"
+        :items-per-page-options="LIST_PAGE_SIZES"
         :loading="loading"
         item-value="id"
         density="compact"
         hover
         @click:row="handleRowClick"
+        @update:options="onTableOptions"
       >
         <template #item.person_name="{ item }">{{
           item.person_name || item.person_code || "-"
@@ -303,7 +338,7 @@ onMounted(async () => {
         }}</template
         ><template #item.status="{ item }"
           ><StatusChip :status="item.status"
-        /></template> </v-data-table
+        /></template> </v-data-table-server
     ></v-card>
     <v-dialog v-model="dialog" max-width="900"
       ><v-card
@@ -311,13 +346,7 @@ onMounted(async () => {
           >{{ editing ? "تعديل" : "إضافة" }} {{ endpointLabel }}</v-card-title
         ><v-card-text
           ><div class="form-grid">
-            <v-select
-              v-model="form.person_id"
-              :items="people"
-              item-title="full_name"
-              item-value="id"
-              label="العميل"
-            /><v-select
+            <PersonPicker v-model="form.person_id" label="العميل" /><v-select
               v-model="form.property_type"
               :items="propertyItems"
               item-title="title"

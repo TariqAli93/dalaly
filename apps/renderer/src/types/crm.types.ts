@@ -53,6 +53,34 @@ export type RentalRequestRecord = {
 };
 export type PurchaseRequestRecord = Omit<RentalRequestRecord, "rent_period">;
 
+/** مفاتيح الترتيب في /people/paged (PERSON_SORT_KEYS في الخادم). */
+export type PersonSortKey =
+  | "updated_at"
+  | "created_at"
+  | "full_name"
+  | "code"
+  | "phone_primary"
+  | "person_type"
+  | "status";
+
+/** مفاتيح الترتيب في /rental-requests/paged (RENTAL_REQUEST_SORT_KEYS في الخادم). */
+export type RentalRequestSortKey =
+  | "updated_at"
+  | "created_at"
+  | "code"
+  | "person_name"
+  | "property_type"
+  | "rent_period"
+  | "budget_max"
+  | "district"
+  | "status";
+
+/** مفاتيح /purchase-requests/paged: نفسها بلا نوع الإيجار. */
+export type PurchaseRequestSortKey = Exclude<
+  RentalRequestSortKey,
+  "rent_period"
+>;
+
 export type MatchReason = {
   field: string;
   label: string;
@@ -92,6 +120,17 @@ export type DocumentRecord = {
   computed_status: string;
   notes: string | null;
 };
+
+/** مفاتيح الترتيب في /documents/paged (DOCUMENT_SORT_KEYS في الخادم). */
+export type DocumentSortKey =
+  | "uploaded_at"
+  | "expires_at"
+  | "code"
+  | "person_name"
+  | "document_type_name"
+  | "document_name"
+  | "document_number"
+  | "computed_status";
 export type CompanySettingsRecord = {
   id: number;
   company_name: string;

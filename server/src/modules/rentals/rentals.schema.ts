@@ -15,7 +15,10 @@ import {
   optionalId,
   optionalText,
 } from "../../shared/validation/fields.js";
-import { pageFields } from "../../shared/validation/paging.js";
+import {
+  favoritesOnlyField,
+  pageFields,
+} from "../../shared/validation/paging.js";
 
 export const rentalPayloadSchema = z
   .object({
@@ -65,6 +68,9 @@ export const rentalFiltersSchema = z.object({
   negotiable: z.enum(["true", "false"]).optional(),
   amenities: z.string().optional(),
   q: z.string().optional(),
+  // كما في العروض: إيجارات مالك مسجَّل، ومعها المؤرشفة عند الطلب.
+  owner_person_id: z.coerce.number().int().positive().optional(),
+  include_archived: z.enum(["true", "false"]).optional(),
   limit: z.coerce.number().int().positive().max(500).optional(),
   offset: z.coerce.number().int().nonnegative().optional(),
 });
@@ -89,6 +95,7 @@ export const rentalPageQuerySchema = rentalFiltersSchema
   .omit({ limit: true, offset: true })
   .extend({
     ...pageFields,
+    ...favoritesOnlyField,
     sort_by: z.enum(RENTAL_SORT_KEYS).default("created_at"),
   });
 

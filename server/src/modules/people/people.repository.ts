@@ -1,11 +1,23 @@
-import { and, desc, eq, ilike, ne, or } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, ne, or, type SQL } from "drizzle-orm";
+import { type AnyPgColumn } from "drizzle-orm/pg-core";
 import { db } from "../../infrastructure/database/db.js";
 import {
   people,
   type NewPerson,
 } from "../../infrastructure/database/schema.js";
 import { toApiObject, toApiObjects } from "../../shared/utils/case.js";
-import type { PersonFilters, PersonPayload } from "./people.schema.js";
+import {
+  pageOffset,
+  sortNullsLast,
+  totalRowsColumn,
+  type SortOrder,
+} from "../../shared/utils/paging.js";
+import type {
+  PersonFilters,
+  PersonPageQuery,
+  PersonPayload,
+  PersonSortKey,
+} from "./people.schema.js";
 import {
   withRecordCodeLock,
   type Transaction,
@@ -43,8 +55,9 @@ async function generateCode(tx: Transaction) {
   return `P-${String(next).padStart(4, "0")}`;
 }
 
-export async function listPeople(filters: PersonFilters) {
-  const where = [];
+/** شروط الفلاتر والبحث المشتركة بين القائمة الكاملة والقائمة المقسّمة. */
+function personConditions(filters: PersonFilters) {
+  const where: SQL[] = [];
   if (filters.person_type)
     where.push(eq(people.personType, filters.person_type));
   if (filters.status) where.push(eq(people.status, filters.status));
@@ -58,16 +71,70 @@ export async function listPeople(filters: PersonFilters) {
         ilike(people.phonePrimary, `%${q}%`),
         ilike(people.email, `%${q}%`),
         ilike(people.nationalId, `%${q}%`),
-      ),
+      )!,
     );
+  return and(...where);
+}
+
+export async function listPeople(filters: PersonFilters) {
   return toApiObjects(
     await db
       .select()
       .from(people)
-      .where(where.length ? and(...where) : undefined)
+      .where(personConditions(filters))
       .orderBy(desc(people.updatedAt), desc(people.id)),
     "people",
   );
+}
+
+const PERSON_SORT_COLUMNS: Record<PersonSortKey, AnyPgColumn> = {
+  updated_at: people.updatedAt,
+  created_at: people.createdAt,
+  full_name: people.fullName,
+  code: people.code,
+  phone_primary: people.phonePrimary,
+  person_type: people.personType,
+  status: people.status,
+};
+
+/**
+ * فرز ثانوي ثابت كي لا يتكرر صف بين الصفحات: الوقت ثم id بنفس الاتجاه، وبقية
+ * المفاتيح بالترتيب الافتراضي للدليل (آخر تحديث أولاً) عند التساوي.
+ */
+function personOrder(sortKey: PersonSortKey, order: SortOrder): SQL[] {
+  if (sortKey === "updated_at" || sortKey === "created_at")
+    return [
+      sortNullsLast(PERSON_SORT_COLUMNS[sortKey], order),
+      order === "asc" ? asc(people.id) : desc(people.id),
+    ];
+  return [
+    sortNullsLast(PERSON_SORT_COLUMNS[sortKey], order),
+    desc(people.updatedAt),
+    desc(people.id),
+  ];
+}
+
+export async function listPeoplePage(query: PersonPageQuery) {
+  const condition = personConditions(query);
+  const rows = await db
+    .select({ person: people, total: totalRowsColumn() })
+    .from(people)
+    .where(condition)
+    .orderBy(...personOrder(query.sort_by, query.sort_order))
+    .limit(query.page_size)
+    .offset(pageOffset(query.page, query.page_size));
+  // صفحة بعد النهاية لا صفوف فيها تحمل العدد، فيُعدّ منفصلاً.
+  const total =
+    rows[0]?.total ?? (query.page > 1 ? await db.$count(people, condition) : 0);
+  return {
+    items: toApiObjects(
+      rows.map((row) => row.person),
+      "people",
+    ),
+    total,
+    page: query.page,
+    page_size: query.page_size,
+  };
 }
 
 export async function getPerson(id: number) {

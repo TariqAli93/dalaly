@@ -16,7 +16,10 @@ import {
   optionalId,
   optionalText,
 } from "../../shared/validation/fields.js";
-import { pageFields } from "../../shared/validation/paging.js";
+import {
+  favoritesOnlyField,
+  pageFields,
+} from "../../shared/validation/paging.js";
 
 export const propertyPayloadSchema = z
   .object({
@@ -106,6 +109,9 @@ export const propertyFiltersSchema = z.object({
   price_max: z.coerce.number().optional(),
   q: z.string().optional(),
   search: z.string().optional(),
+  // عروض مالك مسجَّل (تفاصيل الشخص)؛ include_archived يضم المؤرشفة إلى بقية الحالات.
+  owner_person_id: z.coerce.number().int().positive().optional(),
+  include_archived: z.enum(["true", "false"]).optional(),
   // جاهزية الـ pagination من قاعدة البيانات (اختياري؛ بدونها تُرجع كل النتائج).
   limit: z.coerce.number().int().positive().max(500).optional(),
   offset: z.coerce.number().int().nonnegative().optional(),
@@ -130,6 +136,7 @@ export const propertyPageQuerySchema = propertyFiltersSchema
   .omit({ limit: true, offset: true })
   .extend({
     ...pageFields,
+    ...favoritesOnlyField,
     sort_by: z.enum(PROPERTY_SORT_KEYS).default("created_at"),
   });
 

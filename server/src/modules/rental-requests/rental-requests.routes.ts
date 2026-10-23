@@ -4,10 +4,12 @@ import {
   createRentalRequest,
   getRentalRequest,
   listRentalRequests,
+  listRentalRequestsPage,
   updateRentalRequest,
 } from "./rental-requests.repository.js";
 import {
   rentalRequestFiltersSchema,
+  rentalRequestPageQuerySchema,
   rentalRequestPayloadSchema,
 } from "./rental-requests.schema.js";
 import { parseId } from "../../shared/utils/parse-id.js";
@@ -18,6 +20,13 @@ export const rentalRequestsRoutes: FastifyPluginAsync = async (app) => {
     { preHandler: requirePermission("requests.read") },
     async (request) =>
       listRentalRequests(rentalRequestFiltersSchema.parse(request.query)),
+  );
+  // صفحة واحدة مع العدد الكلي لجدول الطلبات.
+  app.get(
+    "/paged",
+    { preHandler: requirePermission("requests.read") },
+    async (request) =>
+      listRentalRequestsPage(rentalRequestPageQuerySchema.parse(request.query)),
   );
   app.get(
     "/:id",

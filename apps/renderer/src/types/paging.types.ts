@@ -1,6 +1,6 @@
 export type SortOrder = "asc" | "desc";
 
-/** صفحة من قائمة مقسّمة (GET /properties/paged، GET /rentals/paged). */
+/** صفحة من قائمة مقسّمة (GET /<domain>/paged). */
 export type PagedResult<T> = {
   items: T[];
   total: number;

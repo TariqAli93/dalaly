@@ -1,20 +1,23 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onBeforeUnmount, ref } from "vue";
 import AppLayout from "../layouts/AppLayout.vue";
 import PersonEditor from "../components/people/PersonEditor.vue";
 import * as peopleService from "../services/people.service";
 import { getErrorMessage } from "../services/api.service";
 import { usePermissions } from "../composables/usePermissions";
 import { useSnackbar } from "../composables/useSnackbar";
-import type { PersonRecord } from "../types";
+import { createPagedList } from "../composables/usePagedList";
+import { PEOPLE_DEFAULT_SORT } from "../constants/crm";
+import { LIST_PAGE_SIZES } from "../constants/domain";
+import type { PersonRecord, PersonSortKey } from "../types";
 
 const { can } = usePermissions();
 const { notifyError } = useSnackbar();
-const rows = ref<PersonRecord[]>([]);
-const search = ref("");
+const search = ref<string | null>("");
 const dialog = ref(false);
 
 const editing = ref<PersonRecord | null>(null);
+// مفاتيح الأعمدة القابلة للترتيب هي مفاتيح الترتيب في الخادم.
 const headers = [
   { title: "الاسم", key: "full_name" },
   { title: "الرمز", key: "code" },
@@ -23,12 +26,16 @@ const headers = [
   { title: "الحالة", key: "status" },
   { title: "", key: "actions", sortable: false },
 ];
-async function load() {
-  try {
-    rows.value = await peopleService.listPeople({ q: search.value });
-  } catch (cause) {
-    notifyError(getErrorMessage(cause));
-  }
+// صفحة واحدة من الخادم؛ البحث والترتيب هناك.
+const list = createPagedList<PersonRecord, PersonSortKey>(
+  (page, signal) =>
+    peopleService.listPeoplePage({ q: search.value ?? "" }, page, signal),
+  PEOPLE_DEFAULT_SORT,
+);
+const { items, total, loading, page, pageSize, sortBy, onTableOptions } = list;
+/** بحث جديد: من الصفحة الأولى. */
+function load() {
+  return list.loadFirstPage();
 }
 function openCreate() {
   editing.value = null;
@@ -41,7 +48,7 @@ function openEdit(person: PersonRecord) {
 async function archive(person: PersonRecord) {
   try {
     await peopleService.archivePerson(person.id);
-    await load();
+    await list.reload();
   } catch (cause) {
     notifyError(getErrorMessage(cause));
   }
@@ -49,12 +56,14 @@ async function archive(person: PersonRecord) {
 async function restore(person: PersonRecord) {
   try {
     await peopleService.restorePerson(person.id);
-    await load();
+    await list.reload();
   } catch (cause) {
     notifyError(getErrorMessage(cause));
   }
 }
-onMounted(load);
+// قبل أن يُظهر الجدول خياراته الأولى، فلا يطلب الصفحة نفسها مرتين.
+void list.reload();
+onBeforeUnmount(() => list.cancel());
 </script>
 <template>
   <AppLayout
@@ -80,11 +89,18 @@ onMounted(load);
       /><v-btn variant="tonal" @click="load">بحث</v-btn>
     </div>
     <v-card variant="flat" border
-      ><v-data-table
+      ><v-data-table-server
+        v-model:page="page"
+        v-model:items-per-page="pageSize"
+        v-model:sort-by="sortBy"
         :headers="headers"
-        :items="rows"
+        :items="items"
+        :items-length="total"
+        :items-per-page-options="LIST_PAGE_SIZES"
+        :loading="loading"
         item-value="id"
         density="compact"
+        @update:options="onTableOptions"
         ><template #item.full_name="{ item }">
           <router-link
             class="person-cell record-link"
@@ -142,9 +158,9 @@ onMounted(load);
             aria-label="استعادة الشخص"
             variant="text"
             color="success"
-            @click="restore(item)" /></template></v-data-table
+            @click="restore(item)" /></template></v-data-table-server
     ></v-card>
-    <PersonEditor v-model="dialog" :person="editing" @saved="load" />
+    <PersonEditor v-model="dialog" :person="editing" @saved="list.reload" />
   </AppLayout>
 </template>
 <style scoped>

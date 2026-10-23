@@ -1,7 +1,11 @@
 import type {
   MatchResult,
+  PageQuery,
+  PagedResult,
   PurchaseRequestRecord,
+  PurchaseRequestSortKey,
   RentalRequestRecord,
+  RentalRequestSortKey,
 } from "../types";
 import { request } from "./api.service";
 function query(filters: Record<string, string | number | null | undefined>) {
@@ -17,6 +21,20 @@ export function listRentalRequests(filters: Record<string, unknown> = {}) {
   return request<RentalRequestRecord[]>(
     `/rental-requests${query(filters as Record<string, string | number | null | undefined>)}`,
   );
+}
+/** صفحة واحدة مع العدد الكلي، لجدول طلبات الإيجار. */
+export function listRentalRequestsPage(
+  filters: { q?: string },
+  page: PageQuery<RentalRequestSortKey>,
+  signal?: AbortSignal,
+) {
+  return request<PagedResult<RentalRequestRecord>>(
+    `/rental-requests/paged${query({ ...filters, ...page })}`,
+    { signal },
+  );
+}
+export function getRentalRequest(id: number) {
+  return request<RentalRequestRecord>(`/rental-requests/${id}`);
 }
 export function createRentalRequest(payload: unknown) {
   return request<RentalRequestRecord>("/rental-requests", {
@@ -34,6 +52,20 @@ export function listPurchaseRequests(filters: Record<string, unknown> = {}) {
   return request<PurchaseRequestRecord[]>(
     `/purchase-requests${query(filters as Record<string, string | number | null | undefined>)}`,
   );
+}
+/** صفحة واحدة مع العدد الكلي، لجدول طلبات الشراء. */
+export function listPurchaseRequestsPage(
+  filters: { q?: string },
+  page: PageQuery<PurchaseRequestSortKey>,
+  signal?: AbortSignal,
+) {
+  return request<PagedResult<PurchaseRequestRecord>>(
+    `/purchase-requests/paged${query({ ...filters, ...page })}`,
+    { signal },
+  );
+}
+export function getPurchaseRequest(id: number) {
+  return request<PurchaseRequestRecord>(`/purchase-requests/${id}`);
 }
 export function createPurchaseRequest(payload: unknown) {
   return request<PurchaseRequestRecord>("/purchase-requests", {

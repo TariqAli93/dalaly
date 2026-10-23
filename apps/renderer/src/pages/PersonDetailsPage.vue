@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import AppLayout from "../layouts/AppLayout.vue";
 import PersonEditor from "../components/people/PersonEditor.vue";
@@ -11,8 +11,10 @@ import * as propertiesService from "../services/properties.service";
 import { getErrorMessage } from "../services/api.service";
 import { usePermissions } from "../composables/usePermissions";
 import { useRefresh } from "../composables/useRefresh";
-import type { PersonRecord, PropertyRecord } from "../types";
+import { createPagedList } from "../composables/usePagedList";
+import type { PersonRecord, PropertyRecord, PropertySortKey } from "../types";
 import { personStatusLabel } from "../constants/crm";
+import { LIST_PAGE_SIZES, PROPERTY_SORT_OPTIONS } from "../constants/domain";
 import { formatDateTime } from "../utils/format";
 const route = useRoute();
 const { can } = usePermissions();
@@ -21,17 +23,38 @@ const person = ref<PersonRecord | null>(null);
 const loading = ref(false);
 const error = ref("");
 const propertyError = ref("");
-const properties = ref<PropertyRecord[]>([]);
-const search = ref("");
-const propertyRows = computed(() =>
-  properties.value.map((property) => ({
-    ...property,
-    location: [property.governorate, property.district, property.neighborhood]
-      .filter(Boolean)
-      .join(" · "),
-    area: `${property.area_value} ${property.area_unit}`,
-  })),
+const ownerId = ref<number | null>(null);
+const search = ref<string | null>("");
+// عقارات الشخص صفحةً صفحة من الخادم (بما فيها المؤرشفة)، بدل تنزيل كل العروض
+// وتصفيتها هنا. البحث والترتيب (المساحة بالمتر المربع) هناك أيضاً.
+const propertyList = createPagedList<PropertyRecord, PropertySortKey>(
+  (page, signal) =>
+    propertiesService.listPropertiesPage(
+      {
+        owner_person_id: ownerId.value,
+        include_archived: "true",
+        q: search.value ?? "",
+      },
+      page,
+      signal,
+    ),
+  PROPERTY_SORT_OPTIONS[0],
+  { onError: (message) => (propertyError.value = message) },
 );
+const {
+  items: properties,
+  total: propertyTotal,
+  loading: propertiesLoading,
+  page,
+  pageSize,
+  sortBy,
+  onTableOptions,
+} = propertyList;
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
+watch(search, () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => void propertyList.loadFirstPage(), 300);
+});
 const tab = ref("basic");
 const editOpen = ref(false);
 let requestId = 0;
@@ -68,10 +91,11 @@ const info = computed(() =>
       ]
     : [],
 );
+// مفاتيح الأعمدة القابلة للترتيب هي مفاتيح الترتيب في الخادم.
 const headers = [
   { title: "العقار", key: "name" },
   { title: "النوع", key: "property_type" },
-  { title: "الموقع", key: "location" },
+  { title: "الموقع", key: "location", sortable: false },
   { title: "المساحة", key: "area" },
   { title: "الحالة", key: "status" },
 ];
@@ -81,32 +105,19 @@ async function load() {
   error.value = "";
   propertyError.value = "";
   person.value = null;
+  propertyList.cancel();
   properties.value = [];
+  propertyTotal.value = 0;
   try {
     const id = Number(route.params.id);
     if (!Number.isSafeInteger(id) || id <= 0)
       throw new Error("رقم العميل غير صالح.");
+    ownerId.value = id;
+    // الصفحة الأولى من عقاراته مع بياناته، لا بعدها.
+    if (can("properties.read")) void propertyList.loadFirstPage();
     const record = await peopleService.getPerson(id);
     if (current !== requestId) return;
     person.value = record;
-    if (can("properties.read")) {
-      try {
-        const [active, archived] = await Promise.all([
-          propertiesService.listProperties(),
-          propertiesService.listProperties({ status: "archived" }),
-        ]);
-        if (current === requestId)
-          properties.value = [
-            ...new Map(
-              [...active, ...archived]
-                .filter((property) => property.owner_person_id === id)
-                .map((property) => [property.id, property]),
-            ).values(),
-          ];
-      } catch (cause) {
-        if (current === requestId) propertyError.value = getErrorMessage(cause);
-      }
-    }
   } catch (cause) {
     if (current === requestId) error.value = getErrorMessage(cause);
   } finally {
@@ -122,6 +133,10 @@ watch(
   { immediate: true },
 );
 onMounted(() => setRefreshHandler(load));
+onBeforeUnmount(() => {
+  clearTimeout(searchTimer);
+  propertyList.cancel();
+});
 </script>
 <template>
   <AppLayout
@@ -230,11 +245,17 @@ onMounted(() => setRefreshHandler(load));
                   prepend-inner-icon="mdi-magnify"
                   clearable
                   hide-details /></v-card-text
-              ><v-data-table
+              ><v-data-table-server
+                v-model:page="page"
+                v-model:items-per-page="pageSize"
+                v-model:sort-by="sortBy"
                 :headers="headers"
-                :items="propertyRows"
-                :search="search"
-                :loading="loading"
+                :items="properties"
+                :items-length="propertyTotal"
+                :items-per-page-options="LIST_PAGE_SIZES"
+                :loading="propertiesLoading"
+                item-value="id"
+                @update:options="onTableOptions"
                 ><template #item.name="{ item }"
                   ><router-link
                     :to="`/properties/${item.id}`"
@@ -258,7 +279,7 @@ onMounted(() => setRefreshHandler(load));
                   ><EmptyState
                     icon="mdi-home-search-outline"
                     title="لا توجد عقارات مطابقة"
-                    text="تظهر العقارات المرتبطة بالشخص بصفة المالك المسجّل." /></template></v-data-table></template></v-card
+                    text="تظهر العقارات المرتبطة بالشخص بصفة المالك المسجّل." /></template></v-data-table-server></template></v-card
         ></v-window-item>
         <v-window-item value="notes"
           ><RecordNotes

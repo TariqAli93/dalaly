@@ -183,8 +183,12 @@ function propertyConditions(
 ): SQL[] {
   const where: SQL[] = [];
 
-  if (!filters.status) {
+  if (!filters.status && filters.include_archived !== "true") {
     where.push(ne(properties.status, "archived"));
+  }
+
+  if (typeof filters.owner_person_id === "number") {
+    where.push(eq(properties.ownerPersonId, filters.owner_person_id));
   }
 
   addEqualFilter(where, properties.propertyType, filters.property_type);

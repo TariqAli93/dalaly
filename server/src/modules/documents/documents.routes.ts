@@ -8,10 +8,12 @@ import {
   getPersonDocumentRequirements,
   listDocumentTypes,
   listIdentityDocuments,
+  listIdentityDocumentsPage,
   updateIdentityDocument,
 } from "./documents.repository.js";
 import {
   documentFiltersSchema,
+  documentPageQuerySchema,
   documentTypePayloadSchema,
   identityDocumentPayloadSchema,
   identityDocumentUpdateSchema,
@@ -43,6 +45,13 @@ export const documentsRoutes: FastifyPluginAsync = async (app) => {
     { preHandler: requirePermission("documents.read") },
     async (request) =>
       listIdentityDocuments(documentFiltersSchema.parse(request.query)),
+  );
+  // صفحة واحدة مع العدد الكلي لجدول المستمسكات.
+  app.get(
+    "/paged",
+    { preHandler: requirePermission("documents.read") },
+    async (request) =>
+      listIdentityDocumentsPage(documentPageQuerySchema.parse(request.query)),
   );
   app.get(
     "/:id",

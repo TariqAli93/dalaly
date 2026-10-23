@@ -15,6 +15,11 @@ type FetchPage<T, K extends string> = (
   signal: AbortSignal,
 ) => Promise<PagedResult<T>>;
 
+type PagedListOptions = {
+  /** بدل الإشعار العام، لصفحة تعرض الخطأ في مكان الجدول. */
+  onError?: (message: string) => void;
+};
+
 /**
  * قائمة مقسّمة من الخادم: الصفحة الحالية وعددها الكلي وحالة الصفحة والترتيب
  * (مربوطة مباشرة بـ v-data-table-server). كل تحميل يُلغي الطلب الذي قبله، ولا
@@ -23,6 +28,7 @@ type FetchPage<T, K extends string> = (
 export function createPagedList<T, K extends string>(
   fetchPage: FetchPage<T, K>,
   defaultSort: ListSortOption<K>,
+  options: PagedListOptions = {},
 ) {
   const items = ref([]) as Ref<T[]>;
   const total = ref(0);
@@ -71,7 +77,9 @@ export function createPagedList<T, K extends string>(
       total.value = result.total;
     } catch (error) {
       if (current.signal.aborted) return;
-      useSnackbar().notifyError(getErrorMessage(error));
+      const message = getErrorMessage(error);
+      if (options.onError) options.onError(message);
+      else useSnackbar().notifyError(message);
     } finally {
       if (controller === current) {
         controller = null;

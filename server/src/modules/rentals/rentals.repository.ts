@@ -85,8 +85,13 @@ function searchClause(term: string): SQL {
 
 /** شروط الفلاتر والبحث المشتركة بين القائمة الكاملة والقائمة المقسّمة. */
 function rentalConditions(filters: Omit<RentalFilters, "limit" | "offset">) {
-  const where: SQL[] = filters.status ? [] : [ne(rentals.status, "archived")];
+  const where: SQL[] =
+    filters.status || filters.include_archived === "true"
+      ? []
+      : [ne(rentals.status, "archived")];
   if (filters.status) where.push(eq(rentals.status, filters.status));
+  if (typeof filters.owner_person_id === "number")
+    where.push(eq(rentals.ownerPersonId, filters.owner_person_id));
   if (filters.property_type)
     where.push(eq(rentals.propertyType, filters.property_type));
   if (filters.rent_period)
