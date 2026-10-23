@@ -111,6 +111,24 @@ Conventions:
 - Properties and rentals also filter by `owner_person_id`, and
   `include_archived=true` lists archived rows with the rest; person details
   uses both on `/properties/paged`.
+- Each row of the paged property and rental lists, and of the two favorites
+  lists, carries `primary_image: { id, thumbnail } | null`: the image its
+  table shows (the primary one, else the first in order) and whether that
+  image has a thumbnail yet. Tables render it as a plain lazy `<img>`; no row
+  asks for its image list.
+- Images: originals are stored as uploaded and never rewritten. A thumbnail
+  (JPEG, longest side 320 px) is a derived file at
+  `images/thumbnails/<original file_path>.jpg`, a sibling of the images
+  folder (`thumbnailsRoot()` in `modules/images/images.service.ts` derives
+  it from `imagesDir`), so backups, which archive the images folder, leave
+  thumbnails out, and a restored row finds its thumbnail again by its
+  unchanged path. The API never decodes images: the renderer makes the
+  thumbnail (`utils/thumbnails.ts`, `createImageBitmap` + canvas) and sends
+  it with an upload, or with `PUT …/images/:imageId/thumbnail` for an image
+  uploaded before thumbnails existed, the first time a table shows that
+  image to a user with the images permission
+  (`composables/useThumbnailBackfill.ts`). Until then the row shows the
+  original. Deleting an image deletes its thumbnail.
 - User-facing messages are Arabic. Keep request/response shapes stable: the
   renderer types in `apps/renderer/src/types` mirror them by hand.
 - Add a service file only when a repository alone would mix concerns; most
