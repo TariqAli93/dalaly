@@ -1,5 +1,10 @@
 import pg from "pg";
-import { buildPoolConfig, config } from "../config.js";
+import {
+  buildPoolConfig,
+  config,
+  databaseTarget,
+  type DatabaseTarget,
+} from "../config.js";
 
 /**
  * Pool قابل لإعادة التهيئة أثناء التشغيل.
@@ -12,16 +17,30 @@ import { buildPoolConfig, config } from "../config.js";
  * فتتجه كل العمليات اللاحقة (بما فيها drizzle) إلى القاعدة الجديدة بدون
  * إعادة تشغيل الخادم.
  */
-let activePool = new pg.Pool(buildPoolConfig());
-let activePoolConfig = buildPoolConfig();
+let activeTarget = databaseTarget();
+let activePool = createPool(activeTarget);
 let runtimeConfigured = false;
 
-activePool.on("error", (error) =>
-  console.error("Idle database connection failed", error.message),
-);
+function createPool(target: DatabaseTarget) {
+  const next = new pg.Pool(buildPoolConfig(target));
+  next.on("error", (error) =>
+    console.error("Idle database connection failed", error.message),
+  );
+  return next;
+}
 
+/**
+ * Settings for a one-off connection to the active database (health checks,
+ * creating the first administrator): the short connect timeout and time
+ * limits, so a check fails fast.
+ */
 export function getActivePoolConfig() {
-  return { ...activePoolConfig, query_timeout: 5000, statement_timeout: 15000 };
+  return {
+    ...buildPoolConfig(activeTarget),
+    connectionTimeoutMillis: config.db.connectionTimeoutMillis,
+    query_timeout: 5000,
+    statement_timeout: 15000,
+  };
 }
 
 // Time limits belong to startup/setup connections, not ordinary business queries.
@@ -59,10 +78,8 @@ export const pool = new Proxy({} as pg.Pool, {
  * بعد التحقق من نجاح الاتصال. يغلق الـ pool القديم بهدوء.
  */
 export async function reconfigurePool(connectionString: string) {
-  const nextPool = new pg.Pool({
-    connectionString,
-    connectionTimeoutMillis: config.db.connectionTimeoutMillis,
-  });
+  const nextTarget = { connectionString };
+  const nextPool = createPool(nextTarget);
 
   // تحقق من أن الاتصال الجديد يعمل قبل تبديل الـ pool الحالي.
   try {
@@ -75,13 +92,7 @@ export async function reconfigurePool(connectionString: string) {
 
   const previousPool = activePool;
   activePool = nextPool;
-  activePoolConfig = {
-    connectionString,
-    connectionTimeoutMillis: config.db.connectionTimeoutMillis,
-  };
-  nextPool.on("error", (error) =>
-    console.error("Idle database connection failed", error.message),
-  );
+  activeTarget = nextTarget;
   runtimeConfigured = true;
 
   await previousPool.end().catch(() => undefined);
