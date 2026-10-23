@@ -29,11 +29,7 @@ import {
 import { calculateTotalPrice } from "../../shared/utils/pricing.js";
 import { toApiObject, toApiObjects } from "../../shared/utils/case.js";
 import { DuplicatePlotError } from "../../shared/errors.js";
-import {
-  getDistrictName,
-  getGovernorateName,
-  getNeighborhoodName,
-} from "../locations/locations.repository.js";
+import { getLocationNames } from "../locations/locations.repository.js";
 import { listEntityAudit, recordAudit } from "../audit/audit.service.js";
 import {
   type PropertyFilters,
@@ -558,17 +554,28 @@ async function generatePropertyCode(
 async function normalizePayload(
   payload: PropertyPayload,
 ): Promise<Omit<NewProperty, "code">> {
+  return propertyValues(payload, await getLocationNames(payload));
+}
+
+/**
+ * قيم أعمدة العرض من الطلب، بعد جلب أسماء المواقع المختارة من القوائم
+ * (getLocationNames لعرض واحد، getLocationNamesByIds للاستيراد).
+ */
+export function propertyValues(
+  payload: PropertyPayload,
+  names: Awaited<ReturnType<typeof getLocationNames>>,
+): Omit<NewProperty, "code"> {
   const total_price = calculateTotalPrice(payload);
 
   // حلّ اسم المحافظة/المنطقة/الحي: من القائمة (id) أو نص يدوي.
   const governorateName = payload.governorate_id
-    ? await getGovernorateName(payload.governorate_id)
+    ? names.governorate
     : (payload.governorate_text ?? payload.governorate ?? null);
   const districtName = payload.district_id
-    ? await getDistrictName(payload.district_id)
+    ? names.district
     : (payload.district_text ?? payload.district ?? null);
   const neighborhoodName = payload.neighborhood_id
-    ? await getNeighborhoodName(payload.neighborhood_id)
+    ? names.neighborhood
     : (payload.neighborhood_text ?? null);
 
   return {
