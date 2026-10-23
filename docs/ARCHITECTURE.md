@@ -129,6 +129,24 @@ Conventions:
   image to a user with the images permission
   (`composables/useThumbnailBackfill.ts`). Until then the row shows the
   original. Deleting an image deletes its thumbnail.
+- A list that returns related rows loads them for every row at once (an
+  `IN` query or a join), not with a query per row: users with their roles
+  and permissions, roles with their permission ids. Saving a record reads
+  the names of its picked locations in one query (`getLocationNames`).
+- The Excel import commits in one transaction holding the properties code
+  lock, so either every accepted row is saved or none is. It reads what the
+  rows need (saved phones, location names, matching plots, linked people,
+  last codes) once for the whole file and inserts 100 rows per statement.
+  Files over `MAX_IMPORT_ROWS` (5,000) are refused by validate and commit,
+  which bounds how long other new listings wait for that lock.
+- Backup archives are streamed (`modules/backup/backup.archive.ts`, yazl and
+  yauzl): a backup writes files into `<name>.zip.partial` one at a time and
+  renames it on success; a restore reads entries from the zip on disk (or
+  the uploaded buffer) and writes each file once its CRC-32 matched. Never
+  load a whole archive or media folder into memory. Keep the layout older
+  builds read with adm-zip 0.5.17 (`manifest.json`, `data.json`,
+  `images/properties/…`, `documents/…`, directory entries);
+  `test:backup:compat` restores an archive written by such a build.
 - Database connections: `buildPoolConfig(target)` in
   `infrastructure/config.ts` configures every pool on the app's database
   (the request pool, the one `reconfigurePool` switches to after setup, the

@@ -122,14 +122,20 @@ These are not code-quality calls; they change history, data or behavior.
   for its owner's offers; Phase 2.6. The person pickers search the server
   too.)
 - **Search**: properties ORs `ILIKE` over ~28 columns plus casts per token;
-  `%`/`_` not escaped; duplicate-plot check is a sequential scan per save.
-- **N+1**: `listUsers` (2 per user), `listRoles`, location names (3 lookups per
-  save), Excel import (~7 queries per row, no transaction or row cap).
+  `%`/`_` not escaped. (The duplicate-plot check before a save is an index
+  scan since Phase 2.5.)
+- **N+1**: fixed in Phase 2.5 for the users and roles lists, location names
+  and the Excel import, which also commits in one transaction and caps the
+  file at 5,000 rows.
 - **Non-atomic writes**: entity write and audit row are separate, audit errors
   are swallowed; files are written before their row, orphaned on failure.
-- **Backup/restore block the event loop**: adm-zip reads every image and
-  compresses synchronously; no retention; images extracted after the DB
-  commit. (Lock and pre-restore copy added in Phase 1.)
+- **Backup/restore block the event loop**: resolved in Phase 4.1. adm-zip
+  read every image into memory and compressed synchronously: a 2 GB backup
+  froze the API for its whole length and peaked at 6.7 GB, a restore at
+  8.7 GB; with 2.4 GB of files the backup failed ("Array buffer allocation
+  failed") and archives over 2 GiB could not be restored. Still: no
+  retention; images extracted after the DB commit. (Lock and pre-restore
+  copy added in Phase 1.)
 - **Uploads** are base64 inside JSON (50 MB route limit since Phase 1, 1 MB
   elsewhere), no per-file limit, no content sniffing, no thumbnails.
 - **Error shapes** vary (`{code,messageKey,message}` / `{message}` /
@@ -281,7 +287,23 @@ fix).
    5 minutes after a burst (~6 MB each in PostgreSQL), and a statement that
    waits more than 15 s now fails. See `docs/PERFORMANCE.md`, "Pool,
    statement timeout and dashboard".
-5. Fix N+1s: users/roles listing, location names, import (transaction + cap).
+5. Done: N+1s and the import. The users and roles lists load every listed
+   row's roles and permissions together (3 and 2 queries instead of
+   1 + 2 per user and 1 + 1 per role); saving a property, rental or
+   request reads its picked locations' names in one query instead of
+   three; the duplicate-plot check states its index's predicate, so it is
+   an index scan (0.02 ms) instead of a scan of every listing (3 ms at
+   5,000, 25 ms at 50,000). The Excel import commits in one transaction
+   holding the properties code lock, so a failure part-way saves nothing;
+   it reads what the rows need once per file and inserts 100 rows per
+   statement: 5,000 rows in ~1.6 s instead of ~33 s, 66 statements
+   instead of ~35,000. Validate and commit refuse files over 5,000 rows.
+   Cost: a listing saved during an import waits for its commit (up to
+   ~1 s at 5,000 rows). Results in `docs/PERFORMANCE.md`, "Excel import
+   and N+1 queries". **Found on the way:** both import steps report zod's
+   built-in messages in English (`Too small: expected string…`), only the
+   custom checks are Arabic; a missing linked owner used to come back as
+   the driver's `Failed query: insert …` text (now Arabic).
 6. Done: server pagination end to end. `GET /properties/paged` and
    `/rentals/paged` (page, size, whitelisted sort including area in m²,
    total), then `/people/paged`, `/rental-requests/paged`,
@@ -321,8 +343,14 @@ fix).
 
 ### Phase 4 — files and backup at scale
 
-1. Stream backups to a temp file (yazl/archiver or a worker thread), rename
-   on success.
+1. Done: backups stream to `<name>.zip.partial` (yazl), renamed on
+   success; restore reads entries from the zip on disk (yauzl). Same
+   layout; `test:backup:compat` restores an archive from the adm-zip build.
+   Results in `docs/PERFORMANCE.md` ("Backup and restore"). **Open (owner
+   decision):** photos are deflated although they do not compress, most of
+   a backup's time and CPU; storing image entries took a 2 GB backup from
+   ~83 s to ~14 s in an isolated test, but changes how entries are
+   compressed.
 2. Multipart/streamed uploads with size and type checks. (Thumbnails now
    travel with image uploads and are checked: JPEG, at most 256 KB. The
    originals are still base64 JSON, stored as sent.)
