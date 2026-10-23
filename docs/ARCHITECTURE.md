@@ -145,7 +145,9 @@ Conventions:
   (`composables/useThumbnailBackfill.ts`). Until then the row shows the
   original. Deleting an image deletes its thumbnail.
 - User-facing messages are Arabic. Keep request/response shapes stable: the
-  renderer types in `apps/renderer/src/types` mirror them by hand.
+  renderer types in `apps/renderer/src/types` mirror them by hand, and
+  `test:contract` checks every response the renderer reads against the type
+  its service declares (`request<T>(path)`).
 - Add a service file only when a repository alone would mix concerns; most
   modules are CRUD and stay `routes → repository`.
 - Migrations live in `server/drizzle` and are never edited or deleted once

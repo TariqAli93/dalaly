@@ -345,8 +345,27 @@ fix).
 3. Shared renderer pieces where duplication is real: `FilterBar` +
    `useDebouncedApply`, one `ImageGallery` with a service adapter,
    `useListingSort`.
-4. API contract tests: for each list/detail endpoint, assert the response keys
-   and types against the renderer types (run against the isolated test DB).
+4. Done: `test:contract` (`scripts/api-contract.test.ts`, in CI's `database`
+   job) calls every list and detail endpoint the renderer reads, plus the
+   creates it uses, on a `removalTestContext()` database, and checks each
+   body's keys and value types both ways against the renderer's own types.
+   The expectations are generated: `scripts/renderer-contract.ts` reads the
+   `request<T>(path)` calls in `apps/renderer/src/services` with the
+   TypeScript compiler API, so drift on either side fails, and so does a
+   renderer GET the test does not call. Error bodies are checked against
+   the renderer's `ApiErrorBody`. What it found was fixed on the type side
+   (a stale `RentalRecord.image`, roles embedded in users without
+   `permission_ids`, rental follow-ups with `rental_id`, timestamps and
+   `archived_at`/`permissions` the types left out). Not fixed, listed in
+   `KNOWN_DRIFT` (API bugs; changing them changes responses): creating a
+   follow-up returns the raw camelCase row, and `toApiObject(row, table)`
+   adds a synthetic English `name` ("people P-1", and "properties P-1" for
+   an unnamed property, which person details shows). Also found:
+   `PersonEditor.vue` maps validation issues by `issue.path`, but the API
+   sends `field`, so field errors never reach their inputs (the message
+   shows in the dialog's alert instead). Not covered: mutation responses
+   other than the creates the test makes, file and image downloads,
+   `/stats` (no renderer caller).
 5. Done: the `database` job in `ci.yml` (Linux, PostgreSQL 18 service) runs
    the runtime, restore and other database suites. Left out, with reasons in
    the workflow and the README: the Electron, packaged-build and Playwright
