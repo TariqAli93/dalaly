@@ -155,3 +155,40 @@ export function writeThumbnail(filePath: string, thumbnail: Buffer) {
   fs.writeFileSync(temporary, thumbnail);
   fs.renameSync(temporary, target);
 }
+
+type StoredImage = { id: number; filePath: string };
+
+/**
+ * يضيف لكل صف primary_image: الصورة التي يعرضها الجدول ووجود مصغّرتها،
+ * فلا يطلب الجدول قائمة صور لكل صف. `primaryImages` يعيدها لمعرفات الصفوف.
+ */
+export async function withPrimaryImages<T extends Record<string, unknown>>(
+  rows: T[],
+  primaryImages: (ids: number[]) => Promise<Map<number, StoredImage>>,
+) {
+  const images = await primaryImages(rows.map((row) => Number(row.id)));
+  return Promise.all(
+    rows.map(async (row) => {
+      const image = images.get(Number(row.id));
+      return {
+        ...row,
+        primary_image: image
+          ? { id: image.id, thumbnail: await hasThumbnail(image.filePath) }
+          : null,
+      };
+    }),
+  );
+}
+
+export function contentTypeFor(filePath: string) {
+  const ext = path.extname(filePath).toLowerCase();
+  const map: Record<string, string> = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
+    ".bmp": "image/bmp",
+  };
+  return map[ext] ?? "application/octet-stream";
+}

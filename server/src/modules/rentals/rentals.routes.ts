@@ -17,6 +17,8 @@ import {
   rentalPayloadSchema,
 } from "./rentals.schema.js";
 import { parseId } from "../../shared/utils/parse-id.js";
+import { primaryRentalImagesOf } from "../rental-images/rental-images.repository.js";
+import { withPrimaryImages } from "../images/images.service.js";
 
 export const rentalsRoutes: FastifyPluginAsync = async (app) => {
   app.get(
@@ -24,15 +26,20 @@ export const rentalsRoutes: FastifyPluginAsync = async (app) => {
     { preHandler: requirePermission("rentals.read") },
     async (request) => listRentals(rentalFiltersSchema.parse(request.query)),
   );
-  // صفحة واحدة مع العدد الكلي، لجدول الإيجارات.
+  // صفحة واحدة مع العدد الكلي، لجدول الإيجارات، ولكل صف صورته الرئيسية.
   app.get(
     "/paged",
     { preHandler: requirePermission("rentals.read") },
-    async (request) =>
-      listRentalsPage(
+    async (request) => {
+      const page = await listRentalsPage(
         rentalPageQuerySchema.parse(request.query),
         request.user?.id,
-      ),
+      );
+      return {
+        ...page,
+        items: await withPrimaryImages(page.items, primaryRentalImagesOf),
+      };
+    },
   );
   app.get(
     "/:id",
