@@ -7,6 +7,7 @@ import { useSnackbar } from "../../composables/useSnackbar";
 import { useConfirm } from "../../composables/useConfirm";
 import type { PropertyImage } from "../../types";
 import { readFileAsDataUrl } from "../../utils/files";
+import { makeThumbnail } from "../../utils/thumbnails";
 
 const props = defineProps<{
   propertyId: number;
@@ -19,7 +20,7 @@ const { openConfirm } = useConfirm();
 const images = ref<PropertyImage[]>([]);
 const loading = ref(false);
 const uploading = ref(false);
-const pending = ref<Array<{ name: string; dataUrl: string }>>([]);
+const pending = ref<Array<{ name: string; dataUrl: string; file: File }>>([]);
 const dragOver = ref(false);
 const activeImageId = ref<number | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -54,7 +55,7 @@ async function addFiles(files: File[]) {
   const imageFiles = files.filter((f) => f.type.startsWith("image/"));
   for (const file of imageFiles) {
     const dataUrl = await readFileAsDataUrl(file);
-    pending.value.push({ name: file.name, dataUrl });
+    pending.value.push({ name: file.name, dataUrl, file });
   }
 }
 
@@ -94,10 +95,15 @@ async function uploadPending() {
   if (!pending.value.length) return;
   uploading.value = true;
   try {
-    // رفع كل صورة في طلب منفصل لتفادي حدود حجم الطلب.
+    // رفع كل صورة في طلب منفصل لتفادي حدود حجم الطلب، ومعها مصغّرتها
+    // لجدول العروض.
     for (const item of pending.value) {
       await imagesService.uploadImages(props.propertyId, [
-        { data: item.dataUrl, original_name: item.name },
+        {
+          data: item.dataUrl,
+          original_name: item.name,
+          thumbnail: await makeThumbnail(item.file),
+        },
       ]);
     }
     pending.value = [];

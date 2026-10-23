@@ -7,6 +7,7 @@ import { getErrorMessage } from "../../services/api.service";
 import { useSnackbar } from "../../composables/useSnackbar";
 import { useConfirm } from "../../composables/useConfirm";
 import { readFileAsDataUrl } from "../../utils/files";
+import { makeThumbnail } from "../../utils/thumbnails";
 const props = defineProps<{
   rentalId: number;
   canManage?: boolean;
@@ -44,9 +45,14 @@ async function upload(event: Event) {
   if (!files.length) return;
   uploading.value = true;
   try {
+    // كل صورة في طلب منفصل، ومعها مصغّرتها لجدول الإيجارات.
     for (const file of files)
       await rentals.uploadRentalImages(props.rentalId, [
-        { data: await readFileAsDataUrl(file), original_name: file.name },
+        {
+          data: await readFileAsDataUrl(file),
+          original_name: file.name,
+          thumbnail: await makeThumbnail(file),
+        },
       ]);
     await load();
     notifySuccess("تم رفع صور الإيجار.");

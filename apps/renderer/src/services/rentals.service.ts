@@ -70,7 +70,11 @@ export function listRentalImages(id: number) {
 }
 export function uploadRentalImages(
   id: number,
-  images: Array<{ data: string; original_name?: string }>,
+  images: Array<{
+    data: string;
+    original_name?: string;
+    thumbnail?: string | null;
+  }>,
 ) {
   return request<RentalImage[]>(`/rentals/${id}/images`, {
     method: "POST",
@@ -98,6 +102,12 @@ export function rentalImageUrl(id: number, imageId: number) {
 }
 export function rentalThumbnailUrl(id: number, imageId: number) {
   return `${API_BASE}/rentals/${id}/images/${imageId}/thumbnail?token=${encodeURIComponent(getToken())}`;
+}
+export function saveRentalThumbnail(id: number, imageId: number, data: string) {
+  return request<{ thumbnail: boolean }>(
+    `/rentals/${id}/images/${imageId}/thumbnail`,
+    { method: "PUT", body: JSON.stringify({ data }) },
+  );
 }
 export function listRentalFavorites() {
   return request<RentalRecord[]>("/rental-favorites");
