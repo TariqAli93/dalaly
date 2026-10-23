@@ -110,7 +110,7 @@ export async function query(databaseName, sql, params) {
  * Starts the packaged API the way Electron does (the app exe with
  * ELECTRON_RUN_AS_NODE), isolated from the repo's .env by its cwd.
  */
-export function startApi(app, { databaseName, port, dataDir }) {
+export function startApi(app, { databaseName, port, dataDir, env = {} }) {
   const child = spawn(app.exe, [app.serverEntry], {
     cwd: dataDir,
     windowsHide: true,
@@ -125,6 +125,7 @@ export function startApi(app, { databaseName, port, dataDir }) {
       APP_DATA_DIR: dataDir,
       IMAGES_DIR: path.join(dataDir, "images", "properties"),
       BACKUP_DIR: path.join(dataDir, "backups"),
+      ...env,
     },
   });
   // Drain the pipes like Electron's main process does.
@@ -454,6 +455,92 @@ export function stats(samples) {
 }
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Two frames: whatever the page rendered is on screen. */
+export async function painted(page) {
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+}
+
+/**
+ * Every row of the list grid that is on screen shows a loaded, decoded photo
+ * in its first cell (rows below the fold load theirs lazily, if at all).
+ * Returns how many rows that was.
+ */
+export async function rowImagesPainted(page) {
+  await page.waitForFunction(
+    () => {
+      const rows = [...document.querySelectorAll(".dal-grid tbody tr")].filter(
+        (row) => row.getBoundingClientRect().top < innerHeight,
+      );
+      return (
+        rows.length > 0 &&
+        rows.every((row) => {
+          const image = row.querySelector("td:first-child img");
+          return image?.complete && image.naturalWidth > 0;
+        })
+      );
+    },
+    undefined,
+    { timeout: 60_000, polling: "raf" },
+  );
+  const rows = await page.evaluate(async () => {
+    const images = [...document.querySelectorAll(".dal-grid tbody tr td:first-child img")].filter(
+      (image) => image.complete && image.naturalWidth > 0,
+    );
+    await Promise.all(images.map((image) => image.decode().catch(() => {})));
+    return images.length;
+  });
+  await painted(page);
+  return rows;
+}
+
+/**
+ * Counts a step's API requests, its image file requests (an original or a
+ * thumbnail), its writes (a thumbnail saved) and the KB of the response
+ * bodies. The returned function waits until no API request has been in
+ * flight for `quietMs` (at most 5 s longer), stops counting and returns
+ * { requests, imageRequests, writes, kb }.
+ */
+export function trackApi(page, { quietMs = 150 } = {}) {
+  const sizes = [];
+  let requests = 0;
+  let imageRequests = 0;
+  let writes = 0;
+  let inFlight = 0;
+  let lastChange = performance.now();
+  const isApi = (request) => request.url().includes("/api/");
+  const onRequest = (request) => {
+    if (!isApi(request)) return;
+    requests += 1;
+    if (/\/images\/\d+\/(file|thumbnail)(\?|$)/.test(request.url()) && request.method() === "GET") imageRequests += 1;
+    if (request.method() !== "GET") writes += 1;
+    inFlight += 1;
+    lastChange = performance.now();
+  };
+  const onDone = (request) => {
+    if (!isApi(request)) return;
+    inFlight -= 1;
+    lastChange = performance.now();
+    sizes.push(request.sizes().then((size) => size.responseBodySize, () => 0));
+  };
+  const onFailed = (request) => {
+    if (!isApi(request)) return;
+    inFlight -= 1;
+    lastChange = performance.now();
+  };
+  page.on("request", onRequest);
+  page.on("requestfinished", onDone);
+  page.on("requestfailed", onFailed);
+  return async () => {
+    const deadline = performance.now() + quietMs + 5_000;
+    while ((inFlight > 0 || performance.now() - lastChange < quietMs) && performance.now() < deadline) await sleep(25);
+    page.off("request", onRequest);
+    page.off("requestfinished", onDone);
+    page.off("requestfailed", onFailed);
+    const bytes = (await Promise.all(sizes)).reduce((sum, size) => sum + size, 0);
+    return { requests, imageRequests, writes, kb: Math.round(bytes / 1024) };
+  };
+}
 
 /**
  * Working set, private bytes and cumulative CPU time for processes, via

@@ -22,8 +22,10 @@ import {
   freePort,
   makeTempDir,
   packagedApp,
+  painted,
   portIsFree,
   root,
+  rowImagesPainted,
   seedDataset,
   seedPhotos,
   sleep,
@@ -31,6 +33,7 @@ import {
   stats,
   stopProcess,
   timeRequests,
+  trackApi,
   waitForHealth,
   windowsProcessInfo,
   cleanEnv,
@@ -572,10 +575,6 @@ function firstRowStartsWith(page, column, prefix) {
   );
 }
 
-async function painted(page) {
-  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-}
-
 /**
  * Routes to a list page and waits for its first rows: the code in the
  * `column`th cell (the third, in the properties and rentals grids). With
@@ -599,32 +598,6 @@ async function openList(page, hash, request, codePrefix, column = 3, { images = 
   return { ...result, imagesPainted: performance.now() - started, traffic: await traffic() };
 }
 
-/** Every row of the list grid shows a loaded, decoded photo in its first cell. */
-async function rowImagesPainted(page) {
-  await page.waitForFunction(
-    () => {
-      const rows = [...document.querySelectorAll(".dal-grid tbody tr")];
-      return (
-        rows.length > 0 &&
-        rows.every((row) => {
-          const image = row.querySelector("td:first-child img");
-          return image?.complete && image.naturalWidth > 0;
-        })
-      );
-    },
-    undefined,
-    { timeout: 60_000, polling: "raf" },
-  );
-  await page.evaluate(() =>
-    Promise.all(
-      [...document.querySelectorAll(".dal-grid tbody tr td:first-child img")].map((image) =>
-        image.decode().catch(() => {}),
-      ),
-    ),
-  );
-  await painted(page);
-}
-
 /** The marks of one list step, named after `prefix`. */
 function stepMarks(prefix, step) {
   const marks = { [`${prefix}Data`]: step.data, [`${prefix}Painted`]: step.painted };
@@ -634,6 +607,8 @@ function stepMarks(prefix, step) {
     [`${prefix}ImagesPainted`]: step.imagesPainted,
     [`${prefix}Requests`]: step.traffic.requests,
     [`${prefix}ImageRequests`]: step.traffic.imageRequests,
+    // Thumbnails the page saved for older images it showed.
+    [`${prefix}Writes`]: step.traffic.writes,
     [`${prefix}ApiKB`]: step.traffic.kb,
   };
 }
@@ -706,51 +681,6 @@ async function searchProperties(page, { images = false } = {}) {
 function trackApiBytes(page) {
   const traffic = trackApi(page);
   return async () => (await traffic()).kb;
-}
-
-/**
- * Counts a step's API requests, its image file requests (an original or a
- * thumbnail) and the KB of the response bodies. The returned function waits
- * until no API request has been in flight for `quietMs` (at most 5 s
- * longer), stops counting and returns { requests, imageRequests, kb }.
- */
-function trackApi(page, { quietMs = 150 } = {}) {
-  const sizes = [];
-  let requests = 0;
-  let imageRequests = 0;
-  let inFlight = 0;
-  let lastChange = performance.now();
-  const isApi = (request) => request.url().includes("/api/");
-  const onRequest = (request) => {
-    if (!isApi(request)) return;
-    requests += 1;
-    if (/\/images\/\d+\/(file|thumbnail)(\?|$)/.test(request.url())) imageRequests += 1;
-    inFlight += 1;
-    lastChange = performance.now();
-  };
-  const onDone = (request) => {
-    if (!isApi(request)) return;
-    inFlight -= 1;
-    lastChange = performance.now();
-    sizes.push(request.sizes().then((size) => size.responseBodySize, () => 0));
-  };
-  const onFailed = (request) => {
-    if (!isApi(request)) return;
-    inFlight -= 1;
-    lastChange = performance.now();
-  };
-  page.on("request", onRequest);
-  page.on("requestfinished", onDone);
-  page.on("requestfailed", onFailed);
-  return async () => {
-    const deadline = performance.now() + quietMs + 5_000;
-    while ((inFlight > 0 || performance.now() - lastChange < quietMs) && performance.now() < deadline) await sleep(25);
-    page.off("request", onRequest);
-    page.off("requestfinished", onDone);
-    page.off("requestfailed", onFailed);
-    const bytes = (await Promise.all(sizes)).reduce((sum, size) => sum + size, 0);
-    return { requests, imageRequests, kb: Math.round(bytes / 1024) };
-  };
 }
 
 /** Types into a person picker until the matching option shows. */
