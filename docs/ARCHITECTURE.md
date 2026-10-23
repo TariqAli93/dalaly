@@ -162,6 +162,11 @@ starts the first load in `setup`, before the table emits its initial
 options, so that load is not sent twice; `onError` replaces the snackbar
 for a page that shows the error in place of the table.
 
+Choosing a person goes through `components/people/PersonPicker.vue`, which
+searches `/people/paged` (first 20 by name, then matches after a 300 ms
+pause) and fetches the selected person by id; no page downloads every
+person.
+
 The layout is by type with domain subfolders. It is consistent and small
 enough that a move to feature folders would cost more review and history churn
 than it saves; revisit only if a domain grows its own composables and

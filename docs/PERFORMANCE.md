@@ -383,7 +383,7 @@ every row.
 - **The person pickers** still download every person (673 KB, 22–42 ms on
   the API): the documents page's filter on every visit, the requests form
   on first opening, the offer and rental forms. A picker that searches the
-  server would remove that.
+  server would remove that. (Done since; see "Person pickers" below.)
 - **Memory on the people list**: inconclusive. The renderer held 16 MB less
   private memory in round 1 and 1.6 MB less in round 2.
 - **Startup, the dashboard and the properties and rentals lists**:
@@ -403,3 +403,60 @@ under a millisecond here, and no migration was added. Revisit it with the
 Phase 2.3 index migration if offices reach tens of thousands of offers. The
 other first pages, at 50,000 properties: people (15,000 rows, a count over
 all of them plus a top-N sort) 9.4 ms, rental requests 6.1 ms.
+
+## Person pickers, October 2026
+
+The documents filter, the request form's customer field and the rental
+form's owner field share `PersonPicker`, which searches `/people/paged`
+instead of downloading every person; the property form page stopped
+downloading the list it never showed. Three builds, alternately in two
+rounds (main, paged, picker, main, paged, picker), 8 launches per mode:
+`main` at `1ca1e9f`, the paged lists at `253fac2` (previous section) and
+the picker at `3bfb035`. Same PC and dataset as the previous section; the
+picker is compared with the paged build, `main` is there for reference.
+
+|                                                        | main r1 | paged r1 | picker r1 | main r2 | paged r2 | picker r2 |
+| ------------------------------------------------------ | ------: | -------: | --------: | ------: | -------: | --------: |
+| Documents page: API downloads (KB)                     |    2249 |      680 |         6 |    2249 |      680 |         6 |
+| Documents list painted (median ms)                     |   227.3 |    127.5 |     120.7 |   250.4 |    126.6 |     127.7 |
+| Documents list, renderer process: private (MB)         |   181.1 |    142.3 |     134.4 |   176.7 |    140.4 |     148.7 |
+| Documents filter: name typed → option shown (ms)       |    67.2 |     68.4 |     367.0 |    62.9 |     64.4 |     379.1 |
+| Request form: "add" → form shown (ms)                  |   221.5 |    220.2 |     206.1 |   216.7 |    188.3 |     218.5 |
+| Request form: customer field clicked → list shown (ms) |   333.3 |    474.2 |     255.1 |   338.7 |    357.6 |     282.9 |
+| Request form: API downloads (KB)                       |     673 |      673 |         9 |     673 |      673 |         9 |
+| Property edit form filled in (ms)                      |   331.9 |    316.5 |     287.9 |   334.4 |    310.5 |     315.2 |
+| Rental edit form filled in (ms)                        |   266.6 |    258.6 |     254.5 |   230.3 |    238.1 |     287.0 |
+| Rental edit form: linked owner's name shown (ms)       |   366.6 |    432.8 |     317.5 |   389.7 |    386.9 |     337.1 |
+| Property or rental edit form: API downloads (KB)       |     674 |      674 |         1 |     674 |      674 |         1 |
+| Login click → dashboard painted (median ms)            |     442 |      425 |       434 |     440 |      425 |       446 |
+
+Medians of the repeat profile; times from the action (navigation, click or
+typing). "API downloads" counts every API response body of the step until
+its requests settle.
+
+### What improved
+
+- **Downloads**: each of the four places now downloads 1–10 KB instead of
+  673–680 KB.
+- **The request form's customer list** shows in 255–283 ms instead of
+  333–339 ms on `main` and 358–474 ms on the paged build: 20 options to
+  render instead of a list of 1,500.
+- **The rental edit form** shows the linked owner's name in 318–337 ms
+  instead of 387–433 ms: one person fetched by id instead of the whole list
+  first.
+
+### What did not improve, or got worse
+
+- **Typing a name** into the documents filter shows the match after
+  ~370 ms instead of ~65 ms. The picker waits for a 300 ms pause in typing
+  (the same pause as the list filters), then asks the server (~3 ms on the
+  API); the old list filtered 1,500 people locally on every keystroke. A
+  shorter pause would narrow the gap at one request per pause.
+- **Pages and forms** (documents painted, the form opening, both edit forms
+  filled in) are within noise, including the property form, which used to
+  wait for the people list before loading its offer. On this PC 673 KB from
+  the local API costs tens of milliseconds; on slower hardware or over the
+  remote-access tunnel it should matter more (not measured).
+- **Memory on the documents list**: inconclusive against the paged build
+  (renderer 8 MB less in round 1, 8 MB more in round 2). The drop from
+  `main` came with paging the documents list.

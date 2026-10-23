@@ -117,9 +117,8 @@ These are not code-quality calls; they change history, data or behavior.
   Phase 1 retries on a collision, so simultaneous saves no longer fail.
 - **No pagination** for the audit log. (Properties, rentals, people,
   requests and documents are paged on the server, and person details asks
-  for its owner's offers; Phase 2.6.) The pickers that list every person
-  (offer owner, request customer, documents filter) still download them
-  all.
+  for its owner's offers; Phase 2.6. The person pickers search the server
+  too.)
 - **Search**: properties ORs `ILIKE` over ~28 columns plus casts per token;
   `%`/`_` not escaped; duplicate-plot check is a sequential scan per save.
 - **N+1**: `listUsers` (2 per user), `listRoles`, location names (3 lookups per
@@ -150,9 +149,13 @@ These are not code-quality calls; they change history, data or behavior.
   full-size originals as thumbnails (paste/click bugs fixed in this batch).
 - **Stale responses** can overwrite newer searches (no AbortController or
   request id); clearing filters and topbar navigation fire duplicate loads.
-- **Waterfalls**: rentals, rental form, property form, documents and request
-  pages load reference data sequentially; `RequestManager` reloads all people
-  on every load/search/save; `useLocations` has no in-flight dedupe.
+- **Waterfalls**: the rentals page loads reference data sequentially;
+  `useLocations` has no in-flight dedupe. (The rental and property forms, the
+  documents and request pages no longer wait for every person: the person
+  pickers search the server.)
+- **The sale offer form cannot link its owner to a person** (the rental form
+  can, "ربط المالك بعميل"), so person details lists only offers linked by
+  data or import. Its `people` prop was never shown and has been removed.
 - **Shell remounts per route** (17 pages wrap themselves in `AppLayout`;
   sidebar rail state resets); `useRefresh` keeps the previous page's handler.
 - **Types drift**: `RentalRecord.image` does not exist server-side;
