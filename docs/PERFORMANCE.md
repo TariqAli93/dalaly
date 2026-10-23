@@ -11,7 +11,9 @@ pnpm perf -- --app apps/desktop/release/win-unpacked --label my-change
 
 Options: `--runs 8` (launches per startup mode), `--properties 5000`
 (dataset size; rentals, people, requests, documents and audit rows scale
-with it),
+with it), `--photos 3` (photos per property and rental: synthetic
+12-megapixel JPEGs of 3–4.5 MB, hard links to 24 sources cached in the temp
+folder; none by default),
 `--skip-api`, `--skip-startup`. Results are written to
 `perf-results/<label>.json` (git-ignored) and printed as tables. To compare
 builds side by side as a Markdown table:
@@ -22,6 +24,19 @@ node scripts/perf/compare.mjs perf-results/main.json perf-results/my-change.json
 
 Alternate builds when comparing (A, B, A, B) so drift in machine state does
 not favour whichever ran second.
+
+When port 34567 is taken (Dalaly or `pnpm dev` running), the startup pass
+cannot run. `scripts/perf/tables.mjs` measures the properties and rentals
+tables, with photos, in Playwright's Chromium instead: it serves the build's
+renderer over HTTP and sends its requests for 127.0.0.1:34567 to the build's
+API on a free port.
+
+```bash
+node scripts/perf/tables.mjs --app apps/desktop/release/win-unpacked --label my-change --runs 5
+```
+
+It is Chromium, not Electron, and request routing turns the HTTP cache off;
+compare its results only with its own.
 
 ## What it does
 
@@ -72,6 +87,16 @@ not favour whichever ran second.
    process (`app.getAppMetrics()`) plus the API child: working set, private
    memory and CPU over 10 s idle, at the login form, on the dashboard, on
    the properties list and on the people list.
+
+   With `--photos`, every profile sees the seeded photos (a junction to the
+   API pass's images folder). The properties open, search and rentals steps
+   also record `…ImagesPainted` (every on-screen row's photo loaded and
+   decoded), `…Requests`, `…ImageRequests` (originals or thumbnails),
+   `…Writes` (thumbnails saved) and `…ApiKB`, each until no API request has
+   been in flight for 1 s; memory is also sampled on the properties list on
+   the first fresh launch; and the untimed first launch walks the lists, so
+   the repeat profile starts with what a previous day's use left (such as
+   thumbnails). Fresh profiles start without them.
 
 ## Limits
 
@@ -460,6 +485,112 @@ its requests settle.
 - **Memory on the documents list**: inconclusive against the paged build
   (renderer 8 MB less in round 1, 8 MB more in round 2). The drop from
   `main` came with paging the documents list.
+
+## Table thumbnails, October 2026
+
+Every row of the properties and rentals tables used to mount the image
+manager: one `GET …/images` per row, then the full-size original in a
+`v-img` (48×40 on screen). Now the paged list response names each row's
+primary image and whether it has a thumbnail; the row is a lazy `<img>` of
+the thumbnail (JPEG, 320 px on its longest side), or of the original until
+the thumbnail exists. The renderer makes thumbnails on upload, and for
+images uploaded earlier the first time a table shows them to a user who may
+manage images; the API only stores and serves them.
+
+Builds: `main` at `d5c5921` against the branch at `f7b923b` (the later
+`2abe5c9` only passes the EXIF orientation option explicitly; these
+photos have none), alternately in two rounds (A, B, A, B). Dataset: the
+usual 5,000 properties and 2,000 rentals, each with 3 photos
+(`--photos 3`): 21,000 synthetic 12-megapixel JPEGs, 3.6 MB on average.
+
+**The startup pass has not run yet**: port 34567 was held by a `pnpm dev`
+session on this PC the whole time, and the packaged renderer's API address
+is fixed to that port. The table figures below come from
+`scripts/perf/tables.mjs` instead: the same packaged renderers and APIs, in
+Playwright's Chromium 149 (Electron 39 is Chromium 142), viewport 1600×1000
+with all ten rows on screen, 5 runs per round, HTTP cache off (request
+routing). "First view" is a table whose images have no thumbnails yet
+(right after upgrading); "second view" is the same table after a new login.
+On `main` both views are the same.
+
+|                                                       |    main r1 |   branch r1 |    main r2 |   branch r2 |
+| ----------------------------------------------------- | ---------: | ----------: | ---------: | ----------: |
+| Properties, second view: API requests (images)        |    23 (10) |     13 (10) |    23 (10) |     13 (10) |
+| Properties, second view: downloaded (KB)              |     36,171 |          98 |     36,171 |          98 |
+| Properties, second view: rows painted (median ms)     |      284.6 |       282.5 |      272.8 |       276.2 |
+| Properties, second view: photos painted (median ms)   |      868.7 |       345.0 |      786.0 |       315.1 |
+| Properties, second view: renderer private (median MB) |      167.0 |       116.3 |      171.0 |       117.2 |
+| Rentals, second view: downloaded (KB)                 |     36,650 |          98 |     36,650 |          98 |
+| Rentals, second view: photos painted (median ms)      |      957.0 |       252.3 |    1,079.2 |       271.7 |
+| Properties, first view: API requests (images, saves)  | 23 (10, 0) | 33 (20, 10) | 23 (10, 0) | 33 (20, 10) |
+| Properties, first view: downloaded (KB)               |     36,171 |      72,323 |     36,171 |      72,323 |
+| Properties, first view: rows painted (median ms)      |      327.7 |       248.1 |      314.9 |       277.0 |
+| Properties, first view: photos painted (median ms)    |      847.5 |       696.3 |      762.7 |       678.8 |
+| Properties, first view: renderer private (median MB)  |      169.9 |       162.0 |      169.1 |       161.8 |
+| Rentals, first view: rows painted (median ms)         |      231.4 |       351.9 |      213.4 |       356.4 |
+| Rentals, first view: photos painted (median ms)       |    1,094.2 |     1,130.5 |    1,038.1 |     1,135.9 |
+
+Times from the navigation; "photos painted" is every row's photo loaded
+and decoded. Requests and downloads count every API request of the step
+until none has been in flight for 1 s, so a first view includes the
+thumbnails it makes. "images" are original or thumbnail files, "saves"
+thumbnails written. The API pass (`pnpm perf --photos 3 --skip-startup`):
+
+|                                                 |      main r1 |    branch r1 |      main r2 |    branch r2 |
+| ----------------------------------------------- | -----------: | -----------: | -----------: | -----------: |
+| Properties page: open (median / p95 ms)         |   5.8 / 11.0 |  12.3 / 15.4 |  10.4 / 13.9 |  11.8 / 14.7 |
+| Properties page: last page (median / p95 ms)    |  10.5 / 12.3 |  12.8 / 14.1 |  11.2 / 15.0 |  12.6 / 15.4 |
+| Rentals page: open (median / p95 ms, KB)        | 5.2 / 6.6, 7 | 6.4 / 8.5, 8 | 5.5 / 6.7, 7 | 6.6 / 8.6, 8 |
+| `GET …/images/:imageId/file`, one original (ms) |         31.3 |         25.3 |         29.4 |         33.1 |
+| API CPU during the API pass (s)                 |         26.0 |         26.0 |         25.2 |         26.4 |
+
+Making one thumbnail in Chromium (10 of the 3.6 MB photos, medians, a
+one-off script not kept in the repository):
+decoding with `createImageBitmap` 62 ms, off the main thread; drawing at
+320×240 and encoding the JPEG 16 ms on the main thread; result 8.9 KB.
+With the main thread slowed 4× (CDP CPU throttling, roughly a low-end
+office PC): 102 + 48 ms.
+
+### What improved
+
+- **A table page with thumbnails** downloads 98 KB instead of 36 MB and
+  sends 13 requests instead of 23 (no image list per row). Its photos are
+  on screen 315–345 ms after navigating instead of 786–869 ms (−60%); on
+  the rentals table 252–272 ms instead of 957–1,079 ms (−74%).
+- **Renderer memory** on the properties list: 116–117 MB private instead
+  of 167–171 MB: ten 12-megapixel images are no longer decoded to fill
+  48×40 cells.
+- **The rows themselves** (text) paint 40–80 ms sooner on a first view (no
+  image manager per row); with thumbnails they are unchanged.
+
+### What did not improve, or got worse
+
+- **The first view of older images costs more than before**, once per
+  image: the row shows the original (as before), then the page downloads
+  it again to make the thumbnail and saves it (20 image requests and 10
+  writes instead of 10; 72 MB instead of 36 MB on this local API). The
+  photos still appear 85–150 ms sooner (no image list per row), and the
+  renderer holds 8 MB less, but the next page opened right after it was
+  slower: the rentals table's rows painted ~350 ms after navigating instead
+  of 213–231 ms, its photos 40–100 ms later. Most likely the thumbnail
+  work (ten decodes of 12 MP) and the memory it frees; not profiled. In
+  Electron the second download may come from the HTTP cache (this
+  measurement had it off); the startup pass will tell. Users without the
+  images permission never make thumbnails, so they keep seeing originals
+  until someone who has it opens those pages.
+- **The list request** takes 1–2 ms more on the API (one `DISTINCT ON`
+  query for the page's primary images and a file check per row; round 1's
+  5.8 ms on `main` is an outlier) and the rentals page is 1 KB larger.
+  Everything else in the API pass is within noise.
+- **Uploading** a photo now first makes its thumbnail (~80 ms, ~150 ms on a
+  slow PC). Originals are still sent as base64 JSON and stored unchanged:
+  a 4 MB photo is still 4 MB on disk and in every backup.
+- **Galleries** (the property panel, the rental dialog) still load
+  originals, including their small thumbnail strips; they could use the
+  thumbnails for the strip.
+- **Not measured yet**: Electron startup, dashboard and list timings and
+  the per-process memory of the startup pass (port 34567 was taken), and
+  anything on a real low-end PC.
 
 ## Backup and restore, October 2026
 

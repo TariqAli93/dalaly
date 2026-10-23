@@ -7,14 +7,19 @@ import {
   removeFavorite,
 } from "./favorites.repository.js";
 import { parseId } from "../../shared/utils/parse-id.js";
+import { primaryImagesOf } from "../images/images.repository.js";
+import { withPrimaryImages } from "../images/images.service.js";
 
 export const favoritesRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     "/",
     { preHandler: requirePermission("properties.read") },
-    async (request) => {
-      return listFavoriteProperties(request.user!.id);
-    },
+    // يعرضها جدول العروض نفسه، فلكل صف صورته الرئيسية.
+    async (request) =>
+      withPrimaryImages(
+        await listFavoriteProperties(request.user!.id),
+        primaryImagesOf,
+      ),
   );
 
   app.get(

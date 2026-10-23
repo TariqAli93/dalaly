@@ -28,6 +28,24 @@ const rows = [
   ["Memory on properties list, all processes (private MB)", (r) => r.startup?.memory?.idleOnProperties?.total.privateMB],
   ["Memory on properties list, renderer (private MB)", (r) => r.startup?.memory?.idleOnProperties?.Tab?.privateMB],
   ["Idle CPU on properties list, all processes (%)", (r) => r.startup?.memory?.idleOnProperties?.total.cpuPercent],
+  // With --photos: every row's photo on screen, and what the step sent to the API.
+  ...[
+    ["Dashboard → properties list", "dashboardToProperties"],
+    ["Properties search", "propertiesSearch"],
+    ["Properties → rentals list", "propertiesToRentals"],
+  ].flatMap(([step, prefix]) =>
+    ["repeat", "fresh"].flatMap((mode) => [
+      [`${step}: row photos painted, ${mode} (median ms)`, (r) => r.startup?.[mode][`${prefix}ImagesPainted`]?.median],
+      [`${step}: API requests / image requests, ${mode}`, (r) => {
+        const requests = r.startup?.[mode][`${prefix}Requests`];
+        return requests && `${requests.median} / ${r.startup[mode][`${prefix}ImageRequests`].median}`;
+      }],
+      [`${step}: API downloads, ${mode} (median KB)`, (r) => r.startup?.[mode][`${prefix}ApiKB`]?.median],
+    ]),
+  ),
+  ["Memory on properties list, fresh profile, renderer (private MB)", (r) => r.startup?.memoryFresh?.idleOnProperties?.Tab?.privateMB],
+  ["Memory on properties list, fresh profile, all processes (private MB)", (r) => r.startup?.memoryFresh?.idleOnProperties?.total.privateMB],
+  ["Idle CPU on properties list, fresh profile, all processes (%)", (r) => r.startup?.memoryFresh?.idleOnProperties?.total.cpuPercent],
   ["Rentals → people list data (median ms)", (r) => r.startup?.repeat.rentalsToPeopleData?.median],
   ["Rentals → people list painted (median ms)", (r) => r.startup?.repeat.rentalsToPeoplePainted?.median],
   ["Memory on people list, all processes (working set MB)", (r) => r.startup?.memory?.idleOnPeople?.total.workingSetMB],

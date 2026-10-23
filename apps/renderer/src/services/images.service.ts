@@ -7,7 +7,11 @@ export function listImages(propertyId: number) {
 
 export function uploadImages(
   propertyId: number,
-  images: Array<{ data: string; original_name?: string }>,
+  images: Array<{
+    data: string;
+    original_name?: string;
+    thumbnail?: string | null;
+  }>,
 ) {
   return request<PropertyImage[]>(`/properties/${propertyId}/images`, {
     method: "POST",
@@ -39,4 +43,20 @@ export function deleteImage(propertyId: number, imageId: number) {
 /** رابط ملف الصورة مع التوكن في query (لأن <img> لا يرسل ترويسة Authorization). */
 export function imageFileUrl(propertyId: number, imageId: number) {
   return `${API_BASE}/properties/${propertyId}/images/${imageId}/file?token=${encodeURIComponent(getToken())}`;
+}
+
+/** رابط مصغّرة الصورة (موجودة متى قال primary_image.thumbnail ذلك). */
+export function thumbnailUrl(propertyId: number, imageId: number) {
+  return `${API_BASE}/properties/${propertyId}/images/${imageId}/thumbnail?token=${encodeURIComponent(getToken())}`;
+}
+
+export function saveThumbnail(
+  propertyId: number,
+  imageId: number,
+  data: string,
+) {
+  return request<{ thumbnail: boolean }>(
+    `/properties/${propertyId}/images/${imageId}/thumbnail`,
+    { method: "PUT", body: JSON.stringify({ data }) },
+  );
 }

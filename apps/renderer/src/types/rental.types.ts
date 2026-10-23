@@ -1,3 +1,5 @@
+import type { PrimaryImage } from "./property.types";
+
 export type RentalPropertyType =
   | "house"
   | "apartment"
@@ -89,6 +91,8 @@ export type RentalRecord = {
   created_at: string;
   updated_at: string;
   archived_at: string | null;
+  /** في القوائم المقسّمة والمفضلة فقط: الصورة التي يعرضها الجدول. */
+  primary_image?: PrimaryImage | null;
 };
 export type RentalForm = {
   latitude: number | string | null;

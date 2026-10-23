@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import { type FastifyPluginAsync } from "fastify";
-import { z } from "zod";
 import { requirePermission } from "../auth/auth.hooks.js";
 import { recordAudit } from "../audit/audit.service.js";
 import {
@@ -15,27 +14,20 @@ import {
 } from "./images.repository.js";
 import {
   contentTypeFor,
+  decodeThumbnail,
   deleteImageFromDisk,
   resolveImageAbsolutePath,
+  resolveThumbnailPath,
   saveImageToDisk,
+  writeThumbnail,
 } from "./images.service.js";
+import {
+  imageOrderSchema,
+  imageUploadSchema,
+  thumbnailSchema,
+} from "./images.schema.js";
 import { parseId } from "../../shared/utils/parse-id.js";
 import { UPLOAD_BODY_LIMIT } from "../../shared/constants/limits.js";
-
-const uploadSchema = z.object({
-  images: z
-    .array(
-      z.object({
-        data: z.string().min(1),
-        original_name: z.string().optional().nullable(),
-      }),
-    )
-    .min(1),
-});
-
-const orderSchema = z.object({
-  ids: z.array(z.coerce.number().int().positive()).default([]),
-});
 
 export const imagesRoutes: FastifyPluginAsync = async (app) => {
   app.get(
@@ -73,6 +65,53 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
     },
   );
 
+  // المصغّرة لجدول العروض؛ 404 ما لم تُصنع بعد (القائمة تخبر الواجهة بوجودها).
+  app.get(
+    "/:id/images/:imageId/thumbnail",
+    { preHandler: requirePermission("properties.read") },
+    async (request, reply) => {
+      const params = request.params as { id: string; imageId: string };
+      const propertyId = parseId(params.id);
+      const imageId = parseId(params.imageId);
+      if (!propertyId || !imageId)
+        return reply.code(400).send({ message: "معرف الصورة غير صحيح." });
+
+      const image = await getImage(imageId);
+      if (!image || image.propertyId !== propertyId)
+        return reply.code(404).send({ message: "الصورة غير موجودة." });
+
+      const absolute = resolveThumbnailPath(image.filePath);
+      if (!absolute || !fs.existsSync(absolute))
+        return reply.code(404).send({ message: "لا توجد مصغّرة للصورة." });
+
+      reply.header("Cache-Control", "private, max-age=86400");
+      reply.type("image/jpeg");
+      return reply.send(fs.createReadStream(absolute));
+    },
+  );
+
+  // مصغّرة صنعتها الواجهة لصورة رُفعت قبل وجود المصغّرات.
+  app.put(
+    "/:id/images/:imageId/thumbnail",
+    { preHandler: requirePermission("properties.images.manage") },
+    async (request, reply) => {
+      const params = request.params as { id: string; imageId: string };
+      const propertyId = parseId(params.id);
+      const imageId = parseId(params.imageId);
+      if (!propertyId || !imageId)
+        return reply.code(400).send({ message: "معرف الصورة غير صحيح." });
+
+      const { data } = thumbnailSchema.parse(request.body);
+      const thumbnail = decodeThumbnail(data);
+      const image = await getImage(imageId);
+      if (!image || image.propertyId !== propertyId)
+        return reply.code(404).send({ message: "الصورة غير موجودة." });
+
+      writeThumbnail(image.filePath, thumbnail);
+      return { thumbnail: true };
+    },
+  );
+
   app.post(
     "/:id/images",
     {
@@ -84,7 +123,11 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
       if (!propertyId)
         return reply.code(400).send({ message: "معرف العقار غير صحيح." });
 
-      const payload = uploadSchema.parse(request.body);
+      const payload = imageUploadSchema.parse(request.body);
+      // تُفحص المصغّرات قبل حفظ أي أصل.
+      const thumbnails = payload.images.map((item) =>
+        item.thumbnail ? decodeThumbnail(item.thumbnail) : null,
+      );
       const existing = await countImages(propertyId);
       const created = [];
 
@@ -95,6 +138,8 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
           item.data,
           item.original_name ?? undefined,
         );
+        const thumbnail = thumbnails[i];
+        if (thumbnail) writeThumbnail(filePath, thumbnail);
         const isPrimary = existing === 0 && i === 0;
         const row = await addImage({
           propertyId,
@@ -138,7 +183,7 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
       const propertyId = parseId((request.params as { id: string }).id);
       if (!propertyId)
         return reply.code(400).send({ message: "معرف العقار غير صحيح." });
-      const payload = orderSchema.parse(request.body);
+      const payload = imageOrderSchema.parse(request.body);
       await reorderImages(propertyId, payload.ids);
       return listImages(propertyId);
     },

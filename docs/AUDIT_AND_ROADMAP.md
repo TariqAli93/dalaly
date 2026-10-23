@@ -151,6 +151,8 @@ These are not code-quality calls; they change history, data or behavior.
   clicking "استيراد"; `xlsx@0.18.5` also has known parsing CVEs.
 - **Table rows each mount an image manager**: one `GET /images` per row and
   full-size originals as thumbnails (paste/click bugs fixed in this batch).
+  (Done since: list rows carry their primary image and show a 320 px
+  thumbnail; see Phase 3 item 4.)
 - **Stale responses** can overwrite newer searches (no AbortController or
   request id); clearing filters and topbar navigation fire duplicate loads.
 - **Waterfalls**: the rentals page loads reference data sequentially;
@@ -288,8 +290,13 @@ fix).
 2. Icons: measured, not worth it for the splash (dropping the icon CSS did
    not change its load time). Revisit only with evidence for the main window.
 3. Lazy-load xlsx; remove dead exports.
-4. Table thumbnails: return the primary image id in list responses, render a
-   lazy `<img>`; generate thumbnails server-side (or downscale on upload).
+4. Done: table thumbnails. Paged and favorites list rows carry
+   `primary_image`; tables render a lazy `<img>` of its thumbnail (JPEG,
+   320 px), which the renderer makes on upload and, for older images, the
+   first time a table shows them; the API stores thumbnails beside the
+   images folder (out of backups) and decodes nothing. See
+   `docs/PERFORMANCE.md`, "Table thumbnails". Galleries still load
+   originals, including their small thumbnail strips.
 5. Request hygiene: AbortController in list loads (done for the
    properties and rentals lists, `createPagedList`), remove duplicate fires
    (the top-bar search still loads twice: Enter and the filter debounce),
@@ -307,7 +314,9 @@ fix).
    a backup's time and CPU; storing image entries took a 2 GB backup from
    ~83 s to ~14 s in an isolated test, but changes how entries are
    compressed.
-2. Multipart/streamed uploads with size and type checks.
+2. Multipart/streamed uploads with size and type checks. (Thumbnails now
+   travel with image uploads and are checked: JPEG, at most 256 KB. The
+   originals are still base64 JSON, stored as sent.)
 3. App fonts TTF → WOFF2.
 
 ### Phase 5 — maintainability gates
