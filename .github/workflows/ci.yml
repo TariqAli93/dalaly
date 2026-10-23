@@ -139,6 +139,9 @@ jobs:
       - name: test:thumbnails
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:thumbnails
+      - name: test:contract
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:contract
       - name: test:removal:backup
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:removal:backup

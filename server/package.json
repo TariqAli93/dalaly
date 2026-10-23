@@ -39,7 +39,8 @@
     "test:codes": "tsx --test scripts/record-codes.test.ts",
     "test:transactions": "tsx --test scripts/transactions.test.ts",
     "test:paging": "tsx --test scripts/list-paging.test.ts scripts/crm-paging.test.ts",
-    "test:thumbnails": "tsx --test scripts/thumbnails.test.ts"
+    "test:thumbnails": "tsx --test scripts/thumbnails.test.ts",
+    "test:contract": "tsx --test scripts/api-contract.test.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",

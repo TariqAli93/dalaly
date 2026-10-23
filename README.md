@@ -83,6 +83,7 @@ pnpm --filter @dalaly/server test:codes          # concurrent saves get distinct
 pnpm --filter @dalaly/server test:transactions   # db.transaction stays on one connection under load
 pnpm --filter @dalaly/server test:paging         # server-paged property and rental lists
 pnpm --filter @dalaly/server test:thumbnails     # list rows' primary images, thumbnails, backups without them
+pnpm --filter @dalaly/server test:contract       # API responses vs the renderer's hand-written types
 pnpm --filter @dalaly/server test:maps:runtime
 pnpm --filter @dalaly/server test:startup:electron  # real Electron startup (needs a display)
 ```
