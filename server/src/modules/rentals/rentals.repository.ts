@@ -8,7 +8,6 @@ import {
   ilike,
   lte,
   ne,
-  or,
   sql,
   type SQL,
 } from "drizzle-orm";
@@ -43,24 +42,12 @@ import {
   withRecordCodeLock,
   type Transaction,
 } from "../../infrastructure/database/record-codes.js";
+import { searchTextContains, searchTokens } from "../../shared/utils/search.js";
 
 const ENTITY = "rental";
-const SEARCHABLE_COLUMNS = [
-  rentals.code,
-  rentals.name,
-  rentals.propertyType,
-  rentals.rentPeriod,
-  rentals.areaUnit,
-  rentals.governorate,
-  rentals.district,
-  rentals.neighborhood,
-  rentals.addressDetails,
-  rentals.ownerName,
-  rentals.ownerPhone,
-  rentals.ownerNotes,
-  rentals.otherDetails,
-  rentals.notes,
-];
+// عمود البحث (هجرة 0003، غير معرّف في schema.ts): الحقول النصية والإيجار
+// والمساحة بأحرف صغيرة، تفصلها مسافات.
+const SEARCH_TEXT = sql`${rentals}."search_text"`;
 
 function parseAmenities(value?: string) {
   if (!value) return null;
@@ -72,15 +59,6 @@ function parseAmenities(value?: string) {
   } catch {
     return null;
   }
-}
-
-function searchClause(term: string): SQL {
-  const like = `%${term}%`;
-  return or(
-    ...SEARCHABLE_COLUMNS.map((column) => ilike(column, like)),
-    sql`cast(${rentals.rentPrice} as text) ilike ${like}`,
-    sql`cast(${rentals.areaValue} as text) ilike ${like}`,
-  )!;
 }
 
 /** شروط الفلاتر والبحث المشتركة بين القائمة الكاملة والقائمة المقسّمة. */
@@ -123,10 +101,8 @@ function rentalConditions(filters: Omit<RentalFilters, "limit" | "offset">) {
     where.push(
       sql`${rentals.amenities} @> ${JSON.stringify(amenities)}::jsonb`,
     );
-  const search = (filters.q ?? "").trim();
-  if (search)
-    for (const token of search.split(/\s+/).filter(Boolean))
-      where.push(searchClause(token));
+  for (const token of searchTokens(filters.q))
+    where.push(searchTextContains(SEARCH_TEXT, token));
   return where;
 }
 

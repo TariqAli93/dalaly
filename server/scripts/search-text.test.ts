@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import test from "node:test";
+import pg from "pg";
 import { pool } from "../src/infrastructure/database/pool.js";
 import { STATUS_LABELS, STATUSES } from "../src/shared/constants/domain.js";
 import { removalTestContext } from "./removal-test-context.js";
@@ -159,8 +160,11 @@ async function insertRentals(count: number) {
 // Hand-picked searches: Arabic words and parts of words, hamza variants
 // (searched as typed: there is no letter normalization), Latin in other cases,
 // phones with and without separators, Arabic-Indic digits, plots, codes,
-// prices as stored and in part, status labels, several tokens.
+// prices as stored and in part, status labels, several tokens, and LIKE's own
+// characters (which the old search took as wildcards: "%" found every row).
 const QUERIES = [
+  "50%", "%", "_", "a_b", "\\", "back\\slash", "100%", "%%", "under_score", "_score", "\\s",
+  "%بغداد",
   "بغداد", "بغ", "غداد", "أحمد", "احمد", "إبراهيم", "آمنة", "مدرسة", "مدرسه", "مستشفى",
   "مستشفي", "مؤسسة", "villa", "VILLA", "Villa", "vil", "royal", "istanbul", "İstanbul",
   "àbc", "ÀBC", "straße", "STRASSE", "café", "CAFÉ", "0770", "07701234567", "1234567",
@@ -188,9 +192,26 @@ async function sampledQueries(table: "properties" | "rentals", count: number) {
     const values = columns.map((c) => row[c] as string | null).filter((v): v is string => !!v?.trim());
     // Every fourth query has two parts, both from the same row.
     return n % 4 === 3 ? `${sample(values)} ${sample(values)}` : sample(values);
-  })
-    // Escaped wildcards are covered on their own once search_text is in use.
-    .filter((query) => query.trim() && !/[\\%_]/.test(query));
+  }).filter((query) => query.trim());
+}
+
+/** The first statement that reads search_text while `work` runs. */
+async function captureSearch(work: () => Promise<unknown>) {
+  const original = pg.Client.prototype.query;
+  let statement: { text: string; values: unknown[] } | undefined;
+  pg.Client.prototype.query = function (this: pg.Client, config: unknown, values?: unknown, ...rest: unknown[]) {
+    const query = config as { text?: string; values?: unknown[] };
+    if (!statement && query?.text?.includes('"search_text"'))
+      statement = { text: query.text, values: query.values ?? (values as unknown[]) };
+    return (original as (...args: unknown[]) => unknown).call(this, config, values, ...rest);
+  } as typeof original;
+  try {
+    await work();
+  } finally {
+    pg.Client.prototype.query = original;
+  }
+  assert.ok(statement, "the search reads search_text");
+  return statement;
 }
 
 test("property and rental search: the same rows as the per-column ILIKE search", async (t) => {
@@ -268,6 +289,82 @@ test("property and rental search: the same rows as the per-column ILIKE search",
         const expected = (await referenceIds("properties", query)).filter((id) => active.includes(id));
         assert.deepEqual(ids(await get(`/properties?search=${q}`)), expected, query);
         assert.deepEqual(await pagedIds(`/properties/paged?q=${q}`), expected, query);
+      }
+    });
+
+    await t.test("LIKE's wildcards and escape character match only themselves", async () => {
+      const all = (await pool.query("SELECT count(*)::int AS n FROM properties")).rows[0].n;
+      const values = OLD_PROPERTY_COLUMNS.map((c) => `coalesce("${c}", '')`).join(" || ' ' || ");
+      // No digits (those also match phone digits) and no status label.
+      for (const query of ["%", "_", "\\", "a_b", "back\\slash"]) {
+        const found = ids(await get(`/properties?search=${encodeURIComponent(query)}&include_archived=true`));
+        const { rows } = await pool.query(`SELECT id FROM properties WHERE strpos(${values}, $1) > 0 ORDER BY id`, [query]);
+        assert.deepEqual(found, rows.map((row) => Number(row.id)), query);
+        assert.ok(found.length > 0 && found.length < all, `${query}: some rows, not all`);
+      }
+    });
+
+    await t.test("search_text follows inserts and updates", async () => {
+      const find = async (table: string, query: string) =>
+        ids(await get(`/${table}?q=${encodeURIComponent(query)}&include_archived=true`));
+      const property = Number(
+        (await pool.query(
+          `INSERT INTO properties(code, property_type, legal_type, area_value, area_unit, pricing_method, total_price,
+             owner_name, owner_phone, notes)
+           VALUES ('NEW-0001', 'بيت', 'طابو ملك صرف', 321.5, 'متر', 'سعر إجمالي مباشر', 4560000, 'Penthouse Owner',
+             '0799-111-2233', 'ملاحظة أولى') RETURNING id`,
+        )).rows[0].id,
+      );
+      for (const query of ["07991112233", "0799-111", "penthouse", "ملاحظة أولى", "321.50", "4560000"])
+        assert.ok((await find("properties", query)).includes(property), `new row: ${query}`);
+      await pool.query("UPDATE properties SET owner_phone = '0788 000 1111', notes = 'معدلة' WHERE id = $1", [property]);
+      for (const query of ["07880001111", "0788-000", "معدلة"])
+        assert.ok((await find("properties", query)).includes(property), `updated row: ${query}`);
+      for (const query of ["07991112233", "0799-111", "أولى"])
+        assert.ok(!(await find("properties", query)).includes(property), `old value: ${query}`);
+
+      const rental = Number(
+        (await pool.query(
+          `INSERT INTO rentals(code, property_type, rent_period, area_value, area_unit, rent_price, owner_name,
+             owner_phone, other_details) VALUES ('NEW-R1', 'house', 'monthly', 90, 'متر', 650000, 'مؤجر جديد',
+             '0790 222 3344', 'Garden') RETURNING id`,
+        )).rows[0].id,
+      );
+      assert.ok((await find("rentals", "garden")).includes(rental));
+      await pool.query("UPDATE rentals SET other_details = 'Roof' WHERE id = $1", [rental]);
+      assert.ok((await find("rentals", "roof")).includes(rental));
+      assert.ok(!(await find("rentals", "garden")).includes(rental));
+      await pool.query("DELETE FROM properties WHERE id = $1", [property]);
+      await pool.query("DELETE FROM rentals WHERE id = $1", [rental]);
+    });
+
+    await t.test("every search form can use the trigram index on search_text", async () => {
+      await pool.query("ANALYZE properties, rentals");
+      const searches = [
+        ["/properties/paged?q=بغداد الكرادة&include_archived=true", "idx_properties_search_text_trgm"],
+        ["/properties?search=07701234567", "idx_properties_search_text_trgm"],
+        // A token with digits and other characters adds the phone-digits match.
+        ["/properties/paged?q=L-0012", "idx_properties_search_text_trgm"],
+        // A status label adds the status match.
+        ["/properties?q=محجوز", "idx_properties_search_text_trgm"],
+        ["/rentals/paged?q=الجادرية", "idx_rentals_search_text_trgm"],
+        ["/rentals?q=Villa Royal", "idx_rentals_search_text_trgm"],
+      ];
+      for (const [url, index] of searches) {
+        const { text, values } = await captureSearch(() => get(encodeURI(url)));
+        const client = await pool.connect();
+        try {
+          // The test tables are small enough that a scan is cheaper; forbid it
+          // to see whether the index can serve the statement at all.
+          await client.query("BEGIN");
+          await client.query("SET LOCAL enable_seqscan = off");
+          const plan = (await client.query(`EXPLAIN ${text}`, values)).rows.map((row) => row["QUERY PLAN"]).join("\n");
+          assert.match(plan, new RegExp(index), `${url}\n${plan}`);
+          assert.doesNotMatch(plan, /Seq Scan on (properties|rentals)/, `${url}\n${plan}`);
+        } finally {
+          await client.query("ROLLBACK");
+          client.release();
+        }
       }
     });
   } finally {

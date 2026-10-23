@@ -49,6 +49,7 @@ import {
   type SortOrder,
 } from "../../shared/utils/paging.js";
 import { postgresError } from "../../shared/utils/postgres-errors.js";
+import { searchTextContains, searchTokens } from "../../shared/utils/search.js";
 import {
   withRecordCodeLock,
   type Transaction,
@@ -110,59 +111,24 @@ function isUniquePlotViolation(error: unknown): boolean {
   );
 }
 
-// كل الحقول النصية القابلة للبحث الشامل.
-const SEARCHABLE_TEXT_COLUMNS: AnyPgColumn[] = [
-  properties.code,
-  properties.name,
-  properties.propertyType,
-  properties.legalType,
-  properties.pricingMethod,
-  properties.governorate,
-  properties.governorateText,
-  properties.city,
-  properties.district,
-  properties.districtText,
-  properties.neighborhood,
-  properties.neighborhoodText,
-  properties.addressDetails,
-  properties.ownerName,
-  properties.ownerPhone,
-  properties.ownerNotes,
-  properties.notes,
-  properties.nazal,
-  properties.plotNumber,
-  properties.plotLetter,
-  properties.subdistrictNumber,
-  properties.subdistrictName,
-  properties.mahalla,
-  properties.alley,
-  properties.houseNumber,
-  properties.nearestLandmark,
-  properties.frontage,
-  properties.streetWidth,
-];
+// عمود البحث (هجرة 0003، غير معرّف في schema.ts): أرقام هاتف المالك، ثم كل
+// الحقول النصية والأرقام (المساحة/الأسعار) بأحرف صغيرة، تفصلها مسافات.
+const SEARCH_TEXT = sql`${properties}."search_text"`;
 
 /**
  * يبني شرط البحث لكلمة واحدة: يطابق أي حقل نصي، أو الأرقام (المساحة/الأسعار)،
- * أو الهاتف بعد إزالة الفواصل، أو حالة العقار بالعربية.
+ * أو الهاتف بعد إزالة الفواصل، أو حالة العقار بالعربية. كله على search_text
+ * وفهرسه الثلاثي ما عدا الحالة.
  */
-function buildSearchClause(term: string): SQL | undefined {
-  const like = `%${term}%`;
-  const parts: SQL[] = SEARCHABLE_TEXT_COLUMNS.map((column) =>
-    ilike(column, like),
-  );
+function buildSearchClause(term: string): SQL {
+  const parts: SQL[] = [searchTextContains(SEARCH_TEXT, term)];
 
-  // الحقول الرقمية كنص (المساحة، سعر الوحدة، السعر الكلي).
-  parts.push(sql`cast(${properties.areaValue} as text) ilike ${like}`);
-  parts.push(sql`cast(${properties.unitPrice} as text) ilike ${like}`);
-  parts.push(sql`cast(${properties.totalPrice} as text) ilike ${like}`);
-
-  // الهاتف: مطابقة بعد إزالة كل ما عدا الأرقام (يعمل مع المسافات/الفواصل).
+  // الهاتف: أرقام الكلمة وحدها ضمن أرقام الهاتف (يعمل مع المسافات/الفواصل).
+  // تلك الأرقام أول ما في search_text حتى أول مسافة؛ وكلمة من أرقام فقط
+  // تطابقها المقارنة السابقة أصلاً.
   const digits = term.replace(/\D/g, "");
-  if (digits) {
-    parts.push(
-      sql`regexp_replace(coalesce(${properties.ownerPhone}, ''), '[^0-9]', '', 'g') ilike ${`%${digits}%`}`,
-    );
+  if (digits && digits !== term) {
+    parts.push(sql`${SEARCH_TEXT} ~ ${`^[0-9]*${digits}`}`);
   }
 
   // حالة العقار بالعربية (متاح/محجوز/...).
@@ -174,7 +140,7 @@ function buildSearchClause(term: string): SQL | undefined {
     parts.push(inArray(properties.status, [...matchedStatuses]));
   }
 
-  return or(...parts);
+  return parts.length === 1 ? parts[0] : or(...parts)!;
 }
 
 /** شروط الفلاتر والبحث المشتركة بين القائمة الكاملة والقائمة المقسّمة. */
@@ -240,12 +206,8 @@ function propertyConditions(
 
   // بحث شامل: كل كلمة يجب أن تطابق حقلاً ما (AND بين الكلمات، OR عبر الحقول).
   // يقبل q أو search، عربي/إنجليزي، جزء من كلمة/رقم، غير حسّاس لحالة الأحرف.
-  const searchTerm = (filters.q ?? filters.search ?? "").trim();
-  if (searchTerm) {
-    for (const token of searchTerm.split(/\s+/).filter(Boolean)) {
-      const clause = buildSearchClause(token);
-      if (clause) where.push(clause);
-    }
+  for (const token of searchTokens(filters.q ?? filters.search)) {
+    where.push(buildSearchClause(token));
   }
 
   return where;
