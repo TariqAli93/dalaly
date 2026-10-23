@@ -10,7 +10,6 @@ import { readFileAsDataUrl } from "../../utils/files";
 const props = defineProps<{
   rentalId: number;
   canManage?: boolean;
-  primaryOnly?: boolean;
 }>();
 const { notifySuccess, notifyError } = useSnackbar();
 const { openConfirm } = useConfirm();
@@ -91,7 +90,7 @@ function remove(image: RentalImage) {
 onMounted(() => void load());
 </script>
 <template>
-  <div :class="{ 'gallery--thumbnail': primaryOnly }">
+  <div>
     <v-progress-linear
       v-if="loading || uploading"
       indeterminate
@@ -99,12 +98,12 @@ onMounted(() => void load());
       class="mb-2"
     />
     <ListingImage
-      v-if="activeImage && !primaryOnly"
+      v-if="activeImage"
       :src="imageUrl(activeImage)"
       class="rental-gallery-primary"
       alt="صورة العقار الإيجاري"
     />
-    <div v-if="images.length && !primaryOnly" class="rental-gallery">
+    <div v-if="images.length" class="rental-gallery">
       <div
         v-for="image in images"
         :key="image.id"
@@ -139,42 +138,6 @@ onMounted(() => void load());
         </div>
       </div>
     </div>
-    <div v-else-if="primaryOnly && primaryImage">
-      <div
-        v-for="image in [primaryImage]"
-        :key="image.id"
-        class="rental-image small"
-        :class="{ primary: image.is_primary }"
-      >
-        <ListingImage :src="imageUrl(image)" alt="صورة الإيجار" />
-        <div v-if="canManage" class="rental-image__actions">
-          <v-btn
-            v-if="!image.is_primary"
-            icon="mdi-star-outline"
-            size="x-small"
-            color="warning"
-            aria-label="تعيين صورة رئيسية"
-            title="تعيين صورة رئيسية"
-            @click="primary(image)"
-          /><v-icon v-else icon="mdi-star" color="warning" /><v-btn
-            icon="mdi-delete-outline"
-            size="x-small"
-            color="error"
-            aria-label="حذف الصورة"
-            title="حذف الصورة"
-            @click="remove(image)"
-          />
-        </div>
-      </div>
-    </div>
-    <v-avatar
-      v-else-if="!loading && primaryOnly"
-      color="primary"
-      variant="tonal"
-      rounded="lg"
-      size="48"
-      ><v-icon icon="mdi-home-city-outline" size="22"
-    /></v-avatar>
     <v-empty-state
       v-else-if="!loading"
       icon="mdi-image-off-outline"
@@ -223,16 +186,6 @@ onMounted(() => void load());
   aspect-ratio: 4/3;
   overflow: hidden;
   border-radius: 8px;
-}
-
-.rental-image.small {
-  width: 48px;
-  height: 40px;
-  border: 0;
-  margin-block: 6px;
-}
-.gallery--thumbnail {
-  width: 48px;
 }
 
 .rental-image.primary {

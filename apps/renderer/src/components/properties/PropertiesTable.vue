@@ -13,7 +13,8 @@ import PropertyActions from "./PropertyActions.vue";
 import StatusChip from "../shared/StatusChip.vue";
 import EmptyState from "../shared/EmptyState.vue";
 import { amenitiesText } from "../../utils/amenities";
-import PropertyImages from "./PropertyImages.vue";
+import RowThumbnail from "../shared/RowThumbnail.vue";
+import * as imagesService from "../../services/images.service";
 
 const props = defineProps<{
   properties: PropertyRecord[];
@@ -57,6 +58,15 @@ function onRowClick(event: MouseEvent, ctx: { item: PropertyRecord }) {
 
 function rowProps(ctx: { item: PropertyRecord }) {
   return ctx.item.id === props.selectedId ? { class: "dal-row--selected" } : {};
+}
+
+// الصورة الرئيسية تأتي مع الصف: مصغّرتها، أو الأصل إن لم تُصنع بعد.
+function rowImageUrl(item: PropertyRecord) {
+  const image = item.primary_image;
+  if (!image) return null;
+  return image.thumbnail
+    ? imagesService.thumbnailUrl(item.id, image.id)
+    : imagesService.imageFileUrl(item.id, image.id);
 }
 
 const ALL_HEADERS = [
@@ -169,7 +179,7 @@ const serverBindings = computed(() =>
       @click:row="onRowClick"
     >
       <template #item.image="{ item }">
-        <PropertyImages primary-only :property-id="item.id" />
+        <RowThumbnail :src="rowImageUrl(item)" />
       </template>
       <template #item.name="{ item }">
         <router-link :to="`/properties/${item.id}`" class="record-link">{{

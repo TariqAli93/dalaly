@@ -96,6 +96,9 @@ export function deleteRentalImage(id: number, imageId: number) {
 export function rentalImageUrl(id: number, imageId: number) {
   return `${API_BASE}/rentals/${id}/images/${imageId}/file?token=${encodeURIComponent(getToken())}`;
 }
+export function rentalThumbnailUrl(id: number, imageId: number) {
+  return `${API_BASE}/rentals/${id}/images/${imageId}/thumbnail?token=${encodeURIComponent(getToken())}`;
+}
 export function listRentalFavorites() {
   return request<RentalRecord[]>("/rental-favorites");
 }

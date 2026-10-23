@@ -40,3 +40,8 @@ export function deleteImage(propertyId: number, imageId: number) {
 export function imageFileUrl(propertyId: number, imageId: number) {
   return `${API_BASE}/properties/${propertyId}/images/${imageId}/file?token=${encodeURIComponent(getToken())}`;
 }
+
+/** رابط مصغّرة الصورة (موجودة متى قال primary_image.thumbnail ذلك). */
+export function thumbnailUrl(propertyId: number, imageId: number) {
+  return `${API_BASE}/properties/${propertyId}/images/${imageId}/thumbnail?token=${encodeURIComponent(getToken())}`;
+}

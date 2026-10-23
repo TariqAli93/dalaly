@@ -84,7 +84,15 @@ export type PropertyRecord = {
   created_at: string;
   updated_at: string;
   archived_at: string | null;
+  /** في القوائم المقسّمة والمفضلة فقط: الصورة التي يعرضها الجدول. */
+  primary_image?: PrimaryImage | null;
 };
+
+/**
+ * الصورة التي يعرضها صف القائمة (الرئيسية، وإلا الأولى بالترتيب) وهل صُنعت
+ * مصغّرتها بعد.
+ */
+export type PrimaryImage = { id: number; thumbnail: boolean };
 
 export type PropertyForm = {
   latitude: number | string | null;

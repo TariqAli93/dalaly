@@ -12,7 +12,8 @@ import StatusChip from "../shared/StatusChip.vue";
 import EmptyState from "../shared/EmptyState.vue";
 import { usePermissions } from "../../composables/usePermissions";
 import { amenitiesText } from "../../utils/amenities";
-import RentalImages from "./RentalImages.vue";
+import RowThumbnail from "../shared/RowThumbnail.vue";
+import * as rentalsService from "../../services/rentals.service";
 
 const props = defineProps<{
   rentals: RentalRecord[];
@@ -54,6 +55,15 @@ function onRowClick(event: MouseEvent, ctx: { item: RentalRecord }) {
 
 function rowProps(ctx: { item: RentalRecord }) {
   return ctx.item.id === props.selectedId ? { class: "dal-row--selected" } : {};
+}
+
+// الصورة الرئيسية تأتي مع الصف: مصغّرتها، أو الأصل إن لم تُصنع بعد.
+function rowImageUrl(item: RentalRecord) {
+  const image = item.primary_image;
+  if (!image) return null;
+  return image.thumbnail
+    ? rentalsService.rentalThumbnailUrl(item.id, image.id)
+    : rentalsService.rentalImageUrl(item.id, image.id);
 }
 
 const ALL_HEADERS = [
@@ -165,7 +175,7 @@ const serverBindings = computed(() =>
       @click:row="onRowClick"
     >
       <template #item.image="{ item }">
-        <RentalImages primary-only :rental-id="item.id" />
+        <RowThumbnail :src="rowImageUrl(item)" />
       </template>
       <template #item.name="{ item }">
         {{ item.name || `rentals ${item.code}` }}

@@ -11,7 +11,6 @@ import { readFileAsDataUrl } from "../../utils/files";
 const props = defineProps<{
   propertyId: number;
   canManage?: boolean;
-  primaryOnly?: boolean;
 }>();
 
 const { notifySuccess, notifyError } = useSnackbar();
@@ -161,15 +160,14 @@ async function onDropReorder(index: number) {
 
 watch(() => props.propertyId, load);
 onMounted(() => {
-  // Table rows mount one primary-only thumbnail each; they take no uploads.
-  if (!props.primaryOnly) window.addEventListener("paste", onPaste);
+  window.addEventListener("paste", onPaste);
   void load();
 });
 onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
 </script>
 
 <template>
-  <div :class="{ 'gallery--thumbnail': primaryOnly }">
+  <div>
     <v-progress-linear
       v-if="loading"
       indeterminate
@@ -180,12 +178,11 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
     <!-- معرض الصور -->
     <div v-if="primaryImage" class="gallery">
       <ListingImage
-        v-if="!primaryOnly"
         :src="imageUrl(activeImage!)"
         class="gallery-primary"
         alt="صورة العقار"
       />
-      <div v-if="images.length && !primaryOnly" class="thumbs">
+      <div v-if="images.length" class="thumbs">
         <div
           v-for="(image, index) in images"
           :key="image.id"
@@ -230,51 +227,7 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
           </div>
         </div>
       </div>
-
-      <div v-else-if="images.length && primaryOnly">
-        <div
-          v-for="(image, index) in primaryImage ? [primaryImage] : []"
-          :key="image.id"
-          class="thumb-wrap"
-          :class="{ 'thumb-active': image.is_primary }"
-          :draggable="canManage"
-          @dragstart="onDragStart(index)"
-          @dragover.prevent
-          @drop.prevent="onDropReorder(index)"
-        >
-          <ListingImage :src="imageUrl(image)" class="thumb small" alt="" />
-          <div v-if="canManage" class="thumb-actions">
-            <v-btn
-              v-if="!image.is_primary"
-              icon="mdi-star-outline"
-              size="x-small"
-              variant="flat"
-              color="warning"
-              title="تعيين رئيسية"
-              @click="setPrimary(image)"
-            />
-            <v-icon v-else icon="mdi-star" color="warning" />
-            <v-btn
-              icon="mdi-delete-outline"
-              size="x-small"
-              variant="flat"
-              color="error"
-              title="حذف"
-              @click="askDelete(image)"
-            />
-          </div>
-        </div>
-      </div>
     </div>
-    <v-avatar
-      v-else-if="!loading && primaryOnly"
-      class="gallery-placeholder"
-      color="primary"
-      variant="tonal"
-      rounded="lg"
-      size="48"
-      ><v-icon icon="mdi-home-city-outline" size="22"
-    /></v-avatar>
     <v-empty-state
       v-else-if="!loading"
       icon="mdi-image-multiple-outline"
@@ -375,22 +328,6 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
   object-fit: cover;
   cursor: pointer;
   display: block;
-}
-
-.thumb.small {
-  width: 48px;
-  height: 40px;
-}
-.gallery--thumbnail .thumb-wrap {
-  border: 0;
-  border-radius: 6px;
-  margin-block: 6px;
-}
-.gallery--thumbnail {
-  width: 48px;
-}
-.gallery--thumbnail :deep(.v-progress-linear) {
-  width: 48px;
 }
 
 .thumb-actions {
