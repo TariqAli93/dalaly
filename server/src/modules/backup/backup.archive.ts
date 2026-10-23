@@ -2,14 +2,17 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
+import { promisify } from "node:util";
+import zlib from "node:zlib";
+import yauzl from "yauzl";
 import yazl from "yazl";
 
 /**
- * Backup archives are streamed: files go from disk into the zip one at a
- * time, compressed by zlib on the thread pool, so a backup of gigabytes of
- * images neither holds them in memory nor blocks the API. The layout is the
- * one adm-zip wrote before (directory entries included), so older builds
- * restore new archives.
+ * Backup archives are streamed: files go from disk into the zip and back out
+ * one at a time, compressed by zlib on the thread pool, so a backup or restore
+ * of gigabytes of images neither holds them in memory nor blocks the API.
+ * The layout is the one adm-zip wrote before (directory entries included),
+ * so archives restore across versions in both directions.
  */
 
 /** A folder stored under `prefix` (no trailing slash) inside the archive. */
@@ -80,5 +83,90 @@ async function renameWithRetry(from: string, to: string) {
         throw error;
       await new Promise((resolve) => setTimeout(resolve, 100 * attempt));
     }
+  }
+}
+
+export type ArchiveEntry = yauzl.Entry;
+
+/** An archive opened for reading; close() releases its file. */
+export type BackupArchive = {
+  /** Every entry by name; directory names end with "/". */
+  entries: Map<string, ArchiveEntry>;
+  /** One entry's contents, after its size and CRC-32 matched. */
+  read(entry: ArchiveEntry): Promise<Buffer>;
+  close(): Promise<void>;
+};
+
+const READ_OPTIONS: yauzl.Options = { lazyEntries: true, autoClose: false };
+const inflateRaw = promisify(zlib.inflateRaw);
+
+/**
+ * Opens an archive from a file path, read from disk as entries are needed,
+ * or from an uploaded buffer. Only the central directory is read up front;
+ * each entry is then read in one piece and inflated in one zlib call on the
+ * thread pool, which is much cheaper than yauzl's chunked streams.
+ */
+export async function openArchive(
+  source: string | Buffer,
+): Promise<BackupArchive> {
+  const zip = await new Promise<yauzl.ZipFile>((resolve, reject) => {
+    const done = (error: Error | null, opened?: yauzl.ZipFile) =>
+      error || !opened ? reject(error) : resolve(opened);
+    if (typeof source === "string") yauzl.open(source, READ_OPTIONS, done);
+    else yauzl.fromBuffer(source, READ_OPTIONS, done);
+  });
+  let file: fs.promises.FileHandle | undefined;
+  try {
+    const entries = new Map<string, ArchiveEntry>();
+    await new Promise<void>((resolve, reject) => {
+      zip.on("entry", (entry: ArchiveEntry) => {
+        entries.set(entry.fileName, entry);
+        zip.readEntry();
+      });
+      zip.once("end", resolve);
+      zip.once("error", reject);
+      zip.readEntry();
+    });
+    if (typeof source === "string") file = await fs.promises.open(source, "r");
+    const stored = async (start: number, length: number) => {
+      if (!file) return (source as Buffer).subarray(start, start + length);
+      const data = Buffer.allocUnsafe(length);
+      const { bytesRead } = await file.read(data, 0, length, start);
+      if (bytesRead !== length)
+        throw new Error("ملف النسخة الاحتياطية ناقص أو تغيّر أثناء القراءة.");
+      return data;
+    };
+    return {
+      entries,
+      async read(entry) {
+        if (entry.isEncrypted() || ![0, 8].includes(entry.compressionMethod))
+          throw new Error(`صيغة ملف غير مدعومة داخل النسخة: ${entry.fileName}`);
+        const { fileDataStart } = await new Promise<{ fileDataStart: number }>(
+          (resolve, reject) =>
+            zip.readLocalFileHeader(
+              entry,
+              { minimal: true },
+              (error, header) => (error ? reject(error) : resolve(header)),
+            ),
+        );
+        const raw = await stored(fileDataStart, entry.compressedSize);
+        const data =
+          entry.compressionMethod === 8 ? await inflateRaw(raw) : raw;
+        if (
+          data.length !== entry.uncompressedSize ||
+          zlib.crc32(data) !== entry.crc32
+        )
+          throw new Error(`ملف تالف داخل النسخة الاحتياطية: ${entry.fileName}`);
+        return data;
+      },
+      async close() {
+        zip.close();
+        await file?.close();
+      },
+    };
+  } catch (error) {
+    zip.close();
+    await file?.close();
+    throw error;
   }
 }
