@@ -9,7 +9,9 @@ import {
   ne,
   notInArray,
   sql,
+  type SQL,
 } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { db } from "../../infrastructure/database/db.js";
 import {
   auditLogs,
@@ -38,44 +40,56 @@ export type DashboardAccess = {
   followups: boolean;
 };
 
+const PROPERTY_STATUSES = [
+  "available",
+  "reserved",
+  "negotiating",
+  "sold",
+  "rented",
+  "archived",
+] as const;
+const RENTAL_STATUSES = [
+  "available",
+  "reserved",
+  "negotiating",
+  "rented",
+  "archived",
+] as const;
+
+/** `count(*) filter (where <column> = <status>)` for each status, by name. */
+function statusCounts<S extends string>(
+  column: AnyPgColumn,
+  statuses: readonly S[],
+) {
+  return Object.fromEntries(
+    statuses.map((status) => [
+      status,
+      sql<number>`count(*) filter (where ${column} = ${status})::int`,
+    ]),
+  ) as Record<S, SQL<number>>;
+}
+
 export async function getDashboard(access: DashboardAccess) {
-  const statusRows = await db
-    .select({ status: properties.status, count: sql<number>`count(*)::int` })
-    .from(properties)
-    .groupBy(properties.status);
-
-  const counts = {
-    total: 0,
-    available: 0,
-    reserved: 0,
-    negotiating: 0,
-    sold: 0,
-    rented: 0,
-    archived: 0,
-  };
-  for (const row of statusRows) {
-    const value = Number(row.count);
-    counts.total += value;
-    if (row.status in counts) {
-      (counts as Record<string, number>)[row.status] = value;
-    }
-  }
-
-  const [financialRow] = await db
+  // Status counts and money figures from one pass over the table.
+  const live = ne(properties.status, "archived");
+  const [summaryRow] = await db
     .select({
-      total_value: sql<string>`coalesce(sum(${properties.totalPrice}), 0)`,
-      avg_price: sql<string>`coalesce(avg(${properties.totalPrice}), 0)`,
-      max_price: sql<string>`coalesce(max(${properties.totalPrice}), 0)`,
-      min_price: sql<string>`coalesce(min(${properties.totalPrice}), 0)`,
+      total: sql<number>`count(*)::int`,
+      ...statusCounts(properties.status, PROPERTY_STATUSES),
+      total_value: sql<string>`coalesce(sum(${properties.totalPrice}) filter (where ${live}), 0)`,
+      avg_price: sql<string>`coalesce(avg(${properties.totalPrice}) filter (where ${live}), 0)`,
+      max_price: sql<string>`coalesce(max(${properties.totalPrice}) filter (where ${live}), 0)`,
+      min_price: sql<string>`coalesce(min(${properties.totalPrice}) filter (where ${live}), 0)`,
     })
-    .from(properties)
-    .where(ne(properties.status, "archived"));
-
+    .from(properties);
+  const { total, total_value, avg_price, max_price, min_price, ...byStatus } =
+    summaryRow;
+  const counts = { total, ...byStatus };
   const financial = {
-    total_value: Number(financialRow?.total_value ?? 0),
-    avg_price: Math.round(Number(financialRow?.avg_price ?? 0)),
-    max_price: Number(financialRow?.max_price ?? 0),
-    min_price: Number(financialRow?.min_price ?? 0),
+    total_value: Number(total_value),
+    avg_price: Math.round(Number(avg_price)),
+    max_price: Number(max_price),
+    min_price: Number(min_price),
   };
 
   const salesByTypeRows = await db
@@ -210,29 +224,6 @@ export async function getDashboard(access: DashboardAccess) {
 }
 
 async function getRentalSummary() {
-  const rentalStatusRows = await db
-    .select({ status: rentals.status, count: sql<number>`count(*)::int` })
-    .from(rentals)
-    .groupBy(rentals.status);
-
-  const rentalCounts = {
-    total: 0,
-    active: 0,
-    available: 0,
-    reserved: 0,
-    negotiating: 0,
-    rented: 0,
-    archived: 0,
-  };
-  for (const row of rentalStatusRows) {
-    const value = Number(row.count);
-    rentalCounts.total += value;
-    if (row.status in rentalCounts) {
-      (rentalCounts as Record<string, number>)[row.status] = value;
-    }
-  }
-  rentalCounts.active = rentalCounts.total - rentalCounts.archived;
-
   // Normalize each rent period to a monthly value so the summary compares like with like.
   const monthlyRent = sql`
     case
@@ -241,20 +232,31 @@ async function getRentalSummary() {
       else ${rentals.rentPrice}
     end
   `;
-  const [rentalFinancialRow] = await db
+  // Status counts and money figures from one pass over the table.
+  const live = ne(rentals.status, "archived");
+  const [summaryRow] = await db
     .select({
-      monthly_value: sql<string>`coalesce(sum(${monthlyRent}), 0)`,
-      avg_monthly_price: sql<string>`coalesce(avg(${monthlyRent}), 0)`,
-      available_monthly_value: sql<string>`coalesce(sum(case when ${rentals.status} = 'available' then ${monthlyRent} else 0 end), 0)`,
-      rented_monthly_value: sql<string>`coalesce(sum(case when ${rentals.status} = 'rented' then ${monthlyRent} else 0 end), 0)`,
+      total: sql<number>`count(*)::int`,
+      ...statusCounts(rentals.status, RENTAL_STATUSES),
+      monthly_value: sql<string>`coalesce(sum(${monthlyRent}) filter (where ${live}), 0)`,
+      avg_monthly_price: sql<string>`coalesce(avg(${monthlyRent}) filter (where ${live}), 0)`,
+      available_monthly_value: sql<string>`coalesce(sum(case when ${rentals.status} = 'available' then ${monthlyRent} else 0 end) filter (where ${live}), 0)`,
+      rented_monthly_value: sql<string>`coalesce(sum(case when ${rentals.status} = 'rented' then ${monthlyRent} else 0 end) filter (where ${live}), 0)`,
     })
-    .from(rentals)
-    .where(ne(rentals.status, "archived"));
+    .from(rentals);
+  const {
+    total,
+    monthly_value,
+    avg_monthly_price,
+    available_monthly_value,
+    rented_monthly_value,
+    ...byStatus
+  } = summaryRow;
 
   const rentalByTypeRows = await db
     .select({ name: rentals.propertyType, count: sql<number>`count(*)::int` })
     .from(rentals)
-    .where(ne(rentals.status, "archived"))
+    .where(live)
     .groupBy(rentals.propertyType)
     .orderBy(desc(sql`count(*)`), asc(rentals.propertyType));
 
@@ -280,20 +282,18 @@ async function getRentalSummary() {
     .groupBy(sql`activity_months.month`)
     .orderBy(asc(sql`activity_months.month`));
 
-  const rentalFinancial = {
-    monthly_value: Number(rentalFinancialRow?.monthly_value ?? 0),
-    avg_monthly_price: Math.round(
-      Number(rentalFinancialRow?.avg_monthly_price ?? 0),
-    ),
-    available_monthly_value: Number(
-      rentalFinancialRow?.available_monthly_value ?? 0,
-    ),
-    rented_monthly_value: Number(rentalFinancialRow?.rented_monthly_value ?? 0),
-  };
-
   return {
-    counts: rentalCounts,
-    financial: rentalFinancial,
+    counts: {
+      total,
+      active: total - byStatus.archived,
+      ...byStatus,
+    },
+    financial: {
+      monthly_value: Number(monthly_value),
+      avg_monthly_price: Math.round(Number(avg_monthly_price)),
+      available_monthly_value: Number(available_monthly_value),
+      rented_monthly_value: Number(rented_monthly_value),
+    },
     by_type: rentalByTypeRows.map((row) => ({
       name: row.name,
       count: Number(row.count),
