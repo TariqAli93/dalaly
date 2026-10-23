@@ -28,6 +28,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      # pnpm lint runs this and the typecheck above.
+      - run: pnpm exec eslint .
       # Fast suites only; they blank DB settings and need no PostgreSQL.
       - run: pnpm test
       - run: pnpm build

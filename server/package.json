@@ -15,7 +15,6 @@
     "db:seed": "tsx src/infrastructure/database/seed.ts",
     "db:seed:reset": "tsx src/infrastructure/database/seed.ts --reset",
     "db:generate": "drizzle-kit generate",
-    "lint": "tsc -p tsconfig.json --noEmit",
     "test:maps": "tsx --test scripts/location.test.ts",
     "test:maps:runtime": "tsx scripts/location-smoke.ts",
     "test:runtime": "node scripts/runtime-smoke.mjs",
