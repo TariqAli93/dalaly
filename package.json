@@ -20,6 +20,7 @@
     "demo:reset": "node scripts/demo-reset.mjs",
     "demo:images": "node scripts/generate-demo-images.mjs",
     "perf": "node scripts/perf/measure.mjs",
+    "perf:search": "pnpm --filter @dalaly/server exec tsx ../scripts/perf/search.mjs",
     "dist": "pnpm build && pnpm build:desktop",
     "package": "pnpm dist",
     "package:portable": "pnpm build && pnpm --filter @dalaly/desktop package:portable",
