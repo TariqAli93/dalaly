@@ -107,101 +107,145 @@ function monthlyActivity(table: PgTable, createdAt: AnyPgColumn, where?: SQL) {
     .orderBy(asc(sql`activity_months.month`));
 }
 
+/**
+ * How many of the summary's queries run at once, each on its own pool
+ * connection. Two is about as fast as any wider setting on a warm pool, and
+ * after an idle pause every extra connection is a new PostgreSQL backend,
+ * which on Windows starts one at a time (docs/PERFORMANCE.md, "Pool,
+ * statement timeout and dashboard").
+ */
+const QUERY_WIDTH = 2;
+
+/**
+ * Runs the tasks at most `width` at a time, in the order given, and returns
+ * their results by name. After a failure no further task starts.
+ */
+async function inParallel<T extends Record<string, () => PromiseLike<unknown>>>(
+  width: number,
+  tasks: T,
+): Promise<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }> {
+  const entries = Object.entries(tasks);
+  const results: Record<string, unknown> = {};
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(width, entries.length) }, async () => {
+      while (next < entries.length) {
+        const [name, task] = entries[next++];
+        try {
+          results[name] = await task();
+        } catch (error) {
+          next = entries.length;
+          throw error;
+        }
+      }
+    }),
+  );
+  return results as { [K in keyof T]: Awaited<ReturnType<T[K]>> };
+}
+
+/**
+ * The summary's independent queries, slowest first so the two running at a
+ * time finish together, with one aggregate per table for the status counts
+ * and money figures.
+ */
 export async function getDashboard(access: DashboardAccess) {
-  // Status counts and money figures from one pass over the table.
+  const cutoff = new Date(Date.now() - REVIEW_DAYS * 24 * 60 * 60 * 1000);
   const live = ne(properties.status, "archived");
-  const [summaryRow] = await db
-    .select({
-      total: sql<number>`count(*)::int`,
-      ...statusCounts(properties.status, PROPERTY_STATUSES),
-      total_value: sql<string>`coalesce(sum(${properties.totalPrice}) filter (where ${live}), 0)`,
-      avg_price: sql<string>`coalesce(avg(${properties.totalPrice}) filter (where ${live}), 0)`,
-      max_price: sql<string>`coalesce(max(${properties.totalPrice}) filter (where ${live}), 0)`,
-      min_price: sql<string>`coalesce(min(${properties.totalPrice}) filter (where ${live}), 0)`,
-    })
-    .from(properties);
+  const {
+    totals: [summaryRow],
+    salesByTypeRows,
+    salesActivityRows,
+    latestRows,
+    topGovernorates,
+    topDistricts,
+    needsReviewRows,
+    rentalSummary,
+    recentActivity,
+    reminders,
+  } = await inParallel(QUERY_WIDTH, {
+    salesActivityRows: () =>
+      monthlyActivity(properties, properties.createdAt, live),
+    rentalSummary: async () =>
+      access.rentals ? getRentalSummary() : emptyRentalSummary(),
+    // Audit rows carry usernames and history; only audit.read may see them.
+    recentActivity: async () => (access.audit ? getRecentActivity() : []),
+    totals: () =>
+      db
+        .select({
+          total: sql<number>`count(*)::int`,
+          ...statusCounts(properties.status, PROPERTY_STATUSES),
+          total_value: sql<string>`coalesce(sum(${properties.totalPrice}) filter (where ${live}), 0)`,
+          avg_price: sql<string>`coalesce(avg(${properties.totalPrice}) filter (where ${live}), 0)`,
+          max_price: sql<string>`coalesce(max(${properties.totalPrice}) filter (where ${live}), 0)`,
+          min_price: sql<string>`coalesce(min(${properties.totalPrice}) filter (where ${live}), 0)`,
+        })
+        .from(properties),
+    needsReviewRows: () =>
+      db
+        .select()
+        .from(properties)
+        .where(
+          and(
+            notInArray(properties.status, ["archived", "sold", "rented"]),
+            lt(properties.updatedAt, cutoff),
+          ),
+        )
+        .orderBy(asc(properties.updatedAt))
+        .limit(15),
+    topGovernorates: () =>
+      db
+        .select({
+          name: properties.governorate,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(properties)
+        .where(and(live, isNotNull(properties.governorate)))
+        .groupBy(properties.governorate)
+        .orderBy(desc(sql`count(*)`))
+        .limit(6),
+    salesByTypeRows: () =>
+      db
+        .select({
+          name: properties.propertyType,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(properties)
+        .where(live)
+        .groupBy(properties.propertyType)
+        .orderBy(desc(sql`count(*)`), asc(properties.propertyType)),
+    latestRows: () =>
+      db
+        .select()
+        .from(properties)
+        .orderBy(desc(properties.createdAt), desc(properties.id))
+        .limit(10),
+    reminders: async () =>
+      access.followups
+        ? listUpcomingReminders(new Date(Date.now() - 24 * 60 * 60 * 1000), 20)
+        : [],
+    topDistricts: () =>
+      db
+        .select({
+          name: properties.district,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(properties)
+        .where(and(live, isNotNull(properties.district)))
+        .groupBy(properties.district)
+        .orderBy(desc(sql`count(*)`))
+        .limit(6),
+  });
+
   const { total, total_value, avg_price, max_price, min_price, ...byStatus } =
     summaryRow;
-  const counts = { total, ...byStatus };
-  const financial = {
-    total_value: Number(total_value),
-    avg_price: Math.round(Number(avg_price)),
-    max_price: Number(max_price),
-    min_price: Number(min_price),
-  };
-
-  const salesByTypeRows = await db
-    .select({
-      name: properties.propertyType,
-      count: sql<number>`count(*)::int`,
-    })
-    .from(properties)
-    .where(ne(properties.status, "archived"))
-    .groupBy(properties.propertyType)
-    .orderBy(desc(sql`count(*)`), asc(properties.propertyType));
-
-  const salesActivityRows = await monthlyActivity(
-    properties,
-    properties.createdAt,
-    live,
-  );
-
-  const rentalSummary = access.rentals
-    ? await getRentalSummary()
-    : emptyRentalSummary();
-
-  const latestRows = await db
-    .select()
-    .from(properties)
-    .orderBy(desc(properties.createdAt), desc(properties.id))
-    .limit(10);
-
-  // Audit rows carry usernames and history; only audit.read may see them.
-  const recentActivity = access.audit ? await getRecentActivity() : [];
-
-  const topGovernorates = await db
-    .select({ name: properties.governorate, count: sql<number>`count(*)::int` })
-    .from(properties)
-    .where(
-      and(ne(properties.status, "archived"), isNotNull(properties.governorate)),
-    )
-    .groupBy(properties.governorate)
-    .orderBy(desc(sql`count(*)`))
-    .limit(6);
-
-  const topDistricts = await db
-    .select({ name: properties.district, count: sql<number>`count(*)::int` })
-    .from(properties)
-    .where(
-      and(ne(properties.status, "archived"), isNotNull(properties.district)),
-    )
-    .groupBy(properties.district)
-    .orderBy(desc(sql`count(*)`))
-    .limit(6);
-
-  const cutoff = new Date(Date.now() - REVIEW_DAYS * 24 * 60 * 60 * 1000);
-  const needsReviewRows = await db
-    .select()
-    .from(properties)
-    .where(
-      and(
-        notInArray(properties.status, ["archived", "sold", "rented"]),
-        lt(properties.updatedAt, cutoff),
-      ),
-    )
-    .orderBy(asc(properties.updatedAt))
-    .limit(15);
-
-  const reminders = access.followups
-    ? await listUpcomingReminders(
-        new Date(Date.now() - 24 * 60 * 60 * 1000),
-        20,
-      )
-    : [];
-
   return {
-    counts,
-    financial,
+    counts: { total, ...byStatus },
+    financial: {
+      total_value: Number(total_value),
+      avg_price: Math.round(Number(avg_price)),
+      max_price: Number(max_price),
+      min_price: Number(min_price),
+    },
     latest: toApiObjects(latestRows, "properties"),
     recent_activity: recentActivity,
     top_governorates: topGovernorates.map((r) => ({
@@ -270,6 +314,8 @@ async function getRentalSummary() {
       else ${rentals.rentPrice}
     end
   `;
+  // Its three statements run one after another, beside the dashboard's
+  // other queries.
   // Status counts and money figures from one pass over the table.
   const live = ne(rentals.status, "archived");
   const [summaryRow] = await db
