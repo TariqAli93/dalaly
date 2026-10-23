@@ -50,7 +50,11 @@ import {
   type SortOrder,
 } from "../../shared/utils/paging.js";
 import { postgresError } from "../../shared/utils/postgres-errors.js";
-import { searchTextContains, searchTokens } from "../../shared/utils/search.js";
+import {
+  containsPattern,
+  searchTextContains,
+  searchTokens,
+} from "../../shared/utils/search.js";
 import {
   withRecordCodeLock,
   type Transaction,
@@ -233,16 +237,20 @@ function propertyConditions(
   }
 
   if (filters.district) {
-    where.push(ilike(properties.district, `%${filters.district}%`));
+    where.push(ilike(properties.district, containsPattern(filters.district)));
   }
 
   // رقم القطعة: يعمل سواء وُجد حرف القطعة أو لا (عمودان منفصلان).
   if (filters.plot_number) {
-    where.push(ilike(properties.plotNumber, `%${filters.plot_number}%`));
+    where.push(
+      ilike(properties.plotNumber, containsPattern(filters.plot_number)),
+    );
   }
 
   if (filters.plot_letter) {
-    where.push(ilike(properties.plotLetter, `%${filters.plot_letter}%`));
+    where.push(
+      ilike(properties.plotLetter, containsPattern(filters.plot_letter)),
+    );
   }
 
   if (typeof filters.area_min === "number") {

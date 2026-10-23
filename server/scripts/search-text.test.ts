@@ -304,6 +304,26 @@ test("property and rental search: the same rows as the per-column ILIKE search",
       }
     });
 
+    await t.test("the district and plot filters match their text as typed too", async () => {
+      const found = async (filter: string, value: string) =>
+        ids(await get(`/properties?${filter}=${encodeURIComponent(value)}&include_archived=true`));
+      const containing = async (column: string, value: string) =>
+        (await pool.query(`SELECT id FROM properties WHERE strpos("${column}", $1) > 0 ORDER BY id`, [value])).rows.map(
+          (row) => Number(row.id),
+        );
+      for (const value of ["%", "_", "a_b", "50%"]) {
+        const expected = await containing("district", value);
+        assert.ok(expected.length > 0, `some district contains ${value}`);
+        assert.deepEqual(await found("district", value), expected, `district=${value}`);
+      }
+      // As a wildcard, 1_3 would match the plot 1234.
+      assert.ok((await containing("plot_number", "1234")).length > 0);
+      assert.deepEqual(await found("plot_number", "1_3"), []);
+      assert.deepEqual(await found("plot_number", "%"), []);
+      assert.deepEqual(await found("plot_letter", "_"), []);
+      assert.deepEqual(await found("plot_number", "12/3"), await containing("plot_number", "12/3"), "plain text as before");
+    });
+
     await t.test("search_text follows inserts and updates", async () => {
       const find = async (table: string, query: string) =>
         ids(await get(`/${table}?q=${encodeURIComponent(query)}&include_archived=true`));

@@ -14,6 +14,7 @@ import {
   totalRowsColumn,
   type SortOrder,
 } from "../../shared/utils/paging.js";
+import { containsPattern } from "../../shared/utils/search.js";
 import type {
   RentalRequestFilters,
   RentalRequestPageQuery,
@@ -107,14 +108,16 @@ function rentalRequestConditions(filters: RentalRequestFilters) {
     where.push(eq(rentalRequests.governorateId, filters.governorate_id));
   if (filters.district_id)
     where.push(eq(rentalRequests.districtId, filters.district_id));
-  if (filters.q)
+  if (filters.q) {
+    const pattern = containsPattern(filters.q);
     where.push(
       or(
-        ilike(rentalRequests.code, `%${filters.q}%`),
-        ilike(rentalRequests.otherRequirements, `%${filters.q}%`),
-        ilike(rentalRequests.notes, `%${filters.q}%`),
+        ilike(rentalRequests.code, pattern),
+        ilike(rentalRequests.otherRequirements, pattern),
+        ilike(rentalRequests.notes, pattern),
       )!,
     );
+  }
   return and(...where);
 }
 
