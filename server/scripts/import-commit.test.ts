@@ -164,7 +164,7 @@ test("Excel import commits all of its rows or none, and caps the file size", asy
       assert.equal(errors[3].message, "الشخص المحدد كمالك غير موجود.");
     });
 
-    await t.test("the number of statements does not grow with the rows", async () => {
+    await t.test("statements grow by insert batch, not by row", async () => {
       const commitRows = (from: number, length: number) =>
         Array.from({ length }, (_, index) => row(from + index, { plot_number: `C${from + index}` }));
       // Called directly, not over HTTP, so only the import's own queries count.
@@ -172,7 +172,8 @@ test("Excel import commits all of its rows or none, and caps the file size", asy
       const large = await countQueries(() => commitImport(commitRows(31_000, 400), ctx.adminId));
       assert.equal(small.result.inserted, 20);
       assert.equal(large.result.inserted, 400);
-      assert.equal(large.queries, small.queries, `${small.queries} for 20 rows, ${large.queries} for 400`);
+      // A row at a time took about seven statements per row.
+      assert.ok(large.queries - small.queries < 10, `${small.queries} for 20 rows, ${large.queries} for 400`);
     });
   } finally {
     await ctx.close();

@@ -461,7 +461,7 @@ export async function createProperty(
 }
 
 /**
- * يُدرج عروضاً جديدة بالترتيب المعطى، بدفعات من 500 صف، داخل معاملة تحمل
+ * يُدرج عروضاً جديدة بالترتيب المعطى، بدفعات من 100 صف، داخل معاملة تحمل
  * قفل رموز العروض (withRecordCodeLock("properties")). لا يفحص التكرار ولا
  * يكتب سجل التغييرات (recordPropertiesCreated بعد انتهاء المعاملة).
  */
@@ -474,11 +474,13 @@ export async function insertProperties(
   const nextCode = await propertyCodeAllocator(tx, rows.map(typeOf));
   const coded = rows.map((row) => ({ ...row, code: nextCode(typeOf(row)) }));
   const created: Property[] = [];
-  for (let start = 0; start < coded.length; start += 500) {
+  // Drizzle builds a statement synchronously, about 0.1 ms per row here (55
+  // ms for 500 rows), so a smaller batch keeps other requests moving.
+  for (let start = 0; start < coded.length; start += 100) {
     created.push(
       ...(await tx
         .insert(properties)
-        .values(coded.slice(start, start + 500))
+        .values(coded.slice(start, start + 100))
         .returning()),
     );
   }
@@ -486,16 +488,23 @@ export async function insertProperties(
 }
 
 /** حدث "أُنشئ" لكل عرض أدرجه insertProperties، كما يكتبه createProperty. */
-export function recordPropertiesCreated(created: Property[], userId?: number) {
-  return recordAudits(
-    created.map((property) => ({
-      entityType: ENTITY,
-      entityId: property.id,
-      action: "created" as const,
-      newValue: toApiObject(property, "properties"),
-      userId,
-    })),
-  );
+export async function recordPropertiesCreated(
+  created: Property[],
+  userId?: number,
+) {
+  // 500 at a time, so building thousands of entries does not hold up
+  // other requests.
+  for (let start = 0; start < created.length; start += 500) {
+    await recordAudits(
+      created.slice(start, start + 500).map((property) => ({
+        entityType: ENTITY,
+        entityId: property.id,
+        action: "created" as const,
+        newValue: toApiObject(property, "properties"),
+        userId,
+      })),
+    );
+  }
 }
 
 export async function updateProperty(
