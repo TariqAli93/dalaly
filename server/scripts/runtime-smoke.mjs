@@ -218,7 +218,6 @@ async function main() {
       },
     });
     check("create rental 201", rental.status === 201 && typeof rental.body?.id === "number", rental);
-    const rentalId = rental.body?.id;
 
     const rentalRequest = await req("POST", "/rental-requests", {
       token,

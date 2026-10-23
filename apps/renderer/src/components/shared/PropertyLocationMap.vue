@@ -55,7 +55,7 @@ let frame = 0;
 let tileErrors = 0;
 let loadingTimer: ReturnType<typeof setTimeout> | undefined;
 
-function zoom() {
+function zoomLevel() {
   return Math.max(1, Math.min(19, props.zoom ?? (point.value ? 16 : 12)));
 }
 function visible() {
@@ -174,7 +174,7 @@ async function initialize() {
       minZoom: 1,
       maxZoom: 19,
     });
-    map.setView([center.lat, center.lng], zoom());
+    map.setView([center.lat, center.lng], zoomLevel());
     leaflet.control
       .zoom({
         position: "topleft",
@@ -254,7 +254,7 @@ watch(() => [props.propertyName, props.address], popup);
 watch(
   () => props.zoom,
   () => {
-    if (map && visible()) map.setZoom(zoom());
+    if (map && visible()) map.setZoom(zoomLevel());
   },
 );
 watch(

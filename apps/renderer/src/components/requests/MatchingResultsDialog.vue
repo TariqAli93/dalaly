@@ -2,7 +2,7 @@
 import type { MatchResult } from "../../types";
 
 const open = defineModel<boolean>({ required: true });
-const props = defineProps<{
+defineProps<{
   matches: MatchResult[];
   title: string;
 }>();

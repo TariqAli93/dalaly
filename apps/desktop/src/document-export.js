@@ -6,6 +6,7 @@ import { isMainWindowSender } from "./ipc-guard.js";
 
 function safeExportName(value, fallback) {
   const sanitized = String(value ?? "")
+    // eslint-disable-next-line no-control-regex -- Windows file names cannot hold control characters
     .replace(/[<>:"/\\|?*\u0000-\u001f]/g, "-")
     .replace(/[. ]+$/g, "")
     .trim();
