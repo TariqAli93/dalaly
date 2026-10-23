@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import AppLayout from "../layouts/AppLayout.vue";
+import AppPage from "../components/app/AppPage.vue";
 import PropertyFilters from "../components/properties/PropertyFilters.vue";
 import PropertiesTable from "../components/properties/PropertiesTable.vue";
 
@@ -168,7 +168,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <AppLayout title="العروض العقارية" subtitle="إدارة عروض البيع داخل المكتب.">
+  <AppPage title="العروض العقارية" subtitle="إدارة عروض البيع داخل المكتب.">
     <template #header-actions>
       <div class="d-flex flex-wrap ga-2">
         <v-btn
@@ -283,7 +283,7 @@ onMounted(() => {
     </MasterDetailLayout>
 
     <ExcelImportDialog v-model="importOpen" @imported="refreshData" />
-  </AppLayout>
+  </AppPage>
 </template>
 
 <style scoped>

@@ -2,7 +2,7 @@
 import { RENTAL_PROPERTY_LABELS } from "../constants/domain";
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import AppLayout from "../layouts/AppLayout.vue";
+import AppPage from "../components/app/AppPage.vue";
 import MetricCard from "../components/shared/MetricCard.vue";
 import OfferTrendChart from "../components/shared/OfferTrendChart.vue";
 import DistributionChart from "../components/shared/DistributionChart.vue";
@@ -271,7 +271,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <AppLayout title="لوحة التحكم" :subtitle="loadedSubtitle">
+  <AppPage title="لوحة التحكم" :subtitle="loadedSubtitle">
     <template #header-actions>
       <v-btn
         v-if="can('properties.create')"
@@ -792,7 +792,7 @@ onMounted(() => {
         </aside>
       </div>
     </template>
-  </AppLayout>
+  </AppPage>
 </template>
 
 <style scoped>

@@ -5,7 +5,7 @@ import LocationSelects from "../properties/LocationSelects.vue";
 import PersonPicker from "../people/PersonPicker.vue";
 import StatusChip from "../shared/StatusChip.vue";
 import NumberField from "../app/NumberField.vue";
-import AppLayout from "../../layouts/AppLayout.vue";
+import AppPage from "../app/AppPage.vue";
 import {
   LIST_PAGE_SIZES,
   PROPERTY_TYPES,
@@ -282,7 +282,7 @@ onMounted(async () => {
 onBeforeUnmount(() => list.cancel());
 </script>
 <template>
-  <AppLayout :title="title" subtitle="طلبات العملاء ومطابقتها بالعروض المتاحة.">
+  <AppPage :title="title" subtitle="طلبات العملاء ومطابقتها بالعروض المتاحة.">
     <template #header-actions
       ><v-btn
         v-if="can('requests.create')"
@@ -460,7 +460,7 @@ onBeforeUnmount(() => list.cancel());
         ></v-card
       ></v-dialog
     >
-  </AppLayout>
+  </AppPage>
 </template>
 <style scoped>
 .form-grid {

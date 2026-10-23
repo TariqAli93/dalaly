@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import AppLayout from "../layouts/AppLayout.vue";
+import AppPage from "../components/app/AppPage.vue";
 import PersonEditor from "../components/people/PersonEditor.vue";
 import RecordNotes from "../components/shared/RecordNotes.vue";
 import EmptyState from "../components/shared/EmptyState.vue";
@@ -139,7 +139,7 @@ onBeforeUnmount(() => {
 });
 </script>
 <template>
-  <AppLayout
+  <AppPage
     :title="person?.full_name ?? 'تفاصيل العميل'"
     :subtitle="person ? `ملف العميل · ${person.code}` : undefined"
   >
@@ -291,5 +291,5 @@ onBeforeUnmount(() => {
       </v-window>
       <PersonEditor v-model="editOpen" :person="person" @saved="load" />
     </template>
-  </AppLayout>
+  </AppPage>
 </template>

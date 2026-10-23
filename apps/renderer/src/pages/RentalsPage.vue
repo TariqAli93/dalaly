@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import AppLayout from "../layouts/AppLayout.vue";
+import AppPage from "../components/app/AppPage.vue";
 import RentalFilters from "../components/rentals/RentalFilters.vue";
 import RentalTable from "../components/rentals/RentalTable.vue";
 import RentalSummary from "../components/rentals/RentalSummary.vue";
@@ -238,7 +238,7 @@ onBeforeUnmount(() => list.cancel());
 </script>
 
 <template>
-  <AppLayout title="الإيجارات" subtitle="إدارة العروض الإيجارية داخل المكتب.">
+  <AppPage title="الإيجارات" subtitle="إدارة العروض الإيجارية داخل المكتب.">
     <template #header-actions>
       <div class="d-flex flex-wrap ga-2">
         <v-btn
@@ -360,7 +360,7 @@ onBeforeUnmount(() => list.cancel());
       @restore="restore"
       @delete="remove"
     />
-  </AppLayout>
+  </AppPage>
 </template>
 
 <style scoped>

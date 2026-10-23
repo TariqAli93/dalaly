@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import AppLayout from "../layouts/AppLayout.vue";
+import AppPage from "../components/app/AppPage.vue";
 
 const faqs = [
   {
@@ -38,7 +38,7 @@ const faqs = [
 </script>
 
 <template>
-  <AppLayout title="المساعدة" subtitle="إرشادات استخدام دلالي.">
+  <AppPage title="المساعدة" subtitle="إرشادات استخدام دلالي.">
     <v-card variant="flat" border>
       <v-card-text>
         <v-expansion-panels variant="accordion">
@@ -48,5 +48,5 @@ const faqs = [
         </v-expansion-panels>
       </v-card-text>
     </v-card>
-  </AppLayout>
+  </AppPage>
 </template>

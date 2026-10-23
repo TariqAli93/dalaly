@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import AppLayout from "../layouts/AppLayout.vue";
+import AppPage from "../components/app/AppPage.vue";
 import RentalForm from "../components/rentals/RentalForm.vue";
 import MatchingResultsDialog from "../components/requests/MatchingResultsDialog.vue";
 import * as rentals from "../services/rentals.service";
@@ -186,7 +186,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <AppLayout
+  <AppPage
     :title="isEditing ? 'تعديل عرض إيجاري' : 'إضافة عرض إيجاري'"
     subtitle="بيانات العرض الإيجاري."
   >
@@ -206,5 +206,5 @@ onMounted(async () => {
       @update:model-value="closeMatches"
       @open="openMatch"
     />
-  </AppLayout>
+  </AppPage>
 </template>

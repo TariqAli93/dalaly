@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { useRoute } from "vue-router";
 import { useDisplay } from "vuetify";
 import AppSidebar from "../components/app/AppSidebar.vue";
 import AppTopbar from "../components/app/AppTopbar.vue";
-import PageHeader from "../components/shared/PageHeader.vue";
 import { useRefresh } from "../composables/useRefresh";
+import { usePageTitle } from "../composables/usePageTitle";
 import { appearance } from "../composables/useAppearance";
 
-defineProps<{ title?: string; subtitle?: string }>();
-
+// إطار التطبيق للصفحات بعد تسجيل الدخول: مسار أب في الموجّه، فيبقى مركّباً
+// أثناء التنقّل (لا تُطوى القائمة الموسّعة عند كل صفحة). ترويسة كل صفحة
+// وأزرارها في AppPage داخل الصفحة نفسها.
 const { refresh } = useRefresh();
+const { pageTitle } = usePageTitle();
+const route = useRoute();
 const { mdAndUp } = useDisplay();
 
 // الدرج: مفتوح وثابت على سطح المكتب، ومغلق افتراضياً على الجوال.
@@ -21,6 +25,14 @@ watch(mdAndUp, (value) => {
   drawer.value = value;
   if (!value) rail.value = false; // على الجوال لا يوجد وضع طيّ (rail)
 });
+// على الجوال يُغلق الدرج عند الانتقال إلى صفحة أخرى، كما كان حين كان الإطار
+// يُعاد تركيبه مع كل صفحة.
+watch(
+  () => route.path,
+  () => {
+    if (!mdAndUp.value) drawer.value = false;
+  },
+);
 
 // زر القائمة: يطوي/يوسّع الشريط على سطح المكتب، ويفتح/يغلق الدرج على الجوال.
 function toggleNav() {
@@ -36,8 +48,7 @@ function toggleNav() {
   <AppSidebar v-model="drawer" v-model:rail="rail" />
   <v-main class="dal-main">
     <AppTopbar
-      :title="title"
-      :subtitle="subtitle"
+      :title="pageTitle"
       @refresh="refresh"
       @toggle-drawer="toggleNav"
     />
@@ -49,12 +60,7 @@ function toggleNav() {
           maxWidth: appearance.fluid ? 'none' : `${appearance.maxWidth}px`,
         }"
       >
-        <PageHeader :title="title ?? 'دلالي'" :subtitle="subtitle">
-          <template v-if="$slots['header-actions']" #default>
-            <slot name="header-actions" />
-          </template>
-        </PageHeader>
-        <slot />
+        <router-view />
       </v-container>
     </div>
   </v-main>

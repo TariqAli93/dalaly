@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import AppLayout from "../layouts/AppLayout.vue";
+import AppPage from "../components/app/AppPage.vue";
 import PropertyDetailsPanel from "../components/properties/PropertyDetailsPanel.vue";
 import { getProperty } from "../services/properties.service";
 import { getErrorMessage } from "../services/api.service";
@@ -56,7 +56,7 @@ watch(
 onMounted(() => setRefreshHandler(load));
 </script>
 <template>
-  <AppLayout
+  <AppPage
     :title="property?.name || 'تفاصيل العقار'"
     :subtitle="
       property ? `${property.code} · ${property.property_type}` : undefined
@@ -97,5 +97,5 @@ onMounted(() => setRefreshHandler(load));
       @restore="askRestore"
       @delete="askDelete"
     />
-  </AppLayout>
+  </AppPage>
 </template>

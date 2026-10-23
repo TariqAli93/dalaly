@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import AppLayout from "../layouts/AppLayout.vue";
+import AppPage from "../components/app/AppPage.vue";
 import { getErrorMessage } from "../services/api.service";
 import * as usersService from "../services/users.service";
 import * as rolesService from "../services/roles.service";
@@ -114,7 +114,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <AppLayout :title="t('users.title')">
+  <AppPage :title="t('users.title')">
     <v-card variant="flat" border>
       <v-card-title class="d-flex align-center">
         <span>{{ t("users.manage") }}</span>
@@ -241,5 +241,5 @@ onMounted(() => {
         </v-card-actions>
       </v-card>
     </v-dialog>
-  </AppLayout>
+  </AppPage>
 </template>
