@@ -17,6 +17,8 @@ import {
   propertyPayloadSchema,
 } from "./properties.schema.js";
 import { parseId } from "../../shared/utils/parse-id.js";
+import { primaryImagesOf } from "../images/images.repository.js";
+import { withPrimaryImages } from "../images/images.service.js";
 
 export const propertiesRoutes: FastifyPluginAsync = async (app) => {
   app.get(
@@ -28,16 +30,21 @@ export const propertiesRoutes: FastifyPluginAsync = async (app) => {
     },
   );
 
-  // صفحة واحدة مع العدد الكلي، لجدول العروض. القائمة الكاملة أعلاه باقية لبقية
-  // المستدعين (تفاصيل الشخص، لوحة التحكم).
+  // صفحة واحدة مع العدد الكلي، لجدول العروض، ولكل صف صورته الرئيسية. القائمة
+  // الكاملة أعلاه باقية لبقية المستدعين (تفاصيل الشخص، لوحة التحكم).
   app.get(
     "/paged",
     { preHandler: requirePermission("properties.read") },
-    async (request) =>
-      listPropertiesPage(
+    async (request) => {
+      const page = await listPropertiesPage(
         propertyPageQuerySchema.parse(request.query),
         request.user?.id,
-      ),
+      );
+      return {
+        ...page,
+        items: await withPrimaryImages(page.items, primaryImagesOf),
+      };
+    },
   );
 
   app.get(

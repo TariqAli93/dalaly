@@ -1,5 +1,5 @@
 /** يقرأ ملفاً كـ data URL لإرساله إلى الخادم ضمن JSON. */
-export function readFileAsDataUrl(file: File): Promise<string> {
+export function readFileAsDataUrl(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));

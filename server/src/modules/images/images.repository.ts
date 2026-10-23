@@ -1,4 +1,4 @@
-import { and, asc, eq, max } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, max } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import { propertyImages } from "../../infrastructure/database/schema.js";
 import { toApiObject, toApiObjects } from "../../shared/utils/case.js";
@@ -10,6 +10,28 @@ export async function listImages(propertyId: number) {
     .where(eq(propertyImages.propertyId, propertyId))
     .orderBy(asc(propertyImages.sortOrder), asc(propertyImages.id));
   return toApiObjects(rows);
+}
+
+export type PrimaryImageRow = { id: number; filePath: string };
+
+/** الصورة التي يعرضها جدول العروض لكل عقار: الرئيسية، وإلا الأولى بالترتيب. */
+export async function primaryImagesOf(propertyIds: number[]) {
+  if (!propertyIds.length) return new Map<number, PrimaryImageRow>();
+  const rows = await db
+    .selectDistinctOn([propertyImages.propertyId], {
+      ownerId: propertyImages.propertyId,
+      id: propertyImages.id,
+      filePath: propertyImages.filePath,
+    })
+    .from(propertyImages)
+    .where(inArray(propertyImages.propertyId, propertyIds))
+    .orderBy(
+      propertyImages.propertyId,
+      desc(propertyImages.isPrimary),
+      asc(propertyImages.sortOrder),
+      asc(propertyImages.id),
+    );
+  return new Map(rows.map(({ ownerId, ...image }) => [ownerId, image]));
 }
 
 export async function getImage(imageId: number) {

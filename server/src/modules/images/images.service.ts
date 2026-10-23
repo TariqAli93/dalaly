@@ -82,13 +82,102 @@ export function resolveImageAbsolutePath(filePath: string) {
   return absolute.startsWith(`${root}${path.sep}`) ? absolute : null;
 }
 
+/** يحذف ملف الصورة ومصغّرتها إن وُجدت. */
 export function deleteImageFromDisk(filePath: string) {
-  try {
-    const absolute = resolveImageAbsolutePath(filePath);
-    if (absolute && fs.existsSync(absolute)) fs.unlinkSync(absolute);
-  } catch {
-    // تجاهل أخطاء حذف الملف.
+  for (const absolute of [
+    resolveImageAbsolutePath(filePath),
+    resolveThumbnailPath(filePath),
+  ]) {
+    try {
+      if (absolute && fs.existsSync(absolute)) fs.unlinkSync(absolute);
+    } catch {
+      // تجاهل أخطاء حذف الملف.
+    }
   }
+}
+
+/** أكبر حجم لمصغّرة: الواجهة تصنعها بعرض 320 بكسل فتأتي بعشرات الكيلوبايت. */
+export const THUMBNAIL_MAX_BYTES = 256 * 1024;
+
+export class ThumbnailError extends Error {
+  readonly statusCode = 400;
+}
+
+/**
+ * مجلد المصغّرات بجوار مجلد الصور لا بداخله، فالنسخ الاحتياطية (التي تضم
+ * مجلد الصور) لا تحملها، وتُصنع من جديد متى غابت. تُصنع في الواجهة من
+ * الأصل، والخادم يخزنها ويقدمها فقط؛ لا يُعدَّل الأصل أبداً.
+ */
+function thumbnailsRoot() {
+  return path.join(path.dirname(path.resolve(config.imagesDir)), "thumbnails");
+}
+
+/**
+ * مسار مصغّرة الصورة المخزَّنة في filePath (مشتق منه: الاسم فريد لكل أصل
+ * ولا يتغير، فتبقى المصغّرة صحيحة بعد الاسترجاع)، أو null إن خرج عن المجلد.
+ */
+export function resolveThumbnailPath(filePath: string) {
+  const root = thumbnailsRoot();
+  const absolute = path.resolve(root, `${filePath}.jpg`);
+  return absolute.startsWith(`${root}${path.sep}`) ? absolute : null;
+}
+
+export async function hasThumbnail(filePath: string) {
+  const absolute = resolveThumbnailPath(filePath);
+  if (!absolute) return false;
+  try {
+    await fs.promises.access(absolute);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** يفك data URL لمصغّرة JPEG ويتحقق أنها JPEG فعلاً. */
+export function decodeThumbnail(data: string) {
+  const buffer = Buffer.from(data.slice(data.indexOf(",") + 1), "base64");
+  const isJpeg =
+    buffer.length > 3 &&
+    buffer[0] === 0xff &&
+    buffer[1] === 0xd8 &&
+    buffer[2] === 0xff;
+  if (!isJpeg || buffer.length > THUMBNAIL_MAX_BYTES)
+    throw new ThumbnailError("المصغّرة ليست صورة JPEG صالحة.");
+  return buffer;
+}
+
+/** يكتب المصغّرة دفعة واحدة (ملف مؤقت ثم إعادة تسمية) فلا تُقرأ نصف مكتوبة. */
+export function writeThumbnail(filePath: string, thumbnail: Buffer) {
+  const target = resolveThumbnailPath(filePath);
+  if (!target) throw new ThumbnailError("مسار الصورة غير صالح.");
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  const temporary = `${target}.${crypto.randomUUID()}.tmp`;
+  fs.writeFileSync(temporary, thumbnail);
+  fs.renameSync(temporary, target);
+}
+
+type StoredImage = { id: number; filePath: string };
+
+/**
+ * يضيف لكل صف primary_image: الصورة التي يعرضها الجدول ووجود مصغّرتها،
+ * فلا يطلب الجدول قائمة صور لكل صف. `primaryImages` يعيدها لمعرفات الصفوف.
+ */
+export async function withPrimaryImages<T extends Record<string, unknown>>(
+  rows: T[],
+  primaryImages: (ids: number[]) => Promise<Map<number, StoredImage>>,
+) {
+  const images = await primaryImages(rows.map((row) => Number(row.id)));
+  return Promise.all(
+    rows.map(async (row) => {
+      const image = images.get(Number(row.id));
+      return {
+        ...row,
+        primary_image: image
+          ? { id: image.id, thumbnail: await hasThumbnail(image.filePath) }
+          : null,
+      };
+    }),
+  );
 }
 
 export function contentTypeFor(filePath: string) {

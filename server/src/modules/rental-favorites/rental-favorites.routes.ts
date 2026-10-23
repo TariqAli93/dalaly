@@ -7,11 +7,18 @@ import {
   removeFavoriteRental,
 } from "./rental-favorites.repository.js";
 import { parseId } from "../../shared/utils/parse-id.js";
+import { primaryRentalImagesOf } from "../rental-images/rental-images.repository.js";
+import { withPrimaryImages } from "../images/images.service.js";
 export const rentalFavoritesRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     "/",
     { preHandler: requirePermission("rentals.read") },
-    async (request) => listFavoriteRentals(request.user!.id),
+    // يعرضها جدول الإيجارات نفسه، فلكل صف صورته الرئيسية.
+    async (request) =>
+      withPrimaryImages(
+        await listFavoriteRentals(request.user!.id),
+        primaryRentalImagesOf,
+      ),
   );
   app.get(
     "/ids",
