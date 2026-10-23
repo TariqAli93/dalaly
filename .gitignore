@@ -31,3 +31,5 @@ server/data/documents/
 server/data/removal-review/
 server/data/removal-tests/
 perf-results
+.claude
+.claude-flow

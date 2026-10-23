@@ -17,6 +17,36 @@ body {
   font-family: var(--dalaly-font);
 }
 
+/* ─── طباعة عربية ────────────────────────────────────────────────
+   Vuetify 3 يضع على الأزرار والعناوين تباعد أحرف (letter-spacing)
+   وأحرفاً كبيرة (uppercase)، وكلاهما مصمَّم للاتينية: التباعد لا معنى
+   له في الخط المتصل وقد يباعد بين حروف الكلمة، والـ uppercase يُكبّر
+   الكلمات الإنجليزية داخل الأزرار (pdf ← PDF). نلغيهما في الواجهة
+   العربية فقط. ‎.v-locale--is-rtl موجود على v-app وعلى النوافذ المنبثقة
+   أيضاً، فيشمل أزرار الحوارات والقوائم. */
+.v-locale--is-rtl :is(
+    .v-btn,
+    .v-card-title,
+    .v-card-subtitle,
+    .v-list-item-title,
+    .v-toolbar-title,
+    .v-alert-title,
+    .v-snackbar__content
+  ) {
+  letter-spacing: normal;
+}
+
+.v-locale--is-rtl .v-btn {
+  text-transform: none;
+}
+
+/* ─── استدارة القوائم ────────────────────────────────────────────
+   VMenu لا يملك خاصية rounded، وVSelect يمرّر contentClass خاصاً به،
+   فالإعداد الافتراضي لا يصل للقوائم المنسدلة. نطابق 8px الحقول هنا. */
+.v-overlay.v-menu > .v-overlay__content {
+  border-radius: 8px;
+}
+
 .record-link {
   color: rgb(var(--v-theme-primary-text));
   text-decoration: none;
