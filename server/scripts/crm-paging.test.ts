@@ -345,6 +345,47 @@ test("owner filter and paged people, request and document lists", async (t) => {
         }
     });
 
+    await t.test("searches match %, _ and \\ as typed, not as LIKE wildcards", async () => {
+      // Rows of this test only, removed at its end so the others keep theirs.
+      const added = (await pool.query(
+        `INSERT INTO people(code, full_name, status) VALUES
+           ('WP-01', 'مكتب 100% عقار', 'active'), ('WP-02', 'مكتب a_b', 'active'),
+           ('WP-03', 'مكتب axb', 'active'), ('WP-04', 'back\\slash', 'active')
+         RETURNING id, code`,
+      )).rows.map((row) => ({ id: Number(row.id), code: row.code as string }));
+      const owner = added[0].id;
+      await pool.query(
+        `INSERT INTO rental_requests(code, person_id, property_type, other_requirements, notes) VALUES
+           ('WR-01', $1, 'house', 'خصم 10%', NULL), ('WR-02', $1, 'house', NULL, 'a_b'), ('WR-03', $1, 'house', 'axb', NULL)`,
+        [owner],
+      );
+      await pool.query(
+        `INSERT INTO purchase_requests(code, person_id, property_type, other_requirements, notes) VALUES
+           ('WQ-01', $1, 'بيت', NULL, '50% مقدماً'), ('WQ-02', $1, 'بيت', 'a_b', NULL), ('WQ-03', $1, 'بيت', NULL, 'axb')`,
+        [owner],
+      );
+      try {
+        const search = async (list: string, q: string) =>
+          codes(await readAllPages(get, `/${list}/paged?q=${encodeURIComponent(q)}`, 10)).sort();
+        assert.deepEqual(await search("people", "%"), ["WP-01"]);
+        assert.deepEqual(await search("people", "100%"), ["WP-01"]);
+        assert.deepEqual(await search("people", "a_b"), ["WP-02"], "_ is not any character (axb)");
+        assert.deepEqual(await search("people", "\\"), ["WP-04"]);
+        assert.deepEqual(codes(await get(`/people?q=${encodeURIComponent("%")}`)), ["WP-01"], "the array list too");
+        assert.deepEqual(await search("rental-requests", "%"), ["WR-01"]);
+        assert.deepEqual(await search("rental-requests", "a_b"), ["WR-02"]);
+        assert.deepEqual(await search("purchase-requests", "%"), ["WQ-01"]);
+        assert.deepEqual(await search("purchase-requests", "a_b"), ["WQ-02"]);
+        // Ordinary searches are unchanged.
+        assert.deepEqual(await search("people", "0770"), ["CP-01", "CP-03", "CP-07"]);
+        assert.deepEqual(await search("rental-requests", "axb"), ["WR-03"]);
+      } finally {
+        await pool.query("DELETE FROM rental_requests WHERE code LIKE 'WR-%'");
+        await pool.query("DELETE FROM purchase_requests WHERE code LIKE 'WQ-%'");
+        await pool.query("DELETE FROM people WHERE id = ANY($1)", [added.map((person) => person.id)]);
+      }
+    });
+
     await t.test("bad paging input is a localized 400; anonymous callers get 401", async () => {
       const lists = ["people", "rental-requests", "purchase-requests", "documents"];
       const bad = ["page_size=101", "page=0", "page_size=-5", "sort_by=password", "sort_order=up"];

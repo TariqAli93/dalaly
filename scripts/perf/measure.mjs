@@ -89,6 +89,8 @@ const LIST_REQUEST = {
 };
 const PROPERTY_SEARCH_PLACEHOLDER = "ابحث باسم المالك، الهاتف، رقم القطعة، المنطقة أو أي وصف";
 const PAGE_SEARCH = "بغداد";
+// A seeded owner phone ('0780' || g % people): a search that finds a few rows.
+const PHONE_SEARCH = "07800000777";
 // A seeded person ('زبون ' || g), searched for in the person pickers.
 const PERSON_SEARCH = "زبون 777";
 
@@ -207,6 +209,7 @@ async function measureApi(port, apiPid, build) {
     "GET /dashboard/summary": "/dashboard/summary",
     "GET /properties": "/properties",
     "GET /properties?search=بغداد": `/properties?search=${encodeURIComponent("بغداد")}`,
+    [`GET /properties?search=${PHONE_SEARCH}`]: `/properties?search=${PHONE_SEARCH}`,
     "GET /rentals": "/rentals",
     "GET /people": "/people",
     "GET /rental-requests": "/rental-requests",
@@ -298,6 +301,7 @@ async function listPageRequests(port, token, build) {
     offers = {
       "Properties page: open": all,
       [`Properties page: search ${PAGE_SEARCH}`]: `/properties?q=${encodeURIComponent(PAGE_SEARCH)}`,
+      [`Properties page: search ${PHONE_SEARCH}`]: `/properties?q=${PHONE_SEARCH}`,
       "Properties page: sort by area": all,
       "Properties page: last page": all,
       "Rentals page: open": "/rentals",
@@ -308,6 +312,7 @@ async function listPageRequests(port, token, build) {
     offers = {
       "Properties page: open": `/properties/paged?${first}`,
       [`Properties page: search ${PAGE_SEARCH}`]: `/properties/paged?q=${encodeURIComponent(PAGE_SEARCH)}&${first}`,
+      [`Properties page: search ${PHONE_SEARCH}`]: `/properties/paged?q=${PHONE_SEARCH}&${first}`,
       "Properties page: sort by area": "/properties/paged?page=1&page_size=10&sort_by=area&sort_order=desc",
       "Properties page: last page": `/properties/paged?page=${lastPage}&page_size=10&sort_by=created_at&sort_order=desc`,
       "Rentals page: open": `/rentals/paged?${first}`,

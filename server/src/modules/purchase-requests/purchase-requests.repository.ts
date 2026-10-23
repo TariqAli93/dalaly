@@ -14,6 +14,7 @@ import {
   totalRowsColumn,
   type SortOrder,
 } from "../../shared/utils/paging.js";
+import { containsPattern } from "../../shared/utils/search.js";
 import type {
   PurchaseRequestFilters,
   PurchaseRequestPageQuery,
@@ -89,14 +90,16 @@ function purchaseRequestConditions(filters: PurchaseRequestFilters) {
     where.push(eq(purchaseRequests.governorateId, filters.governorate_id));
   if (filters.district_id)
     where.push(eq(purchaseRequests.districtId, filters.district_id));
-  if (filters.q)
+  if (filters.q) {
+    const pattern = containsPattern(filters.q);
     where.push(
       or(
-        ilike(purchaseRequests.code, `%${filters.q}%`),
-        ilike(purchaseRequests.otherRequirements, `%${filters.q}%`),
-        ilike(purchaseRequests.notes, `%${filters.q}%`),
+        ilike(purchaseRequests.code, pattern),
+        ilike(purchaseRequests.otherRequirements, pattern),
+        ilike(purchaseRequests.notes, pattern),
       )!,
     );
+  }
   return and(...where);
 }
 

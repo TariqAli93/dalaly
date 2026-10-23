@@ -53,7 +53,8 @@ compare its results only with its own.
    endpoint sends 3 warm-up and 30 sequential requests and reports
    median/p95/max and response size. The same is done for the requests
    each list page sends for a given action — properties open, search
-   `بغداد`, sort by area, last page; rentals open; a person's properties;
+   `بغداد` (one row in six), search an owner's phone (a few rows), sort by
+   area, last page; rentals open; a person's properties;
    people, rental requests, purchase requests and documents open. Builds
    with server paging send one page from `/<domain>/paged`; older builds
    download the whole list for every one of those actions and sort and page
@@ -1035,3 +1036,214 @@ pool, 151.5 ms: ten new backends, started one at a time.
   index on `audit_logs(entity_type, created_at)` is roadmap item 2.3.
 - **Not measured** on a real low-end PC, where connections, cold caches and
   the 2-at-a-time choice may weigh differently.
+
+## Search on one indexed column, October 2026
+
+Property and rental search used to OR an `ILIKE '%token%'` over every
+searched column, per token: 28 columns, three numbers cast to text and the
+owner phone's digits (`regexp_replace`) for properties; 14 columns and two
+numbers for rentals. With `ILIKE` PostgreSQL lowers both sides for each
+column of each row, and no index can serve that OR, so every search read and
+evaluated the whole table. Now each table has `search_text`, a stored
+generated column holding those values lower-cased and space-separated
+(migration `0003_search_text`), with a `pg_trgm` GIN index on it, and a token
+is one `LIKE` on that column. For properties, a token's digits are still
+matched against the owner phone's digits alone (`0770-123` finds
+`0770 123 4567`): an anchored regex on the same column, ANDed with a `LIKE`
+on the digits so the index can narrow it. Arabic status labels still match
+`status`. The four per-column trigram indexes from `0002`, which only the old
+search used, are dropped.
+
+`test:search` checks that the rows found are unchanged: the old per-column
+search, kept as SQL in the test, against the legacy and paged endpoints of
+both tables, for about 100 hand-picked queries (Arabic with and without
+hamza, mixed-case Latin, phones with separators, Arabic-Indic digits, plots,
+codes, prices, status labels) and about 280 parts of stored values. One
+deliberate change: a token's `%`, `_` and `\` are escaped, so they match
+themselves; before, searching `%` found every row.
+
+### Method
+
+`pnpm perf:search` (`scripts/perf/search.mjs`) runs one version's own
+repository code in-process against a seeded `dalaly_perf_*` database: the
+harness's dataset at 5,000 or 50,000 properties (rentals 40% of that), plus
+a plot number and a landmark on every property and notes on every third,
+then `VACUUM FULL properties`. For each search it reports the median
+repository call (including mapping rows to API objects; 20 calls, 10 at
+50,000) and the median `EXPLAIN (ANALYZE, BUFFERS)` execution time of the
+statement that call sends (5 runs). `main` is `aaf9930`'s `server/src` and
+`server/drizzle` (`git archive`); the branch is `0670fa7`. Two alternating
+rounds per size; ranges below are over the two rounds. Development PC
+(i5-14400F, PostgreSQL 18.3), nothing else measuring.
+
+PostgreSQL execution time (ms), 5,000 properties on the left, 50,000 on the
+right:
+
+| Search (paged request)            |  rows |    main |    branch |   rows |    main |    branch |
+| --------------------------------- | ----: | ------: | --------: | -----: | ------: | --------: |
+| A governorate, `بغداد`            |   833 |   53–57 |   1.4–1.7 |  8,333 | 238–248 |     24–41 |
+| `شارع 1`                          | 4,274 |   53–56 |   7.5–8.0 | 43,425 | 574–593 |   123–152 |
+| An owner's name                   |    41 |   81–89 | 0.17–0.18 |     31 | 376–431 | 0.55–0.98 |
+| A phone, as stored                |     3 |   35–52 | 0.12–0.18 |      3 | 227–242 |   0.9–1.1 |
+| The same phone, typed with dashes |     3 |   39–52 | 0.49–0.51 |      3 | 229–292 |   2.3–3.4 |
+| A code                            |     1 |   36–48 | 0.27–0.28 |      1 | 215–222 |   1.2–1.4 |
+| A plot number                     |     3 |   43–45 |      0.05 |      2 | 228–243 | 0.10–0.12 |
+| A price                           |     1 |   46–49 |      0.05 |      1 | 265–278 | 0.14–0.24 |
+| A word that is nowhere            |     0 |      73 | 0.03–0.04 |      0 | 308–319 | 0.03–0.06 |
+| Rentals: a governorate            |   333 |  9.5–11 |      0.49 |  3,333 | 166–196 |   8.5–9.0 |
+| Rentals: `شارع 1`                 | 1,889 |  9.9–27 |   2.5–2.6 | 19,059 | 167–170 |     25–38 |
+| Rentals: a phone                  |     1 | 6.9–7.4 | 0.07–0.08 |      1 | 122–126 |   0.7–5.8 |
+| Rentals: a code                   |     1 | 6.6–6.9 | 0.06–0.08 |      1 | 117–120 |   0.3–5.4 |
+
+On `main` every one is a sequential scan evaluating the whole OR chain. On
+the branch everything but `شارع 1` is a bitmap scan of the trigram index;
+`شارع 1` matches nearly every row, so the planner scans the table, but each
+row costs two `LIKE`s on one string instead of up to 31 `ILIKE`s.
+
+The repository call (ms): the statement plus turning its rows (10 for a
+page) into API objects:
+
+| Search (paged request)     |  rows |    main |  branch |   rows |    main |  branch |
+| -------------------------- | ----: | ------: | ------: | -----: | ------: | ------: |
+| A governorate, `بغداد`     |   833 |      37 | 2.7–3.3 |  8,333 | 194–224 |   21–22 |
+| `شارع 1`                   | 4,274 |   56–57 | 8.4–9.2 | 43,425 | 587–592 | 159–161 |
+| An owner's name            |    41 |   86–88 | 1.2–1.4 |     31 | 391–399 | 1.8–3.2 |
+| A phone, typed with dashes |     3 |   54–58 | 1.8–2.4 |      3 | 248–272 |  3.6–11 |
+| A code                     |     1 |   49–51 | 1.2–1.9 |      1 | 237–257 | 2.3–4.1 |
+| Rentals: a phone           |     1 | 8.3–9.3 | 0.9–1.0 |      1 | 123–128 | 1.7–7.9 |
+
+The legacy array request (`GET /properties?search=`) sends the same
+conditions, so its PostgreSQL time moves the same way, but it returns every
+matching row: for `شارع 1` the call took 222–223 ms on `main` and 126–199 ms
+on the branch at 5,000 properties, 1,397–1,488 ms and 1,314–1,603 ms at
+50,000 — turning 43,000 rows into JSON-ready objects dominates either way.
+
+Writes, which now also compute `search_text` and keep its index current
+(median / max ms; one statement over all rows rolled back, or 300 single-row
+statements each committed on its own):
+
+| Write                              |      main 5,000 |    branch 5,000 |           main 50,000 |           branch 50,000 |
+| ---------------------------------- | --------------: | --------------: | --------------------: | ----------------------: |
+| Insert 5,000 / 50,000 rows at once | 221–223 / ≤ 342 | 536–543 / ≤ 697 | 4,106–6,816 / ≤ 6,957 | 7,246–10,060 / ≤ 10,608 |
+| Update notes of every row at once  | 270–347 / ≤ 352 | 683–771 / ≤ 962 | 5,597–8,456 / ≤ 8,827 | 9,215–12,629 / ≤ 14,233 |
+| Insert one row                     | 0.4–0.5 / ≤ 3.2 |     0.5 / ≤ 6.5 |       0.4–0.5 / ≤ 5.6 |          0.5–0.7 / ≤ 14 |
+| Update one row's notes             |     0.4 / ≤ 3.1 |     0.5 / ≤ 1.8 |           0.5 / ≤ 7.6 |          0.5–0.8 / ≤ 29 |
+
+Upgrading a database that `main` built and filled (its migrations, the same
+data), with the branch's startup migration path (measured before the merge
+with the pool and statement-timeout change, when that path still had a 15 s
+statement timeout; migrations now run without one):
+
+|                                                |              5,000 |                 50,000 |
+| ---------------------------------------------- | -----------------: | ---------------------: |
+| Migration `0003` in all                        |          0.5–0.6 s |              5.0–5.4 s |
+| Its slowest statement (the properties rewrite) |    not timed alone |              2.1–2.9 s |
+| Properties table before → after (KB)           |      1,576 → 3,072 |        15,992 → 30,208 |
+| Trigram indexes dropped (KB)                   |                672 |                  4,784 |
+| `idx_properties_search_text_trgm` (KB)         |              1,440 |                 11,304 |
+| Rentals table before → after, + index (KB)     | 400 → 1,024, + 392 | 4,048 → 6,856, + 3,248 |
+
+Every row had `search_text` afterwards, and `main`'s and the branch's code
+returned the same rows on the upgraded database for ten searches (all but
+`%`). With `pg_trgm` unavailable (simulated by creating one of its
+functions first, so `CREATE EXTENSION` fails), the migration logged its notice, created no trigram index, and the
+same searches returned the same rows by scanning the table.
+
+Unsearched list pages read the whole table too (the total and the sort),
+and the table is now about twice as large. Same data and code, timed
+in-process before and after the upgrade (median of 40 calls):
+
+| Unsearched request (ms)       | 5,000 before |     after | 50,000 before |   after |
+| ----------------------------- | -----------: | --------: | ------------: | ------: |
+| Properties page: open         |      8.0–8.9 | 10.6–12.5 |         67–84 |     139 |
+| Properties page: sort by area |      7.4–8.3 |     13–14 |       129–133 | 155–165 |
+| Properties page: last page    |      7.6–9.8 |     12–13 |       136–143 | 146–170 |
+| Rentals page: open            |      2.9–3.2 |   3.9–4.2 |         22–23 |   32–33 |
+
+In the plan of the 50,000-row list query the sequential scan reads 3,776
+pages instead of 1,999 (13.8 → 22.0 ms; the query 60.5 → 71.5 ms).
+
+The packaged builds (`pnpm perf`, the usual 5,000-property dataset, API pass
+and Electron startup pass), alternating: `main` at `aaf9930`
+(`perf-results/sa`) and the branch at `0670fa7` (`perf-results/sb`). The
+first `main` run stopped in the startup pass: on the first launch of the
+new build the properties search field never appeared (30 s timeout); its
+later runs and every branch run passed that step. Rounds 2 and 3:
+
+|                                                       |      main r2 |   branch r2 |     main r3 |   branch r3 |
+| ----------------------------------------------------- | -----------: | ----------: | ----------: | ----------: |
+| Properties page: search `بغداد` (median / p95 ms)     |  44.8 / 56.4 |   6.5 / 8.2 | 52.4 / 71.6 |   5.5 / 6.2 |
+| Properties page: search a phone (median / p95 ms)     |  46.9 / 55.6 |   3.7 / 5.9 | 46.8 / 50.6 |   3.6 / 4.3 |
+| `GET /properties?search=بغداد` (median / p95 ms)      | 81.3 / 173.7 | 43.3 / 68.6 | 62.2 / 81.4 | 49.1 / 72.6 |
+| `GET /properties?search=` a phone (median / p95 ms)   |    48 / 51.5 |   4.5 / 5.6 | 43.3 / 47.8 |   2.2 / 3.8 |
+| 4 clients, as the page searches (median ms · req/s)   |    61.7 · 64 |  17.7 · 187 |   64.9 · 56 |  15.7 · 246 |
+| 4 clients, `GET /properties?search=` (ms · req/s)     |    785 · 5.1 |   729 · 5.1 |   532 · 7.2 |   423 · 9.1 |
+| Properties page: open (median / p95 ms)               |   6.5 / 10.9 | 11.3 / 12.8 |  9.9 / 13.8 |  9.6 / 10.2 |
+| Properties page: sort by area (median / p95 ms)       |  12.9 / 15.7 |   13.5 / 17 | 10.6 / 15.6 | 11.3 / 11.8 |
+| Properties page: last page (median / p95 ms)          |  12.3 / 13.9 | 15.8 / 19.1 | 10.9 / 18.5 |  9.7 / 10.4 |
+| Rentals page: open (median / p95 ms)                  |    5.9 / 7.2 |  9.0 / 22.4 |     5.1 / 6 |   5.4 / 6.1 |
+| Startup pass: properties search → data (median ms)    |         56.5 |        50.2 |        75.7 |        51.5 |
+| Startup pass: properties search → painted (median ms) |        138.9 |       142.4 |       169.1 |       136.3 |
+| API CPU during the API pass (s)                       |         24.4 |        24.5 |        18.7 |        18.8 |
+
+Everything else in both passes (startup marks, the other lists, memory) was
+within the run-to-run noise, which in startup marks is large on this PC
+(the login form at 1,151–1,516 ms on the same build). Raw results:
+`perf-results/q-a-r{2,3}.json`, `q-b-r{1,2,3}.json` and
+`perf-results/s-*-search.json` in the worktree (git-ignored).
+
+### What improved
+
+- **Searches that look for one listing** (a phone, a code, an owner, a
+  plot number, a price) take well under a millisecond in PostgreSQL instead
+  of 35–89 ms at 5,000 properties, and 0.1–3.4 ms instead of 215–431 ms at
+  50,000; the paged request as a whole takes 0.7–2.4 ms instead of 46–88 ms
+  at 5,000. A search that finds nothing is the cheapest instead of the most
+  expensive (every OR branch evaluated for every row).
+- **Searches that match a large share of the rows** got cheaper too:
+  `بغداد` (one row in six) by index, 53–57 → 1.4–1.7 ms at 5,000 and
+  238–248 → 24–41 ms at 50,000; `شارع 1` (nearly every row) by a cheaper
+  table scan, 53–56 → 7.5–8.0 ms and 574–593 → 123–152 ms.
+- **A typed phone with separators** keeps working and is indexed too.
+- **`%`, `_` and `\` in a search** match themselves.
+
+### What did not improve, or got worse
+
+- **Bulk writes are about 2–2.5× slower.** Inserting 5,000 properties in
+  one statement took 536–543 ms instead of 221–223 ms; updating every row
+  683–771 ms instead of 270–347 ms. An Excel import, a restore and any
+  future bulk update pay this; at 50,000 the rounds overlapped more
+  (4.1–6.8 s against 7.2–10.1 s for the insert). Single-row saves are unchanged at the median
+  (0.5 ms), but their slowest of 300 rose from ~3 ms to 5–6.5 ms (14–29 ms
+  at 50,000), when an insert flushes the GIN index's pending list.
+- **Unsearched lists read a larger table.** The paged list computes its
+  total and sort over every row, so it reads the whole heap, now about
+  twice the pages. Timed in-process on the same data before and after the
+  upgrade, opening the properties list went from 8.0–8.9 to 10.6–12.5 ms at
+  5,000 properties and from 67–84 to 139 ms at 50,000; the area sort and
+  the rentals list moved similarly. Through the packaged API at 5,000 the
+  difference was within noise in one round (9.9 against 9.6 ms) and 4.8 ms
+  in the other. An expression index on the same text, with no stored
+  column, would leave the table as it was, at the cost of computing the
+  text per row for searches that scan; not tried here.
+- **Disk**: the properties table nearly doubles (`search_text` repeats its
+  row's searched text), and the search indexes are larger than the four
+  they replace (1.4 MB against 0.7 MB at 5,000 properties right after the
+  migration; GIN indexes grow beyond their freshly built size as rows are
+  added one by one: the rentals index built by inserting rows was 3.6 MB
+  for 2,000 rentals against 0.4 MB when built over existing rows).
+- **The first start after the update** runs the migration: ~0.5 s at 5,000
+  properties, ~5 s at 50,000 on this PC, while the splash waits. Migrations
+  run without a statement timeout, so a slower PC waits longer rather than
+  failing. Not measured on a low-end PC.
+- **The legacy array request** for a word in nearly every row is only
+  somewhat faster: it returns thousands of rows, and building that response
+  dominates (`شارع 1`: 222–223 → 126–199 ms in-process at 5,000; 4 clients
+  through the packaged API 785 → 729 and 532 → 423 ms).
+- **Right after a large insert**, before autovacuum merges the GIN
+  pending list, the planner can prefer a table scan: in one 50,000-row
+  round the rentals phone and code searches took 4.7–6.0 ms by scan instead
+  of 0.3–0.7 ms by index (still ~20× faster than `main`).
+- **No Arabic letter normalization**: the old search had none, and keeping
+  the same rows ruled it out. `احمد` does not find `أحمد`; normalizing hamza
+  forms, ة/ه and ى/ي would widen what matches, a product decision.

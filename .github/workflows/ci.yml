@@ -152,6 +152,9 @@ jobs:
       - name: test:timeouts
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:timeouts
+      - name: test:search
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:search
       - name: test:removal:backup
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:removal:backup

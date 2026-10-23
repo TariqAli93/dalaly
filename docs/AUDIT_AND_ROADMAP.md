@@ -121,9 +121,11 @@ These are not code-quality calls; they change history, data or behavior.
   requests and documents are paged on the server, and person details asks
   for its owner's offers; Phase 2.6. The person pickers search the server
   too.)
-- **Search**: properties ORs `ILIKE` over ~28 columns plus casts per token;
-  `%`/`_` not escaped. (The duplicate-plot check before a save is an index
-  scan since Phase 2.5.)
+- **Search**: property and rental search use one indexed `search_text`
+  column, and every search and text filter escapes `%`, `_` and `\`
+  (Phase 2.7). People and requests search still OR `ILIKE` over a few
+  columns with no index; their cost has not been measured. (The
+  duplicate-plot check before a save is an index scan since Phase 2.5.)
 - **N+1**: fixed in Phase 2.5 for the users and roles lists, location names
   and the Excel import, which also commits in one transaction and caps the
   file at 5,000 rows.
@@ -212,7 +214,9 @@ phases below:
    Done for properties and rentals: ~11 KB and ~7 ms per page, the list
    paints ~45% sooner (`docs/PERFORMANCE.md`, "Server pagination").
 2. **Search under 4 concurrent clients ~1 s, CPU-bound** → search rewrite
-   (Phase 2.7).
+   (Phase 2.7). Done: 4 clients searching as the properties page does get
+   16–18 ms (62–65 ms before); the old array request still returns every
+   matching row and stays slow for words in most rows.
 3. **~0.55 s from API READY to login form** and **~0.55 s to render the
    dashboard after its data arrives** → Phase 3.1–3.2 and dashboard render
    profiling.
@@ -312,10 +316,24 @@ fix).
    `v-data-table-server`. Person details asks `/properties/paged` for its
    owner's offers (`owner_person_id`, `include_archived`) instead of
    downloading every property. Results in `docs/PERFORMANCE.md`.
-7. Search: replace the per-token `ILIKE` over ~28 columns (plus casts and a
-   `regexp_replace` on phone) with one generated, normalized `search_text`
-   column and a `pg_trgm` index (new migration); escape `%`/`_` in input.
-   Compare with `pnpm perf` before and after.
+7. Done: property and rental search match each token with one `LIKE` on
+   `search_text`, a stored generated column (migration `0003_search_text`)
+   with a `pg_trgm` index created best-effort; the four per-column trigram
+   indexes only the old search used are dropped; `%`, `_` and `\` are
+   escaped. `test:search` checks the rows found are the old search's.
+   Searches for one listing (a phone, code, owner, plot, price) take under
+   1 ms in PostgreSQL instead of 35–89 ms at 5,000 properties (215–431 ms at
+   50,000); 4 clients searching as the page does get 16–18 ms instead of
+   62–65 ms. Costs: bulk inserts and updates ~2–2.5× slower, single-row
+   saves unchanged at the median; the table about twice as large, so
+   unsearched list pages read more (+2–4 ms at 5,000 in-process, within
+   noise through the API in one of two rounds; up to +70 ms at 50,000); the
+   first start after the update runs the migration (~0.5 s at 5,000, ~5 s
+   at 50,000). See `docs/PERFORMANCE.md`, "Search on one indexed column".
+   People, rental and purchase request search and the property district and
+   plot filters escape `%`, `_` and `\` the same way (`containsPattern`).
+   Not done: Arabic letter normalization (hamza forms, ة/ه, ى/ي), a product
+   decision since it widens what matches.
 
 ### Phase 3 — renderer startup and responsiveness
 
