@@ -125,10 +125,17 @@ function buildSearchClause(term: string): SQL {
 
   // الهاتف: أرقام الكلمة وحدها ضمن أرقام الهاتف (يعمل مع المسافات/الفواصل).
   // تلك الأرقام أول ما في search_text حتى أول مسافة؛ وكلمة من أرقام فقط
-  // تطابقها المقارنة السابقة أصلاً.
+  // تطابقها المقارنة السابقة أصلاً. التعبير المنتظم وحده لا يعطي الفهرس
+  // ثلاثيات مفيدة (يبدأ بـ [0-9]*)، فيُقرن بـ LIKE على الأرقام نفسها، وهو
+  // لازم منه فلا يغيّر النتيجة.
   const digits = term.replace(/\D/g, "");
   if (digits && digits !== term) {
-    parts.push(sql`${SEARCH_TEXT} ~ ${`^[0-9]*${digits}`}`);
+    parts.push(
+      and(
+        searchTextContains(SEARCH_TEXT, digits),
+        sql`${SEARCH_TEXT} ~ ${`^[0-9]*${digits}`}`,
+      )!,
+    );
   }
 
   // حالة العقار بالعربية (متاح/محجوز/...).
