@@ -51,7 +51,8 @@ compare its results only with its own.
    endpoint sends 3 warm-up and 30 sequential requests and reports
    median/p95/max and response size. The same is done for the requests
    each list page sends for a given action — properties open, search
-   `بغداد`, sort by area, last page; rentals open; a person's properties;
+   `بغداد` (one row in six), search an owner's phone (a few rows), sort by
+   area, last page; rentals open; a person's properties;
    people, rental requests, purchase requests and documents open. Builds
    with server paging send one page from `/<domain>/paged`; older builds
    download the whole list for every one of those actions and sort and page
