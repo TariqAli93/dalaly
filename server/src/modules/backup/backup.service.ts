@@ -7,6 +7,7 @@ import { db } from "../../infrastructure/database/db.js";
 import { pool } from "../../infrastructure/database/pool.js";
 import { resolveManagedFile } from "../documents/documents.storage.js";
 import { getSetting, setSetting } from "../settings/settings.repository.js";
+import { DomainError } from "../../shared/errors.js";
 import {
   backupJobs,
   backupLogs,
@@ -44,12 +45,13 @@ const BACKUP_VERSION = 3;
 const MAX_BIND_PARAMETERS = 60_000;
 
 /** Another backup, export or restore is already running. */
-export class BackupBusyError extends Error {
-  readonly statusCode = 409;
+export class BackupBusyError extends DomainError {
   constructor() {
     super(
+      409,
       "عملية نسخ احتياطي أو استرجاع أخرى قيد التنفيذ. أعد المحاولة بعد انتهائها.",
     );
+    this.name = "BackupBusyError";
   }
 }
 

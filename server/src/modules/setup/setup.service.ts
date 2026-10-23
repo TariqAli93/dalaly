@@ -17,6 +17,7 @@ import {
   markInstallationInitialized,
 } from "../../infrastructure/database/setup-marker.js";
 import { prepareDatabase } from "../../infrastructure/database/startup.js";
+import { DomainError } from "../../shared/errors.js";
 import { hashPin } from "../auth/crypto.js";
 import { SUPER_ADMIN_ROLE } from "../rbac/rbac.constants.js";
 import {
@@ -36,12 +37,10 @@ const ADMIN_DATABASE = "postgres";
 const CONNECTION_TIMEOUT_MS = 5000;
 let setupInProgress = false;
 
-export class SetupError extends Error {
-  constructor(
-    message: string,
-    readonly statusCode = 409,
-  ) {
-    super(message);
+export class SetupError extends DomainError {
+  constructor(message: string, statusCode = 409) {
+    super(statusCode, message);
+    this.name = "SetupError";
   }
 }
 
