@@ -20,6 +20,7 @@
     "demo:reset": "node scripts/demo-reset.mjs",
     "demo:images": "node scripts/generate-demo-images.mjs",
     "perf": "node scripts/perf/measure.mjs",
+    "perf:backup": "node scripts/perf/backup.mjs",
     "perf:queries": "node scripts/perf/queries.mjs",
     "dist": "pnpm build && pnpm build:desktop",
     "package": "pnpm dist",

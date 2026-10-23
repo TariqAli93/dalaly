@@ -689,3 +689,145 @@ are counted in-process:
   full permission objects of their roles, and serializing that is now most
   of its time. The response shape was left as it is.
 - **Not measured** on a low-end PC, nor in Electron's own Node.
+
+## Backup and restore, October 2026
+
+The scheduled email backup runs while people work, so this measures what a
+backup and a restore do to the running API. Before: adm-zip read every image
+and document into memory, compressed and wrote the archive synchronously,
+and restore read the whole zip with `readFileSync`. After: the archive is
+streamed to `<name>.zip.partial` with yazl and renamed on success, and
+restore reads each entry from the zip on disk with yauzl, one file at a
+time (`modules/backup/backup.archive.ts`). The archive layout is unchanged.
+
+```bash
+pnpm build
+pnpm --filter @dalaly/desktop exec electron-builder --win --dir --publish never
+pnpm perf:backup -- --app apps/desktop/release/win-unpacked --label my-change --media-dir perf-results/media
+```
+
+`scripts/perf/backup.mjs` seeds a `dalaly_perf_<timestamp>` database with
+the dataset above, gives every property a photo and every seeded identity
+document a file, and reads them all once so each build starts with them in
+the OS file cache. Then, each on a freshly started packaged API (so the OS
+peak counters cover only that operation), it runs `POST /backup/create`
+(the manual and scheduled backup path) and `POST /backup/restore` with that
+archive, scope `full`. During each, `GET /auth/me` is sent every 50 ms (the
+next one when the previous answered, at most every 50 ms) and the API's
+memory and CPU are sampled every 250 ms. `--media-dir` keeps the generated
+files between runs; `--photos-mb` sets their total; `--cpus N` pins the API
+to N logical processors. Results: `perf-results/backup-<label>.json`.
+
+Data: 5,000 properties (dataset of the baseline), 5,000 photos of
+100–700 KB, 2,000 MB in all, and 3,000 document files of 30 KB (90 MB).
+The photos are a JPEG marker around AES-CTR bytes: as incompressible as
+real photos, identical every run. Archive: 2,093 MB, 13,004 entries
+(directories included). Builds: `main` at `d5c5921` and this branch,
+packaged with `electron-builder --dir`, measured alternately.
+
+|                                                  | main r2 | main r3 | main r4 | branch r4 | branch r5 |
+| ------------------------------------------------ | ------: | ------: | ------: | --------: | --------: |
+| Backup: duration (s)                             |    68.4 |    66.1 |    61.9 |      84.7 |      84.9 |
+| Backup: longest `/auth/me` wait (ms)             |  68,196 |  65,706 |  61,800 |       203 |       177 |
+| Backup: `/auth/me` answered during it            |       5 |       6 |       5 |     1,371 |     1,373 |
+| Backup: `/auth/me` p99 (ms)                      |       — |       — |       — |      25.0 |      26.5 |
+| Backup: API peak private memory (MB)             |   6,675 |   6,663 |   6,665 |       233 |       233 |
+| Backup: API peak working set (MB)                |   6,342 |   6,339 |   6,404 |       227 |       227 |
+| Backup: API CPU (s)                              |    70.5 |    70.2 |    68.4 |      81.8 |      83.7 |
+| Restore: duration (s)                            |   101.3 |   101.0 |    90.8 |     120.2 |     117.4 |
+| — of which the pre-restore copy (s)              |    67.1 |    66.8 |    61.1 |      88.3 |      84.3 |
+| — of which the restore itself (s)                |    34.2 |    34.2 |    29.7 |      31.9 |      33.1 |
+| Restore: longest `/auth/me` wait (ms)            |  73,642 |  73,320 |  66,893 |       256 |       248 |
+| Restore: `/auth/me` over 100 ms, their total (s) |    98.8 |    98.6 |    88.6 |       2.0 |       2.2 |
+| Restore: `/auth/me` waits over 1 s               |       3 |       3 |       3 |         0 |         0 |
+| Restore: API peak private memory (MB)            |   8,746 |   8,750 |   8,750 |       262 |       254 |
+| Restore: API peak working set (MB)               |   8,426 |   8,426 |   8,431 |       255 |       248 |
+| Restore: API CPU (s)                             |   117.5 |   116.5 |   112.6 |     117.7 |     113.3 |
+
+Idle, `/auth/me` answers in a median 2.7–3.6 ms, p99 4–8 ms. "—": on
+`main` only 5–6 requests were answered during a backup, so percentiles say
+nothing beyond the longest wait. A round 1 without the cache-warming step
+is left out: `main` restored in 279 s and the branch backed up in 196 s
+there, with other work running on the PC and the files partly out of
+cache; it shows how much a cold disk can add, not a difference between the
+builds.
+
+### What improved
+
+- **The API stays responsive.** On `main`, a backup froze the API for its
+  whole length (62–68 s) and a restore for three stretches (the longest
+  67–74 s, 89–99 s in all); requests queued behind it. On the branch no
+  request waited longer than 256 ms, and 1,371–1,373 requests were
+  answered during a backup instead of 5–6.
+- **Memory**: the API peaked at 6.7 GB private during a backup and 8.7 GB
+  during a restore (the whole zip in memory, then the pre-restore copy
+  built next to it). On the branch: 233 MB and 254–262 MB, up from ~90 MB
+  idle. An office PC with 4–8 GB of RAM would page heavily or fail at the
+  old peaks (not tested here). The new peaks stayed the same with 14%
+  more media (below): they grow with the largest single file and the
+  database export, not with the size of the folder.
+- **Media folders over ~2 GB can be backed up and restored.** With
+  2,383 MB of files (`--photos-mb 2300`), `main`'s backup failed after
+  66.8 s with the API frozen throughout: HTTP 500, "Array buffer allocation
+  failed", at 5.3 GB private (it builds the archive as one buffer). Its
+  restore could not read such an archive either: the packaged runtime
+  (Node 22.22.1) refuses `readFileSync` above 2 GiB
+  (`ERR_FS_FILE_TOO_LARGE`, checked directly). The branch wrote the
+  2,387 MB archive in 96.2 s (slowest `/auth/me` 198 ms, peak 233 MB
+  private) and restored it in 137.2 s (104.3 s of it the pre-restore copy;
+  slowest 257 ms, peak 261 MB). The 2,093 MB archive in the table is just
+  under both limits.
+- **With two hardware threads** (`--cpus 2`, one pair of runs) the branch
+  still answered during both: 853 requests during the backup, slowest
+  136 ms, p99 39 ms; during the restore slowest 169 ms, p99 71 ms. `main`
+  froze for the whole backup (43 s) and for 47 s of the restore. Backup
+  52.7 s against 43.4 s, restore 68.7 s against 70.7 s, peaks as above.
+  Both ran faster than unpinned: on this hybrid CPU (i5-14400F) logical
+  processors 0–1 are probably the two threads of one performance core,
+  while unpinned work also lands on the slower efficiency cores. So this
+  shows how the API copes with two threads, not how fast a slow CPU is.
+- **Restore itself** (after the pre-restore copy) takes as long as before,
+  30–34 s, without blocking. A first version read entries through yauzl's
+  streams: 47–51 s and ~20 s more CPU, because of the small chunks
+  (isolated: 35–43 s and 32–36 s CPU to extract the 2 GB; reading each
+  entry in one piece and inflating it in one zlib call: 22.5 s and 15 s
+  CPU).
+- A failed backup leaves no truncated archive under the final name, and an
+  entry whose size or CRC-32 does not match is refused before it replaces
+  a file (adm-zip checked the CRC too; the check is now ours).
+
+### What did not improve, or got worse
+
+- **Backup duration**: 85 s instead of 62–68 s (+25–37%), and 82–84 s of
+  CPU instead of 68–71 s; the restore is longer by the same amount because
+  its first step is a backup. Outside the API, on Node 22.22.2, the two
+  writers were close (adm-zip 77.6 s, yazl 82.8–83.3 s for the same
+  2.09 GB; 1 MB read chunks instead of 64 KB: 82.2 s), so the gap in the
+  packaged API comes from how its runtime runs the streamed deflate and the
+  work around it (CRC-32 in JavaScript, stream callbacks, the ~1,370
+  requests now answered); not traced further.
+- **Most of that time is wasted**: deflating photos that do not compress
+  (2,090 MB of files make a 2,093 MB archive). Storing image entries
+  instead of deflating them took 14.2 s and 13.8 s of CPU in the isolated
+  test, with the same archive size. adm-zip in older builds reads stored
+  entries, but it changes how entries are compressed, so it is left for an
+  owner decision.
+- **Jitter**: during a backup `/auth/me` p99 is 25–27 ms (idle 4–8 ms),
+  the slowest 177–203 ms. Part of it is yazl computing CRC-32 in JavaScript
+  on the main thread between stream callbacks (4.1 s for 2 GB, against
+  0.56 s for Node's native `zlib.crc32`). During a restore p99 is 26–36 ms
+  and the slowest 240–256 ms; the restore also parses `data.json` and runs
+  the database transaction on the main thread. Which step causes the
+  slowest answers was not traced.
+- **The database part** is still one JSON string: `JSON.stringify` of every
+  table on backup, `JSON.parse` on restore. It is inside the peaks above;
+  with much larger tables it would block for longer.
+- **Not measured**: a cold or slow disk (the file cache was warm; a slow
+  disk adds the same read and write time to both), a slow CPU (only the
+  two-thread pair above), and archives over 4 GB
+  (yazl then writes ZIP64 records; whether adm-zip in older builds reads
+  them was not tested).
+- Seen on both builds, not changed: a full restore signs everyone out
+  (sessions are deleted with the users they belong to), so `/auth/me`
+  answers 401 after the restore commits. On `main` one `/auth/me` returned
+  500 during the restore in rounds 3 and 4; not investigated.

@@ -131,25 +131,26 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
     },
     async (request, reply) => {
       const payload = restoreSchema.parse(request.body);
-      let buffer: Buffer | null = null;
+      let source: string | Buffer | null = null;
 
       if (payload.file_path) {
         if (!fs.existsSync(payload.file_path)) {
           return reply.code(400).send({ message: "ملف النسخة غير موجود." });
         }
-        buffer = fs.readFileSync(payload.file_path);
+        // Read from disk entry by entry during the restore, never whole.
+        source = payload.file_path;
       } else if (payload.data) {
         const base64 = payload.data.replace(/^data:[^,]+,/, "");
-        buffer = Buffer.from(base64, "base64");
+        source = Buffer.from(base64, "base64");
       }
 
-      if (!buffer) {
+      if (!source) {
         return reply.code(400).send({ message: "لم يتم تحديد ملف النسخة." });
       }
 
       try {
         const result = await restoreBackup(
-          buffer,
+          source,
           payload.scope as RestoreScope,
           request.user?.id,
         );
