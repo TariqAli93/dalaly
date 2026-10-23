@@ -83,6 +83,7 @@ pnpm --filter @dalaly/server test:transactions   # db.transaction stays on one c
 pnpm --filter @dalaly/server test:paging         # server-paged property and rental lists
 pnpm --filter @dalaly/server test:thumbnails     # list rows' primary images, thumbnails, backups without them
 pnpm --filter @dalaly/server test:dashboard      # dashboard summary unchanged by its merged queries
+pnpm --filter @dalaly/server test:timeouts       # slow statements cut off in Arabic; backup, restore, migrations exempt
 pnpm --filter @dalaly/server test:maps:runtime
 pnpm --filter @dalaly/server test:startup:electron  # real Electron startup (needs a display)
 ```

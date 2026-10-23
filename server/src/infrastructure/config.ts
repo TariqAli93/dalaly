@@ -73,6 +73,12 @@ export const config = {
     user: process.env.DB_USER ?? "postgres",
     password: process.env.DB_PASSWORD ?? "postgres",
     connectionTimeoutMillis,
+    // Longest one statement may run before PostgreSQL cancels it (SQLSTATE
+    // 57014, answered with an Arabic 503). Backup, restore and migrations
+    // lift it inside their transactions.
+    statementTimeoutMillis: Number(
+      process.env.DB_STATEMENT_TIMEOUT_MS ?? 15_000,
+    ),
   },
   // The request pool. Values measured on the dev PC, see docs/PERFORMANCE.md
   // ("Pool, statement timeout and dashboard").
@@ -112,10 +118,14 @@ export function databaseTarget(): DatabaseTarget {
 /**
  * pg.Pool settings for every pool the API opens on its database: the
  * request pool, the one reconfigurePool switches to after setup and the
- * startup pool (which shortens the connect timeout and adds time limits).
+ * startup pool (which shortens the connect timeout and adds a read timeout).
  */
 export function buildPoolConfig(
   target: DatabaseTarget = databaseTarget(),
 ): PoolConfig {
-  return { ...target, ...config.pool };
+  return {
+    ...target,
+    ...config.pool,
+    statement_timeout: config.db.statementTimeoutMillis,
+  };
 }

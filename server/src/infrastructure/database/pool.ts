@@ -31,25 +31,29 @@ function createPool(target: DatabaseTarget) {
 
 /**
  * Settings for a one-off connection to the active database (health checks,
- * creating the first administrator): the short connect timeout and time
- * limits, so a check fails fast.
+ * creating the first administrator): the pool's statement timeout, the
+ * short connect timeout and a client-side read timeout, so a check fails
+ * fast.
  */
 export function getActivePoolConfig() {
   return {
     ...buildPoolConfig(activeTarget),
     connectionTimeoutMillis: config.db.connectionTimeoutMillis,
     query_timeout: 5000,
-    statement_timeout: 15000,
   };
 }
 
-// Time limits belong to startup/setup connections, not ordinary business queries.
+/**
+ * A short-lived pool for startup and setup work, with a 15 s client-side
+ * read timeout on top of the statement timeout.
+ */
 export async function withStartupPool<T>(
   operation: (startupPool: pg.Pool) => Promise<T>,
+  { readTimeoutMillis = 15000 } = {},
 ) {
   const startupPool = new pg.Pool({
     ...getActivePoolConfig(),
-    query_timeout: 15000,
+    query_timeout: readTimeoutMillis,
   });
   startupPool.on("error", (error) =>
     console.error("Startup database connection failed", error.message),
@@ -59,6 +63,17 @@ export async function withStartupPool<T>(
   } finally {
     await startupPool.end().catch(() => undefined);
   }
+}
+
+/**
+ * The startup pool without its read timeout, for applying migrations: they
+ * lift the statement timeout inside their transaction, as a migration may
+ * run longer than any request.
+ */
+export function withMigrationPool<T>(
+  operation: (startupPool: pg.Pool) => Promise<T>,
+) {
+  return withStartupPool(operation, { readTimeoutMillis: 0 });
 }
 
 export const pool = new Proxy({} as pg.Pool, {
