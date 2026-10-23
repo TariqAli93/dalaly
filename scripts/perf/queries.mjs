@@ -1,6 +1,7 @@
 // Server-side query costs against a seeded throwaway database: the Excel
 // property import (validate + commit), the users and roles lists, and
-// creating a property with its location picked from the lists.
+// creating a property with its location picked from the lists, and how long
+// a property save waits while an import commits.
 //
 //   node scripts/perf/queries.mjs [--server server/dist/index.js]
 //        [--label name] [--rounds 3] [--import-sizes 1000,5000]
@@ -120,8 +121,9 @@ try {
       const validate = await timed(() =>
         api(port, "/import/properties/validate", { token, method: "POST", body: { rows } }),
       );
-      const { result: commit, ms: commitMs, probes } = await whileProbing(port, token, () =>
-        api(port, "/import/properties/commit", { token, method: "POST", body: { rows } }),
+      const { result: commit, ms: commitMs, probes } = await whileProbing(
+        () => api(port, "/auth/me", { token }),
+        () => api(port, "/import/properties/commit", { token, method: "POST", body: { rows } }),
       );
       runs.push({
         validateMs: round1(validate.ms),
@@ -142,6 +144,32 @@ try {
       commit: stats(runs.map((run) => run.commitMs)),
     };
   }
+
+  // One more commit of the largest size while a listing is saved every
+  // 200 ms, as another user of the office might: how long does a save wait?
+  const largest = Math.max(...importSizes);
+  let saved = 0;
+  const during = await whileProbing(
+    () =>
+      api(port, "/properties", {
+        token,
+        method: "POST",
+        body: propertyPayload(location, 1_000_000 + (saved += 1)),
+      }),
+    () =>
+      api(port, "/import/properties/commit", {
+        token,
+        method: "POST",
+        body: { rows: importRows(largest, rounds) },
+      }),
+    { pauseMs: 200 },
+  );
+  results.saveDuringImport = {
+    rows: largest,
+    commitMs: round1(during.ms),
+    saves: during.probes.length ? stats(during.probes) : null,
+  };
+  console.log(`POST /properties during a ${largest}-row commit`, results.saveDuringImport);
 } finally {
   await stopProcess(apiChild);
   if (databaseName) await dropDatabase(databaseName);
@@ -240,14 +268,18 @@ async function timed(fn) {
   return { result, ms: performance.now() - started };
 }
 
-/** Runs fn while sending GET /auth/me back to back, timing each one. */
-async function whileProbing(port, token, fn) {
+/**
+ * Runs fn while sending probe() one after another (pauseMs apart), timing
+ * each probe that started before fn finished.
+ */
+async function whileProbing(probe, fn, { pauseMs = 0 } = {}) {
   let done = false;
   const probes = [];
   const prober = (async () => {
     while (!done) {
-      const { ms } = await timed(() => api(port, "/auth/me", { token }));
-      if (!done) probes.push(ms);
+      const { ms } = await timed(probe);
+      probes.push(ms);
+      if (pauseMs) await new Promise((resolve) => setTimeout(resolve, pauseMs));
     }
   })();
   try {
