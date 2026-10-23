@@ -111,6 +111,14 @@ Conventions:
 - Properties and rentals also filter by `owner_person_id`, and
   `include_archived=true` lists archived rows with the rest; person details
   uses both on `/properties/paged`.
+- Backup archives are streamed (`modules/backup/backup.archive.ts`, yazl and
+  yauzl): a backup writes files into `<name>.zip.partial` one at a time and
+  renames it on success; a restore reads entries from the zip on disk (or
+  the uploaded buffer) and writes each file once its CRC-32 matched. Never
+  load a whole archive or media folder into memory. Keep the layout older
+  builds read with adm-zip 0.5.17 (`manifest.json`, `data.json`,
+  `images/properties/…`, `documents/…`, directory entries);
+  `test:backup:compat` restores an archive written by such a build.
 - User-facing messages are Arabic. Keep request/response shapes stable: the
   renderer types in `apps/renderer/src/types` mirror them by hand.
 - Add a service file only when a repository alone would mix concerns; most
