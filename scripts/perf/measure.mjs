@@ -78,6 +78,8 @@ const LIST_REQUEST = {
 };
 const PROPERTY_SEARCH_PLACEHOLDER = "ابحث باسم المالك، الهاتف، رقم القطعة، المنطقة أو أي وصف";
 const PAGE_SEARCH = "بغداد";
+// A seeded person ('زبون ' || g), searched for in the person pickers.
+const PERSON_SEARCH = "زبون 777";
 
 const results = {
   label,
@@ -149,10 +151,14 @@ async function probeBuild(port) {
     (await fetch(`http://127.0.0.1:${port}/api${pathname}`, { headers: { authorization: `Bearer ${session.token}` } }))
       .ok;
   const { body: newest } = await api(port, "/properties?limit=1", { token: session.token });
+  const { body: newestRental } = await api(port, "/rentals?limit=1", { token: session.token });
   return {
     pagedOffers: await ok("/properties/paged?page_size=1"),
     pagedPeople: await ok("/people/paged?page_size=1"),
     ownerId: newest[0].owner_person_id,
+    // Opened in their edit forms; the rental is linked to a person.
+    propertyId: newest[0].id,
+    rentalId: newestRental[0].id,
   };
 }
 
@@ -463,9 +469,33 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
     marks.rentalToPurchaseRequestsData = purchaseRequests.data;
     marks.rentalToPurchaseRequestsPainted = purchaseRequests.painted;
 
+    const documentsBytes = trackApiBytes(page);
     const documents = await openList(page, "#/documents", LIST_REQUEST.documents, "PERF-N", 3);
     marks.purchaseRequestsToDocumentsData = documents.data;
     marks.purchaseRequestsToDocumentsPainted = documents.painted;
+    marks.documentsPageApiKB = await documentsBytes();
+    if (sampleMemory) memory.idleOnDocuments = await sampleProcesses(electron);
+
+    // The person pickers: the documents filter, the request form's customer
+    // list, the property and rental edit forms (`…ApiKB`: what each step
+    // downloaded from the API, once its requests have settled).
+    const filter = await searchPicker(page, "تصفية حسب الشخص", PERSON_SEARCH);
+    marks.documentsPersonSearchShown = filter.shown;
+    marks.documentsPersonSearchApiKB = filter.kb;
+
+    const requestForm = await openRequestForm(page);
+    marks.requestFormOpen = requestForm.open;
+    marks.requestFormCustomersShown = requestForm.customers;
+    marks.requestFormApiKB = requestForm.kb;
+
+    const propertyEdit = await openEditForm(page, `#/properties/${build.propertyId}/edit`);
+    marks.propertyEditReady = propertyEdit.ready;
+    marks.propertyEditApiKB = propertyEdit.kb;
+
+    const rentalEdit = await openEditForm(page, `#/rentals/${build.rentalId}/edit`, "ربط المالك بعميل");
+    marks.rentalEditReady = rentalEdit.ready;
+    marks.rentalEditOwnerShown = rentalEdit.owner;
+    marks.rentalEditApiKB = rentalEdit.kb;
     // The repeat profile would otherwise open straight on the dashboard next
     // time; a daily start normally finds the 12-hour session expired.
     await page.evaluate(() => localStorage.removeItem("dalaly.session"));
@@ -580,6 +610,117 @@ async function searchProperties(page) {
   return { data, painted: performance.now() - started };
 }
 
+/**
+ * Counts the API response bodies a step downloads. The returned function
+ * waits until no API request has been in flight for 150 ms (at most 5 s),
+ * stops counting and returns the KB.
+ */
+function trackApiBytes(page) {
+  const sizes = [];
+  let inFlight = 0;
+  let lastChange = performance.now();
+  const isApi = (request) => request.url().includes("/api/");
+  const onRequest = (request) => {
+    if (!isApi(request)) return;
+    inFlight += 1;
+    lastChange = performance.now();
+  };
+  const onDone = (request) => {
+    if (!isApi(request)) return;
+    inFlight -= 1;
+    lastChange = performance.now();
+    sizes.push(request.sizes().then((size) => size.responseBodySize, () => 0));
+  };
+  const onFailed = (request) => {
+    if (!isApi(request)) return;
+    inFlight -= 1;
+    lastChange = performance.now();
+  };
+  page.on("request", onRequest);
+  page.on("requestfinished", onDone);
+  page.on("requestfailed", onFailed);
+  return async () => {
+    const deadline = performance.now() + 5_000;
+    while ((inFlight > 0 || performance.now() - lastChange < 150) && performance.now() < deadline) await sleep(25);
+    page.off("request", onRequest);
+    page.off("requestfinished", onDone);
+    page.off("requestfailed", onFailed);
+    const bytes = (await Promise.all(sizes)).reduce((sum, size) => sum + size, 0);
+    return Math.round(bytes / 1024);
+  };
+}
+
+/** Types into a person picker until the matching option shows. */
+async function searchPicker(page, label, name) {
+  const bytes = trackApiBytes(page);
+  const field = page.getByRole("combobox", { name: label, exact: true });
+  const started = performance.now();
+  await field.fill(name);
+  await page.getByRole("option", { name, exact: true }).waitFor({ state: "visible", timeout: 60_000 });
+  const shown = performance.now() - started;
+  await page.keyboard.press("Escape");
+  return { shown, kb: await bytes() };
+}
+
+/**
+ * On the rental requests list: "add" → the form on screen, then a click on
+ * the customer field → its first option on screen. Closes the form again.
+ */
+async function openRequestForm(page) {
+  await openList(page, "#/rental-requests", LIST_REQUEST.rentalRequests, "PERF-RQ", 1);
+  const bytes = trackApiBytes(page);
+  let started = performance.now();
+  await page.getByRole("button", { name: "إضافة طلب إيجار", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  // The field, not its input: older builds use a v-select, whose input is
+  // not "visible" to Playwright.
+  const customer = dialog
+    .locator(".v-input")
+    .filter({ has: page.locator(".v-label", { hasText: /^\s*العميل\s*$/ }) })
+    .first();
+  await customer.waitFor({ state: "visible", timeout: 60_000 });
+  await painted(page);
+  const open = performance.now() - started;
+  started = performance.now();
+  await customer.locator(".v-field").click();
+  await page.locator(".v-overlay--active [role=option]").first().waitFor({ state: "visible", timeout: 60_000 });
+  await painted(page);
+  const customers = performance.now() - started;
+  await page.keyboard.press("Escape");
+  await dialog.getByRole("button", { name: "إلغاء", exact: true }).click();
+  await dialog.waitFor({ state: "hidden", timeout: 60_000 });
+  return { open, customers, kb: await bytes() };
+}
+
+/**
+ * Opens an edit form; `ready` when the owner's name is filled in. With
+ * `ownerPicker`, `owner` is when that picker shows the linked person's name.
+ */
+async function openEditForm(page, hash, ownerPicker) {
+  const bytes = trackApiBytes(page);
+  const started = performance.now();
+  await page.evaluate((target) => (location.hash = target), hash);
+  const ownerName = page.getByLabel("اسم المالك", { exact: true });
+  const deadline = Date.now() + 60_000;
+  while (!(await ownerName.inputValue({ timeout: 60_000 })).trim()) {
+    if (Date.now() > deadline) throw new Error(`${hash}: the form was not filled in`);
+    await sleep(10);
+  }
+  await painted(page);
+  const ready = performance.now() - started;
+  let owner;
+  if (ownerPicker) {
+    await page
+      .locator(".v-input")
+      .filter({ hasText: ownerPicker })
+      .locator(".v-autocomplete__selection")
+      .filter({ hasText: "زبون" })
+      .waitFor({ state: "visible", timeout: 60_000 });
+    owner = performance.now() - started;
+  }
+  return { ready, owner, kb: await bytes() };
+}
+
 async function waitForWindow(electron, matches) {
   const deadline = Date.now() + 60_000;
   while (Date.now() < deadline) {
@@ -670,5 +811,7 @@ function printStartup(result) {
     console.table(result.memory.idleOnProperties);
     console.log("Memory and idle CPU on the people list:");
     console.table(result.memory.idleOnPeople);
+    console.log("Memory and idle CPU on the documents list:");
+    console.table(result.memory.idleOnDocuments);
   }
 }
