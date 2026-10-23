@@ -137,10 +137,15 @@ try {
   apiChild = undefined;
 
   if (!options["skip-startup"]) {
-    if (!(await portIsFree(APP_API_PORT)))
-      throw new Error(`Port ${APP_API_PORT} is in use; close Dalaly before measuring startup.`);
-    results.startup = await measureStartup(results.build);
-    printStartup(results.startup);
+    // Checked only now, after the API pass, so keep what that pass measured.
+    if (!(await portIsFree(APP_API_PORT))) {
+      results.startupSkipped = `port ${APP_API_PORT} in use`;
+      console.error(`\nPort ${APP_API_PORT} is in use (Dalaly or pnpm dev running): startup pass skipped.`);
+      process.exitCode = 1;
+    } else {
+      results.startup = await measureStartup(results.build);
+      printStartup(results.startup);
+    }
   }
 } finally {
   await stopProcess(apiChild);

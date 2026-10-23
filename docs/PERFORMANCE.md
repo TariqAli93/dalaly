@@ -26,7 +26,8 @@ Alternate builds when comparing (A, B, A, B) so drift in machine state does
 not favour whichever ran second.
 
 When port 34567 is taken (Dalaly or `pnpm dev` running), the startup pass
-cannot run. `scripts/perf/tables.mjs` measures the properties and rentals
+cannot run; the results file then holds the API pass only, with
+`startupSkipped`, and the command exits with code 1. `scripts/perf/tables.mjs` measures the properties and rentals
 tables, with photos, in Playwright's Chromium instead: it serves the build's
 renderer over HTTP and sends its requests for 127.0.0.1:34567 to the build's
 API on a free port.
