@@ -137,6 +137,7 @@ async function findDuplicatePlotOwner(
     sql`${norm(properties.neighborhood)} = ${normalizeKeyPart(values.neighborhood)}`,
     sql`${norm(properties.plotNumber)} = ${plotNumber}`,
     sql`${norm(properties.plotLetter)} = ${normalizeKeyPart(values.plotLetter)}`,
+    hasPlotNumber,
   ];
   if (excludeId !== undefined) {
     conditions.push(ne(properties.id, excludeId));
