@@ -181,7 +181,7 @@ export async function waitForHealth(port, accept, timeoutMs = 60_000) {
 }
 
 export async function api(port, pathname, { token, method = "GET", body } = {}) {
-  const response = await fetch(`http://127.0.0.1:${port}/api${pathname}`, {
+  const response = await fetchOnce(`http://127.0.0.1:${port}/api${pathname}`, {
     method,
     headers: {
       ...(body ? { "content-type": "application/json" } : {}),
@@ -193,6 +193,20 @@ export async function api(port, pathname, { token, method = "GET", body } = {}) 
   if (!response.ok)
     throw new Error(`${method} ${pathname} → ${response.status}: ${text}`);
   return { body: text ? JSON.parse(text) : null, bytes: Buffer.byteLength(text) };
+}
+
+/**
+ * fetch, sent again once if the API reset the connection: after a pause
+ * longer than its 72 s keep-alive (a long seed), the pooled socket may
+ * already be closed when it is reused.
+ */
+async function fetchOnce(url, init) {
+  try {
+    return await fetch(url, init);
+  } catch (error) {
+    if (error?.cause?.code !== "ECONNRESET") throw error;
+    return fetch(url, init);
+  }
 }
 
 /** GET of a binary response, such as an image file; returns its size. */
