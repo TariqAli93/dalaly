@@ -1,4 +1,4 @@
-import type { PermissionRecord, RoleRecord } from "./rbac.types";
+import type { PermissionRecord, RoleSummary } from "./rbac.types";
 
 export type AuthUserRecord = {
   id: number;
@@ -10,13 +10,13 @@ export type AuthUserRecord = {
 export type AuthPayload = {
   token: string;
   user: AuthUserRecord;
-  roles: RoleRecord[];
+  roles: RoleSummary[];
   permissions: PermissionRecord[];
 };
 
 export type CurrentUserPayload = {
   user: AuthUserRecord | null;
-  roles: RoleRecord[];
+  roles: RoleSummary[];
   permissions: PermissionRecord[];
 };
 

@@ -1,7 +1,7 @@
-import type { FollowupRecord, FollowupType } from "../types";
+import type { FollowupType, RentalFollowupRecord } from "../types";
 import { request } from "./api.service";
 export function listRentalFollowups(id: number) {
-  return request<FollowupRecord[]>(`/rentals/${id}/followups`);
+  return request<RentalFollowupRecord[]>(`/rentals/${id}/followups`);
 }
 export function createRentalFollowup(
   id: number,
@@ -11,7 +11,7 @@ export function createRentalFollowup(
     scheduled_at?: string | null;
   },
 ) {
-  return request<FollowupRecord>(`/rentals/${id}/followups`, {
+  return request<RentalFollowupRecord>(`/rentals/${id}/followups`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -25,10 +25,13 @@ export function updateRentalFollowup(
     scheduled_at?: string | null;
   },
 ) {
-  return request<FollowupRecord>(`/rentals/${id}/followups/${followupId}`, {
-    method: "PUT",
-    body: JSON.stringify(payload),
-  });
+  return request<RentalFollowupRecord>(
+    `/rentals/${id}/followups/${followupId}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 export function deleteRentalFollowup(id: number, followupId: number) {
   return request<{ deleted: boolean }>(

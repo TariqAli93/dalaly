@@ -5,11 +5,11 @@ import type {
   AuthUserRecord,
   LoginCredentials,
   PermissionRecord,
-  RoleRecord,
+  RoleSummary,
 } from "../types";
 
 const currentUser = ref<AuthUserRecord | null>(null);
-const currentRoles = ref<RoleRecord[]>([]);
+const currentRoles = ref<RoleSummary[]>([]);
 const currentPermissions = ref<PermissionRecord[]>([]);
 
 const isAuthenticated = computed(() => Boolean(currentUser.value));

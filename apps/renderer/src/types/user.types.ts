@@ -1,9 +1,12 @@
 import type { AuthUserRecord } from "./auth.types";
-import type { RoleRecord } from "./rbac.types";
+import type { PermissionRecord, RoleSummary } from "./rbac.types";
 
 export type ManagedUserRecord = AuthUserRecord & {
   role_ids: number[];
-  roles: RoleRecord[];
+  roles: RoleSummary[];
+  permissions: PermissionRecord[];
+  created_at: string;
+  updated_at: string;
 };
 
 export type UserFormPayload = {
