@@ -195,6 +195,15 @@ export async function api(port, pathname, { token, method = "GET", body } = {}) 
   return { body: text ? JSON.parse(text) : null, bytes: Buffer.byteLength(text) };
 }
 
+/** GET of a binary response, such as an image file; returns its size. */
+export async function download(port, pathname, { token } = {}) {
+  const response = await fetch(`http://127.0.0.1:${port}/api${pathname}`, {
+    headers: token ? { authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) throw new Error(`GET ${pathname} → ${response.status}`);
+  return { bytes: (await response.arrayBuffer()).byteLength };
+}
+
 /**
  * Seeds a deterministic dataset (no random()) so runs are comparable.
  * Sizes default to a busy single office after a few years of use.
@@ -285,6 +294,122 @@ export async function seedDataset(databaseName, sizes) {
     const text = statement.replace(/\$(\d+)/g, (_, n) => `$${order.indexOf(Number(n)) + 1}`);
     await query(databaseName, text, order.map((n) => params[n - 1]));
   }
+}
+
+/**
+ * Gives every property and rental `perListing` photos (the first one
+ * primary): image rows in the database and files under `imagesDir`, hard
+ * links to a few synthetic phone-sized JPEGs so thousands of them take no
+ * disk space. Returns the number of images and source photos.
+ */
+export async function seedPhotos(databaseName, imagesDir, perListing) {
+  await query(
+    databaseName,
+    `INSERT INTO property_images(property_id, file_path, original_name, is_primary, sort_order)
+     SELECT p.id, p.id || '/perf-' || k || '.jpg', 'IMG_' || p.id || '_' || k || '.jpg', k = 0, k + 1
+     FROM properties p CROSS JOIN generate_series(0, $1::int - 1) k`,
+    [perListing],
+  );
+  await query(
+    databaseName,
+    `INSERT INTO rental_images(rental_id, file_path, original_name, is_primary, sort_order)
+     SELECT r.id, 'rentals/' || r.id || '/perf-' || k || '.jpg', 'IMG_R' || r.id || '_' || k || '.jpg', k = 0, k + 1
+     FROM rentals r CROSS JOIN generate_series(0, $1::int - 1) k`,
+    [perListing],
+  );
+  const { rows } = await query(
+    databaseName,
+    "SELECT file_path FROM property_images UNION ALL SELECT file_path FROM rental_images",
+  );
+  // NTFS allows 1,024 links to one file.
+  const sources = await ensurePhotos(Math.max(24, Math.ceil(rows.length / 900)));
+  const folders = new Set();
+  rows.forEach((row, index) => {
+    const target = path.join(imagesDir, row.file_path);
+    const folder = path.dirname(target);
+    if (!folders.has(folder)) {
+      fs.mkdirSync(folder, { recursive: true });
+      folders.add(folder);
+    }
+    fs.linkSync(sources[index % sources.length], target);
+  });
+  const sizes = sources.map((file) => fs.statSync(file).size);
+  return {
+    perListing,
+    images: rows.length,
+    sourcePhotos: sources.length,
+    averagePhotoMB: Math.round((sizes.reduce((a, b) => a + b, 0) / sizes.length / 2 ** 20) * 100) / 100,
+  };
+}
+
+/**
+ * Synthetic 12-megapixel JPEGs of 3–4.5 MB, like phone photos: drawn in
+ * Chromium from a fixed seed and kept in the temp folder (the volume the
+ * data folders are on, so seeding can hard-link them) for later runs.
+ */
+async function ensurePhotos(count) {
+  const dir = path.join(os.tmpdir(), "dalaly-perf-photos-v1");
+  fs.mkdirSync(dir, { recursive: true });
+  const files = Array.from({ length: count }, (_, index) =>
+    path.join(dir, `photo-${String(index + 1).padStart(3, "0")}.jpg`),
+  );
+  const missing = files.filter((file) => !fs.existsSync(file));
+  if (!missing.length) return files;
+  const { chromium } = await import("@playwright/test");
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    for (const file of missing) {
+      const base64 = await page.evaluate(drawPhoto, files.indexOf(file) + 1);
+      fs.writeFileSync(`${file}.tmp`, Buffer.from(base64, "base64"));
+      fs.renameSync(`${file}.tmp`, file);
+    }
+  } finally {
+    await browser.close();
+  }
+  return files;
+}
+
+/** Runs in the page: sky, ground, buildings with windows and sensor-like noise. */
+async function drawPhoto(seed) {
+  const width = 4000;
+  const height = 3000;
+  let state = seed * 7919;
+  const rand = () => (state = (Math.imul(state, 1664525) + 1013904223) >>> 0) / 2 ** 32;
+  const canvas = new OffscreenCanvas(width, height);
+  const ctx = canvas.getContext("2d");
+  const sky = ctx.createLinearGradient(0, 0, 0, height * 0.55);
+  sky.addColorStop(0, `hsl(${200 + rand() * 20}, 55%, ${55 + rand() * 15}%)`);
+  sky.addColorStop(1, `hsl(${190 + rand() * 20}, 35%, 88%)`);
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, width, height);
+  ctx.fillStyle = `hsl(${25 + rand() * 30}, 30%, ${35 + rand() * 20}%)`;
+  ctx.fillRect(0, height * 0.55, width, height * 0.45);
+  for (let building = 0; building < 9; building += 1) {
+    const w = 300 + rand() * 900;
+    const h = 400 + rand() * 1200;
+    const x = rand() * (width - w);
+    const y = height * 0.6 - h;
+    ctx.fillStyle = `hsl(${rand() * 360}, ${20 + rand() * 30}%, ${40 + rand() * 40}%)`;
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = `hsl(${180 + rand() * 40}, 30%, ${20 + rand() * 30}%)`;
+    for (let wy = y + 60; wy < y + h - 80; wy += 140)
+      for (let wx = x + 40; wx < x + w - 80; wx += 120) ctx.fillRect(wx, wy, 60, 80);
+  }
+  const image = ctx.getImageData(0, 0, width, height);
+  const data = image.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const noise = (rand() - 0.5) * 16;
+    data[i] += noise;
+    data[i + 1] += noise + (rand() - 0.5) * 4;
+    data[i + 2] += noise;
+  }
+  ctx.putImageData(image, 0, 0);
+  const blob = await canvas.convertToBlob({ type: "image/jpeg", quality: 0.93 + rand() * 0.02 });
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(binary);
 }
 
 /** Runs `count` sequential requests after `warmup` and returns timing stats. */
