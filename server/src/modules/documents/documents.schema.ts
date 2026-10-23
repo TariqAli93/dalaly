@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { optionalText } from "../../shared/validation/fields.js";
+import { booleanField, optionalText } from "../../shared/validation/fields.js";
 import { pageFields } from "../../shared/validation/paging.js";
 
 export const identityDocumentPayloadSchema = z.object({
@@ -62,8 +62,8 @@ export const documentTypePayloadSchema = z.object({
     .min(1)
     .regex(/[\u0600-\u06ff]/, "يجب أن يكون اسم نوع المستمسك باللغة العربية."),
   transaction_scope: z.enum(["general", "sale", "rent"]).default("general"),
-  is_required: z.coerce.boolean().default(false),
-  is_active: z.coerce.boolean().default(true),
+  is_required: booleanField.default(false),
+  is_active: booleanField.default(true),
 });
 
 export type IdentityDocumentPayload = z.infer<

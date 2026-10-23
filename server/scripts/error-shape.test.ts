@@ -6,6 +6,7 @@ import { test } from "node:test";
 Object.assign(process.env, { DATABASE_URL: "", DB_HOST: "", DB_NAME: "" });
 const { buildServer } = await import("../src/server.js");
 const { DomainError, errorCodeForStatus } = await import("../src/shared/errors.js");
+const { booleanField } = await import("../src/shared/validation/fields.js");
 const app = await buildServer({ logger: false });
 
 const arabic = /[؀-ۿ]/;
@@ -28,6 +29,15 @@ test("a DomainError's code defaults to its status", () => {
   assert.equal(new DomainError(400, "خطأ", "CUSTOM").code, "CUSTOM");
   assert.equal(errorCodeForStatus(418), "BAD_REQUEST");
   assert.equal(errorCodeForStatus(502), "INTERNAL_ERROR");
+});
+
+test("booleanField reads the string false as false", () => {
+  for (const [input, expected] of [
+    [true, true], [false, false], ["true", true], ["false", false], [" FALSE ", false],
+    ["1", true], ["0", false], [1, true], [0, false], [null, false],
+  ] as const)
+    assert.equal(booleanField.parse(input), expected, JSON.stringify(input));
+  for (const input of ["yes", "", 2, {}]) assert.equal(booleanField.safeParse(input).success, false, JSON.stringify(input));
 });
 
 test("errors answered by hooks and route code share the shape", async () => {
