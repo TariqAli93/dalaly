@@ -111,6 +111,20 @@ Conventions:
 - Properties and rentals also filter by `owner_person_id`, and
   `include_archived=true` lists archived rows with the rest; person details
   uses both on `/properties/paged`.
+- Property and rental search (`q`, or `search` on properties) splits the
+  query on whitespace; every token must match. A token matches with one
+  `LIKE` against the row's `search_text`, a stored generated column
+  (migration `0003_search_text`) holding every searched column lower-cased
+  and space-separated, so the `pg_trgm` index on it can serve the search
+  (`searchTextContains` in `shared/utils/search.ts`; a token's `%`, `_` and
+  `\` are escaped). Properties also match a token's digits against the owner
+  phone's digits, which lead `search_text` (an anchored regex on the same
+  column), and Arabic status labels on `status`. There is no Arabic letter
+  normalization: hamza forms and ة/ه match as typed. `search_text` is not
+  declared in `schema.ts`, so selects, backups and restores leave it out.
+  Searching a new column means a new migration that redefines the column's
+  expression, and adding the column to the reference search in
+  `server/scripts/search-text.test.ts`.
 - Each row of the paged property and rental lists, and of the two favorites
   lists, carries `primary_image: { id, thumbnail } | null`: the image its
   table shows (the primary one, else the first in order) and whether that
@@ -147,9 +161,11 @@ Conventions:
   inserted by a data migration once per database; system permissions and the
   Super Admin role are re-seeded on every startup by `seedSystemRbac`.
 - Indexes that existing data may block (the plot-identity unique index, the
-  `pg_trgm` search indexes) are created best-effort by hand-written migrations
+  `pg_trgm` indexes on `search_text` and on `plot_number`) are created
+  best-effort by hand-written migrations
   (`DO $$ … EXCEPTION … RAISE NOTICE`) and are not declared in `schema.ts`;
-  the runner logs migration notices.
+  the runner logs migration notices. Without `pg_trgm` the search still
+  works, by scanning.
 
 ## Renderer (`apps/renderer/src`)
 
