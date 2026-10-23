@@ -76,8 +76,13 @@ const LIST_REQUEST = {
   purchaseRequests: /\/api\/purchase-requests(\/paged)?(\?|$)/,
   documents: /\/api\/documents(\/paged)?(\?|$)/,
 };
+const LOCATIONS_REQUEST = /\/api\/locations(\?|$)/;
 const PROPERTY_SEARCH_PLACEHOLDER = "ابحث باسم المالك، الهاتف، رقم القطعة، المنطقة أو أي وصف";
+const TOPBAR_SEARCH_PLACEHOLDER = "البحث في العروض العقارية…";
 const PAGE_SEARCH = "بغداد";
+const TOPBAR_SEARCH = "شارع";
+// Matches no offer, so the list shows its "clear filters" button.
+const NO_MATCH = "zzqx";
 // A seeded person ('زبون ' || g), searched for in the person pickers.
 const PERSON_SEARCH = "زبون 777";
 
@@ -109,6 +114,8 @@ try {
   console.log(`Seeded ${databaseName} in ${results.seedSeconds} s`, sizes);
   results.build = await probeBuild(fixturePort);
   console.log("Build:", results.build);
+  results.bundle = rendererBundle();
+  console.log("Renderer JS (KB):", results.bundle);
 
   if (!options["skip-api"]) {
     // Restart so the API runs against the seeded data with cold caches.
@@ -437,18 +444,27 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
 
     // Dashboard → properties list → a search → rentals list. `…Data` is the
     // list response fully received, `…Painted` the new rows on screen.
+    // `…Requests` counts what each step sent (see trackApiRequests).
+    let requests = trackApiRequests(page, LIST_REQUEST.properties);
+    const scripts = trackScripts(page);
     const properties = await openList(page, "#/properties", LIST_REQUEST.properties, "PERF-P");
     marks.dashboardToPropertiesData = properties.data;
     marks.dashboardToPropertiesPainted = properties.painted;
+    marks.dashboardToPropertiesScriptKB = scripts();
+    Object.assign(marks, requestMarks("dashboardToProperties", await requests()));
     if (sampleMemory) memory.idleOnProperties = await sampleProcesses(electron);
 
+    requests = trackApiRequests(page, LIST_REQUEST.properties);
     const search = await searchProperties(page);
     marks.propertiesSearchData = search.data;
     marks.propertiesSearchPainted = search.painted;
+    Object.assign(marks, requestMarks("propertiesSearch", await requests()));
 
+    requests = trackApiRequests(page, LIST_REQUEST.rentals);
     const rentals = await openList(page, "#/rentals", LIST_REQUEST.rentals, "PERF-R");
     marks.propertiesToRentalsData = rentals.data;
     marks.propertiesToRentalsPainted = rentals.painted;
+    Object.assign(marks, requestMarks("propertiesToRentals", await requests()));
 
     // Rentals → people → one person's properties → rental requests →
     // purchase requests → documents (first row's code or number on screen).
@@ -496,6 +512,9 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
     marks.rentalEditReady = rentalEdit.ready;
     marks.rentalEditOwnerShown = rentalEdit.owner;
     marks.rentalEditApiKB = rentalEdit.kb;
+
+    // Last, so the steps above stay comparable with earlier results.
+    Object.assign(marks, await repeatedLoads(page));
     // The repeat profile would otherwise open straight on the dashboard next
     // time; a daily start normally finds the 12-hour session expired.
     await page.evaluate(() => localStorage.removeItem("dalaly.session"));
@@ -648,6 +667,156 @@ function trackApiBytes(page) {
     const bytes = (await Promise.all(sizes)).reduce((sum, size) => sum + size, 0);
     return Math.round(bytes / 1024);
   };
+}
+
+/**
+ * Counts the API requests a step sends: all of them, the list requests
+ * matching `list`, the locations requests, and how many of them were
+ * aborted (a superseded list load; it still reached the API). The returned
+ * function waits until no API request has been sent or answered for 800 ms,
+ * longer than the filters' 300 ms debounce, so a debounced repeat counts too.
+ */
+function trackApiRequests(page, list) {
+  const counts = { api: 0, list: 0, locations: 0, aborted: 0 };
+  let inFlight = 0;
+  let lastChange = performance.now();
+  const isApi = (request) => request.url().includes("/api/");
+  const onRequest = (request) => {
+    if (!isApi(request)) return;
+    counts.api += 1;
+    if (list.test(request.url())) counts.list += 1;
+    if (LOCATIONS_REQUEST.test(request.url())) counts.locations += 1;
+    inFlight += 1;
+    lastChange = performance.now();
+  };
+  const onDone = (request) => {
+    if (!isApi(request)) return;
+    inFlight -= 1;
+    lastChange = performance.now();
+  };
+  const onFailed = (request) => {
+    if (!isApi(request)) return;
+    counts.aborted += 1;
+    onDone(request);
+  };
+  page.on("request", onRequest);
+  page.on("requestfinished", onDone);
+  page.on("requestfailed", onFailed);
+  return async () => {
+    const deadline = performance.now() + 10_000;
+    while ((inFlight > 0 || performance.now() - lastChange < 800) && performance.now() < deadline) await sleep(25);
+    page.off("request", onRequest);
+    page.off("requestfinished", onDone);
+    page.off("requestfailed", onFailed);
+    return counts;
+  };
+}
+
+/** `stepListRequests`, `stepApiRequests`, … marks from trackApiRequests' counts. */
+function requestMarks(step, counts) {
+  return {
+    [`${step}ListRequests`]: counts.list,
+    [`${step}ApiRequests`]: counts.api,
+    [`${step}LocationsRequests`]: counts.locations,
+    [`${step}AbortedRequests`]: counts.aborted,
+  };
+}
+
+/** KB on disk of the renderer's own JS files a step loads (a route's chunks). */
+function trackScripts(page) {
+  const names = new Set();
+  const onRequest = (request) => {
+    const url = request.url();
+    if (url.startsWith("file:") && url.endsWith(".js")) names.add(path.basename(new URL(url).pathname));
+  };
+  page.on("request", onRequest);
+  return () => {
+    page.off("request", onRequest);
+    const assets = path.join(app.dir, "resources/renderer/dist/assets");
+    const bytes = [...names].reduce(
+      (sum, name) => sum + (fs.statSync(path.join(assets, name), { throwIfNoEntry: false })?.size ?? 0),
+      0,
+    );
+    return Math.round(bytes / 1024);
+  };
+}
+
+/** Sizes of the packaged renderer's JS: all of it, the properties route's chunk, xlsx's own chunk. */
+function rendererBundle() {
+  const assets = path.join(app.dir, "resources/renderer/dist/assets");
+  const files = fs.readdirSync(assets).filter((name) => name.endsWith(".js"));
+  const kb = (names) =>
+    Math.round(names.reduce((sum, name) => sum + fs.statSync(path.join(assets, name)).size, 0) / 1024);
+  return {
+    totalJsKB: kb(files),
+    propertiesPageKB: kb(files.filter((name) => name.startsWith("PropertiesPage-"))),
+    xlsxChunkKB: kb(files.filter((name) => name.startsWith("xlsx"))),
+  };
+}
+
+/**
+ * The actions the audit found sending a list twice, each counted until the
+ * API has been quiet (trackApiRequests): a second visit to the properties
+ * list, the top-bar search there and from the rentals list, clearing the
+ * filters from an empty list, and the rentals list as the first page after
+ * a reload (empty caches, so its locations are requested too).
+ */
+async function repeatedLoads(page) {
+  const marks = {};
+  const settle = () => trackApiRequests(page, LIST_REQUEST.properties)();
+  const topSearch = page.getByPlaceholder(TOPBAR_SEARCH_PLACEHOLDER, { exact: true });
+
+  let requests = trackApiRequests(page, LIST_REQUEST.properties);
+  await openList(page, "#/properties", LIST_REQUEST.properties, "PERF-P");
+  Object.assign(marks, requestMarks("propertiesRevisit", await requests()));
+
+  // Enter right after typing, as with the page's own search field.
+  requests = trackApiRequests(page, LIST_REQUEST.properties);
+  await topSearch.fill(TOPBAR_SEARCH);
+  await topSearch.press("Enter");
+  Object.assign(marks, requestMarks("topbarSearch", await requests()));
+
+  const search = page.getByPlaceholder(PROPERTY_SEARCH_PLACEHOLDER, { exact: true });
+  await search.fill(NO_MATCH);
+  await search.press("Enter");
+  const clear = page.getByRole("button", { name: "مسح الفلاتر", exact: true });
+  await clear.waitFor({ state: "visible", timeout: 60_000 });
+  await settle();
+  requests = trackApiRequests(page, LIST_REQUEST.properties);
+  let started = performance.now();
+  await clear.click();
+  await firstRowStartsWith(page, 3, "PERF-P");
+  await painted(page);
+  marks.clearFiltersPainted = performance.now() - started;
+  Object.assign(marks, requestMarks("clearFilters", await requests()));
+  const unfiltered = await firstRowCode(page);
+
+  // From another page the search opens the properties list.
+  await openList(page, "#/rentals", LIST_REQUEST.rentals, "PERF-R");
+  await settle();
+  requests = trackApiRequests(page, LIST_REQUEST.properties);
+  started = performance.now();
+  await topSearch.fill(PAGE_SEARCH);
+  await topSearch.press("Enter");
+  await page.waitForFunction(
+    (previous) => {
+      const code = document.querySelector(".dal-grid tbody tr td:nth-child(3)")?.textContent?.trim();
+      return Boolean(code?.startsWith("PERF-P")) && code !== previous;
+    },
+    unfiltered,
+    { timeout: 60_000 },
+  );
+  await painted(page);
+  marks.topbarSearchFromRentalsPainted = performance.now() - started;
+  Object.assign(marks, requestMarks("topbarSearchFromRentals", await requests()));
+
+  await openList(page, "#/rentals", LIST_REQUEST.rentals, "PERF-R");
+  await settle();
+  requests = trackApiRequests(page, LIST_REQUEST.rentals);
+  await page.reload();
+  await firstRowStartsWith(page, 3, "PERF-R");
+  Object.assign(marks, requestMarks("rentalsAfterReload", await requests()));
+  return marks;
 }
 
 /** Types into a person picker until the matching option shows. */

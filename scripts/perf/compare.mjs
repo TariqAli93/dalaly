@@ -8,7 +8,35 @@ const files = process.argv.slice(2);
 if (!files.length) throw new Error("Pass one or more perf-results/*.json files");
 const results = files.map((file) => JSON.parse(fs.readFileSync(file, "utf8")));
 
+// Requests a step sent (median over the repeat launches): list requests, of
+// them aborted, all API requests, locations requests.
+const REQUEST_STEPS = [
+  ["Dashboard → properties", "dashboardToProperties"],
+  ["Properties search (Enter)", "propertiesSearch"],
+  ["Properties → rentals", "propertiesToRentals"],
+  ["Properties list, later visit", "propertiesRevisit"],
+  ["Top-bar search on the properties list", "topbarSearch"],
+  ["Clear filters from the empty list", "clearFilters"],
+  ["Top-bar search from the rentals list", "topbarSearchFromRentals"],
+  ["Rentals list after a reload", "rentalsAfterReload"],
+];
+const requestRows = REQUEST_STEPS.map(([name, step]) => [
+  `${name}: requests — list (aborted) · all API · locations`,
+  (r) => {
+    const mark = (kind) => r.startup?.repeat[`${step}${kind}Requests`]?.median;
+    if (mark("List") === undefined) return undefined;
+    return `${mark("List")} (${mark("Aborted")}) · ${mark("Api")} · ${mark("Locations")}`;
+  },
+]);
+
 const rows = [
+  ["Renderer JS, all files (KB)", (r) => r.bundle?.totalJsKB],
+  ["Renderer JS, properties page chunk (KB)", (r) => r.bundle?.propertiesPageKB],
+  ["Renderer JS, xlsx chunk (KB)", (r) => r.bundle?.xlsxChunkKB],
+  ["Dashboard → properties: JS files loaded (KB)", (r) => r.startup?.repeat.dashboardToPropertiesScriptKB?.median],
+  ...requestRows,
+  ["Clear filters → list painted (median ms)", (r) => r.startup?.repeat.clearFiltersPainted?.median],
+  ["Top-bar search from rentals → list painted (median ms)", (r) => r.startup?.repeat.topbarSearchFromRentalsPainted?.median],
   ["Startup, repeat profile: login form (median ms)", (r) => r.startup?.repeat.loginVisible.median],
   ["Startup, repeat profile: login form (max ms)", (r) => r.startup?.repeat.loginVisible.max],
   ["Startup, fresh profile: login form (median ms)", (r) => r.startup?.fresh.loginVisible.median],
