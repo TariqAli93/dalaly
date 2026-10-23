@@ -100,6 +100,7 @@ const results = {
   dataset: sizes,
 };
 
+const outputFile = path.join(root, "perf-results", `${fileLabel}.json`);
 const temporary = makeTempDir(fileLabel);
 // The API's images folder (startApi), shared with each app profile.
 const seededImagesDir = () => path.join(temporary, "images", "properties");
@@ -132,6 +133,8 @@ try {
     await waitForHealth(fixturePort, (health) => health.startup_state === "READY");
     results.api = await measureApi(fixturePort, apiChild.pid, results.build);
     printApi(results.api);
+    // Kept even if a launch of the startup pass fails.
+    writeResults();
   }
   await stopProcess(apiChild);
   apiChild = undefined;
@@ -153,11 +156,13 @@ try {
   fs.rmSync(temporary, { recursive: true, force: true });
 }
 
-const outputDir = path.join(root, "perf-results");
-fs.mkdirSync(outputDir, { recursive: true });
-const outputFile = path.join(outputDir, `${fileLabel}.json`);
-fs.writeFileSync(outputFile, `${JSON.stringify(results, null, 2)}\n`);
+writeResults();
 console.log(`\nWrote ${path.relative(root, outputFile)}`);
+
+function writeResults() {
+  fs.mkdirSync(path.dirname(outputFile), { recursive: true });
+  fs.writeFileSync(outputFile, `${JSON.stringify(results, null, 2)}\n`);
+}
 
 /**
  * What the build under test can do, so both passes send what its pages send:
