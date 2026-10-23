@@ -591,3 +591,101 @@ office PC): 102 + 48 ms.
 - **Not measured yet**: Electron startup, dashboard and list timings and
   the per-process memory of the startup pass (port 34567 was taken), and
   anything on a real low-end PC.
+
+## Excel import and N+1 queries, October 2026
+
+`scripts/perf/queries.mjs` (`pnpm perf:queries`) measures what this change
+touched, at the API, against a seeded throwaway database: the usual dataset
+for 5,000 properties (no plot numbers) plus 50 users and 20 roles (each role
+holds about two thirds of the permissions; each user one to three roles).
+It runs a built API bundle (`server/dist/index.js`, or `--server <copy>`)
+under Node rather than a packaged build, since everything here is database
+round trips:
+
+```bash
+pnpm --filter @dalaly/server build
+pnpm perf:queries -- --label my-change           # or --server <a kept copy of dist/index.js>
+```
+
+It times `GET /users`, `GET /roles` and `POST /properties` (governorate,
+district and neighborhood picked from the lists, a new plot number; 40
+requests after 5 warm-ups), then validates and commits imports of 1,000 and
+5,000 rows shaped like the renderer's (typed locations, plot numbers),
+three rounds each, deleting the imported rows between rounds. While each
+commit runs it sends `GET /auth/me` back to back, to see whether other
+requests are held up, and one more 5,000-row commit runs while a listing
+is saved every 200 ms. Results go to `perf-results/<label>-queries.json`.
+
+Builds: `main` at `aaf9930` against the branch at `0cde51a`, alternately
+(branch, main, branch, main, branch), on the development PC (PostgreSQL
+18.3 on Windows, Node 22). "Slowest" is the slowest of the three rounds.
+
+|                                                           | branch r1 | main r1 | branch r2 | main r2 | branch r3 |
+| --------------------------------------------------------- | --------: | ------: | --------: | ------: | --------: |
+| Import commit, 1,000 rows (median ms)                     |       309 |   5,737 |       304 |   5,519 |       308 |
+| Import commit, 5,000 rows (median ms)                     |     1,825 |  32,914 |     1,566 |  32,535 |     1,574 |
+| Import validate, 5,000 rows (median ms)                   |        73 |      71 |        80 |      96 |        72 |
+| `GET /auth/me` during a 1,000-row commit (slowest ms)     |        28 |      14 |        29 |      21 |        28 |
+| `GET /auth/me` during a 5,000-row commit (slowest ms)     |        46 |      27 |        32 |      26 |        34 |
+| `GET /auth/me` during a 5,000-row commit (p95 ms)         |        22 |       2 |        16 |       2 |        16 |
+| `POST /properties` during a 5,000-row commit (slowest ms) |     1,035 |      44 |       783 |      53 |       796 |
+| `GET /users`, 50 users (median ms)                        |      17.2 |    22.3 |      16.3 |    22.5 |      14.8 |
+| `GET /roles`, 20 roles (median ms)                        |       3.9 |     4.2 |       3.6 |     4.4 |       3.8 |
+| `POST /properties`, list locations and a plot (median ms) |       9.8 |     8.6 |       7.0 |     8.1 |       7.2 |
+
+Statements sent to PostgreSQL. The list formulas (1 + 2 per user, 1 + 1
+per role) are counted in `test:queries` on a smaller fixture; the commits
+are counted in-process:
+
+|                                           |     before |                        after |
+| ----------------------------------------- | ---------: | ---------------------------: |
+| `GET /users`, 51 users                    |        103 |                            3 |
+| `GET /roles`, 21 roles                    |         22 |                            2 |
+| Location names when saving a record       |          3 | 1 (none when none is picked) |
+| Import commit of 400 / 1,000 / 5,000 rows | ~7 per row |                 11 / 18 / 66 |
+
+### What improved
+
+- **The import commit** is 18–21 times faster: ~0.3 s instead of 5.5–5.7 s
+  for 1,000 rows and 1.6–1.8 s instead of 32.5–32.9 s for 5,000. It runs 66
+  statements for 5,000 rows instead of about 35,000, and the old cost grew
+  faster than the rows (5.5 s → 33 s for five times the rows), most likely
+  because each row's duplicate-plot check scanned every listing (below).
+- **All or nothing**: a row the database refuses part-way (for example an
+  area too large for its column) rolls the whole import back, and the
+  answer says no listing was added. Before, every other row was saved.
+- **The duplicate-plot check** before each save is an index scan:
+  `EXPLAIN (ANALYZE, BUFFERS)` for a new plot, 3.0 ms at 5,000 listings
+  and 25 ms at 50,000 before, 0.02 ms at both after. The import's
+  batched check of 5,000 plots takes 22 ms at 5,000 listings (a hash join)
+  and 34 ms at 50,000 (the index; 117 ms without the predicate). No
+  migration: the index existed, the query did not state its predicate.
+- **The users list** answers in 15–17 ms instead of ~22 ms (−25%), p95
+  18–21 ms instead of 28–40 ms.
+
+### What did not improve, or got worse
+
+- **A listing saved while an import commits waits for it**: the commit
+  holds the properties code lock, so a `POST /properties` arriving during
+  a 5,000-row commit took up to 0.8–1.0 s, against at most 44–53 ms
+  (226 ms once) when the old import let saves in between its rows. The
+  cap bounds the wait to the commit of 5,000 rows, about 1.6 s here.
+- **Other requests during a commit** see short stalls more often: the
+  slowest `GET /auth/me` 28–46 ms (old: 14–27 ms), p95 16–22 ms (old:
+  2 ms), for 1.6 s instead of 33 s. The first version of the change was
+  worse (slowest 63–137 ms): Drizzle builds a 500-row insert in ~55 ms of
+  blocking work, parsing 5,000 rows takes 20–65 ms and mapping their audit
+  entries ~50 ms. Inserts now go 100 rows per statement, parsing pauses
+  every 500 rows and audit entries are mapped 500 at a time; in-process,
+  the longest event-loop delay during a commit fell from 75–83 ms to
+  28–37 ms with the same total time.
+- **Validate** is unchanged (70–96 ms for 5,000 rows); it still parses the
+  file in one synchronous pass, as before.
+- **The roles list** (3.6–3.9 ms against 4.2–4.4 ms) and **property
+  create** (7.0–9.8 ms against 8.1–8.6 ms) are within noise at this
+  size: 21 roles were 22 fast queries, and the seeded listings have no
+  plot numbers. The plot check's gain shows at 50,000 listings (above).
+- **The users list is still 262 KB** for 51 users: every user carries the
+  full permission objects of their roles, and serializing that is now most
+  of its time. The response shape was left as it is.
+- **Not measured** on a low-end PC, nor in Electron's own Node.
