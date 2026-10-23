@@ -6,11 +6,7 @@ import {
   people,
   type NewRentalRequest,
 } from "../../infrastructure/database/schema.js";
-import {
-  getDistrictName,
-  getGovernorateName,
-  getNeighborhoodName,
-} from "../locations/locations.repository.js";
+import { getLocationNames } from "../locations/locations.repository.js";
 import { toApiObject } from "../../shared/utils/case.js";
 import {
   pageOffset,
@@ -44,6 +40,7 @@ function apiRow(
 async function normalize(
   payload: RentalRequestPayload,
 ): Promise<Omit<NewRentalRequest, "code">> {
+  const names = await getLocationNames(payload);
   return {
     personId: payload.person_id,
     propertyType: payload.property_type,
@@ -72,13 +69,11 @@ async function normalize(
     districtId: payload.district_id ?? null,
     neighborhoodId: payload.neighborhood_id ?? null,
     governorate: payload.governorate_id
-      ? await getGovernorateName(payload.governorate_id)
+      ? names.governorate
       : payload.governorate,
-    district: payload.district_id
-      ? await getDistrictName(payload.district_id)
-      : payload.district,
+    district: payload.district_id ? names.district : payload.district,
     neighborhood: payload.neighborhood_id
-      ? await getNeighborhoodName(payload.neighborhood_id)
+      ? names.neighborhood
       : payload.neighborhood,
     amenities: payload.amenities,
     otherRequirements: payload.other_requirements,

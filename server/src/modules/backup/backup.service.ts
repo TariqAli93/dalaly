@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import AdmZip from "adm-zip";
-import { getTableColumns } from "drizzle-orm";
+import { getTableColumns, sql } from "drizzle-orm";
 import { config } from "../../infrastructure/config.js";
 import { db } from "../../infrastructure/database/db.js";
 import { pool } from "../../infrastructure/database/pool.js";
@@ -39,6 +38,12 @@ import {
   isActivePermissionKey,
   isActiveSettingKey,
 } from "../rbac/key-policy.js";
+import {
+  type ArchiveEntry,
+  type BackupArchive,
+  openArchive,
+  writeArchive,
+} from "./backup.archive.js";
 const BACKUP_VERSION = 3;
 /** PostgreSQL's limit on bind parameters in one statement is 65535. */
 const MAX_BIND_PARAMETERS = 60_000;
@@ -56,7 +61,7 @@ export class BackupBusyError extends Error {
 let operationRunning = false;
 /**
  * Runs one backup, export or restore at a time: a backup reads every table
- * and file while a restore rewrites them, and each archive is built in memory.
+ * and file while a restore rewrites them.
  */
 async function exclusive<T>(operation: () => Promise<T>): Promise<T> {
   if (operationRunning) throw new BackupBusyError();
@@ -204,6 +209,8 @@ function specByName(name: TableName) {
 async function exportDatabase() {
   return db.transaction(
     async (tx) => {
+      // Reading every table may take longer than a request is allowed.
+      await tx.execute(sql`SET LOCAL statement_timeout = 0`);
       const data: Record<string, unknown[]> = {};
       for (const spec of TABLE_SPECS)
         data[spec.name] = await tx.select().from(spec.table);
@@ -224,15 +231,6 @@ async function exportDatabase() {
     },
     { isolationLevel: "repeatable read", accessMode: "read only" },
   );
-}
-
-function addImagesToZip(zip: AdmZip) {
-  if (fs.existsSync(config.imagesDir)) {
-    zip.addLocalFolder(config.imagesDir, "images/properties");
-  }
-  if (fs.existsSync(config.documentsDir)) {
-    zip.addLocalFolder(config.documentsDir, "documents");
-  }
 }
 
 function timestampLabel(now: Date) {
@@ -306,7 +304,7 @@ export type CreateBackupResult = {
  * deliberately left out: it holds the database URL with its password, restore
  * never used it, and scheduled backups are emailed.
  */
-async function assembleBackupZip(backupType: string) {
+async function writeBackupArchive(filePath: string, backupType: string) {
   const database = await exportDatabase();
   const manifest = {
     version: BACKUP_VERSION,
@@ -315,13 +313,20 @@ async function assembleBackupZip(backupType: string) {
     backup_type: backupType,
     tables_count: Object.keys(database).length,
   };
-
-  const zip = new AdmZip();
-  zip.addFile("manifest.json", Buffer.from(JSON.stringify(manifest, null, 2)));
-  zip.addFile("data.json", Buffer.from(JSON.stringify(database)));
-
-  addImagesToZip(zip);
-  return zip;
+  await writeArchive(
+    filePath,
+    [
+      {
+        name: "manifest.json",
+        data: Buffer.from(JSON.stringify(manifest, null, 2)),
+      },
+      { name: "data.json", data: Buffer.from(JSON.stringify(database)) },
+    ],
+    [
+      { dir: config.imagesDir, prefix: "images/properties" },
+      { dir: config.documentsDir, prefix: "documents" },
+    ],
+  );
 }
 
 /** المنطق المشترك: يبني الأرشيف ويكتبه إلى المسار ويسجّل النتيجة في backup_jobs/backup_logs. */
@@ -332,11 +337,10 @@ async function writeBackupTo(
 ): Promise<CreateBackupResult> {
   const startedAt = Date.now();
   try {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    const zip = await assembleBackupZip(type);
-    zip.writeZip(filePath);
+    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+    await writeBackupArchive(filePath, type);
 
-    const fileSize = fs.statSync(filePath).size;
+    const { size: fileSize } = await fs.promises.stat(filePath);
     const durationMs = Date.now() - startedAt;
 
     const [job] = await db
@@ -439,36 +443,49 @@ async function resetSequence(name: TableName) {
   );
 }
 
-function extractImagesFromZip(zip: AdmZip) {
-  const entries = zip
-    .getEntries()
-    .filter(
-      (e) => e.entryName.startsWith("images/properties/") && !e.isDirectory,
-    );
+/** The archive's files below `prefix`, without directory entries. */
+function filesUnder(archive: BackupArchive, prefix: string) {
+  return [...archive.entries.values()].filter(
+    (entry) =>
+      entry.fileName.startsWith(prefix) && !/[\\/]$/.test(entry.fileName),
+  );
+}
+
+/**
+ * Writes one entry to `target` after it has been read and verified, so a
+ * damaged archive never replaces a good file; one file is in memory at a time.
+ */
+async function extractTo(
+  archive: BackupArchive,
+  entry: ArchiveEntry,
+  target: string,
+) {
+  const data = await archive.read(entry);
+  await fs.promises.mkdir(path.dirname(target), { recursive: true });
+  await fs.promises.writeFile(target, data);
+}
+
+async function extractImages(archive: BackupArchive) {
+  const entries = filesUnder(archive, "images/properties/");
   if (!entries.length) return 0;
-  fs.mkdirSync(config.imagesDir, { recursive: true });
+  await fs.promises.mkdir(config.imagesDir, { recursive: true });
   for (const entry of entries) {
-    const relative = entry.entryName.replace(/^images\/properties\//, "");
+    const relative = entry.fileName.replace(/^images\/properties\//, "");
     const target = path.resolve(config.imagesDir, relative);
     if (!target.startsWith(path.resolve(config.imagesDir) + path.sep))
       throw new Error("مسار صورة في النسخة غير صالح.");
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(target, entry.getData());
+    await extractTo(archive, entry, target);
   }
   return entries.length;
 }
 
-function extractDocumentsFromZip(zip: AdmZip) {
-  const entries = zip
-    .getEntries()
-    .filter((e) => e.entryName.startsWith("documents/") && !e.isDirectory);
+async function extractDocuments(archive: BackupArchive) {
+  const entries = filesUnder(archive, "documents/");
   if (!entries.length) return 0;
-  fs.mkdirSync(config.documentsDir, { recursive: true });
+  await fs.promises.mkdir(config.documentsDir, { recursive: true });
   for (const entry of entries) {
-    const relative = entry.entryName.replace(/^documents\//, "");
-    const target = resolveManagedFile(relative);
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(target, entry.getData());
+    const relative = entry.fileName.replace(/^documents\//, "");
+    await extractTo(archive, entry, resolveManagedFile(relative));
   }
   return entries.length;
 }
@@ -476,13 +493,15 @@ function extractDocumentsFromZip(zip: AdmZip) {
 export type RestoreScope =
   "full" | "properties" | "images" | "users" | "settings" | "rentals" | "crm";
 
-function validateBackupSchema(
-  zip: AdmZip,
+async function validateBackupSchema(
+  archive: BackupArchive,
   database: Record<string, Record<string, unknown>[]>,
 ) {
-  const manifestEntry = zip.getEntry("manifest.json");
+  const manifestEntry = archive.entries.get("manifest.json");
   if (!manifestEntry) throw new Error("بيانات تعريف النسخة الاحتياطية مفقودة.");
-  const manifest = JSON.parse(manifestEntry.getData().toString("utf8"));
+  const manifest = JSON.parse(
+    (await archive.read(manifestEntry)).toString("utf8"),
+  );
   if (!manifest || manifest.version !== BACKUP_VERSION)
     throw new Error(
       "صيغة النسخة لا تتوافق مع مخطط هذا الإصدار. استعد النسخ السابقة باستخدام إصدارها في بيئة معزولة.",
@@ -530,34 +549,37 @@ function validateBackupSchema(
     throw new Error("تحتوي النسخة على علاقات صلاحيات غير صالحة.");
 }
 
-/** يسترجع نسخة احتياطية من محتوى ZIP حسب النطاق المحدد. */
+/**
+ * يسترجع نسخة احتياطية حسب النطاق المحدد، من مسار ملف ZIP (يُقرأ من القرص
+ * عند الحاجة) أو من محتواه المرفوع.
+ */
 export async function restoreBackup(
-  zipBuffer: Buffer,
+  source: string | Buffer,
   scope: RestoreScope,
   userId?: number,
 ) {
-  return exclusive(() => restoreArchive(zipBuffer, scope, userId));
+  return exclusive(() => restoreArchive(source, scope, userId));
 }
 
 async function restoreArchive(
-  zipBuffer: Buffer,
+  source: string | Buffer,
   scope: RestoreScope,
   userId?: number,
 ) {
   const startedAt = Date.now();
   let schemaValidated = false;
+  let archive: BackupArchive | undefined;
   try {
-    const zip = new AdmZip(zipBuffer);
-    const dataEntry = zip.getEntry("data.json");
+    archive = await openArchive(source);
+    const dataEntry = archive.entries.get("data.json");
     if (!dataEntry) {
       throw new Error("ملف النسخة الاحتياطية غير صالح (data.json مفقود).");
     }
-    const database = JSON.parse(dataEntry.getData().toString("utf8")) as Record<
-      string,
-      Record<string, unknown>[]
-    >;
+    const database = JSON.parse(
+      (await archive.read(dataEntry)).toString("utf8"),
+    ) as Record<string, Record<string, unknown>[]>;
 
-    validateBackupSchema(zip, database);
+    await validateBackupSchema(archive, database);
     schemaValidated = true;
     // Restore replaces whole tables. Keep the current data first so a wrong
     // file can be undone; if that copy cannot be written, nothing is touched.
@@ -573,10 +595,12 @@ async function restoreArchive(
     let documentsRestored = 0;
     if (scope === "full" || scope === "crm") {
       // Restore managed documents before publishing rows that reference them.
-      documentsRestored = extractDocumentsFromZip(zip);
+      documentsRestored = await extractDocuments(archive);
     }
 
     await db.transaction(async (tx) => {
+      // Rewriting whole tables may take longer than a request is allowed.
+      await tx.execute(sql`SET LOCAL statement_timeout = 0`);
       // حذف بترتيب عكسي (الابن قبل الأب) لتفادي قيود المفاتيح الأجنبية.
       for (const name of [...tablesToRestore].reverse()) {
         if (scope === "users" && name === "users") continue;
@@ -623,7 +647,7 @@ async function restoreArchive(
 
     let imagesRestored = 0;
     if (scope === "full" || scope === "images" || scope === "properties") {
-      imagesRestored = extractImagesFromZip(zip);
+      imagesRestored = await extractImages(archive);
     }
 
     const durationMs = Date.now() - startedAt;
@@ -665,5 +689,7 @@ async function restoreArchive(
       .returning();
     await logBackup(job?.id ?? null, "error", `فشل الاسترجاع: ${message}`);
     throw error;
+  } finally {
+    await archive?.close();
   }
 }

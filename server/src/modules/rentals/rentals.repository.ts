@@ -19,11 +19,7 @@ import {
   type NewRental,
 } from "../../infrastructure/database/schema.js";
 import { toApiObject, toApiObjects } from "../../shared/utils/case.js";
-import {
-  getDistrictName,
-  getGovernorateName,
-  getNeighborhoodName,
-} from "../locations/locations.repository.js";
+import { getLocationNames } from "../locations/locations.repository.js";
 import { listEntityAudit, recordAudit } from "../audit/audit.service.js";
 import {
   type RentalFilters,
@@ -211,14 +207,15 @@ export async function getRental(id: number) {
 async function normalizePayload(
   payload: RentalPayload,
 ): Promise<Omit<NewRental, "code">> {
+  const names = await getLocationNames(payload);
   const governorate = payload.governorate_id
-    ? await getGovernorateName(payload.governorate_id)
+    ? names.governorate
     : (payload.governorate ?? null);
   const district = payload.district_id
-    ? await getDistrictName(payload.district_id)
+    ? names.district
     : (payload.district ?? null);
   const neighborhood = payload.neighborhood_id
-    ? await getNeighborhoodName(payload.neighborhood_id)
+    ? names.neighborhood
     : (payload.neighborhood ?? null);
   return {
     name: payload.name ?? null,
