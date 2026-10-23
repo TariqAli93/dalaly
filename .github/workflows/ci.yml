@@ -119,6 +119,9 @@ jobs:
       - name: test:backup:safety
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:backup:safety
+      - name: test:backup:compat
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:backup:compat
       - name: test:limits
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:limits
