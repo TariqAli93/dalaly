@@ -11,7 +11,7 @@ import {
   sql,
   type SQL,
 } from "drizzle-orm";
-import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core";
 import { db } from "../../infrastructure/database/db.js";
 import {
   auditLogs,
@@ -69,6 +69,44 @@ function statusCounts<S extends string>(
   ) as Record<S, SQL<number>>;
 }
 
+/**
+ * Rows created in each of the last six months (Baghdad time), months
+ * without any included: the table is read once and grouped by month, then
+ * joined to the month series.
+ */
+function monthlyActivity(table: PgTable, createdAt: AnyPgColumn, where?: SQL) {
+  // Drizzle names a subquery's computed columns without the subquery's
+  // alias, so they must not clash with activity_months.month.
+  const created = db
+    .select({
+      month:
+        sql`date_trunc('month', ${createdAt} at time zone 'Asia/Baghdad')`.as(
+          "created_month",
+        ),
+      count: sql<number>`count(*)`.as("created_count"),
+    })
+    .from(table)
+    .where(
+      and(
+        where,
+        gte(
+          createdAt,
+          sql`(date_trunc('month', current_timestamp at time zone 'Asia/Baghdad') - interval '5 months') at time zone 'Asia/Baghdad'`,
+        ),
+      ),
+    )
+    .groupBy(sql`1`)
+    .as("created_by_month");
+  return db
+    .select({
+      month: sql<string>`to_char(activity_months.month, 'YYYY-MM')`,
+      created: sql<number>`coalesce(${created.count}, 0)::int`,
+    })
+    .from(activityMonths)
+    .leftJoin(created, sql`${created.month} = activity_months.month`)
+    .orderBy(asc(sql`activity_months.month`));
+}
+
 export async function getDashboard(access: DashboardAccess) {
   // Status counts and money figures from one pass over the table.
   const live = ne(properties.status, "archived");
@@ -102,28 +140,11 @@ export async function getDashboard(access: DashboardAccess) {
     .groupBy(properties.propertyType)
     .orderBy(desc(sql`count(*)`), asc(properties.propertyType));
 
-  const salesActivityRows = await db
-    .select({
-      month: sql<string>`to_char(activity_months.month, 'YYYY-MM')`,
-      created: sql<number>`count(${properties.id})::int`,
-    })
-    .from(activityMonths)
-    .leftJoin(
-      properties,
-      and(
-        ne(properties.status, "archived"),
-        gte(
-          properties.createdAt,
-          sql`activity_months.month at time zone 'Asia/Baghdad'`,
-        ),
-        lt(
-          properties.createdAt,
-          sql`(activity_months.month + interval '1 month') at time zone 'Asia/Baghdad'`,
-        ),
-      ),
-    )
-    .groupBy(sql`activity_months.month`)
-    .orderBy(asc(sql`activity_months.month`));
+  const salesActivityRows = await monthlyActivity(
+    properties,
+    properties.createdAt,
+    live,
+  );
 
   const rentalSummary = access.rentals
     ? await getRentalSummary()
@@ -260,27 +281,7 @@ async function getRentalSummary() {
     .groupBy(rentals.propertyType)
     .orderBy(desc(sql`count(*)`), asc(rentals.propertyType));
 
-  const rentalActivityRows = await db
-    .select({
-      month: sql<string>`to_char(activity_months.month, 'YYYY-MM')`,
-      created: sql<number>`count(${rentals.id})::int`,
-    })
-    .from(activityMonths)
-    .leftJoin(
-      rentals,
-      and(
-        gte(
-          rentals.createdAt,
-          sql`activity_months.month at time zone 'Asia/Baghdad'`,
-        ),
-        lt(
-          rentals.createdAt,
-          sql`(activity_months.month + interval '1 month') at time zone 'Asia/Baghdad'`,
-        ),
-      ),
-    )
-    .groupBy(sql`activity_months.month`)
-    .orderBy(asc(sql`activity_months.month`));
+  const rentalActivityRows = await monthlyActivity(rentals, rentals.createdAt);
 
   return {
     counts: {
