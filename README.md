@@ -61,6 +61,7 @@ pnpm release          # full release build into apps/desktop/release
 ## Checks and Tests
 
 ```bash
+pnpm lint        # ESLint (eslint.config.mjs), then pnpm typecheck
 pnpm typecheck   # server tsc, renderer vue-tsc, Electron syntax check
 pnpm test        # fast unit tests, no database needed
 ```
@@ -86,7 +87,7 @@ pnpm --filter @dalaly/server test:maps:runtime
 pnpm --filter @dalaly/server test:startup:electron  # real Electron startup (needs a display)
 ```
 
-CI (`.github/workflows/ci.yml`) runs typecheck, `pnpm test` and the build on
+CI (`.github/workflows/ci.yml`) runs typecheck, ESLint, `pnpm test` and the build on
 Windows, and the database suites in a separate `database` job on Linux against
 a PostgreSQL 18 service container. That job runs every suite above except:
 

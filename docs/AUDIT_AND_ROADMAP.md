@@ -311,8 +311,16 @@ fix).
 
 ### Phase 5 — maintainability gates
 
-1. ESLint (typescript-eslint + eslint-plugin-vue), errors only at first, in
-   CI.
+1. Done: ESLint 9 flat config at the root (`eslint.config.mjs`) over
+   `server`, `apps/renderer` and `apps/desktop`; `pnpm lint` runs it and
+   the typecheck, CI's `check` job runs it. Errors only, defects only:
+   `eslint:recommended` (no-undef in `.js`, empty blocks except `catch`),
+   unused variables and imports, `@typescript-eslint/no-floating-promises`
+   in `server/src` and `apps/renderer/src` (type-aware), and
+   eslint-plugin-vue's `essential` set. Prettier still formats. Left out:
+   floating promises in `.js` (Electron main has no type information) and in
+   the test scripts (node:test's `test()` returns a promise), and the root
+   `scripts/` tooling (perf harness, web demo).
 2. One `DomainError(status, message)`; remove route catch-alls; one error
    response shape; fix `z.coerce.boolean()`.
 3. Shared renderer pieces where duplication is real: `FilterBar` +

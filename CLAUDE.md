@@ -17,7 +17,7 @@ pnpm dev              # Vite renderer + Electron (waits for 127.0.0.1:5173)
 pnpm build            # server + renderer builds, then asserts dist assets exist
 pnpm start            # run Electron against the production build
 pnpm typecheck        # server tsc, renderer vue-tsc, Electron syntax check
-pnpm lint             # same as typecheck for server + renderer (no ESLint in repo)
+pnpm lint             # ESLint (eslint.config.mjs, defects only), then pnpm typecheck
 pnpm format           # prettier across all three workspaces
 pnpm test             # fast unit tests only; no database required
 pnpm perf -- --app <win-unpacked>  # startup/memory/API timings of a packaged build (docs/PERFORMANCE.md)
