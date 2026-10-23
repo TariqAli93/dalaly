@@ -105,11 +105,13 @@ These are not code-quality calls; they change history, data or behavior.
 
 ### Server and database
 
-- **Pool defaults** (max 10, 10 s idle, 1.5 s connect/queue timeout, no
-  statement timeout); `reconfigurePool` rebuilds a bare config.
-- **Dashboard runs ~13 sequential queries** (properties scanned ~8 times);
-  the RBAC leak (rentals, audit activity and follow-ups under
-  `properties.read`; matching across domains) is fixed in Phase 1.
+- ~~**Pool defaults**~~ (max 10, 10 s idle, 1.5 s connect/queue timeout, no
+  statement timeout; `reconfigurePool` rebuilt a bare config): done in
+  Phase 2.4.
+- ~~**Dashboard runs ~13 sequential queries**~~ (properties scanned ~8
+  times): done in Phase 2.2. The RBAC leak (rentals, audit activity and
+  follow-ups under `properties.read`; matching across domains) is fixed in
+  Phase 1.
 - **Every authenticated request costs 3 queries** (session + roles +
   permissions); a 20-thumbnail gallery ≈ 80 queries. A short-TTL, explicitly
   invalidated session cache is the single biggest backend win.
@@ -258,8 +260,15 @@ fix).
 
 1. Session/permission cache (30–60 s TTL, invalidated on logout and on user,
    role or permission changes).
-2. Dashboard: two aggregate queries with `count(*) FILTER (…)` plus
-   `Promise.all` for the rest.
+2. Done: dashboard. One aggregate per table for the status counts and money
+   figures (`count(*) FILTER (…)`), the monthly activity in one pass instead
+   of a nested loop, the 20 newest audit rows taken before their joins, and
+   the 12 statements run two at a time (an unbounded `Promise.all` was
+   slowest after an idle pause: one new backend per query). Same response,
+   byte for byte (`test:dashboard` against the old queries). Packaged:
+   42.5–42.9 → 15.6–21.4 ms, 4 clients 57–69 → 130–142 requests/s; login →
+   dashboard in the app within noise. The merged aggregate alone was within
+   noise; an audit index (item 3) would cut the remaining 3.7 ms.
 3. Index migration for measured query patterns (`created_at`/`updated_at`
    orderings, `owner_person_id`, `audit_logs(entity_type, created_at)`); drop
    the duplicate `sessions.token_hash` index. Verify with
@@ -267,7 +276,17 @@ fix).
    `owner_person_id`: a sequential scan of 0.8 ms at 5,000 properties and
    8 ms at 50,000, so no index yet (`docs/PERFORMANCE.md`, "Paging the
    remaining lists").
-4. Pool tuning and a statement timeout (exempting backup/restore).
+4. Done: pool tuning and a statement timeout. One `buildPoolConfig` for the
+   request, post-setup and startup pools: max 10, 2 connections kept while
+   idle, others closed after 5 minutes, 5 s to get a connection (health and
+   startup keep 1.5 s). The first request after a 12 s pause: `/auth/me`
+   41–42 → 3.4–4.6 ms, dashboard 90–96 → 15.7–31.4 ms. PostgreSQL cancels
+   statements after 15 s, answered with an Arabic 503 (and a 503 when no
+   connection comes in time); backup, restore and migrations lift it inside
+   their transactions (`test:timeouts`). Costs: up to 8 open connections for
+   5 minutes after a burst (~6 MB each in PostgreSQL), and a statement that
+   waits more than 15 s now fails. See `docs/PERFORMANCE.md`, "Pool,
+   statement timeout and dashboard".
 5. Done: N+1s and the import. The users and roles lists load every listed
    row's roles and permissions together (3 and 2 queries instead of
    1 + 2 per user and 1 + 1 per role); saving a property, rental or

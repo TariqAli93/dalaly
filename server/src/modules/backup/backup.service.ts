@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { getTableColumns } from "drizzle-orm";
+import { getTableColumns, sql } from "drizzle-orm";
 import { config } from "../../infrastructure/config.js";
 import { db } from "../../infrastructure/database/db.js";
 import { pool } from "../../infrastructure/database/pool.js";
@@ -209,6 +209,8 @@ function specByName(name: TableName) {
 async function exportDatabase() {
   return db.transaction(
     async (tx) => {
+      // Reading every table may take longer than a request is allowed.
+      await tx.execute(sql`SET LOCAL statement_timeout = 0`);
       const data: Record<string, unknown[]> = {};
       for (const spec of TABLE_SPECS)
         data[spec.name] = await tx.select().from(spec.table);
@@ -597,6 +599,8 @@ async function restoreArchive(
     }
 
     await db.transaction(async (tx) => {
+      // Rewriting whole tables may take longer than a request is allowed.
+      await tx.execute(sql`SET LOCAL statement_timeout = 0`);
       // حذف بترتيب عكسي (الابن قبل الأب) لتفادي قيود المفاتيح الأجنبية.
       for (const name of [...tablesToRestore].reverse()) {
         if (scope === "users" && name === "users") continue;

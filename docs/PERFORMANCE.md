@@ -26,7 +26,9 @@ Alternate builds when comparing (A, B, A, B) so drift in machine state does
 not favour whichever ran second.
 
 When port 34567 is taken (Dalaly or `pnpm dev` running), the startup pass
-cannot run. `scripts/perf/tables.mjs` measures the properties and rentals
+cannot run; the results file then holds the API pass only, with
+`startupSkipped`, and the command exits with code 1. The API pass is also
+written before the startup pass begins, so a failed launch keeps it. `scripts/perf/tables.mjs` measures the properties and rentals
 tables, with photos, in Playwright's Chromium instead: it serves the build's
 renderer over HTTP and sends its requests for 127.0.0.1:34567 to the build's
 API on a free port.
@@ -61,8 +63,13 @@ compare its results only with its own.
    probed once after seeding. Then 4 parallel clients
    send 15 searches each (throughput and latency under contention), once as
    `GET /properties?search=…` (comparable with older results) and once in
-   the form the properties page sends. API working set, private memory and
-   CPU time are read before and after.
+   the form the properties page sends, and once more loading
+   `/dashboard/summary`. API working set, private memory and CPU time are
+   read before and after. Last, `GET /auth/me` and `GET /dashboard/summary`
+   are timed 6 times each after a 12 s pause with no requests (longer than
+   pg's default 10 s idle timeout, after which the next request waits for a
+   new database connection), and the API's connections to the database are
+   counted after the load and after the pauses.
 3. **Startup pass** (needs port 34567 free — close Dalaly first; the
    renderer's API base is fixed to that port): launches the packaged app with
    Playwright, alternating two modes, `--runs` times each:
@@ -831,3 +838,200 @@ builds.
   (sessions are deleted with the users they belong to), so `/auth/me`
   answers 401 after the restore commits. On `main` one `/auth/me` returned
   500 during the restore in rounds 3 and 4; not investigated.
+
+## Pool, statement timeout and dashboard, October 2026
+
+Roadmap Phase 2 items 2 and 4. The API's pool used pg's defaults (at most
+10 connections, each closed after 10 s unused, 1.5 s to get one, no
+statement timeout), and `reconfigurePool` built a pool with none of the
+settings. The dashboard summary ran 13–14 statements one after another,
+reading the properties table about 8 times.
+
+Now one `buildPoolConfig(target)` serves the request pool, the pool after
+setup and the startup pool: max 10, 2 connections kept however long the app
+is idle, the rest closed after 5 minutes, 5 s to get a connection, and
+PostgreSQL cancels any statement after 15 s except inside the backup
+snapshot, the restore and the migration transaction. The dashboard reads
+each table's status counts and money figures in one aggregate, counts the
+monthly activity in one pass, takes the 20 newest audit rows before joining
+them, and runs its 12 statements two at a time. Its response is unchanged
+(`test:dashboard` compares it with the old queries).
+
+### Packaged builds
+
+`pnpm perf` (8 launches per mode), `main` at `aaf9930` against the branch
+at `6350bc1`, usual dataset. The rounds ran main, branch, branch, main,
+branch: another process listened on port 34567 twice during the session and
+stopped again (most likely a `pnpm dev`; nothing was closed for this),
+so branch round 1 has the API pass only, and the second main round's first
+launch timed out and lost the run (the harness now writes the API pass
+before the startup pass begins). `GET /properties`, which this branch does
+not change, shows the machine's state: branch rounds 1 and 2 ran on a
+faster machine than the other three.
+
+|                                                       |      main r1 |   branch r1 |   branch r2 |      main r3 |   branch r3 |
+| ----------------------------------------------------- | -----------: | ----------: | ----------: | -----------: | ----------: |
+| `GET /dashboard/summary` (median / p95 ms)            |  42.9 / 44.9 | 21.3 / 25.8 | 15.6 / 17.5 |  42.5 / 50.9 | 21.4 / 34.5 |
+| 4-client dashboard (median / p95 ms)                  |  66.0 / 95.8 | 22.1 / 57.8 | 20.4 / 57.9 |  56.1 / 64.0 | 22.9 / 58.9 |
+| 4-client dashboard (requests/s)                       |         57.2 |       142.0 |       135.1 |         68.5 |       130.2 |
+| 4-client dashboard, slowest of 60 (ms)                |        105.2 |        64.4 |       166.3 |         73.9 |       159.3 |
+| `GET /auth/me` after a 12 s pause (median / max ms)   | 41.2 / 149.3 |   4.0 / 5.7 |   4.6 / 5.1 | 42.0 / 159.7 |  3.4 / 10.9 |
+| `GET /dashboard/summary` after a pause (median / max) | 95.7 / 107.7 | 23.4 / 35.0 | 31.4 / 52.7 | 90.0 / 116.3 | 15.7 / 29.1 |
+| API database connections after the load / the pauses  |        4 / 1 |       8 / 8 |       8 / 8 |        4 / 1 |       8 / 8 |
+| `GET /auth/me` warm (median ms)                       |          2.6 |         4.4 |         2.8 |          3.0 |         4.1 |
+| `GET /properties`, all 5,000 rows (median ms)         |        259.8 |       161.8 |       140.3 |        257.1 |       265.2 |
+| 4-client search (requests/s)                          |          4.5 |         8.4 |         5.9 |          5.1 |         5.1 |
+| API CPU during the API pass (s)                       |         25.9 |        17.0 |        18.4 |         25.3 |        24.8 |
+| Login → dashboard data, repeat profile (median ms)    |        344.4 |           – |       341.9 |        357.3 |       310.4 |
+| Login → dashboard painted, repeat profile (median ms) |        469.0 |           – |       475.3 |        493.0 |       441.9 |
+| Login form visible, repeat profile (median ms)        |       1181.2 |           – |      1188.2 |       1253.9 |      1224.1 |
+
+The dashboard response is the same 30,236 bytes from both builds' APIs on
+one seeded database (compared byte for byte, three times).
+
+### How the values were chosen
+
+Dev PC (Windows 11, i5-14400F, PostgreSQL 18.3, SCRAM-SHA-256 with 4,096
+iterations), a seeded perf database (5,000 properties, 2,000 rentals,
+20,000 audit rows).
+
+**What a new connection costs.** Opening one (TCP, SCRAM login, a new
+backend process) and running `select 1`: 32.5 ms median (25 connections).
+Opened at the same moment, as a pool does when several queries arrive
+after its connections were closed, the last one is ready after:
+
+| connections at once             |    1 |    2 |    4 |     6 |    10 |
+| ------------------------------- | ---: | ---: | ---: | ----: | ----: |
+| all ready (median ms, 8 rounds) | 34.2 | 39.4 | 51.0 | 141.0 | 146.7 |
+
+A new backend also plans its first queries with cold catalog caches: the
+old dashboard took 64 ms on a connection that had only run `select 1`, 38 ms
+on a used one. An idle backend holds 4.4 MB of private memory after
+connecting and 5.6 MB after serving dashboards (24 MB working set, most of
+it shared memory).
+
+**Idle connections: min 2, 5 minutes.** Nothing in the renderer polls, so
+between two clicks the pool used to close everything after 10 s. Over HTTP
+(the API from source on the seeded database, medians of 4 requests each
+after 12 s without any):
+
+|                                               | pg defaults | min 2, idle 5 min |
+| --------------------------------------------- | ----------: | ----------------: |
+| `GET /auth/me` after the pause (ms)           |        38.8 |              13.2 |
+| `GET /dashboard/summary` after the pause (ms) |        77.2 |              35.3 |
+| `GET /dashboard/summary` warm (ms)            |        17.1 |              14.8 |
+
+The remaining cost after a pause is not the pool: on one connection kept
+open, the first `select count(*) from properties` after 12 s idle took 27,
+13, 0.9 and 0.8 ms (0.6–0.8 ms warm), while a CPU-only loop in Node took
+4.1–3.0 ms instead of 3.0 ms. Windows and PostgreSQL waking up costs
+0–30 ms per pause, connections or not.
+
+**Connect/queue timeout: 5 s.** pg-pool uses one value both for waiting for
+a free connection and for opening a new one. With another session holding
+`LOCK TABLE properties IN ACCESS EXCLUSIVE MODE` for 3 s while 16 clients
+load the dashboard: at 1.5 s all 16 failed with a 500 ("timeout exceeded
+when trying to connect") after 1.65 s, because each dashboard request
+acquires several connections in turn and every acquire waited behind the
+blocked ones; at 5 s all 16 succeeded after 3.1 s. Health checks and the
+startup steps keep 1.5 s, so an unreachable database is reported as fast
+as before.
+
+**Max connections: 10.** Dashboard requests from N parallel clients, 15
+each, two rounds (requests/s):
+
+| max | 4 clients | 16 clients |
+| --: | --------: | ---------: |
+|   4 |    97–106 |     96–113 |
+|  10 |    97–138 |    128–159 |
+|  20 |   119–130 |    160–171 |
+
+(three rounds for max 10.) The spread at 4 clients is as large as the
+differences; at 16 clients 4 is clearly slower and 20 somewhat faster, on a
+PC with 10 cores. An office PC has 2–4, one desk sends a request at a time
+and remote users are few, so 10 stays.
+
+**Statement timeout: 15 s.** It is the limit the startup and setup
+connections already had. The slowest request of the API pass,
+`GET /properties` (all 5,000 rows), takes under 0.33 s (p95) on this PC
+including serialization, and the 5,000-row Excel import commits in statements of
+≤ 55 ms, so ordinary work stays far below it even on a PC ten times slower.
+The backup snapshot and the restore rewrite whole tables and migrations may
+build indexes on large tables; they set `SET LOCAL statement_timeout = 0` in
+their transactions (`test:timeouts` checks each, and that the limit is back
+afterwards).
+
+**Dashboard queries, in-process** (`getDashboard` timed in Node against the
+same database, medians of 30 warm calls; "empty pool" is a call right after
+every idle connection was closed). Each step is one commit:
+
+| step                                                           |       warm (ms) | empty pool (ms) |
+| -------------------------------------------------------------- | --------------: | --------------: |
+| before (13–14 statements in sequence)                          |       35.6–40.5 |       85.0–95.9 |
+| one aggregate per table for counts and money                   | 40.6 (old 39.5) | 98.1 (old 95.9) |
+| monthly activity in one pass (was a nested loop, 9.3 → 4.6 ms) | 27.6 (old 35.6) | 75.6 (old 85.4) |
+| 20 newest audit rows before the joins (7.0 → 3.7 ms)           | 25.0 (old 37.4) | 76.1 (old 88.2) |
+| two statements at a time                                       | 14.9 (old 36.2) | 59.7 (old 85.0) |
+
+Parallel width, same measurement (new queries, 20 calls each):
+
+| statements at once |    1 |    2 |    3 |    4 |    10 |
+| ------------------ | ---: | ---: | ---: | ---: | ----: |
+| warm (ms)          | 24.7 | 15.0 | 16.8 | 15.4 |  16.1 |
+| empty pool (ms)    | 78.8 | 60.8 | 64.6 | 70.3 | 138.2 |
+| connections opened |    1 |    2 |    3 |    4 |    10 |
+
+Running all of them at once (an unbounded `Promise.all`, the three rental
+statements included) was faster warm, 11.9 ms, and the slowest on an empty
+pool, 151.5 ms: ten new backends, started one at a time.
+
+### What improved
+
+- **The dashboard request** takes 15.6–21.4 ms instead of 42.5–42.9 (about
+  half), p95 17.5–34.5 instead of 44.9–50.9. Four clients get 130–142
+  dashboards a second instead of 57–69.
+- **The first request after a pause** no longer opens a connection:
+  `GET /auth/me` 3.4–4.6 ms instead of 41–42 ms (worst 5–11 instead of
+  149–160), the dashboard 15.7–31.4 instead of 90–96. Nothing in the
+  renderer polls, so before, every click after 10 s of reading paid this.
+- **A busy or blocked database** no longer turns into 500s after 1.5 s: a
+  request waits up to 5 s for a connection and gets an Arabic 503 if none
+  comes, and a statement that runs 15 s is cancelled with an Arabic 503
+  instead of holding its connection. Behind a 3 s lock, 16 dashboard
+  requests now all succeed (all 16 failed before).
+- `reconfigurePool` (the pool after the setup wizard) has the same settings
+  as the pool at startup; it had none of them.
+
+### What did not improve, or got worse
+
+- **Login → dashboard in the app** is within noise (310–342 ms vs 344–357
+  ms for the data, 442–475 vs 469–493 painted): the dashboard request was
+  ~40 ms of it, the rest is login (scrypt), the route chunk and rendering.
+- **Merging the counts and money figures into one aggregate**, the change
+  roadmap item 2 named, made no measurable difference on its own (40.6 vs
+  39.5 ms in-process): those statements took about 1 ms each. The time was
+  in the monthly activity (a nested loop) and the recent activity (joins
+  before the limit), and in running everything in sequence.
+- **More open connections.** After the 4-client load the API keeps 8
+  connections for 5 minutes instead of closing them after 10 s, and keeps 2
+  for as long as it runs; PostgreSQL holds ~6 MB private memory per backend
+  (~12 MB for the two that stay, ~48 MB for eight). One desk opens fewer:
+  the dashboard uses 2 at a time.
+- **The first requests of a burst** can be slower: the slowest of the 60
+  four-client dashboards took 159–166 ms in two branch rounds (main 74–105),
+  when the pool opens six more connections at once and Windows starts their
+  backends one at a time.
+- **A pause still costs something**: 0–30 ms on the first query after 12 s
+  idle even on a connection that stays open (Windows and PostgreSQL waking
+  up); see the table above.
+- **Requests can now fail where they used to wait**: a statement still
+  waiting after 15 s (for example a property save waiting for the record
+  code lock behind a very slow Excel import) is cancelled with "استغرقت
+  العملية وقتاً أطول من المسموح"; before, it waited however long it took.
+  The routes that catch errors themselves (deleting a governorate, district,
+  neighbourhood, role or user) still return the driver's English text as a
+  400 in that case; Phase 5.2 removes those catch-alls.
+- **Recent activity still reads every audit row** (3.7 ms at 20,000); an
+  index on `audit_logs(entity_type, created_at)` is roadmap item 2.3.
+- **Not measured** on a real low-end PC, where connections, cold caches and
+  the 2-at-a-time choice may weigh differently.

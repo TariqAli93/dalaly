@@ -85,6 +85,8 @@ pnpm --filter @dalaly/server test:paging         # server-paged property and ren
 pnpm --filter @dalaly/server test:thumbnails     # list rows' primary images, thumbnails, backups without them
 pnpm --filter @dalaly/server test:import         # Excel import: all rows or none, row cap, same skips as before
 pnpm --filter @dalaly/server test:queries        # users/roles lists and location names in a fixed number of queries
+pnpm --filter @dalaly/server test:dashboard      # dashboard summary unchanged by its merged queries
+pnpm --filter @dalaly/server test:timeouts       # slow statements cut off in Arabic; backup, restore, migrations exempt
 pnpm --filter @dalaly/server test:maps:runtime
 pnpm --filter @dalaly/server test:startup:electron  # real Electron startup (needs a display)
 ```
