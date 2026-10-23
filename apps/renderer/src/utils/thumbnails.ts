@@ -14,7 +14,9 @@ const THUMBNAIL_SIZE = 320;
 export async function makeThumbnail(source: Blob): Promise<string | null> {
   let bitmap: ImageBitmap | undefined;
   try {
-    bitmap = await createImageBitmap(source);
+    bitmap = await createImageBitmap(source, {
+      imageOrientation: "from-image",
+    });
     const scale = Math.min(
       1,
       THUMBNAIL_SIZE / Math.max(bitmap.width, bitmap.height),
