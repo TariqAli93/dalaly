@@ -90,6 +90,22 @@ const rows = [
     (r) => r.api?.concurrentPageSearch && `${r.api.concurrentPageSearch.median} / ${r.api.concurrentPageSearch.p95}`,
   ],
   ["4-client search as the page sends it (requests/s)", (r) => r.api?.concurrentPageSearch?.requestsPerSecond],
+  [
+    "4-client dashboard (median / p95 ms)",
+    (r) => r.api?.concurrentDashboard && `${r.api.concurrentDashboard.median} / ${r.api.concurrentDashboard.p95}`,
+  ],
+  ["4-client dashboard (requests/s)", (r) => r.api?.concurrentDashboard?.requestsPerSecond],
+  ...["GET /auth/me", "GET /dashboard/summary"].map((name) => [
+    `${name} after a 12 s pause (median / max ms)`,
+    (r) => {
+      const s = r.api?.afterPause?.[name];
+      return s && `${s.median} / ${s.max}`;
+    },
+  ]),
+  [
+    "API database connections after the pass / after a pause",
+    (r) => r.api?.connections && `${r.api.connections.afterLoad} / ${r.api.connections.afterPause}`,
+  ],
   ["API working set after load (MB)", (r) => r.api?.apiProcess.workingSetMBAfter],
   ["API CPU during API pass (s)", (r) => r.api?.apiProcess.cpuSecondsDuringRun],
 ];

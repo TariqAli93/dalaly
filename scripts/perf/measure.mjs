@@ -24,6 +24,7 @@ import {
   packagedApp,
   painted,
   portIsFree,
+  query,
   root,
   rowImagesPainted,
   seedDataset,
@@ -74,6 +75,8 @@ const sizes = {
 // The renderer's API base is fixed at build time to this port.
 const APP_API_PORT = 34567;
 const IDLE_SAMPLE_MS = 10_000;
+// Longer than pg's default 10 s idle timeout for pooled connections.
+const PAUSE_MS = 12_000;
 // The list request a page sends: the whole array (before server paging) or
 // one page from /paged. Image and audit requests do not match.
 const LIST_REQUEST = {
@@ -241,7 +244,19 @@ async function measureApi(port, apiPid, build) {
         : `/properties?q=${encodeURIComponent("شارع 1")}`,
     ),
   );
+  // Four clients opening the dashboard, as office PCs do after logging in.
+  const concurrentDashboard = await concurrently(get("/dashboard/summary"));
   const after = windowsProcessInfo([apiPid])[apiPid];
+  const connectionsAfterLoad = await apiConnections();
+
+  // The first request after a pause in which nobody used the app: pg closes
+  // connections idle for 10 s by default, so it may wait for a new one.
+  const afterPause = {};
+  for (const [name, pathname] of [
+    ["GET /auth/me", "/auth/me"],
+    ["GET /dashboard/summary", "/dashboard/summary"],
+  ])
+    afterPause[name] = await timeAfterPause(get(pathname));
 
   return {
     sequential,
@@ -249,6 +264,9 @@ async function measureApi(port, apiPid, build) {
     pageRequests,
     concurrentSearch,
     concurrentPageSearch,
+    concurrentDashboard,
+    afterPause: { pauseSeconds: PAUSE_MS / 1000, ...afterPause },
+    connections: { afterLoad: connectionsAfterLoad, afterPause: await apiConnections() },
     apiProcess: {
       workingSetMBBefore: round(before?.workingSetMB),
       workingSetMBAfter: round(after?.workingSetMB),
@@ -306,6 +324,27 @@ async function listPageRequests(port, token, build) {
     "Purchase requests page: open": `/purchase-requests/paged?q=&${updated}`,
     "Documents page: open (list request)": "/documents/paged?page=1&page_size=10&sort_by=uploaded_at&sort_order=desc",
   };
+}
+
+/** `request` timed 6 times, each after PAUSE_MS without any request. */
+async function timeAfterPause(request) {
+  const samples = [];
+  for (let i = 0; i < 6; i += 1) {
+    await sleep(PAUSE_MS);
+    const started = performance.now();
+    await request();
+    samples.push(performance.now() - started);
+  }
+  return stats(samples);
+}
+
+/** Connections the API holds to the perf database (not counting this query's). */
+async function apiConnections() {
+  const { rows } = await query(
+    databaseName,
+    "SELECT count(*)::int AS count FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid()",
+  );
+  return rows[0].count;
 }
 
 /** Four clients sending `request` 15 times each, in parallel. */
@@ -826,6 +865,10 @@ function printApi(result) {
   );
   console.log("Concurrent search:", result.concurrentSearch);
   console.log("Concurrent search, as the page sends it:", result.concurrentPageSearch);
+  console.log("Concurrent dashboard:", result.concurrentDashboard);
+  console.log(`After a ${result.afterPause.pauseSeconds} s pause:`);
+  console.table({ "GET /auth/me": result.afterPause["GET /auth/me"], "GET /dashboard/summary": result.afterPause["GET /dashboard/summary"] });
+  console.log("API database connections:", result.connections);
   console.log("API process:", result.apiProcess);
 }
 

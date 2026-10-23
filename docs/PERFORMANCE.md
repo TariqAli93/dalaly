@@ -61,8 +61,13 @@ compare its results only with its own.
    probed once after seeding. Then 4 parallel clients
    send 15 searches each (throughput and latency under contention), once as
    `GET /properties?search=…` (comparable with older results) and once in
-   the form the properties page sends. API working set, private memory and
-   CPU time are read before and after.
+   the form the properties page sends, and once more loading
+   `/dashboard/summary`. API working set, private memory and CPU time are
+   read before and after. Last, `GET /auth/me` and `GET /dashboard/summary`
+   are timed 6 times each after a 12 s pause with no requests (longer than
+   pg's default 10 s idle timeout, after which the next request waits for a
+   new database connection), and the API's connections to the database are
+   counted after the load and after the pauses.
 3. **Startup pass** (needs port 34567 free — close Dalaly first; the
    renderer's API base is fixed to that port): launches the packaged app with
    Playwright, alternating two modes, `--runs` times each:
