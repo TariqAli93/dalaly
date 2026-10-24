@@ -5,6 +5,7 @@ seeded throwaway database, so results can be compared between builds.
 
 ```bash
 pnpm build
+pnpm fetch:cloudflared   # the measured package includes cloudflared.exe
 pnpm --filter @dalaly/desktop exec electron-builder --win --dir --publish never
 pnpm perf -- --app apps/desktop/release/win-unpacked --label my-change
 ```
@@ -710,6 +711,7 @@ time (`modules/backup/backup.archive.ts`). The archive layout is unchanged.
 
 ```bash
 pnpm build
+pnpm fetch:cloudflared   # the measured package includes cloudflared.exe
 pnpm --filter @dalaly/desktop exec electron-builder --win --dir --publish never
 pnpm perf:backup -- --app apps/desktop/release/win-unpacked --label my-change --media-dir perf-results/media
 ```
