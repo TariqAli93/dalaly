@@ -89,6 +89,21 @@ These are not code-quality calls; they change history, data or behavior.
    requires approval), `server/data/documents/**` (tracked despite
    `.gitignore`), demo images. Untracking is safe for the working tree;
    purging history is a separate, force-push decision.
+   - _Implemented (owner decision 5, 2026-10-24):_ the owner confirmed the
+     dumps and documents hold no real customer data. They, the 60 seed
+     images (68-byte PNGs that `pnpm db:seed` writes; the web demo copies
+     its own from `source-assets/`) and `cloudflared.exe` are untracked,
+     and `.gitignore` covers `server/data/` and `tools/cloudflared/` (except
+     its `.gitkeep`). The packaging scripts run `pnpm fetch:cloudflared`,
+     which downloads cloudflared 2026.5.0 from Cloudflare's GitHub release
+     and checks a pinned SHA-256 (`scripts/fetch-cloudflared.mjs`; the hash
+     is that of the binary previously tracked). `pnpm build`, `pnpm dev`
+     and the tests do not need the file or the network. History was not
+     rewritten, so a full clone still downloads the old blobs: its `.git`
+     stays about 31–33 MB (single-branch clone of `main` before, of this
+     branch after). The checkout falls from 70.8 MB in 504 files to
+     20.5 MB in 429 files, and a `--depth 1` clone's `.git` from 23.5 MB to
+     6.4 MB. Shrinking full clones still needs the history purge above.
 3. **Synthetic English listing names.** `toApiObject` fills a missing `name`
    with `"properties P-0001"` / `"rentals R-…"`, so English shows in the Arabic
    UI and the renderer's Arabic fallbacks never run. Fixing it changes the
