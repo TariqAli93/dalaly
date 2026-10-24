@@ -29,7 +29,12 @@ not favour whichever ran second.
 When port 34567 is taken (Dalaly or `pnpm dev` running), the startup pass
 cannot run; the results file then holds the API pass only, with
 `startupSkipped`, and the command exits with code 1. The API pass is also
-written before the startup pass begins, so a failed launch keeps it. `scripts/perf/tables.mjs` measures the properties and rentals
+written before the startup pass begins, so a failed launch keeps it.
+`--reroute` runs the startup pass anyway: the app's API listens on a free
+port and Playwright routes the renderer's requests for 34567 there, as
+`test:startup:electron` does. Its request counts hold, but every request
+passes through Playwright, so its timings do not compare with a normal
+run (the results say `rerouted: true`). `scripts/perf/tables.mjs` measures the properties and rentals
 tables, with photos, in Playwright's Chromium instead: it serves the build's
 renderer over HTTP and sends its requests for 127.0.0.1:34567 to the build's
 API on a free port.
@@ -92,7 +97,20 @@ compare its results only with its own.
    offer with the "linked properties" tab clicked as soon as it shows
    (`peopleToPersonProperties…`; `…Data` waits for every property list
    request the page sends), the rental and purchase requests lists and the
-   documents list. On the first repeat launch it samples every Electron
+   documents list, the person pickers and the edit forms. Last come the
+   actions that once sent a list twice, each counted until the API has
+   been quiet for 800 ms (longer than the filters' 300 ms debounce): a
+   second visit to the properties list, the top-bar search there and from
+   the rentals list (`topbarSearchFromRentalsPainted`), clearing the
+   filters from an empty list (`clearFiltersPainted`) and the rentals list
+   as the first page after a reload; then a three-row .xlsx chosen in the
+   import dialog until its columns show (`importFileParsed`). Counts:
+   `<step>ListRequests`, `…ApiRequests`, `…LocationsRequests` and
+   `…AbortedRequests` (a superseded load; it still reached the API), also
+   for the properties open, search and rentals steps, where
+   `dashboardToPropertiesScriptKB` is the renderer JS that route loaded.
+   The results also hold the build's JS sizes (`bundle`: all files, the
+   properties page chunk, an xlsx chunk). On the first repeat launch it samples every Electron
    process (`app.getAppMetrics()`) plus the API child: working set, private
    memory and CPU over 10 s idle, at the login form, on the dashboard, on
    the properties list and on the people list.
@@ -1249,3 +1267,111 @@ within the run-to-run noise, which in startup marks is large on this PC
 - **No Arabic letter normalization**: the old search had none, and keeping
   the same rows ruled it out. `احمد` does not find `أحمد`; normalizing hamza
   forms, ة/ه and ى/ي would widen what matches, a product decision.
+
+## Persistent shell, lazy xlsx and duplicate loads, October 2026
+
+Builds: `main` at `cb0250f` against the branch at `0982188` (the shell
+mounted once in a parent route, the refresh button cleared per page,
+`xlsx` loaded by the import dialog, the duplicate list and locations
+loads removed), both measured with the branch's harness, alternately in
+three rounds (A, B, A, B, A, B), 8 launches per mode, the default dataset
+without photos. Same development PC, another day. Round 1 of `main` ran
+while the whole machine was about twice as slow, including marks this
+change cannot affect (splash loaded 1344 ms against 600–625 ms in the
+other five runs, API READY 1676 against 769–807 ms), so its timings are
+left out below; its sizes and request counts matched the other rounds.
+
+Sizes and request counts (the same in every round):
+
+|                                                                       |   `main` |  branch |
+| --------------------------------------------------------------------- | -------: | ------: |
+| Properties page chunk (KB; Vite's gzip kB)                            | 350; 123 | 25; 8.5 |
+| `xlsx` chunk, loaded by the first file the import dialog parses (KB)  |        – |     325 |
+| All renderer JS (KB)                                                  |     1534 |    1539 |
+| JS files the properties route loads from the dashboard (KB)           |      441 |     116 |
+| Top-bar search on the properties list: list requests                  |        2 |       1 |
+| Clear filters from an empty list: list requests                       |        2 |       1 |
+| Top-bar search from the rentals list: list requests (aborted)         |    2 (1) |   1 (0) |
+| Rentals list, first page after a reload: locations · all API requests |    2 · 5 |   1 · 4 |
+| Properties open, search, later visit; rentals open: list requests     |        1 |       1 |
+
+Timings, medians of the repeat profile (ms):
+
+|                                                       | main r2 | branch r2 | main r3 | branch r3 |
+| ----------------------------------------------------- | ------: | --------: | ------: | --------: |
+| Dashboard → properties list, response received        |   171.6 |     113.3 |   171.4 |     107.7 |
+| Dashboard → properties list painted                   |   256.5 |     198.5 |   255.0 |     189.5 |
+| Properties → rentals list painted                     |   199.3 |     181.2 |   198.4 |     174.7 |
+| Rentals → people list painted                         |   148.3 |     100.5 |   136.3 |      94.9 |
+| People → person's properties painted                  |   162.8 |     115.6 |   153.9 |     115.6 |
+| Person → rental requests painted                      |   120.5 |      66.5 |   115.0 |      60.8 |
+| Rental → purchase requests painted                    |    96.6 |      60.8 |    91.0 |      54.6 |
+| Purchase requests → documents painted                 |   123.3 |      78.4 |   120.8 |      78.2 |
+| Property edit form filled in                          |   168.6 |     126.3 |   159.9 |     121.8 |
+| Rental edit form filled in                            |   175.6 |     121.3 |   156.0 |     113.5 |
+| Top-bar search from rentals → properties list painted |   242.0 |     193.4 |   229.9 |     193.9 |
+| Clear filters → list painted                          |   110.0 |     100.1 |    99.9 |     101.9 |
+| Properties search (Enter) → painted                   |   113.4 |     113.3 |   113.4 |     109.0 |
+| Import: .xlsx chosen → its columns shown              |    92.1 |     106.0 |    88.6 |     103.9 |
+| Request form: customer field clicked → list shown     |   239.4 |     341.7 |   232.0 |     335.3 |
+| Login click → dashboard painted                       |   433.6 |     431.0 |   438.6 |     426.2 |
+| Login form visible                                    |    1110 |      1200 |    1075 |      1138 |
+| Documents list, renderer process: private (MB)        |   135.1 |     117.1 |   136.4 |     114.7 |
+| Properties list, renderer process: private (MB)       |    95.7 |      93.9 |    94.9 |      96.0 |
+
+The fresh profile agrees (properties list painted 253–256 → 192 ms,
+documents 121 → 73–78 ms, the import 85–91 → 102–105 ms). `node
+scripts/perf/compare.mjs perf-results/shell-*.json` prints every row.
+
+### What improved
+
+- **Every page change** paints sooner: `main` unmounts and mounts the
+  sidebar (every navigation item with its tooltip) and the top bar with
+  each page, the branch only the page. People, a person's properties, the
+  requests pages, documents and both edit forms paint 36–54 ms sooner
+  (24–47%), properties → rentals 18–24 ms. Each page's request also leaves
+  sooner (rentals → people, response received: 79–81 → 43–44 ms). Login →
+  dashboard, where the shell is mounted once either way, is unchanged.
+- **Opening the properties list** paints in 190–199 ms instead of 255–257
+  (−23 to −26%) and loads 116 KB of JS instead of 441: the page chunk no
+  longer carries the Excel parser.
+- **Duplicate requests**: the top-bar search on the properties list and
+  clearing the filters send one list request instead of two (the filter
+  bar's 300 ms debounce repeated the same filters); the top-bar search
+  from another page and the dashboard's shortcuts send one instead of two,
+  the first of which was aborted; the rentals list sends one locations
+  request instead of two when it is the first page that needs them. The
+  top-bar search from the rentals list paints in ~194 ms instead of
+  230–242 ms. (The dashboard's shortcuts and saving an offer are not in
+  the harness; counted in the web demo, each sends one list request on
+  the branch.)
+- **Renderer memory on the documents list**, after a walk through six
+  pages, is lower in all three rounds: 18–22 MB in rounds 2 and 3 (115–117
+  against 135–136 MB private), 34 MB in round 1. The cause was not
+  investigated; on the properties and people lists, earlier in the walk,
+  the difference is within noise.
+
+### What did not improve, or got worse
+
+- **The first import** of a session shows the file's columns ~15 ms later
+  (102–106 against 85–92 ms): it now loads the 325 KB `xlsx` chunk first.
+  Later imports in the same session do not.
+- **Clearing the filters paints no sooner**: the second request came
+  300 ms after the first and replaced its rows with the same ones.
+- **"Request form: customer list shown" reads ~100 ms worse, but it is the
+  harness, not the form.** The mark starts when the form is on screen and
+  includes Playwright waiting for the field to stop moving (the dialog
+  still scales open) before it clicks; it retries that check after 0, 20,
+  100 and 100 ms. Logged in both builds: the dialog settles 283 ms after
+  "add" in both, and the people request leaves when the click lands and
+  returns 2–6 ms later in both. The branch shows the form ~15 ms sooner,
+  so its click usually starts one 100 ms retry earlier in the animation.
+- **Startup**: the login form came 63–90 ms later on the branch with the
+  repeat profile and 17–56 ms sooner with the fresh one, in both rounds:
+  opposite directions, within the spread documented above. The main chunk
+  grew by 0.8 kB (159.95 → 160.78 kB); the layout is a lazy route
+  component, loaded with the first signed-in page as before.
+- **The API pass and the properties search**: unchanged, as expected
+  (this change has no server code). The API pass varied by up to 1.8×
+  between rounds on identical server code (4 clients searching
+  `GET /properties?search=`: 402–760 ms), so its rows say nothing here.
