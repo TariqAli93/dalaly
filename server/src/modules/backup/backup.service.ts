@@ -243,6 +243,18 @@ function timestampLabel(now: Date) {
   );
 }
 
+/**
+ * A new archive's path in `dir`: `<base>.zip`, or `<base>_2.zip`, … when a
+ * backup was already written in the same second, so it never replaces that
+ * one. Callers hold the operation lock, so no other backup takes the name.
+ */
+function newArchivePath(dir: string, base: string) {
+  for (let n = 1; ; n += 1) {
+    const candidate = path.join(dir, `${base}${n > 1 ? `_${n}` : ""}.zip`);
+    if (!fs.existsSync(candidate)) return candidate;
+  }
+}
+
 async function logBackup(jobId: number | null, level: string, message: string) {
   try {
     await db.insert(backupLogs).values({ jobId, level, message });
@@ -398,9 +410,9 @@ export async function createBackup(
   return exclusive(async () => {
     const dir = await getBackupDir();
     fs.mkdirSync(dir, { recursive: true });
-    const filePath = path.join(
+    const filePath = newArchivePath(
       dir,
-      `Dalaly_Backup_${timestampLabel(new Date())}.zip`,
+      `Dalaly_Backup_${timestampLabel(new Date())}`,
     );
     return writeBackupTo(filePath, type, userId);
   });
@@ -598,9 +610,9 @@ async function restoreArchive(
     // Restore replaces whole tables. Keep the current data first so a wrong
     // file can be undone; if that copy cannot be written, nothing is touched.
     const safetyBackup = await writeBackupTo(
-      path.join(
+      newArchivePath(
         await getBackupDir(),
-        `Dalaly_Before_Restore_${timestampLabel(new Date())}.zip`,
+        `Dalaly_Before_Restore_${timestampLabel(new Date())}`,
       ),
       "pre_restore",
       userId,
