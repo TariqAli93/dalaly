@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import type { MatchResult } from "../../types";
 
+/**
+ * نتائج مطابقة طلب بالعروض أو عرض بالطلبات. المطابقة الكاملة تحقق كل
+ * الشروط الأساسية (النوع والموقع والميزانية ونوع الإيجار)؛ الجزئية تبلغ
+ * درجة 40 دونها. لا نسبة مئوية: الدرجة مجموع أوزان لا يُقسَم على شيء.
+ */
 const open = defineModel<boolean>({ required: true });
 defineProps<{
   matches: MatchResult[];
@@ -26,12 +31,20 @@ function titleOf(match: MatchResult) {
 function subtitleOf(match: MatchResult) {
   const record = recordOf(match);
   const customer = record.customer_name || record.customer_code;
-  return customer
-    ? `${customer} · نسبة المطابقة ${match.score}%`
-    : `نسبة المطابقة ${match.score}%`;
+  const preferences = match.preferences_total
+    ? `التفضيلات ${match.preferences_met} من ${match.preferences_total}`
+    : "بلا تفضيلات محددة";
+  return customer ? `${customer} · ${preferences}` : preferences;
 }
 
-function reasonsOf(match: MatchResult) {
+function missedOf(match: MatchResult) {
+  return match.reasons
+    .filter((reason) => reason.required && !reason.matched)
+    .map((reason) => reason.detail)
+    .join(" · ");
+}
+
+function metOf(match: MatchResult) {
   return match.reasons
     .filter((reason) => reason.matched)
     .map((reason) => reason.detail)
@@ -40,7 +53,7 @@ function reasonsOf(match: MatchResult) {
 </script>
 
 <template>
-  <v-dialog v-model="open" max-width="760">
+  <v-dialog v-model="open" max-width="760" scrollable>
     <v-card>
       <v-card-title class="d-flex align-center ga-2">
         <span>{{ title }}: {{ matches.length }}</span>
@@ -62,13 +75,19 @@ function reasonsOf(match: MatchResult) {
             @click="emit('open', match)"
           >
             <template #append>
-              <v-chip size="small" color="success" variant="tonal">
-                {{ match.score }}%
+              <v-chip
+                size="small"
+                :color="match.required_met ? 'success' : 'warning'"
+                variant="tonal"
+                label
+              >
+                {{ match.required_met ? "مطابقة كاملة" : "مطابقة جزئية" }}
               </v-chip>
             </template>
-            <div class="text-caption">
-              {{ reasonsOf(match) || "مطابقة جزئية" }}
+            <div v-if="!match.required_met" class="text-caption text-warning">
+              لم يتحقق: {{ missedOf(match) }}
             </div>
+            <div class="text-caption">{{ metOf(match) }}</div>
           </v-list-item>
         </v-list>
         <v-empty-state
