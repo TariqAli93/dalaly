@@ -1,11 +1,12 @@
 // Repeatable performance measurements of a packaged build.
 //
 //   node scripts/perf/measure.mjs --app apps/desktop/release/win-unpacked [--label main]
-//        [--runs 8] [--properties 5000] [--photos 3] [--skip-api] [--skip-startup]
+//        [--runs 8] [--properties 5000] [--photos 3] [--skip-api] [--skip-startup] [--reroute]
 //
 // Needs the local PostgreSQL (DB_* from .env). Creates and drops its own
 // dalaly_perf_<timestamp> database and uses temporary profiles, so it never
-// touches real data. The startup pass needs port 34567 free (close Dalaly).
+// touches real data. The startup pass needs port 34567 free (close Dalaly),
+// or --reroute, whose timings do not compare (request counts do).
 // Results go to perf-results/<label>.json and are printed as tables.
 import fs from "node:fs";
 import { createRequire } from "node:module";
@@ -53,6 +54,10 @@ const { values: options } = parseArgs({
     photos: { type: "string", default: "0" },
     "skip-api": { type: "boolean", default: false },
     "skip-startup": { type: "boolean", default: false },
+    // The app's API on a free port, the renderer's requests to 34567 routed
+    // there by Playwright: for request counts while 34567 is taken. Every
+    // request passes through Playwright, so its timings do not compare.
+    reroute: { type: "boolean", default: false },
   },
 });
 if (!options.app) throw new Error("--app <win-unpacked folder> is required");
@@ -75,6 +80,8 @@ const sizes = {
 };
 // The renderer's API base is fixed at build time to this port.
 const APP_API_PORT = 34567;
+// Where the app's API listens in the startup pass: 34567, or a free port with --reroute.
+let appApiPort = APP_API_PORT;
 const IDLE_SAMPLE_MS = 10_000;
 // Longer than pg's default 10 s idle timeout for pooled connections.
 const PAUSE_MS = 12_000;
@@ -149,10 +156,17 @@ try {
   apiChild = undefined;
 
   if (!options["skip-startup"]) {
+    if (options.reroute) {
+      appApiPort = await freePort();
+      results.rerouted = true;
+      console.log(`\nAPI on port ${appApiPort}, requests rerouted: compare request counts, not timings.`);
+    }
     // Checked only now, after the API pass, so keep what that pass measured.
-    if (!(await portIsFree(APP_API_PORT))) {
-      results.startupSkipped = `port ${APP_API_PORT} in use`;
-      console.error(`\nPort ${APP_API_PORT} is in use (Dalaly or pnpm dev running): startup pass skipped.`);
+    if (!(await portIsFree(appApiPort))) {
+      results.startupSkipped = `port ${appApiPort} in use`;
+      console.error(
+        `\nPort ${appApiPort} is in use (Dalaly or pnpm dev running): startup pass skipped. --reroute runs it for request counts.`,
+      );
       process.exitCode = 1;
     } else {
       results.startup = await measureStartup(results.build);
@@ -406,12 +420,17 @@ async function measureStartup(build) {
       fs.mkdirSync(path.dirname(photos), { recursive: true });
       fs.symlinkSync(seededImagesDir(), photos, "junction");
     }
-    return _electron.launch({
+    const electron = await _electron.launch({
       executablePath: app.exe,
       args: [`--user-data-dir=${profile}`],
-      env: cleanEnv(),
+      env: { ...cleanEnv(), ...(options.reroute ? { API_PORT: String(appApiPort) } : {}) },
       timeout: 60_000,
     });
+    if (options.reroute)
+      await electron.context().route(`http://127.0.0.1:${APP_API_PORT}/api/**`, (route) =>
+        route.continue({ url: route.request().url().replace(`:${APP_API_PORT}/`, `:${appApiPort}/`) }),
+      );
+    return electron;
   };
 
   const samples = { fresh: [], repeat: [] };
@@ -462,7 +481,7 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
   const healthPoll = (async () => {
     while (apiReadyAt === undefined && !stopPolling) {
       try {
-        const response = await fetch(`http://127.0.0.1:${APP_API_PORT}/api/health`, {
+        const response = await fetch(`http://127.0.0.1:${appApiPort}/api/health`, {
           signal: AbortSignal.timeout(1000),
         });
         if ((await response.json()).startup_state === "READY") apiReadyAt = performance.now();
@@ -623,8 +642,8 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
     await electron.close();
     // before-quit stops the API; the next launch needs its port.
     const deadline = Date.now() + 20_000;
-    while (!(await portIsFree(APP_API_PORT))) {
-      if (Date.now() > deadline) throw new Error(`API still holds port ${APP_API_PORT} after quit`);
+    while (!(await portIsFree(appApiPort))) {
+      if (Date.now() > deadline) throw new Error(`API still holds port ${appApiPort} after quit`);
       await sleep(100);
     }
   }
