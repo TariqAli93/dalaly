@@ -9,7 +9,6 @@ import RentalDetailsDialog from "../components/rentals/RentalDetailsDialog.vue";
 import MasterDetailLayout from "../components/shared/MasterDetailLayout.vue";
 import * as rentals from "../services/rentals.service";
 import { getErrorMessage } from "../services/api.service";
-import { useLocations } from "../composables/useLocations";
 import { usePermissions } from "../composables/usePermissions";
 import { useSnackbar } from "../composables/useSnackbar";
 import { useConfirm } from "../composables/useConfirm";
@@ -24,7 +23,6 @@ import type {
 } from "../types";
 
 const router = useRouter();
-const { loadLocations } = useLocations();
 const { can } = usePermissions();
 const { notifyError, notifySuccess } = useSnackbar();
 const { openConfirm } = useConfirm();
@@ -229,11 +227,10 @@ async function exportSelected() {
   }
 }
 
-onMounted(async () => {
-  await loadLocations();
-  setRefreshHandler(reload);
-  await reload();
-});
+// قبل أن يُظهر الجدول خياراته الأولى، فلا يطلب الصفحة نفسها مرتين. المواقع
+// تطلبها الفلاتر، والجدول لا ينتظرها (أسماء المواقع في صفوفه).
+void reload();
+onMounted(() => setRefreshHandler(reload));
 onBeforeUnmount(() => list.cancel());
 </script>
 

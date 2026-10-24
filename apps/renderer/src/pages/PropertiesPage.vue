@@ -159,10 +159,11 @@ function paneDelete() {
   if (selectedProperty.value) askDelete(selectedProperty.value);
 }
 
+// نفس الصفحة والفلاتر من الزيارة السابقة، قبل أن يُظهر الجدول خياراته الأولى
+// فلا يطلب الصفحة نفسها مرتين.
+void reloadProperties();
 onMounted(() => {
   setRefreshHandler(reloadProperties);
-  // نفس الصفحة والفلاتر من الزيارة السابقة.
-  void reloadProperties();
   void loadFavoriteIds();
 });
 </script>
