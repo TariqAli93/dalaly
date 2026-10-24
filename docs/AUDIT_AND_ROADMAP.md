@@ -108,6 +108,21 @@ table are what they answer.
    requires approval), `server/data/documents/**` (tracked despite
    `.gitignore`), demo images. Untracking is safe for the working tree;
    purging history is a separate, force-push decision.
+   - _Implemented (owner decision 5, 2026-10-24):_ the owner confirmed the
+     dumps and documents hold no real customer data. They, the 60 seed
+     images (68-byte PNGs that `pnpm db:seed` writes; the web demo copies
+     its own from `source-assets/`) and `cloudflared.exe` are untracked,
+     and `.gitignore` covers `server/data/` and `tools/cloudflared/` (except
+     its `.gitkeep`). The packaging scripts run `pnpm fetch:cloudflared`,
+     which downloads cloudflared 2026.5.0 from Cloudflare's GitHub release
+     and checks a pinned SHA-256 (`scripts/fetch-cloudflared.mjs`; the hash
+     is that of the binary previously tracked). `pnpm build`, `pnpm dev`
+     and the tests do not need the file or the network. History was not
+     rewritten, so a full clone still downloads the old blobs: its `.git`
+     stays about 31–33 MB (single-branch clone of `main` before, of this
+     branch after). The checkout falls from 70.8 MB in 504 files to
+     20.5 MB in 429 files, and a `--depth 1` clone's `.git` from 23.5 MB to
+     6.4 MB. Shrinking full clones still needs the history purge above.
 3. **Synthetic English listing names.** `toApiObject` fills a missing `name`
    with `"properties P-0001"` / `"rentals R-…"`, so English shows in the Arabic
    UI and the renderer's Arabic fallbacks never run. Fixing it changes the
@@ -169,9 +184,9 @@ table are what they answer.
   read every image into memory and compressed synchronously: a 2 GB backup
   froze the API for its whole length and peaked at 6.7 GB, a restore at
   8.7 GB; with 2.4 GB of files the backup failed ("Array buffer allocation
-  failed") and archives over 2 GiB could not be restored. Still: no
-  retention; images extracted after the DB commit. (Lock and pre-restore
-  copy added in Phase 1.)
+  failed") and archives over 2 GiB could not be restored. Still: images
+  extracted after the DB commit. (Lock and pre-restore copy added in
+  Phase 1, retention after the owner's decision, section 2.5.)
 - **Uploads** are base64 inside JSON (50 MB route limit since Phase 1, 1 MB
   elsewhere), no per-file limit, no content sniffing, no thumbnails.
 - **Error shapes** vary (`{code,messageKey,message}` / `{message}` /
@@ -270,8 +285,9 @@ phases below:
    needs `remote_access.manage` (D2).
 2. Done: backups no longer include `config.json`; backup, export, scheduled
    run and restore share one lock (409 when busy); restore first writes
-   `Dalaly_Before_Restore_<time>.zip`. **Not done:** retention of the last N
-   backups — it deletes user files, so it needs an owner decision.
+   `Dalaly_Before_Restore_<time>.zip`. Retention, decided by the owner
+   (section 2.5): the newest 10 scheduled backups and 10 pre-restore copies
+   are kept; nothing else is deleted.
 3. Done: dashboard sections and matching follow their domains' read
    permissions.
 4. Done: auth runs on `onRequest`; 1 MB global body limit, 50 MB on the
