@@ -118,6 +118,25 @@ seeded throwaway database — see `docs/PERFORMANCE.md`:
 pnpm perf -- --app apps/desktop/release/win-unpacked --label my-change
 ```
 
+## Backups
+
+Settings → النسخ الاحتياطي. A backup is a zip of the database, the property
+images and the documents, written to the backup folder (manual backups and
+exports are never deleted by the app). A restore first saves the current data
+as `Dalaly_Before_Restore_<time>.zip`.
+
+The scheduled run (desktop app only) writes a full backup into the backup folder
+and emails only `Dalaly_Database_<time>.dalaly-enc`: the database without images
+or documents, encrypted with the password set in the scheduled-backup card
+(AES-256-GCM, scrypt). **A lost password makes every emailed copy
+unrecoverable**; the full backups stay in the local folder. Restoring a
+`.dalaly-enc` file asks for that password and leaves the images and documents on
+disk as they are.
+
+The app keeps the newest 10 scheduled backups and the newest 10 pre-restore
+copies in the backup folder and deletes older ones of those two kinds only,
+logging each deletion (`backup_logs`; the job shows as `pruned`).
+
 ## Web Demo Mode (capture only)
 
 A separate, isolated mode that serves the same Vue app in a plain browser. It exists

@@ -60,7 +60,7 @@ main-process calls such as setup proxying and the scheduled backup run.
 | `main.js`                           | lifecycle, main window, API child process, startup sequence, setup/startup/maps/config IPC |
 | `splash.js`                         | splash window, progress stages, `splash:*` IPC                                             |
 | `document-export.js`                | `export:save-pdf` (offscreen print), `export:save-file`, `export:save-folder`              |
-| `backup.js`                         | backup file/folder dialogs, schedule IPC, email backup scheduler                           |
+| `backup.js`                         | backup file/folder dialogs, schedule IPC, scheduler emailing the encrypted database copy   |
 | `backup-schedule.js`                | pure due-time check (unit tested)                                                          |
 | `app-config.js`                     | read/write `userData/config.json`                                                          |
 | `json-file.js`                      | atomic JSON write with `.bak` copy; read falls back to it (unit tested)                    |
@@ -182,6 +182,28 @@ Conventions:
   builds read with adm-zip 0.5.17 (`manifest.json`, `data.json`,
   `images/properties/…`, `documents/…`, directory entries);
   `test:backup:compat` restores an archive written by such a build.
+- The scheduled run (`apps/desktop/src/backup.js`) writes a full backup to
+  the backup folder (`/api/backup/internal-run`, type `email`) and emails
+  only the database: `/api/backup/internal-email-archive` returns
+  `manifest.json` (with `contents: "database"`) and `data.json`, zipped and
+  encrypted in memory by `modules/backup/backup.crypto.ts` (AES-256-GCM,
+  scrypt key, header `DALALYENC` + version + parameters + salt + IV +
+  password check, authenticated), as `Dalaly_Database_<time>.dalaly-enc`.
+  The password is kept like the SMTP one (`safeStorage`, never sent to the
+  renderer); without it nothing is emailed. Restore recognizes the header,
+  not the extension, and decrypts before reading anything, so a missing or
+  wrong password or a damaged file is an Arabic 400 that changes nothing. A
+  database-only archive restores rows and writes no files: the images and
+  documents on disk stay, and the `images` scope is refused for it.
+- Retention (owner decision, 2026-10-24): after a scheduled backup or a
+  pre-restore copy succeeds, under the operation lock, copies of that kind
+  beyond the newest 10 on disk are deleted. A file goes only if a successful
+  job of that type recorded it, no other job did, it is named the way that
+  kind is named, and it sits directly in the configured backup folder;
+  manual backups, exports and other files are never deleted. Each deletion
+  is logged and written to `backup_logs`, and its job rows become `pruned`
+  (kept). Two backups in the same second get `_2`, `_3`… names instead of
+  sharing one.
 - Database connections: `buildPoolConfig(target)` in
   `infrastructure/config.ts` configures every pool on the app's database
   (the request pool, the one `reconfigurePool` switches to after setup, the
