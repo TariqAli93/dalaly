@@ -73,8 +73,7 @@ local PostgreSQL. They read `DB_HOST`, `DB_PORT`, `DB_USER` and `DB_PASSWORD`
 ```bash
 pnpm --filter @dalaly/server build            # runtime suites start server/dist
 pnpm --filter @dalaly/server test:runtime     # also :phase1 … :phase5, :spaces
-pnpm --filter @dalaly/server test:removal     # backup restore + retired-module checks (see below)
-pnpm --filter @dalaly/server test:removal:backup # backup restore only
+pnpm --filter @dalaly/server test:removal:backup # full backup round trip; retired contract metadata is refused
 pnpm --filter @dalaly/server test:restore:large  # restore beyond one INSERT's bind limit
 pnpm --filter @dalaly/server test:backup:safety  # no config.json, one operation at a time, pre-restore copy
 pnpm --filter @dalaly/server test:backup:compat  # an archive from the adm-zip build restores; new archives keep its layout
@@ -101,12 +100,6 @@ a PostgreSQL 18 service container. That job runs every suite above except:
 
 - `test:startup:electron`: launches the real Electron app, so it needs a
   display and the Windows Electron binary.
-- `test:removal` (and `test:removal:legacy`): `removal-core.test.ts` and
-  `removal-legacy.test.ts` replay the contract-system retirement migration
-  `0003`, which the migration squash (`eb63ea4`) deleted, so they fail until
-  that path is restored or formally retired (an owner decision,
-  `docs/AUDIT_AND_ROADMAP.md` section 2.1). The third file runs as
-  `test:removal:backup`.
 - `test:removal:electron` and `test:removal:browser` (not listed above): they
   drive a packaged Windows build and the renderer in Playwright's Chromium.
 
