@@ -87,7 +87,6 @@ const LIST_REQUEST = {
   purchaseRequests: /\/api\/purchase-requests(\/paged)?(\?|$)/,
   documents: /\/api\/documents(\/paged)?(\?|$)/,
 };
-const LOCATIONS_REQUEST = /\/api\/locations(\?|$)/;
 const PROPERTY_SEARCH_PLACEHOLDER = "ابحث باسم المالك، الهاتف، رقم القطعة، المنطقة أو أي وصف";
 const TOPBAR_SEARCH_PLACEHOLDER = "البحث في العروض العقارية…";
 const PAGE_SEARCH = "بغداد";
@@ -758,55 +757,21 @@ function trackApiBytes(page) {
 }
 
 /**
- * Counts the API requests a step sends: all of them, the list requests
- * matching `list`, the locations requests, and how many of them were
- * aborted (a superseded list load; it still reached the API). The returned
- * function waits until no API request has been sent or answered for 800 ms,
- * longer than the filters' 300 ms debounce, so a debounced repeat counts too.
+ * The requests of a step (trackApi), counted until the API has been quiet
+ * for 800 ms: longer than the filters' 300 ms debounce, so a debounced
+ * repeat counts too.
  */
 function trackApiRequests(page, list) {
-  const counts = { api: 0, list: 0, locations: 0, aborted: 0 };
-  let inFlight = 0;
-  let lastChange = performance.now();
-  const isApi = (request) => request.url().includes("/api/");
-  const onRequest = (request) => {
-    if (!isApi(request)) return;
-    counts.api += 1;
-    if (list.test(request.url())) counts.list += 1;
-    if (LOCATIONS_REQUEST.test(request.url())) counts.locations += 1;
-    inFlight += 1;
-    lastChange = performance.now();
-  };
-  const onDone = (request) => {
-    if (!isApi(request)) return;
-    inFlight -= 1;
-    lastChange = performance.now();
-  };
-  const onFailed = (request) => {
-    if (!isApi(request)) return;
-    counts.aborted += 1;
-    onDone(request);
-  };
-  page.on("request", onRequest);
-  page.on("requestfinished", onDone);
-  page.on("requestfailed", onFailed);
-  return async () => {
-    const deadline = performance.now() + 10_000;
-    while ((inFlight > 0 || performance.now() - lastChange < 800) && performance.now() < deadline) await sleep(25);
-    page.off("request", onRequest);
-    page.off("requestfinished", onDone);
-    page.off("requestfailed", onFailed);
-    return counts;
-  };
+  return trackApi(page, { quietMs: 800, list });
 }
 
 /** `stepListRequests`, `stepApiRequests`, … marks from trackApiRequests' counts. */
-function requestMarks(step, counts) {
+function requestMarks(step, traffic) {
   return {
-    [`${step}ListRequests`]: counts.list,
-    [`${step}ApiRequests`]: counts.api,
-    [`${step}LocationsRequests`]: counts.locations,
-    [`${step}AbortedRequests`]: counts.aborted,
+    [`${step}ListRequests`]: traffic.listRequests,
+    [`${step}ApiRequests`]: traffic.requests,
+    [`${step}LocationsRequests`]: traffic.locationsRequests,
+    [`${step}AbortedRequests`]: traffic.aborted,
   };
 }
 
