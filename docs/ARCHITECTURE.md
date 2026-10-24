@@ -215,10 +215,13 @@ Conventions:
 - Add a service file only when a repository alone would mix concerns; most
   modules are CRUD and stay `routes → repository`.
 - Migrations live in `server/drizzle` and are never edited or deleted once
-  shipped. `run-migrations.ts` deliberately skips the retired contract-system
-  migrations by tag (`0001_contract_studio`/`0002_studio_ux`) and gates
-  `0003_remove_contract_system` behind explicit approval; the current
-  `0001_default_document_types` is unrelated and runs normally.
+  shipped. `run-migrations.ts` applies, in journal order, each one newer
+  than the last applied, and refuses to start when an applied one's hash
+  changed. The retired contract system has no removal path: its tables, rows
+  and files on an existing install stay as they are, the app never reads
+  them, and no migration drops them. A cleanup needs the owner's separate
+  approval after a backup and a real restore test
+  (`docs/CONTRACT_SYSTEM_REMOVAL_MAP.md`).
 - The runner hashes each migration's raw bytes, so line endings are part of a
   shipped migration. `.gitattributes` pins `server/drizzle/*.sql` to LF (what
   drizzle-kit writes and what packaged builds and existing databases recorded),
