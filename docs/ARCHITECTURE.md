@@ -23,7 +23,9 @@ Electron main (apps/desktop/src)
   requires a bearer session token; `requirePermission` checks RBAC keys per
   route. Anonymous setup mutations are further limited to local callers by
   `requireLocalSetup`, which also refuses requests forwarded by the optional
-  Cloudflare tunnel (they arrive from 127.0.0.1). Wrong PINs are throttled
+  Cloudflare tunnel (they arrive from 127.0.0.1). Starting or stopping that
+  tunnel needs `remote_access.manage`, which only Super Admin has by
+  default; its status needs `settings.read`. Wrong PINs are throttled
   per account in `modules/auth/login-throttle.ts`.
 - **Logging**: the API's pino output is piped into electron-log in
   production. Request URLs are logged without their query string (image and
