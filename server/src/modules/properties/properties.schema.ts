@@ -12,6 +12,7 @@ import {
   refineLocation,
 } from "../../shared/validation/location.js";
 import {
+  booleanField,
   optionalCount,
   optionalId,
   optionalText,
@@ -62,7 +63,7 @@ export const propertyPayloadSchema = z
     frontage: optionalText,
     rooms_count: optionalCount,
     bathrooms_count: optionalCount,
-    is_negotiable: z.coerce.boolean().optional().default(false),
+    is_negotiable: booleanField.optional().default(false),
     amenities: z.record(z.string(), z.unknown()).default({}),
   })
   .superRefine((value, ctx) => {

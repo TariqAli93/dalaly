@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 import zlib from "node:zlib";
 import yauzl from "yauzl";
 import yazl from "yazl";
+import { DomainError } from "../../shared/errors.js";
 
 /**
  * Backup archives are streamed: files go from disk into the zip and back out
@@ -133,14 +134,20 @@ export async function openArchive(
       const data = Buffer.allocUnsafe(length);
       const { bytesRead } = await file.read(data, 0, length, start);
       if (bytesRead !== length)
-        throw new Error("ملف النسخة الاحتياطية ناقص أو تغيّر أثناء القراءة.");
+        throw new DomainError(
+          400,
+          "ملف النسخة الاحتياطية ناقص أو تغيّر أثناء القراءة.",
+        );
       return data;
     };
     return {
       entries,
       async read(entry) {
         if (entry.isEncrypted() || ![0, 8].includes(entry.compressionMethod))
-          throw new Error(`صيغة ملف غير مدعومة داخل النسخة: ${entry.fileName}`);
+          throw new DomainError(
+            400,
+            `صيغة ملف غير مدعومة داخل النسخة: ${entry.fileName}`,
+          );
         const { fileDataStart } = await new Promise<{ fileDataStart: number }>(
           (resolve, reject) =>
             zip.readLocalFileHeader(
@@ -156,7 +163,10 @@ export async function openArchive(
           data.length !== entry.uncompressedSize ||
           zlib.crc32(data) !== entry.crc32
         )
-          throw new Error(`ملف تالف داخل النسخة الاحتياطية: ${entry.fileName}`);
+          throw new DomainError(
+            400,
+            `ملف تالف داخل النسخة الاحتياطية: ${entry.fileName}`,
+          );
         return data;
       },
       async close() {

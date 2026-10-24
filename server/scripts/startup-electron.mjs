@@ -1,5 +1,6 @@
 // Real Electron + HTTP + PostgreSQL startup regression. All database mutations
 // are confined to randomly named databases created by this process.
+/* global window -- page.evaluate callbacks run in the renderer */
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";

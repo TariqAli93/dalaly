@@ -17,6 +17,7 @@ import {
   markInstallationInitialized,
 } from "../../infrastructure/database/setup-marker.js";
 import { prepareDatabase } from "../../infrastructure/database/startup.js";
+import { DomainError } from "../../shared/errors.js";
 import { hashPin } from "../auth/crypto.js";
 import { SUPER_ADMIN_ROLE } from "../rbac/rbac.constants.js";
 import {
@@ -36,13 +37,24 @@ const ADMIN_DATABASE = "postgres";
 const CONNECTION_TIMEOUT_MS = 5000;
 let setupInProgress = false;
 
-export class SetupError extends Error {
-  constructor(
-    message: string,
-    readonly statusCode = 409,
-  ) {
-    super(message);
+export class SetupError extends DomainError {
+  constructor(message: string, statusCode = 409) {
+    super(statusCode, message);
+    this.name = "SetupError";
   }
+}
+
+/**
+ * Setup is the one place that shows PostgreSQL's own reason for a failure
+ * (wrong password, unreachable host, no CREATE DATABASE right): whoever
+ * installs the app has to fix exactly that.
+ */
+function setupFailure(prefix: string, error: unknown) {
+  const reason = error instanceof Error ? error.message : String(error);
+  return new SetupError(
+    `${prefix}: ${reason}`,
+    error instanceof DomainError ? error.statusCode : 400,
+  );
 }
 
 export async function withSetupOperation<T>(
@@ -105,6 +117,8 @@ export async function testPostgresConnection(input: TestPostgresInput) {
       ok: true as const,
       database_exists: exists,
     };
+  } catch (error) {
+    throw setupFailure("تعذر الاتصال بـ PostgreSQL", error);
   } finally {
     await adminPool.end().catch(() => undefined);
   }
@@ -115,7 +129,11 @@ export async function testPostgresConnection(input: TestPostgresInput) {
  * migrations، يبذر صلاحيات النظام، وينشئ أول Super Admin لتثبيت جديد فقط.
  */
 export async function initializeSystem(input: InitializeInput) {
-  return withSetupOperation(() => initializeNewSystem(input));
+  try {
+    return await withSetupOperation(() => initializeNewSystem(input));
+  } catch (error) {
+    throw setupFailure("تعذر تهيئة النظام", error);
+  }
 }
 
 async function initializeNewSystem(input: InitializeInput) {

@@ -24,6 +24,11 @@ export type FollowupRecord = {
   created_at: string;
 };
 
+/** متابعة عرض إيجاري: نفس الحقول مع rental_id بدل property_id. */
+export type RentalFollowupRecord = Omit<FollowupRecord, "property_id"> & {
+  rental_id: number;
+};
+
 export type BackupJob = {
   id: number;
   type: string;

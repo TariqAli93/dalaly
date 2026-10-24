@@ -218,7 +218,6 @@ async function main() {
       },
     });
     check("create rental 201", rental.status === 201 && typeof rental.body?.id === "number", rental);
-    const rentalId = rental.body?.id;
 
     const rentalRequest = await req("POST", "/rental-requests", {
       token,
@@ -304,7 +303,7 @@ async function main() {
         firstAdminPin: "4321",
       },
     });
-    check("re-initialize refused 409", init2.status === 409 && init2.body?.ok === false, init2);
+    check("re-initialize refused 409", init2.status === 409 && init2.body?.code === "CONFLICT" && typeof init2.body?.message === "string", init2);
 
     const usersAfter = await req("GET", "/users", { token });
     check("no duplicate users after re-init (still 2)", Array.isArray(usersAfter.body) && usersAfter.body.length === 2, usersAfter.body?.length);

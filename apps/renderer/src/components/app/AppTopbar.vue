@@ -5,7 +5,7 @@ import { useAuth } from "../../composables/useAuth";
 import ThemeToggle from "./ThemeToggle.vue";
 
 // title/subtitle للعرض فقط (يمرّرهما AppLayout من عنوان الصفحة الحالي).
-const props = defineProps<{ title?: string; subtitle?: string }>();
+defineProps<{ title?: string; subtitle?: string }>();
 const emit = defineEmits<{ refresh: []; "toggle-drawer": [] }>();
 
 const router = useRouter();

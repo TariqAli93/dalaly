@@ -61,7 +61,6 @@ export type RentalRecord = {
   longitude: number | null;
   location_link: string | null;
   id: number;
-  image: string;
   name: string | null;
   code: string;
   property_type: RentalPropertyType;

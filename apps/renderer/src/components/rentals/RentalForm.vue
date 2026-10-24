@@ -10,7 +10,7 @@ import RentalImages from "./RentalImages.vue";
 import PersonPicker from "../people/PersonPicker.vue";
 import { AMENITY_OPTIONS } from "../../utils/amenities";
 const model = defineModel<RentalFormType>({ required: true });
-const props = defineProps<{
+defineProps<{
   editing?: boolean;
   saving?: boolean;
   rentalId?: number | null;

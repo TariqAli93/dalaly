@@ -7,7 +7,7 @@ import {
 } from "../../infrastructure/database/record-codes.js";
 import { people, properties } from "../../infrastructure/database/schema.js";
 import { MAX_IMPORT_ROWS } from "../../shared/constants/limits.js";
-import { DuplicatePlotError } from "../../shared/errors.js";
+import { DomainError, DuplicatePlotError } from "../../shared/errors.js";
 import { postgresError } from "../../shared/utils/postgres-errors.js";
 import {
   getLocationNamesByIds,
@@ -27,12 +27,9 @@ import {
 
 type RawRow = Record<string, unknown>;
 
-export class ImportError extends Error {
-  constructor(
-    message: string,
-    readonly statusCode: 400 | 409 = 400,
-  ) {
-    super(message);
+export class ImportError extends DomainError {
+  constructor(message: string, statusCode: 400 | 409 = 400) {
+    super(statusCode, message);
     this.name = "ImportError";
   }
 }

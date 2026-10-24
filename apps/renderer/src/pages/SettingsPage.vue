@@ -14,7 +14,6 @@ import { useRefresh } from "../composables/useRefresh";
 import { useIdleLock } from "../composables/useIdleLock";
 import ChangePinDialog from "../components/auth/ChangePinDialog.vue";
 import BackupSettings from "../components/setup/BackupSettings.vue";
-import ScheduledBackupSettings from "../components/setup/ScheduledBackupSettings.vue";
 import * as companyService from "../services/company-settings.service";
 import { readFileAsDataUrl } from "../utils/files";
 import AppearanceSettings from "../components/settings/AppearanceSettings.vue";

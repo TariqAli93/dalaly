@@ -8,6 +8,7 @@ import {
   properties,
 } from "../../infrastructure/database/schema.js";
 import { toApiObject, toApiObjects } from "../../shared/utils/case.js";
+import { DomainError } from "../../shared/errors.js";
 import {
   type DistrictPayload,
   type DistrictUpdatePayload,
@@ -57,7 +58,7 @@ export async function updateGovernorate(
 export async function deleteGovernorate(id: number) {
   const linked = await countPropertiesByGovernorate(id);
   if (linked > 0) {
-    throw new Error("لا يمكن حذف محافظة مرتبطة بعقارات.");
+    throw new DomainError(400, "لا يمكن حذف محافظة مرتبطة بعقارات.");
   }
 
   const [row] = await db
@@ -98,7 +99,7 @@ export async function updateDistrict(
 export async function deleteDistrict(id: number) {
   const linked = await countPropertiesByDistrict(id);
   if (linked > 0) {
-    throw new Error("لا يمكن حذف منطقة مرتبطة بعقارات.");
+    throw new DomainError(400, "لا يمكن حذف منطقة مرتبطة بعقارات.");
   }
 
   const [row] = await db
@@ -139,7 +140,7 @@ export async function updateNeighborhood(
 export async function deleteNeighborhood(id: number) {
   const linked = await countPropertiesByNeighborhood(id);
   if (linked > 0) {
-    throw new Error("لا يمكن حذف حي مرتبط بعقارات.");
+    throw new DomainError(400, "لا يمكن حذف حي مرتبط بعقارات.");
   }
 
   const [row] = await db

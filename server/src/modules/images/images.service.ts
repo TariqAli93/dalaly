@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "../../infrastructure/config.js";
+import { DomainError } from "../../shared/errors.js";
 
 const EXT_BY_MIME: Record<string, string> = {
   "image/jpeg": ".jpg",
@@ -41,7 +42,8 @@ export function saveScopedImageToDisk(
   originalName?: string,
 ) {
   const { buffer, ext } = decodeImage(data, originalName);
-  if (!buffer.length) throw new Error("ملف الصورة فارغ أو غير صالح.");
+  if (!buffer.length)
+    throw new DomainError(400, "ملف الصورة فارغ أو غير صالح.");
   const dir = scope
     ? path.join(config.imagesDir, scope, String(entityId))
     : path.join(config.imagesDir, String(entityId));
@@ -99,10 +101,6 @@ export function deleteImageFromDisk(filePath: string) {
 /** أكبر حجم لمصغّرة: الواجهة تصنعها بعرض 320 بكسل فتأتي بعشرات الكيلوبايت. */
 export const THUMBNAIL_MAX_BYTES = 256 * 1024;
 
-export class ThumbnailError extends Error {
-  readonly statusCode = 400;
-}
-
 /**
  * مجلد المصغّرات بجوار مجلد الصور لا بداخله، فالنسخ الاحتياطية (التي تضم
  * مجلد الصور) لا تحملها، وتُصنع من جديد متى غابت. تُصنع في الواجهة من
@@ -142,14 +140,14 @@ export function decodeThumbnail(data: string) {
     buffer[1] === 0xd8 &&
     buffer[2] === 0xff;
   if (!isJpeg || buffer.length > THUMBNAIL_MAX_BYTES)
-    throw new ThumbnailError("المصغّرة ليست صورة JPEG صالحة.");
+    throw new DomainError(400, "المصغّرة ليست صورة JPEG صالحة.");
   return buffer;
 }
 
 /** يكتب المصغّرة دفعة واحدة (ملف مؤقت ثم إعادة تسمية) فلا تُقرأ نصف مكتوبة. */
 export function writeThumbnail(filePath: string, thumbnail: Buffer) {
   const target = resolveThumbnailPath(filePath);
-  if (!target) throw new ThumbnailError("مسار الصورة غير صالح.");
+  if (!target) throw new DomainError(400, "مسار الصورة غير صالح.");
   fs.mkdirSync(path.dirname(target), { recursive: true });
   const temporary = `${target}.${crypto.randomUUID()}.tmp`;
   fs.writeFileSync(temporary, thumbnail);

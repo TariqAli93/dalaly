@@ -376,15 +376,62 @@ fix).
 
 ### Phase 5 — maintainability gates
 
-1. ESLint (typescript-eslint + eslint-plugin-vue), errors only at first, in
-   CI.
-2. One `DomainError(status, message)`; remove route catch-alls; one error
-   response shape; fix `z.coerce.boolean()`.
+1. Done: ESLint 9 flat config at the root (`eslint.config.mjs`) over
+   `server`, `apps/renderer` and `apps/desktop`; `pnpm lint` runs it and
+   the typecheck, CI's `check` job runs it. Errors only, defects only:
+   `eslint:recommended` (no-undef in `.js`, empty blocks except `catch`),
+   unused variables and imports, `@typescript-eslint/no-floating-promises`
+   in `server/src` and `apps/renderer/src` (type-aware), and
+   eslint-plugin-vue's `essential` set. Prettier still formats. Left out:
+   floating promises in `.js` (Electron main has no type information) and in
+   the test scripts (node:test's `test()` returns a promise), and the root
+   `scripts/` tooling (perf harness, web demo).
+2. Done: `DomainError(status, message, code?)` in `shared/errors.ts`, handled
+   by the central error handler; `DuplicatePlotError`, `SetupError`,
+   `BackupBusyError` and `ImportError` extend it (the streamed archive's
+   read errors are 400 `DomainError`s too), `ThumbnailError` and the dead
+   `DocumentError` are gone. Every error body is `{ code, message }` (`issues` added for
+   validation), Arabic message; a `preSerialization` hook gives the plain
+   `reply.code(…).send({ message })` answers their status's code, and unknown
+   routes answer 404 in Arabic. Removed: the catch-alls in the users, roles,
+   locations, backup, setup and setup-admin routes. Their Arabic business
+   messages are `DomainError`s now (same text and status); unexpected
+   failures, which used to send the driver's or file system's English text
+   (400 in users/roles/locations, 500 `{ ok: false }` in backup), are a 409
+   for unique/foreign-key violations and otherwise a generic 500. Setup keeps
+   showing PostgreSQL's reason on purpose (`setupFailure`). Status changes:
+   a backup file that cannot be read, the archive checks and the export-path
+   checks are 400s (were 500s), and so is an empty document or image upload
+   (was a generic 500). `booleanField` replaces
+   `z.coerce.boolean()` (documents, properties, rentals). Shape changes:
+   `ok: false` (backup, setup errors) and `messageKey` are gone, `code` is
+   added; no caller read either (the renderer and Electron read `message`
+   and the HTTP status). Fast test: `scripts/error-shape.test.ts` in
+   `pnpm test`.
 3. Shared renderer pieces where duplication is real: `FilterBar` +
    `useDebouncedApply`, one `ImageGallery` with a service adapter,
    `useListingSort`.
-4. API contract tests: for each list/detail endpoint, assert the response keys
-   and types against the renderer types (run against the isolated test DB).
+4. Done: `test:contract` (`scripts/api-contract.test.ts`, in CI's `database`
+   job) calls every list and detail endpoint the renderer reads, plus the
+   creates it uses, on a `removalTestContext()` database, and checks each
+   body's keys and value types both ways against the renderer's own types.
+   The expectations are generated: `scripts/renderer-contract.ts` reads the
+   `request<T>(path)` calls in `apps/renderer/src/services` with the
+   TypeScript compiler API, so drift on either side fails, and so does a
+   renderer GET the test does not call. Error bodies are checked against
+   the renderer's `ApiErrorBody`. What it found was fixed on the type side
+   (a stale `RentalRecord.image`, roles embedded in users without
+   `permission_ids`, rental follow-ups with `rental_id`, timestamps and
+   `archived_at`/`permissions` the types left out). Not fixed, listed in
+   `KNOWN_DRIFT` (API bugs; changing them changes responses): creating a
+   follow-up returns the raw camelCase row, and `toApiObject(row, table)`
+   adds a synthetic English `name` ("people P-1", and "properties P-1" for
+   an unnamed property, which person details shows). Also found:
+   `PersonEditor.vue` maps validation issues by `issue.path`, but the API
+   sends `field`, so field errors never reach their inputs (the message
+   shows in the dialog's alert instead). Not covered: mutation responses
+   other than the creates the test makes, file and image downloads,
+   `/stats` (no renderer caller).
 5. Done: the `database` job in `ci.yml` (Linux, PostgreSQL 18 service) runs
    the runtime, restore and other database suites. Left out, with reasons in
    the workflow and the README: the Electron, packaged-build and Playwright

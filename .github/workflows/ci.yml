@@ -28,6 +28,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      # pnpm lint runs this and the typecheck above.
+      - run: pnpm exec eslint .
       # Fast suites only; they blank DB settings and need no PostgreSQL.
       - run: pnpm test
       - run: pnpm build
@@ -155,6 +157,9 @@ jobs:
       - name: test:search
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:search
+      - name: test:contract
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:contract
       - name: test:removal:backup
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:removal:backup

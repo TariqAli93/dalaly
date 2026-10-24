@@ -2,7 +2,7 @@ import cors from "@fastify/cors";
 import Fastify, { type FastifyServerOptions } from "fastify";
 import { ZodError } from "zod";
 import { config } from "./infrastructure/config.js";
-import { DuplicatePlotError, DocumentError } from "./shared/errors.js";
+import { DomainError, errorCodeForStatus } from "./shared/errors.js";
 import { DEFAULT_BODY_LIMIT } from "./shared/constants/limits.js";
 import {
   isPoolTimeout,
@@ -116,11 +116,29 @@ export async function buildServer(options: { logger?: boolean } = {}) {
     return { ok: true, ...status };
   });
 
+  // Every error response has one shape: { code, message } with an Arabic
+  // message, plus `issues` for validation errors. Routes that answer
+  // reply.code(404).send({ message }) get their status's code here.
+  app.addHook("preSerialization", async (_request, reply, payload) => {
+    if (
+      reply.statusCode < 400 ||
+      !payload ||
+      typeof payload !== "object" ||
+      Array.isArray(payload) ||
+      "code" in payload
+    )
+      return payload;
+    return { code: errorCodeForStatus(reply.statusCode), ...payload };
+  });
+
+  app.setNotFoundHandler((_request, reply) =>
+    reply.code(404).send({ message: "المسار المطلوب غير موجود." }),
+  );
+
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof ZodError) {
       return reply.code(400).send({
         code: "VALIDATION_ERROR",
-        messageKey: "validation.invalid",
         message: "بيانات الطلب غير صحيحة.",
         issues: error.issues.map((issue) => ({
           field: issue.path.join("."),
@@ -129,20 +147,16 @@ export async function buildServer(options: { logger?: boolean } = {}) {
       });
     }
 
-    if (error instanceof DuplicatePlotError) {
-      return reply.code(409).send({
-        code: "DUPLICATE_PLOT",
-        messageKey: "error.duplicatePlot",
-        message: error.message,
-      });
-    }
+    if (error instanceof DomainError)
+      return reply
+        .code(error.statusCode)
+        .send({ code: error.code, message: error.message });
 
-    if (error instanceof DocumentError)
-      return reply.code(error.statusCode).send({ message: error.message });
     // Drizzle wraps PostgreSQL errors, so read the SQLSTATE through `cause`.
     const sqlState = postgresError(error)?.code;
     if (sqlState === "23503")
       return reply.code(409).send({
+        code: "RECORD_IN_USE",
         message: "لا يمكن تنفيذ العملية بسبب ارتباط السجل ببيانات أخرى.",
       });
     if (sqlState === "23505")
@@ -167,31 +181,22 @@ export async function buildServer(options: { logger?: boolean } = {}) {
         message: "قاعدة البيانات مشغولة حالياً. أعد المحاولة بعد قليل.",
       });
     }
+
+    // Fastify's own client errors (malformed JSON, body too large, wrong
+    // content type) keep their status. Their messages are English, and only
+    // a DomainError's message is meant for the user.
     const statusCode =
       error instanceof Error && "statusCode" in error
         ? Number(error.statusCode)
         : 0;
-    if (statusCode === 403) {
-      return reply.code(403).send({ message: (error as Error).message });
-    }
-    // Client errors keep their status instead of becoming a 500. Fastify's
-    // own (malformed JSON, body too large, wrong content type) carry English
-    // messages; errors thrown by our modules already carry Arabic ones.
-    if (statusCode >= 400 && statusCode < 500) {
-      const fastifyError = String(
-        (error as { code?: unknown }).code ?? "",
-      ).startsWith("FST_");
+    if (statusCode >= 400 && statusCode < 500)
       return reply.code(statusCode).send({
-        code: "BAD_REQUEST",
-        message: fastifyError
-          ? (clientErrorMessages[statusCode] ?? "بيانات الطلب غير صالحة.")
-          : (error as Error).message,
+        message: clientErrorMessages[statusCode] ?? "بيانات الطلب غير صالحة.",
       });
-    }
+
     request.log.error({ err: error }, "unhandled error");
     return reply.code(500).send({
       code: "INTERNAL_ERROR",
-      messageKey: "error.generic",
       message: "حدث خطأ أثناء تنفيذ العملية.",
     });
   });
