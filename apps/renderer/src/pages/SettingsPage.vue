@@ -55,7 +55,6 @@ async function lockNow() {
 }
 
 const remoteStatus = ref<RemoteStatus>({
-  enabled: false,
   running: false,
   url: null,
   message: null,
