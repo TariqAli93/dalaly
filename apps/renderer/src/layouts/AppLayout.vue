@@ -11,7 +11,7 @@ import { appearance } from "../composables/useAppearance";
 // إطار التطبيق للصفحات بعد تسجيل الدخول: مسار أب في الموجّه، فيبقى مركّباً
 // أثناء التنقّل (لا تُطوى القائمة الموسّعة عند كل صفحة). ترويسة كل صفحة
 // وأزرارها في AppPage داخل الصفحة نفسها.
-const { refresh } = useRefresh();
+const { refresh, canRefresh } = useRefresh();
 const { pageTitle } = usePageTitle();
 const route = useRoute();
 const { mdAndUp } = useDisplay();
@@ -49,6 +49,7 @@ function toggleNav() {
   <v-main class="dal-main">
     <AppTopbar
       :title="pageTitle"
+      :can-refresh="canRefresh"
       @refresh="refresh"
       @toggle-drawer="toggleNav"
     />

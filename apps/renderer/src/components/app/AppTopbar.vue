@@ -4,8 +4,9 @@ import { useProperties } from "../../composables/useProperties";
 import { useAuth } from "../../composables/useAuth";
 import ThemeToggle from "./ThemeToggle.vue";
 
-// title للعرض فقط (يمرّره AppLayout من عنوان الصفحة الحالية).
-const props = defineProps<{ title?: string }>();
+// title للعرض فقط (يمرّره AppLayout من عنوان الصفحة الحالية)، وcanRefresh:
+// هل سجّلت الصفحة الحالية ما يعيد تحميلها.
+const props = defineProps<{ title?: string; canRefresh?: boolean }>();
 const emit = defineEmits<{ refresh: []; "toggle-drawer": [] }>();
 
 const router = useRouter();
@@ -65,6 +66,7 @@ async function onLogout() {
       variant="text"
       title="تحديث"
       aria-label="تحديث البيانات"
+      :disabled="!canRefresh"
       @click="emit('refresh')"
     />
 
