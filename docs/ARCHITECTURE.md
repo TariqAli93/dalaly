@@ -229,7 +229,19 @@ Conventions:
   (`inParallel` in `dashboard.repository.ts`); each running query holds a
   connection, and after an idle pause every extra one is a new backend.
   `test:dashboard` compares its response with the pre-merge queries kept in
-  `server/scripts/dashboard-reference.ts`.
+  `server/scripts/dashboard-reference.ts`. The renderer's dashboard no
+  longer calls it; it reads `/dashboard/overview` and `/dashboard/matching`
+  (`dashboard.operations.repository.ts`), which need only a signed-in user
+  and return `null` for each section whose read permission is missing.
+  Every figure is defined in `docs/OPERATIONS_DASHBOARD.md`.
+- Matching rules live in `modules/matching/matching.rules.ts`, once as
+  `evaluateMatch` (one pair, with reasons) and once as SQL builders (every
+  pair, for the dashboard). Required criteria (type, and when stated
+  location, budget, rent period) decide a match; preferences only rank.
+  A change to one form needs the same change to the other:
+  `test:dashboard:operations` evaluates every request against every listing
+  both ways. Raw queries that return timestamps run on `pool` (compiled
+  with `PgDialect`), since `db.execute` keeps them as PostgreSQL text.
 - User-facing messages are Arabic. Keep request/response shapes stable: the
   renderer types in `apps/renderer/src/types` mirror them by hand, and
   `test:contract` checks every response the renderer reads against the type
@@ -281,7 +293,13 @@ maps come from `constants/` (for example `RENT_PERIODS` /
 The signed-in pages are children of one route whose component is
 `layouts/AppLayout.vue` (sidebar, top bar, `<router-view>`), so the shell
 stays mounted while the user moves between pages and keeps its state (an
-expanded sidebar). Each page wraps its content in
+expanded sidebar, which is also remembered between launches in
+`localStorage`). The sidebar's groups, order and permissions are
+`NAV_SECTIONS` in `constants/domain.ts`; create pages are not navigation
+items. `Ctrl+K` focuses the top bar's search, which searches sale listings
+only and says so. Rentals have no detail route: `/rentals?open=<id>` opens
+a rental's details dialog and `/rentals?status=<status>` starts the list
+with that status; the request pages take `?open=<id>` and `?new=1`. Each page wraps its content in
 `components/app/AppPage.vue`: the page header (title, subtitle, the
 `header-actions` slot) and the title for the top bar (`usePageTitle`). A
 page that can reload its data registers it with `useRefresh` in

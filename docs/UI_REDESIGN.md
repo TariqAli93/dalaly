@@ -29,8 +29,10 @@ a matching app/sidebar canvas and applies a 60/30/10 neutral/teal color system.
   Hover transitions take 180ms and respect reduced-motion preferences.
 - Arabic RTL, tabular numbers, isolated phone/identifier text, visible keyboard
   focus, reduced-motion preferences, and teleported overlays share the same style.
-- Shared presentation components: PageHeader, MetricCard, OfferTrendChart,
-  DistributionChart, ListingImage, StatusChip, and EmptyState.
+- Shared presentation components: PageHeader, ListingImage, StatusChip, and
+  EmptyState. (MetricCard, OfferTrendChart, DistributionChart and
+  RankedBarList went with the old dashboard; see
+  [OPERATIONS_DASHBOARD.md](OPERATIONS_DASHBOARD.md).)
 
 ## Screen composition
 
