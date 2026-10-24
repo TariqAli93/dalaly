@@ -1,5 +1,3 @@
-import * as XLSX from "xlsx";
-
 export type ParsedSheet = {
   headers: string[];
   rows: Record<string, unknown>[];
@@ -7,10 +5,12 @@ export type ParsedSheet = {
 
 /** قراءة ملف Excel وإرجاع الترويسات والصفوف. */
 export async function parseXlsx(file: File): Promise<ParsedSheet> {
+  // مكتبة xlsx كبيرة (~330 KB)، فتُحمَّل عند قراءة أول ملف لا مع صفحة العروض.
+  const { read, utils } = await import("xlsx");
   const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: "array" });
+  const workbook = read(buffer, { type: "array" });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+  const rows = utils.sheet_to_json<Record<string, unknown>>(sheet, {
     defval: "",
   });
   const headers = rows.length ? Object.keys(rows[0]) : [];
