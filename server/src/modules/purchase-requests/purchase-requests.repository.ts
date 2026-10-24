@@ -6,11 +6,7 @@ import {
   purchaseRequests,
   type NewPurchaseRequest,
 } from "../../infrastructure/database/schema.js";
-import {
-  getDistrictName,
-  getGovernorateName,
-  getNeighborhoodName,
-} from "../locations/locations.repository.js";
+import { getLocationNames } from "../locations/locations.repository.js";
 import { toApiObject } from "../../shared/utils/case.js";
 import {
   pageOffset,
@@ -18,6 +14,7 @@ import {
   totalRowsColumn,
   type SortOrder,
 } from "../../shared/utils/paging.js";
+import { containsPattern } from "../../shared/utils/search.js";
 import type {
   PurchaseRequestFilters,
   PurchaseRequestPageQuery,
@@ -43,6 +40,7 @@ function apiRow(
 async function normalize(
   payload: PurchaseRequestPayload,
 ): Promise<Omit<NewPurchaseRequest, "code">> {
+  const names = await getLocationNames(payload);
   return {
     personId: payload.person_id,
     propertyType: payload.property_type,
@@ -58,13 +56,11 @@ async function normalize(
     districtId: payload.district_id ?? null,
     neighborhoodId: payload.neighborhood_id ?? null,
     governorate: payload.governorate_id
-      ? await getGovernorateName(payload.governorate_id)
+      ? names.governorate
       : payload.governorate,
-    district: payload.district_id
-      ? await getDistrictName(payload.district_id)
-      : payload.district,
+    district: payload.district_id ? names.district : payload.district,
     neighborhood: payload.neighborhood_id
-      ? await getNeighborhoodName(payload.neighborhood_id)
+      ? names.neighborhood
       : payload.neighborhood,
     amenities: payload.amenities,
     otherRequirements: payload.other_requirements,
@@ -94,14 +90,16 @@ function purchaseRequestConditions(filters: PurchaseRequestFilters) {
     where.push(eq(purchaseRequests.governorateId, filters.governorate_id));
   if (filters.district_id)
     where.push(eq(purchaseRequests.districtId, filters.district_id));
-  if (filters.q)
+  if (filters.q) {
+    const pattern = containsPattern(filters.q);
     where.push(
       or(
-        ilike(purchaseRequests.code, `%${filters.q}%`),
-        ilike(purchaseRequests.otherRequirements, `%${filters.q}%`),
-        ilike(purchaseRequests.notes, `%${filters.q}%`),
+        ilike(purchaseRequests.code, pattern),
+        ilike(purchaseRequests.otherRequirements, pattern),
+        ilike(purchaseRequests.notes, pattern),
       )!,
     );
+  }
   return and(...where);
 }
 

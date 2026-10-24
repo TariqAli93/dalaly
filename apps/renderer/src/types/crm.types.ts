@@ -50,6 +50,7 @@ export type RentalRequestRecord = {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  archived_at: string | null;
 };
 export type PurchaseRequestRecord = Omit<RentalRequestRecord, "rent_period">;
 
@@ -100,6 +101,8 @@ export type DocumentTypeRecord = {
   transaction_scope: string;
   is_required: boolean;
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
 };
 export type DocumentRecord = {
   id: number;
@@ -119,6 +122,8 @@ export type DocumentRecord = {
   status: string;
   computed_status: string;
   notes: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 /** مفاتيح الترتيب في /documents/paged (DOCUMENT_SORT_KEYS في الخادم). */
@@ -142,5 +147,7 @@ export type CompanySettingsRecord = {
   additional_contact: string | null;
   license_number: string | null;
   logo_file_path: string | null;
+  created_at: string;
+  updated_at: string;
 };
 export type OfficeProfileRecord = CompanySettingsRecord;

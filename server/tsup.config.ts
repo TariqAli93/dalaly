@@ -14,7 +14,7 @@ export default defineConfig({
     js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);",
   },
   noExternal: [
-    /^(@fastify\/cors|fastify|pg|drizzle-orm|zod|dotenv|adm-zip)(\/.*)?$/,
+    /^(@fastify\/cors|fastify|pg|drizzle-orm|zod|dotenv|yazl|yauzl)(\/.*)?$/,
   ],
   external: ["pg-native"],
 });

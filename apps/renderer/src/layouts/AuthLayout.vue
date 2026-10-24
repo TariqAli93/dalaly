@@ -40,8 +40,7 @@ const { status } = useSetup();
             </p>
           </div>
           <div class="auth-photo__footer">
-            <span>دلالي · للمكاتب العقارية</span
-            ><bdi>v{{ status?.app_version ?? "0.1.0" }}</bdi>
+            <span>دلالي · للمكاتب العقارية</span>
           </div>
         </aside>
       </v-card>

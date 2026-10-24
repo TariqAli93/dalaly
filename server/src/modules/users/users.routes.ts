@@ -49,17 +49,10 @@ export const usersRoutes: FastifyPluginAsync = async (app) => {
       if (!id)
         return reply.code(400).send({ message: "معرف المستخدم غير صحيح." });
       const payload = updateUserSchema.parse(request.body);
-      try {
-        const user = await updateUser(id, payload, request.user!.id);
-        if (!user)
-          return reply.code(404).send({ message: "المستخدم غير موجود." });
-        return user;
-      } catch (error) {
-        return reply.code(400).send({
-          message:
-            error instanceof Error ? error.message : "تعذر تعديل المستخدم.",
-        });
-      }
+      const user = await updateUser(id, payload, request.user!.id);
+      if (!user)
+        return reply.code(404).send({ message: "المستخدم غير موجود." });
+      return user;
     },
   );
 
@@ -84,17 +77,10 @@ export const usersRoutes: FastifyPluginAsync = async (app) => {
       const id = parseId((request.params as { id: string }).id);
       if (!id)
         return reply.code(400).send({ message: "معرف المستخدم غير صحيح." });
-      try {
-        const user = await deactivateUser(id, request.user!.id);
-        if (!user)
-          return reply.code(404).send({ message: "المستخدم غير موجود." });
-        return user;
-      } catch (error) {
-        return reply.code(400).send({
-          message:
-            error instanceof Error ? error.message : "تعذر تعطيل المستخدم.",
-        });
-      }
+      const user = await deactivateUser(id, request.user!.id);
+      if (!user)
+        return reply.code(404).send({ message: "المستخدم غير موجود." });
+      return user;
     },
   );
 
@@ -105,17 +91,10 @@ export const usersRoutes: FastifyPluginAsync = async (app) => {
       const id = parseId((request.params as { id: string }).id);
       if (!id)
         return reply.code(400).send({ message: "معرف المستخدم غير صحيح." });
-      try {
-        const user = await deleteUser(id, request.user!.id);
-        if (!user)
-          return reply.code(404).send({ message: "المستخدم غير موجود." });
-        return { deleted: true, user };
-      } catch (error) {
-        return reply.code(400).send({
-          message:
-            error instanceof Error ? error.message : "تعذر حذف المستخدم.",
-        });
-      }
+      const user = await deleteUser(id, request.user!.id);
+      if (!user)
+        return reply.code(404).send({ message: "المستخدم غير موجود." });
+      return { deleted: true, user };
     },
   );
 };

@@ -1,12 +1,20 @@
 import fs from "node:fs";
 import path from "node:path";
-import AdmZip from "adm-zip";
-import { getTableColumns } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  getTableColumns,
+  inArray,
+  isNotNull,
+  sql,
+} from "drizzle-orm";
 import { config } from "../../infrastructure/config.js";
 import { db } from "../../infrastructure/database/db.js";
 import { pool } from "../../infrastructure/database/pool.js";
 import { resolveManagedFile } from "../documents/documents.storage.js";
 import { getSetting, setSetting } from "../settings/settings.repository.js";
+import { DomainError } from "../../shared/errors.js";
 import {
   backupJobs,
   backupLogs,
@@ -39,24 +47,41 @@ import {
   isActivePermissionKey,
   isActiveSettingKey,
 } from "../rbac/key-policy.js";
+import {
+  type ArchiveEntry,
+  type BackupArchive,
+  openArchive,
+  writeArchive,
+  zipBuffers,
+} from "./backup.archive.js";
+import {
+  decryptBackup,
+  encryptBackup,
+  ENCRYPTED_BACKUP_EXTENSION,
+  ENCRYPTED_BACKUP_MAGIC_BYTES,
+  isEncryptedBackup,
+} from "./backup.crypto.js";
 const BACKUP_VERSION = 3;
+/** manifest.json `contents` of an archive without images and documents. */
+const DATABASE_ONLY = "database";
 /** PostgreSQL's limit on bind parameters in one statement is 65535. */
 const MAX_BIND_PARAMETERS = 60_000;
 
 /** Another backup, export or restore is already running. */
-export class BackupBusyError extends Error {
-  readonly statusCode = 409;
+export class BackupBusyError extends DomainError {
   constructor() {
     super(
+      409,
       "عملية نسخ احتياطي أو استرجاع أخرى قيد التنفيذ. أعد المحاولة بعد انتهائها.",
     );
+    this.name = "BackupBusyError";
   }
 }
 
 let operationRunning = false;
 /**
  * Runs one backup, export or restore at a time: a backup reads every table
- * and file while a restore rewrites them, and each archive is built in memory.
+ * and file while a restore rewrites them.
  */
 async function exclusive<T>(operation: () => Promise<T>): Promise<T> {
   if (operationRunning) throw new BackupBusyError();
@@ -204,6 +229,8 @@ function specByName(name: TableName) {
 async function exportDatabase() {
   return db.transaction(
     async (tx) => {
+      // Reading every table may take longer than a request is allowed.
+      await tx.execute(sql`SET LOCAL statement_timeout = 0`);
       const data: Record<string, unknown[]> = {};
       for (const spec of TABLE_SPECS)
         data[spec.name] = await tx.select().from(spec.table);
@@ -226,21 +253,24 @@ async function exportDatabase() {
   );
 }
 
-function addImagesToZip(zip: AdmZip) {
-  if (fs.existsSync(config.imagesDir)) {
-    zip.addLocalFolder(config.imagesDir, "images/properties");
-  }
-  if (fs.existsSync(config.documentsDir)) {
-    zip.addLocalFolder(config.documentsDir, "documents");
-  }
-}
-
 function timestampLabel(now: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
   return (
     `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` +
     `_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
   );
+}
+
+/**
+ * A new archive's path in `dir`: `<base>.zip`, or `<base>_2.zip`, … when a
+ * backup was already written in the same second, so it never replaces that
+ * one. Callers hold the operation lock, so no other backup takes the name.
+ */
+function newArchivePath(dir: string, base: string) {
+  for (let n = 1; ; n += 1) {
+    const candidate = path.join(dir, `${base}${n > 1 ? `_${n}` : ""}.zip`);
+    if (!fs.existsSync(candidate)) return candidate;
+  }
 }
 
 async function logBackup(jobId: number | null, level: string, message: string) {
@@ -252,7 +282,6 @@ async function logBackup(jobId: number | null, level: string, message: string) {
 }
 
 export async function listBackupJobs(limit = 50) {
-  const { desc } = await import("drizzle-orm");
   const rows = await db
     .select()
     .from(backupJobs)
@@ -275,7 +304,6 @@ export async function getLastBackupAt() {
 }
 
 export async function getBackupJob(id: number) {
-  const { eq } = await import("drizzle-orm");
   const [row] = await db
     .select()
     .from(backupJobs)
@@ -301,12 +329,8 @@ export type CreateBackupResult = {
   duration_ms: number;
 };
 
-/**
- * يبني أرشيف ZIP كامل: JSON منطقي + صور + metadata. Electron's config.json is
- * deliberately left out: it holds the database URL with its password, restore
- * never used it, and scheduled backups are emailed.
- */
-async function assembleBackupZip(backupType: string) {
+/** manifest.json and data.json, the part of an archive every kind holds. */
+async function databaseEntries(backupType: string, databaseOnly = false) {
   const database = await exportDatabase();
   const manifest = {
     version: BACKUP_VERSION,
@@ -314,14 +338,49 @@ async function assembleBackupZip(backupType: string) {
     created_at: new Date().toISOString(),
     backup_type: backupType,
     tables_count: Object.keys(database).length,
+    // Absent from full archives, which older builds wrote the same way.
+    ...(databaseOnly ? { contents: DATABASE_ONLY } : {}),
   };
+  return [
+    {
+      name: "manifest.json",
+      data: Buffer.from(JSON.stringify(manifest, null, 2)),
+    },
+    { name: "data.json", data: Buffer.from(JSON.stringify(database)) },
+  ];
+}
 
-  const zip = new AdmZip();
-  zip.addFile("manifest.json", Buffer.from(JSON.stringify(manifest, null, 2)));
-  zip.addFile("data.json", Buffer.from(JSON.stringify(database)));
+/**
+ * يبني أرشيف ZIP كامل: JSON منطقي + صور + metadata. Electron's config.json is
+ * deliberately left out: it holds the database URL with its password, and
+ * restore never used it.
+ */
+async function writeBackupArchive(filePath: string, backupType: string) {
+  await writeArchive(filePath, await databaseEntries(backupType), [
+    { dir: config.imagesDir, prefix: "images/properties" },
+    { dir: config.documentsDir, prefix: "documents" },
+  ]);
+}
 
-  addImagesToZip(zip);
-  return zip;
+/** A failed backup's job and log rows; the caller rethrows the error. */
+async function recordFailure(
+  type: string,
+  startedAt: number,
+  error: unknown,
+  userId?: number,
+) {
+  const message = error instanceof Error ? error.message : String(error);
+  const [job] = await db
+    .insert(backupJobs)
+    .values({
+      type,
+      status: "failure",
+      durationMs: Date.now() - startedAt,
+      error: message,
+      userId: userId ?? null,
+    })
+    .returning();
+  await logBackup(job?.id ?? null, "error", `فشل ${type}: ${message}`);
 }
 
 /** المنطق المشترك: يبني الأرشيف ويكتبه إلى المسار ويسجّل النتيجة في backup_jobs/backup_logs. */
@@ -332,11 +391,10 @@ async function writeBackupTo(
 ): Promise<CreateBackupResult> {
   const startedAt = Date.now();
   try {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    const zip = await assembleBackupZip(type);
-    zip.writeZip(filePath);
+    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+    await writeBackupArchive(filePath, type);
 
-    const fileSize = fs.statSync(filePath).size;
+    const { size: fileSize } = await fs.promises.stat(filePath);
     const durationMs = Date.now() - startedAt;
 
     const [job] = await db
@@ -366,19 +424,125 @@ async function writeBackupTo(
       duration_ms: durationMs,
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const [job] = await db
-      .insert(backupJobs)
-      .values({
-        type,
-        status: "failure",
-        durationMs: Date.now() - startedAt,
-        error: message,
-        userId: userId ?? null,
-      })
-      .returning();
-    await logBackup(job?.id ?? null, "error", `فشل ${type}: ${message}`);
+    await recordFailure(type, startedAt, error, userId);
     throw error;
+  }
+}
+
+/**
+ * The files the app deletes by itself (an owner decision): scheduled backups
+ * and pre-restore copies beyond the newest `RETAINED_BACKUPS` of each. A file
+ * goes only if a successful job of that kind recorded it, it is named the way
+ * that kind is named, and it sits directly in the configured backup folder.
+ * Manual backups, exports and every other file are never deleted.
+ */
+const RETENTION = {
+  scheduled: {
+    types: ["email", "scheduled"],
+    name: /^Dalaly_Backup_\d{4}-\d{2}-\d{2}_\d{6}(?:_\d+)?\.zip$/,
+  },
+  pre_restore: {
+    types: ["pre_restore"],
+    name: /^Dalaly_Before_Restore_\d{4}-\d{2}-\d{2}_\d{6}(?:_\d+)?\.zip$/,
+  },
+} as const;
+const RETAINED_BACKUPS = 10;
+type RetentionKind = keyof typeof RETENTION;
+
+/** One key per file: Windows paths differ only in letter case. */
+function fileKey(file: string) {
+  const resolved = path.resolve(file);
+  return process.platform === "win32" ? resolved.toLowerCase() : resolved;
+}
+
+/**
+ * Deletes the `kind` backups older than the newest `RETAINED_BACKUPS` still
+ * on disk, logs each deletion and marks its jobs `pruned` (rows are kept).
+ * Runs after a backup of that kind succeeded, under the operation lock.
+ */
+async function pruneBackups(kind: RetentionKind) {
+  const types: readonly string[] = RETENTION[kind].types;
+  const dir = fileKey(await getBackupDir());
+  const rows = await db
+    .select({
+      id: backupJobs.id,
+      type: backupJobs.type,
+      filePath: backupJobs.filePath,
+    })
+    .from(backupJobs)
+    .where(
+      and(eq(backupJobs.status, "success"), isNotNull(backupJobs.filePath)),
+    )
+    .orderBy(desc(backupJobs.createdAt), desc(backupJobs.id));
+  // A file another kind of job also recorded (a manual backup written in the
+  // same second by an older build) is that job's file and stays.
+  const othersFiles = new Set(
+    rows
+      .filter((row) => !types.includes(row.type))
+      .map((row) => fileKey(row.filePath!)),
+  );
+  // Newest first; several jobs may name one file.
+  const backups = new Map<string, { file: string; ids: number[] }>();
+  for (const row of rows) {
+    const file = path.resolve(row.filePath!);
+    const key = fileKey(file);
+    if (
+      !types.includes(row.type) ||
+      othersFiles.has(key) ||
+      path.dirname(key) !== dir ||
+      !RETENTION[kind].name.test(path.basename(file))
+    )
+      continue;
+    const known = backups.get(key);
+    if (known) known.ids.push(row.id);
+    else backups.set(key, { file, ids: [row.id] });
+  }
+  let retained = 0;
+  for (const { file, ids } of backups.values()) {
+    // Only copies still on disk count; a link is not a file the app wrote.
+    const stat = await fs.promises.lstat(file).catch(() => null);
+    if (!stat?.isFile()) continue;
+    if (retained < RETAINED_BACKUPS) {
+      retained += 1;
+      continue;
+    }
+    try {
+      await fs.promises.rm(file);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`Backup retention could not delete ${file}: ${message}`);
+      await logBackup(
+        ids[0],
+        "warn",
+        `تعذر حذف نسخة قديمة: ${file} (${message})`,
+      );
+      continue;
+    }
+    await db
+      .update(backupJobs)
+      .set({ status: "pruned" })
+      .where(inArray(backupJobs.id, ids));
+    console.info(`Backup retention deleted ${file}`);
+    await logBackup(
+      ids[0],
+      "info",
+      `حُذفت نسخة قديمة (${kind}) للإبقاء على أحدث ${RETAINED_BACKUPS}: ${file}`,
+    );
+  }
+}
+
+/** Retention never fails the backup that triggered it. */
+async function applyRetention(kind: RetentionKind) {
+  try {
+    await pruneBackups(kind);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`Backup retention (${kind}) failed: ${message}`);
+    await logBackup(
+      null,
+      "error",
+      `تعذر تطبيق حد الاحتفاظ بالنسخ (${kind}): ${message}`,
+    );
   }
 }
 
@@ -392,11 +556,54 @@ export async function createBackup(
   return exclusive(async () => {
     const dir = await getBackupDir();
     fs.mkdirSync(dir, { recursive: true });
-    const filePath = path.join(
+    const filePath = newArchivePath(
       dir,
-      `Dalaly_Backup_${timestampLabel(new Date())}.zip`,
+      `Dalaly_Backup_${timestampLabel(new Date())}`,
     );
-    return writeBackupTo(filePath, type, userId);
+    const result = await writeBackupTo(filePath, type, userId);
+    if (type !== "manual") await applyRetention("scheduled");
+    return result;
+  });
+}
+
+export type EmailArchive = { file_name: string; data: Buffer };
+
+/**
+ * The scheduled email's attachment: the database alone (manifest.json and
+ * data.json; no images or documents, so ID scans never leave the office and
+ * the file stays far below mail size limits), encrypted with `password`.
+ * Built in memory and never written to disk; full backups stay in the
+ * backup folder.
+ */
+export async function createEmailArchive(
+  password: string,
+): Promise<EmailArchive> {
+  return exclusive(async () => {
+    const type = "email_encrypted";
+    const startedAt = Date.now();
+    try {
+      const zip = await zipBuffers(await databaseEntries(type, true));
+      const data = await encryptBackup(zip, password);
+      const fileName = `Dalaly_Database_${timestampLabel(new Date())}${ENCRYPTED_BACKUP_EXTENSION}`;
+      const [job] = await db
+        .insert(backupJobs)
+        .values({
+          type,
+          status: "success",
+          fileSize: data.length,
+          durationMs: Date.now() - startedAt,
+        })
+        .returning();
+      await logBackup(
+        job.id,
+        "info",
+        `${type}: ${fileName} (${data.length} bytes)، قاعدة البيانات فقط، مشفّرة`,
+      );
+      return { file_name: fileName, data };
+    } catch (error) {
+      await recordFailure(type, startedAt, error);
+      throw error;
+    }
   });
 }
 
@@ -410,10 +617,10 @@ export async function exportBackup(
 ): Promise<CreateBackupResult> {
   const target = (outputPath ?? "").trim();
   if (!target) {
-    throw new Error("لم يتم تحديد مسار الحفظ.");
+    throw new DomainError(400, "لم يتم تحديد مسار الحفظ.");
   }
   if (!path.isAbsolute(target)) {
-    throw new Error("مسار الحفظ غير صالح.");
+    throw new DomainError(400, "مسار الحفظ غير صالح.");
   }
   return exclusive(() => writeBackupTo(target, "manual_export", userId));
 }
@@ -439,36 +646,49 @@ async function resetSequence(name: TableName) {
   );
 }
 
-function extractImagesFromZip(zip: AdmZip) {
-  const entries = zip
-    .getEntries()
-    .filter(
-      (e) => e.entryName.startsWith("images/properties/") && !e.isDirectory,
-    );
+/** The archive's files below `prefix`, without directory entries. */
+function filesUnder(archive: BackupArchive, prefix: string) {
+  return [...archive.entries.values()].filter(
+    (entry) =>
+      entry.fileName.startsWith(prefix) && !/[\\/]$/.test(entry.fileName),
+  );
+}
+
+/**
+ * Writes one entry to `target` after it has been read and verified, so a
+ * damaged archive never replaces a good file; one file is in memory at a time.
+ */
+async function extractTo(
+  archive: BackupArchive,
+  entry: ArchiveEntry,
+  target: string,
+) {
+  const data = await archive.read(entry);
+  await fs.promises.mkdir(path.dirname(target), { recursive: true });
+  await fs.promises.writeFile(target, data);
+}
+
+async function extractImages(archive: BackupArchive) {
+  const entries = filesUnder(archive, "images/properties/");
   if (!entries.length) return 0;
-  fs.mkdirSync(config.imagesDir, { recursive: true });
+  await fs.promises.mkdir(config.imagesDir, { recursive: true });
   for (const entry of entries) {
-    const relative = entry.entryName.replace(/^images\/properties\//, "");
+    const relative = entry.fileName.replace(/^images\/properties\//, "");
     const target = path.resolve(config.imagesDir, relative);
     if (!target.startsWith(path.resolve(config.imagesDir) + path.sep))
-      throw new Error("مسار صورة في النسخة غير صالح.");
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(target, entry.getData());
+      throw new DomainError(400, "مسار صورة في النسخة غير صالح.");
+    await extractTo(archive, entry, target);
   }
   return entries.length;
 }
 
-function extractDocumentsFromZip(zip: AdmZip) {
-  const entries = zip
-    .getEntries()
-    .filter((e) => e.entryName.startsWith("documents/") && !e.isDirectory);
+async function extractDocuments(archive: BackupArchive) {
+  const entries = filesUnder(archive, "documents/");
   if (!entries.length) return 0;
-  fs.mkdirSync(config.documentsDir, { recursive: true });
+  await fs.promises.mkdir(config.documentsDir, { recursive: true });
   for (const entry of entries) {
-    const relative = entry.entryName.replace(/^documents\//, "");
-    const target = resolveManagedFile(relative);
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(target, entry.getData());
+    const relative = entry.fileName.replace(/^documents\//, "");
+    await extractTo(archive, entry, resolveManagedFile(relative));
   }
   return entries.length;
 }
@@ -476,25 +696,32 @@ function extractDocumentsFromZip(zip: AdmZip) {
 export type RestoreScope =
   "full" | "properties" | "images" | "users" | "settings" | "rentals" | "crm";
 
-function validateBackupSchema(
-  zip: AdmZip,
+async function validateBackupSchema(
+  archive: BackupArchive,
   database: Record<string, Record<string, unknown>[]>,
 ) {
-  const manifestEntry = zip.getEntry("manifest.json");
-  if (!manifestEntry) throw new Error("بيانات تعريف النسخة الاحتياطية مفقودة.");
-  const manifest = JSON.parse(manifestEntry.getData().toString("utf8"));
+  const manifestEntry = archive.entries.get("manifest.json");
+  if (!manifestEntry)
+    throw new DomainError(400, "بيانات تعريف النسخة الاحتياطية مفقودة.");
+  const manifest = JSON.parse(
+    (await archive.read(manifestEntry)).toString("utf8"),
+  );
   if (!manifest || manifest.version !== BACKUP_VERSION)
-    throw new Error(
+    throw new DomainError(
+      400,
       "صيغة النسخة لا تتوافق مع مخطط هذا الإصدار. استعد النسخ السابقة باستخدام إصدارها في بيئة معزولة.",
     );
   if (!database || typeof database !== "object" || Array.isArray(database))
-    throw new Error("بيانات النسخة الاحتياطية غير صالحة.");
+    throw new DomainError(400, "بيانات النسخة الاحتياطية غير صالحة.");
   const tableNames = new Set<string>(TABLE_SPECS.map((spec) => spec.name));
   if (
     Object.keys(database).some((name) => !tableNames.has(name)) ||
     TABLE_SPECS.some((spec) => !Object.hasOwn(database, spec.name))
   )
-    throw new Error("مخطط جداول النسخة الاحتياطية لا يطابق هذا الإصدار.");
+    throw new DomainError(
+      400,
+      "مخطط جداول النسخة الاحتياطية لا يطابق هذا الإصدار.",
+    );
   for (const spec of TABLE_SPECS) {
     const rows = database[spec.name];
     const columns = new Set(Object.keys(getTableColumns(spec.table)));
@@ -508,7 +735,10 @@ function validateBackupSchema(
           Object.keys(row).some((key) => !columns.has(key)),
       )
     )
-      throw new Error("حقول النسخة الاحتياطية لا تطابق المخطط الحالي.");
+      throw new DomainError(
+        400,
+        "حقول النسخة الاحتياطية لا تطابق المخطط الحالي.",
+      );
   }
   if (
     database.permissions.some(
@@ -518,7 +748,8 @@ function validateBackupSchema(
       (row) => typeof row.key !== "string" || !isActiveSettingKey(row.key),
     )
   )
-    throw new Error(
+    throw new DomainError(
+      400,
       "تحتوي النسخة على صلاحيات أو إعدادات ضمن مساحات أسماء متقاعدة.",
     );
   const permissionIds = new Set(database.permissions.map((row) => row.id));
@@ -527,56 +758,95 @@ function validateBackupSchema(
       (row) => !permissionIds.has(row.permissionId),
     )
   )
-    throw new Error("تحتوي النسخة على علاقات صلاحيات غير صالحة.");
+    throw new DomainError(400, "تحتوي النسخة على علاقات صلاحيات غير صالحة.");
+  return manifest as { contents?: unknown };
 }
 
-/** يسترجع نسخة احتياطية من محتوى ZIP حسب النطاق المحدد. */
+/**
+ * يسترجع نسخة احتياطية حسب النطاق المحدد، من مسار ملف ZIP (يُقرأ من القرص
+ * عند الحاجة) أو من محتواه المرفوع. An encrypted backup needs `password`.
+ */
 export async function restoreBackup(
-  zipBuffer: Buffer,
+  source: string | Buffer,
   scope: RestoreScope,
   userId?: number,
+  password?: string,
 ) {
-  return exclusive(() => restoreArchive(zipBuffer, scope, userId));
+  return exclusive(() => restoreArchive(source, scope, userId, password));
+}
+
+/**
+ * An encrypted backup decrypted in memory (it holds the database alone,
+ * which restore reads whole anyway); a zip as it is.
+ */
+async function decryptedSource(source: string | Buffer, password?: string) {
+  if (typeof source !== "string")
+    return isEncryptedBackup(source) ? decryptBackup(source, password) : source;
+  const head = Buffer.alloc(ENCRYPTED_BACKUP_MAGIC_BYTES);
+  const file = await fs.promises.open(source, "r");
+  try {
+    await file.read(head, 0, head.length, 0);
+  } finally {
+    await file.close();
+  }
+  return isEncryptedBackup(head)
+    ? decryptBackup(await fs.promises.readFile(source), password)
+    : source;
 }
 
 async function restoreArchive(
-  zipBuffer: Buffer,
+  source: string | Buffer,
   scope: RestoreScope,
   userId?: number,
+  password?: string,
 ) {
   const startedAt = Date.now();
   let schemaValidated = false;
+  let archive: BackupArchive | undefined;
   try {
-    const zip = new AdmZip(zipBuffer);
-    const dataEntry = zip.getEntry("data.json");
+    archive = await openArchive(await decryptedSource(source, password));
+    const dataEntry = archive.entries.get("data.json");
     if (!dataEntry) {
-      throw new Error("ملف النسخة الاحتياطية غير صالح (data.json مفقود).");
+      throw new DomainError(
+        400,
+        "ملف النسخة الاحتياطية غير صالح (data.json مفقود).",
+      );
     }
-    const database = JSON.parse(dataEntry.getData().toString("utf8")) as Record<
-      string,
-      Record<string, unknown>[]
-    >;
+    const database = JSON.parse(
+      (await archive.read(dataEntry)).toString("utf8"),
+    ) as Record<string, Record<string, unknown>[]>;
 
-    validateBackupSchema(zip, database);
+    const manifest = await validateBackupSchema(archive, database);
+    // A database-only archive (the emailed one) restores rows and writes no
+    // files; the images and documents on disk stay as they are.
+    const databaseOnly = manifest.contents === DATABASE_ONLY;
+    if (databaseOnly && scope === "images")
+      throw new DomainError(
+        400,
+        "هذه النسخة تحتوي على قاعدة البيانات فقط ولا تحتوي على صور. اختر نطاقاً آخر للاسترجاع.",
+      );
     schemaValidated = true;
     // Restore replaces whole tables. Keep the current data first so a wrong
     // file can be undone; if that copy cannot be written, nothing is touched.
     const safetyBackup = await writeBackupTo(
-      path.join(
+      newArchivePath(
         await getBackupDir(),
-        `Dalaly_Before_Restore_${timestampLabel(new Date())}.zip`,
+        `Dalaly_Before_Restore_${timestampLabel(new Date())}`,
       ),
       "pre_restore",
       userId,
     );
+    await applyRetention("pre_restore");
     const tablesToRestore = SCOPE_TABLES[scope] ?? SCOPE_TABLES.full;
     let documentsRestored = 0;
     if (scope === "full" || scope === "crm") {
       // Restore managed documents before publishing rows that reference them.
-      documentsRestored = extractDocumentsFromZip(zip);
+      documentsRestored = await extractDocuments(archive);
     }
 
     await db.transaction(async (tx) => {
+      // Rewriting whole tables may take longer than a request is allowed.
+      await tx.execute(sql`SET LOCAL statement_timeout = 0`);
       // حذف بترتيب عكسي (الابن قبل الأب) لتفادي قيود المفاتيح الأجنبية.
       for (const name of [...tablesToRestore].reverse()) {
         if (scope === "users" && name === "users") continue;
@@ -623,7 +893,7 @@ async function restoreArchive(
 
     let imagesRestored = 0;
     if (scope === "full" || scope === "images" || scope === "properties") {
-      imagesRestored = extractImagesFromZip(zip);
+      imagesRestored = await extractImages(archive);
     }
 
     const durationMs = Date.now() - startedAt;
@@ -639,7 +909,7 @@ async function restoreArchive(
     await logBackup(
       job.id,
       "info",
-      `تم الاسترجاع (${scope}). الجداول: ${tablesToRestore.join(", ")}. صور: ${imagesRestored}`,
+      `تم الاسترجاع (${scope}${databaseOnly ? "، قاعدة البيانات فقط" : ""}). الجداول: ${tablesToRestore.join(", ")}. صور: ${imagesRestored}`,
     );
 
     return {
@@ -648,10 +918,19 @@ async function restoreArchive(
       tables: tablesToRestore,
       images_restored: imagesRestored,
       documents_restored: documentsRestored,
+      database_only: databaseOnly,
       safety_backup_path: safetyBackup.file_path,
     };
   } catch (error) {
-    if (!schemaValidated) throw error;
+    // Until the schema check passes, only the archive has been read: a
+    // failure here means the file is not a readable Dalaly backup.
+    if (!schemaValidated)
+      throw error instanceof DomainError
+        ? error
+        : new DomainError(
+            400,
+            "تعذر قراءة ملف النسخة الاحتياطية. تأكد أنه نسخة من دلالي وأنه غير تالف.",
+          );
     const message = error instanceof Error ? error.message : String(error);
     const [job] = await db
       .insert(backupJobs)
@@ -665,5 +944,7 @@ async function restoreArchive(
       .returning();
     await logBackup(job?.id ?? null, "error", `فشل الاسترجاع: ${message}`);
     throw error;
+  } finally {
+    await archive?.close();
   }
 }

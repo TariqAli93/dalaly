@@ -31,6 +31,7 @@ const hasExplicitDbEnv = Boolean(
   databaseUrl || process.env.DB_HOST || process.env.DB_NAME,
 );
 
+// Health checks and startup give up on an unreachable database this soon.
 const connectionTimeoutMillis = Number(
   process.env.DB_CONNECTION_TIMEOUT_MS ?? 1500,
 );
@@ -72,27 +73,58 @@ export const config = {
     user: process.env.DB_USER ?? "postgres",
     password: process.env.DB_PASSWORD ?? "postgres",
     connectionTimeoutMillis,
+    // Longest one statement may run before PostgreSQL cancels it (SQLSTATE
+    // 57014, answered with an Arabic 503). Backup, restore and migrations
+    // lift it inside their transactions.
+    statementTimeoutMillis: Number(
+      process.env.DB_STATEMENT_TIMEOUT_MS ?? 15_000,
+    ),
+  },
+  // The request pool. Values measured on the dev PC, see docs/PERFORMANCE.md
+  // ("Pool, statement timeout and dashboard").
+  pool: {
+    max: 10,
+    // Kept open however long the app sits idle: a new connection costs a
+    // SCRAM login and a new backend process (~35 ms here) and its first
+    // queries plan with cold caches. Two cover the dashboard's queries.
+    min: 2,
+    // Connections beyond those two close after this long unused.
+    idleTimeoutMillis: 5 * 60_000,
+    // How long a request waits for a free connection, or for a new one.
+    connectionTimeoutMillis: 5000,
   },
   admin: {
     username: process.env.ADMIN_USERNAME ?? "admin",
     pin: process.env.ADMIN_PIN ?? "1234",
   },
   sessionTtlHours: Number(process.env.SESSION_TTL_HOURS ?? 12),
-  remoteAccessEnabled: process.env.REMOTE_ACCESS_ENABLED === "true",
   cloudflaredPath:
     process.env.CLOUDFLARED_PATH ?? "tools/cloudflared/cloudflared.exe",
 };
 
-/**
- * يبني إعدادات pg.Pool من DATABASE_URL إن وجد، وإلا من متغيرات DB_* المنفصلة.
- */
-export function buildPoolConfig(): PoolConfig {
-  if (config.databaseUrl) {
-    return {
-      connectionString: config.databaseUrl,
-      connectionTimeoutMillis,
-    };
-  }
+/** Where the database is: a connection string or separate settings. */
+export type DatabaseTarget =
+  | { connectionString: string }
+  | Pick<PoolConfig, "host" | "port" | "database" | "user" | "password">;
 
-  return { ...config.db };
+/** DATABASE_URL if set, else the separate DB_* variables. */
+export function databaseTarget(): DatabaseTarget {
+  if (config.databaseUrl) return { connectionString: config.databaseUrl };
+  const { host, port, database, user, password } = config.db;
+  return { host, port, database, user, password };
+}
+
+/**
+ * pg.Pool settings for every pool the API opens on its database: the
+ * request pool, the one reconfigurePool switches to after setup and the
+ * startup pool (which shortens the connect timeout and adds a read timeout).
+ */
+export function buildPoolConfig(
+  target: DatabaseTarget = databaseTarget(),
+): PoolConfig {
+  return {
+    ...target,
+    ...config.pool,
+    statement_timeout: config.db.statementTimeoutMillis,
+  };
 }

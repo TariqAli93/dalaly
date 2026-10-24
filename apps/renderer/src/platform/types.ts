@@ -62,7 +62,7 @@ export interface PlatformAdapter {
   /** اختيار مسار حفظ نسخة احتياطية. غير مدعوم في المتصفح. */
   chooseBackupExportPath(): Promise<{ canceled?: boolean; filePath?: string }>;
 
-  /** اختيار ملف نسخة احتياطية (.zip). */
+  /** اختيار ملف نسخة احتياطية (.zip، أو .dalaly-enc المشفّرة). */
   pickBackupFile(): Promise<PickedFile>;
 
   /** اختيار مجلد على القرص. غير مدعوم في المتصفح. */
@@ -71,7 +71,9 @@ export interface PlatformAdapter {
   /** جدولة النسخ الاحتياطي بالبريد — Electron فقط. */
   readonly supportsScheduledBackup: boolean;
   getScheduledBackup(): Promise<ScheduledBackupConfig | null>;
-  saveScheduledBackup(config: ScheduledBackupConfig): Promise<{ ok: boolean }>;
+  saveScheduledBackup(
+    config: ScheduledBackupConfig,
+  ): Promise<{ ok: boolean; message?: string }>;
 
   /** حفظ DATABASE_URL محلياً بعد First Run Wizard — Electron فقط. */
   saveDatabaseUrl(

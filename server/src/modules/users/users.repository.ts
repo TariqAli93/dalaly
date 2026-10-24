@@ -2,8 +2,10 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import { users } from "../../infrastructure/database/schema.js";
 import { hashPin } from "../auth/crypto.js";
+import { DomainError } from "../../shared/errors.js";
 import {
   countActiveSuperAdmins,
+  getRolesAndPermissionsForUsers,
   getSuperAdminRole,
   getUserRolesAndPermissions,
   setUserRoleIds,
@@ -16,7 +18,10 @@ export async function listUsers() {
     .select()
     .from(users)
     .orderBy(desc(users.createdAt), desc(users.id));
-  return Promise.all(rows.map(toUserDto));
+  const access = await getRolesAndPermissionsForUsers(
+    rows.map((user) => user.id),
+  );
+  return rows.map((user) => userDto(user, access.get(user.id)!));
 }
 
 export async function getUser(id: number) {
@@ -46,7 +51,7 @@ export async function updateUser(
   currentUserId: number,
 ) {
   if (id === currentUserId && !payload.is_active) {
-    throw new Error("لا يمكن للمستخدم تعطيل نفسه.");
+    throw new DomainError(400, "لا يمكن للمستخدم تعطيل نفسه.");
   }
 
   const superAdmin = await getSuperAdminRole();
@@ -57,7 +62,10 @@ export async function updateUser(
     (await countActiveSuperAdmins(id)) === 0 &&
     (!payload.is_active || removesSuperAdmin)
   ) {
-    throw new Error("لا يمكن تعطيل أو إزالة دور آخر مستخدم Super Admin فعال.");
+    throw new DomainError(
+      400,
+      "لا يمكن تعطيل أو إزالة دور آخر مستخدم Super Admin فعال.",
+    );
   }
 
   const updateData: Partial<typeof users.$inferInsert> = {
@@ -93,14 +101,14 @@ export async function activateUser(id: number) {
 
 export async function deactivateUser(id: number, currentUserId: number) {
   if (id === currentUserId) {
-    throw new Error("لا يمكن للمستخدم تعطيل نفسه.");
+    throw new DomainError(400, "لا يمكن للمستخدم تعطيل نفسه.");
   }
 
   if (
     (await userIsSuperAdmin(id)) &&
     (await countActiveSuperAdmins(id)) === 0
   ) {
-    throw new Error("لا يمكن تعطيل آخر مستخدم Super Admin فعال.");
+    throw new DomainError(400, "لا يمكن تعطيل آخر مستخدم Super Admin فعال.");
   }
 
   const [user] = await db
@@ -113,14 +121,14 @@ export async function deactivateUser(id: number, currentUserId: number) {
 
 export async function deleteUser(id: number, currentUserId: number) {
   if (id === currentUserId) {
-    throw new Error("لا يمكن للمستخدم حذف نفسه.");
+    throw new DomainError(400, "لا يمكن للمستخدم حذف نفسه.");
   }
 
   if (
     (await userIsSuperAdmin(id)) &&
     (await countActiveSuperAdmins(id)) === 0
   ) {
-    throw new Error("لا يمكن حذف آخر مستخدم Super Admin فعال.");
+    throw new DomainError(400, "لا يمكن حذف آخر مستخدم Super Admin فعال.");
   }
 
   const [user] = await db.delete(users).where(eq(users.id, id)).returning();
@@ -128,7 +136,16 @@ export async function deleteUser(id: number, currentUserId: number) {
 }
 
 async function toUserDto(user: typeof users.$inferSelect) {
-  const { roles, permissions } = await getUserRolesAndPermissions(user.id);
+  return userDto(user, await getUserRolesAndPermissions(user.id));
+}
+
+function userDto(
+  user: typeof users.$inferSelect,
+  {
+    roles,
+    permissions,
+  }: Awaited<ReturnType<typeof getUserRolesAndPermissions>>,
+) {
   return {
     id: user.id,
     username: user.username,

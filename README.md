@@ -7,7 +7,8 @@ Dalaly is a local desktop app for managing real-estate offers for an Iraqi broke
 - Node.js 20+
 - pnpm 10+
 - PostgreSQL running locally
-- Optional: `tools/cloudflared/cloudflared.exe` for remote access
+- Packaging only: network access the first time, to fetch the pinned
+  `cloudflared.exe` (see [Remote Access](#remote-access))
 
 ## Setup
 
@@ -39,6 +40,9 @@ Dalaly is a local desktop app for managing real-estate offers for an Iraqi broke
 
 The Electron app starts the Fastify API on `127.0.0.1:34567` and loads the Vue/Vuetify renderer from Vite. On first startup the app validates PostgreSQL connectivity and shows a setup/login screen.
 
+In development the API keeps its photos, documents and backups in `server/data`,
+which git ignores; `pnpm db:seed` writes the seed photos there.
+
 The setup screen creates the first administrator from the username and PIN entered
 by the operator. No default administrator account is created automatically.
 
@@ -58,9 +62,19 @@ pnpm package:installer # Windows NSIS installer
 pnpm release          # full release build into apps/desktop/release
 ```
 
+Each of these first runs `pnpm fetch:cloudflared`
+(`scripts/fetch-cloudflared.mjs`), which puts cloudflared 2026.5.0 from
+Cloudflare's GitHub release at `tools/cloudflared/cloudflared.exe` and checks
+its pinned SHA-256. It downloads only when that file is missing or does not
+match, so packaging again works offline, and a failed or mismatched download
+stops the build. Running `electron-builder` directly (for example `--dir`) does
+not fetch it: run `pnpm fetch:cloudflared` first, or that package has no
+remote access.
+
 ## Checks and Tests
 
 ```bash
+pnpm lint        # ESLint (eslint.config.mjs), then pnpm typecheck
 pnpm typecheck   # server tsc, renderer vue-tsc, Electron syntax check
 pnpm test        # fast unit tests, no database needed
 ```
@@ -72,31 +86,35 @@ local PostgreSQL. They read `DB_HOST`, `DB_PORT`, `DB_USER` and `DB_PASSWORD`
 ```bash
 pnpm --filter @dalaly/server build            # runtime suites start server/dist
 pnpm --filter @dalaly/server test:runtime     # also :phase1 … :phase5, :spaces
-pnpm --filter @dalaly/server test:removal     # backup restore + retired-module checks (see below)
-pnpm --filter @dalaly/server test:removal:backup # backup restore only
+pnpm --filter @dalaly/server test:removal:backup # full backup round trip; retired contract metadata is refused
 pnpm --filter @dalaly/server test:restore:large  # restore beyond one INSERT's bind limit
 pnpm --filter @dalaly/server test:backup:safety  # no config.json, one operation at a time, pre-restore copy
+pnpm --filter @dalaly/server test:backup:compat  # an archive from the adm-zip build restores; new archives keep its layout
+pnpm --filter @dalaly/server test:backup:retention # newest 10 scheduled/pre-restore copies kept; nothing else deleted
+pnpm --filter @dalaly/server test:backup:encrypted # emailed archive: database only, encrypted; wrong password changes nothing
 pnpm --filter @dalaly/server test:permissions    # dashboard/matching follow read permissions
+pnpm --filter @dalaly/server test:remote-access  # only remote_access.manage starts the tunnel (never spawns cloudflared)
 pnpm --filter @dalaly/server test:limits         # auth before body parsing, 1 MB limit off upload routes
 pnpm --filter @dalaly/server test:codes          # concurrent saves get distinct codes; duplicates are 409
 pnpm --filter @dalaly/server test:transactions   # db.transaction stays on one connection under load
 pnpm --filter @dalaly/server test:paging         # server-paged property and rental lists
+pnpm --filter @dalaly/server test:thumbnails     # list rows' primary images, thumbnails, backups without them
+pnpm --filter @dalaly/server test:import         # Excel import: all rows or none, row cap, same skips as before
+pnpm --filter @dalaly/server test:queries        # users/roles lists and location names in a fixed number of queries
+pnpm --filter @dalaly/server test:dashboard      # dashboard summary unchanged by its merged queries
+pnpm --filter @dalaly/server test:timeouts       # slow statements cut off in Arabic; backup, restore, migrations exempt
+pnpm --filter @dalaly/server test:search         # property/rental search finds the same rows as the per-column ILIKE
+pnpm --filter @dalaly/server test:contract       # API responses vs the renderer's hand-written types
 pnpm --filter @dalaly/server test:maps:runtime
 pnpm --filter @dalaly/server test:startup:electron  # real Electron startup (needs a display)
 ```
 
-CI (`.github/workflows/ci.yml`) runs typecheck, `pnpm test` and the build on
+CI (`.github/workflows/ci.yml`) runs typecheck, ESLint, `pnpm test` and the build on
 Windows, and the database suites in a separate `database` job on Linux against
 a PostgreSQL 18 service container. That job runs every suite above except:
 
 - `test:startup:electron`: launches the real Electron app, so it needs a
   display and the Windows Electron binary.
-- `test:removal` (and `test:removal:legacy`): `removal-core.test.ts` and
-  `removal-legacy.test.ts` replay the contract-system retirement migration
-  `0003`, which the migration squash (`eb63ea4`) deleted, so they fail until
-  that path is restored or formally retired (an owner decision,
-  `docs/AUDIT_AND_ROADMAP.md` section 2.1). The third file runs as
-  `test:removal:backup`.
 - `test:removal:electron` and `test:removal:browser` (not listed above): they
   drive a packaged Windows build and the renderer in Playwright's Chromium.
 
@@ -106,6 +124,25 @@ seeded throwaway database — see `docs/PERFORMANCE.md`:
 ```bash
 pnpm perf -- --app apps/desktop/release/win-unpacked --label my-change
 ```
+
+## Backups
+
+Settings → النسخ الاحتياطي. A backup is a zip of the database, the property
+images and the documents, written to the backup folder (manual backups and
+exports are never deleted by the app). A restore first saves the current data
+as `Dalaly_Before_Restore_<time>.zip`.
+
+The scheduled run (desktop app only) writes a full backup into the backup folder
+and emails only `Dalaly_Database_<time>.dalaly-enc`: the database without images
+or documents, encrypted with the password set in the scheduled-backup card
+(AES-256-GCM, scrypt). **A lost password makes every emailed copy
+unrecoverable**; the full backups stay in the local folder. Restoring a
+`.dalaly-enc` file asks for that password and leaves the images and documents on
+disk as they are.
+
+The app keeps the newest 10 scheduled backups and the newest 10 pre-restore
+copies in the backup folder and deletes older ones of those two kinds only,
+logging each deletion (`backup_logs`; the job shows as `pruned`).
 
 ## Web Demo Mode (capture only)
 
@@ -130,13 +167,18 @@ The Playwright capture suite and its `capture:*` scripts were removed; the
 
 ## Remote Access
 
-Remote access is optional. Place `cloudflared.exe` at:
+Remote access is optional. `cloudflared.exe` is not in the repository: packaging
+fetches it (see [Distribution Builds](#distribution-builds)) and the package ships
+it as `resources/tools/cloudflared/cloudflared.exe`. Nothing else needs it:
+`pnpm build`, `pnpm dev`, the tests and the app itself run without the file and
+without network access, and the remote-access page shows a clear unavailable
+message. To try remote access from `pnpm dev`, run `pnpm fetch:cloudflared`.
 
-```text
-tools/cloudflared/cloudflared.exe
-```
-
-The core app works normally when this file is missing. The remote-access page will show a clear unavailable message.
+Without network access, copy the official `cloudflared-windows-amd64.exe`
+2026.5.0 to `tools/cloudflared/cloudflared.exe`; the script accepts any copy
+with the pinned hash. To upgrade, change `VERSION` and `SHA256` in
+`scripts/fetch-cloudflared.mjs` to the new release's (its release notes list
+the checksums).
 
 
 ## نطاق التطبيق والبيانات التاريخية

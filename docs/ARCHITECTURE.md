@@ -23,7 +23,9 @@ Electron main (apps/desktop/src)
   requires a bearer session token; `requirePermission` checks RBAC keys per
   route. Anonymous setup mutations are further limited to local callers by
   `requireLocalSetup`, which also refuses requests forwarded by the optional
-  Cloudflare tunnel (they arrive from 127.0.0.1). Wrong PINs are throttled
+  Cloudflare tunnel (they arrive from 127.0.0.1). Starting or stopping that
+  tunnel needs `remote_access.manage`, which only Super Admin has by
+  default; its status needs `settings.read`. Wrong PINs are throttled
   per account in `modules/auth/login-throttle.ts`.
 - **Logging**: the API's pino output is piped into electron-log in
   production. Request URLs are logged without their query string (image and
@@ -60,7 +62,7 @@ main-process calls such as setup proxying and the scheduled backup run.
 | `main.js`                           | lifecycle, main window, API child process, startup sequence, setup/startup/maps/config IPC |
 | `splash.js`                         | splash window, progress stages, `splash:*` IPC                                             |
 | `document-export.js`                | `export:save-pdf` (offscreen print), `export:save-file`, `export:save-folder`              |
-| `backup.js`                         | backup file/folder dialogs, schedule IPC, email backup scheduler                           |
+| `backup.js`                         | backup file/folder dialogs, schedule IPC, scheduler emailing the encrypted database copy   |
 | `backup-schedule.js`                | pure due-time check (unit tested)                                                          |
 | `app-config.js`                     | read/write `userData/config.json`                                                          |
 | `json-file.js`                      | atomic JSON write with `.bak` copy; read falls back to it (unit tested)                    |
@@ -94,7 +96,28 @@ Conventions:
 
 - Routes parse input with the module's zod schema (`schema.parse` errors become
   localized 400s in the central error handler), call a repository or service,
-  and return snake_case objects (`toApiObject`).
+  and return snake_case objects (`toApiObject`). Given `"properties"` or
+  `"rentals"`, `toApiObject` names an unnamed listing after its code in
+  Arabic (`عقار P-0001`, `إيجار R-0001`), and the renderer's fallbacks
+  (tables, exports) use the same words; people have `full_name` and get no
+  `name`.
+- Errors: a failure the user should read is a
+  `DomainError(status, message, code?)` from `shared/errors.ts`, thrown
+  wherever it is detected; routes do not catch errors to reword them. The
+  central handler in `server.ts` answers every error with one body,
+  `{ code, message }` (plus `issues` for validation), the message in
+  Arabic: zod → 400 `VALIDATION_ERROR`, `DomainError` → its status and code,
+  unique/foreign-key violations → 409 `DUPLICATE_VALUE`/`RECORD_IN_USE`, a
+  statement timeout or no free connection → 503
+  `QUERY_TIMEOUT`/`DATABASE_BUSY` (below), Fastify's own client errors → their
+  status with an Arabic message, anything else → 500 `INTERNAL_ERROR` with a
+  generic message (the error goes to the log). A route that answers
+  `reply.code(404).send({ message })` gets the status's `code` from a
+  `preSerialization` hook. The one place that shows a driver's text is setup
+  (`setupFailure` in `setup.service.ts`): the person installing needs
+  PostgreSQL's own reason.
+- Boolean body fields use `booleanField` from `shared/validation/fields.ts`;
+  `z.coerce.boolean()` reads the string `"false"` as `true`.
 - Use `parseId` from `shared/utils/parse-id.ts` for route ids and
   `shared/validation/fields.ts` for optional text/id/number fields.
 - Large lists have a paged form next to the plain array: `GET
@@ -111,15 +134,116 @@ Conventions:
 - Properties and rentals also filter by `owner_person_id`, and
   `include_archived=true` lists archived rows with the rest; person details
   uses both on `/properties/paged`.
+- Property and rental search (`q`, or `search` on properties) splits the
+  query on whitespace; every token must match. A token matches with one
+  `LIKE` against the row's `search_text`, a stored generated column
+  (migration `0003_search_text`) holding every searched column lower-cased
+  and space-separated, so the `pg_trgm` index on it can serve the search
+  (`searchTextContains` in `shared/utils/search.ts`; a token's `%`, `_` and
+  `\` are escaped). Properties also match a token's digits against the owner
+  phone's digits, which lead `search_text` (an anchored regex on the same
+  column), and Arabic status labels on `status`. There is no Arabic letter
+  normalization: hamza forms and ة/ه match as typed. `search_text` is not
+  declared in `schema.ts`, so selects, backups and restores leave it out.
+  Searching a new column means a new migration that redefines the column's
+  expression, and adding the column to the reference search in
+  `server/scripts/search-text.test.ts`.
+- User-typed text reaches a `LIKE`/`ILIKE` pattern only through
+  `containsPattern` (`shared/utils/search.ts`), which escapes `%`, `_` and
+  `\`, so a search or text filter matches what was typed (people, requests,
+  the property district and plot filters, and `searchTextContains`).
+- Each row of the paged property and rental lists, and of the two favorites
+  lists, carries `primary_image: { id, thumbnail } | null`: the image its
+  table shows (the primary one, else the first in order) and whether that
+  image has a thumbnail yet. Tables render it as a plain lazy `<img>`; no row
+  asks for its image list.
+- Images: originals are stored as uploaded and never rewritten. A thumbnail
+  (JPEG, longest side 320 px) is a derived file at
+  `images/thumbnails/<original file_path>.jpg`, a sibling of the images
+  folder (`thumbnailsRoot()` in `modules/images/images.service.ts` derives
+  it from `imagesDir`), so backups, which archive the images folder, leave
+  thumbnails out, and a restored row finds its thumbnail again by its
+  unchanged path. The API never decodes images: the renderer makes the
+  thumbnail (`utils/thumbnails.ts`, `createImageBitmap` + canvas) and sends
+  it with an upload, or with `PUT …/images/:imageId/thumbnail` for an image
+  uploaded before thumbnails existed, the first time a table shows that
+  image to a user with the images permission
+  (`composables/useThumbnailBackfill.ts`). Until then the row shows the
+  original. Deleting an image deletes its thumbnail.
+- A list that returns related rows loads them for every row at once (an
+  `IN` query or a join), not with a query per row: users with their roles
+  and permissions, roles with their permission ids. Saving a record reads
+  the names of its picked locations in one query (`getLocationNames`).
+- The Excel import commits in one transaction holding the properties code
+  lock, so either every accepted row is saved or none is. It reads what the
+  rows need (saved phones, location names, matching plots, linked people,
+  last codes) once for the whole file and inserts 100 rows per statement.
+  Files over `MAX_IMPORT_ROWS` (5,000) are refused by validate and commit,
+  which bounds how long other new listings wait for that lock.
+- Backup archives are streamed (`modules/backup/backup.archive.ts`, yazl and
+  yauzl): a backup writes files into `<name>.zip.partial` one at a time and
+  renames it on success; a restore reads entries from the zip on disk (or
+  the uploaded buffer) and writes each file once its CRC-32 matched. Never
+  load a whole archive or media folder into memory. Keep the layout older
+  builds read with adm-zip 0.5.17 (`manifest.json`, `data.json`,
+  `images/properties/…`, `documents/…`, directory entries);
+  `test:backup:compat` restores an archive written by such a build.
+- The scheduled run (`apps/desktop/src/backup.js`) writes a full backup to
+  the backup folder (`/api/backup/internal-run`, type `email`) and emails
+  only the database: `/api/backup/internal-email-archive` returns
+  `manifest.json` (with `contents: "database"`) and `data.json`, zipped and
+  encrypted in memory by `modules/backup/backup.crypto.ts` (AES-256-GCM,
+  scrypt key, header `DALALYENC` + version + parameters + salt + IV +
+  password check, authenticated), as `Dalaly_Database_<time>.dalaly-enc`.
+  The password is kept like the SMTP one (`safeStorage`, never sent to the
+  renderer); without it nothing is emailed. Restore recognizes the header,
+  not the extension, and decrypts before reading anything, so a missing or
+  wrong password or a damaged file is an Arabic 400 that changes nothing. A
+  database-only archive restores rows and writes no files: the images and
+  documents on disk stay, and the `images` scope is refused for it.
+- Retention (owner decision, 2026-10-24): after a scheduled backup or a
+  pre-restore copy succeeds, under the operation lock, copies of that kind
+  beyond the newest 10 on disk are deleted. A file goes only if a successful
+  job of that type recorded it, no other job did, it is named the way that
+  kind is named, and it sits directly in the configured backup folder;
+  manual backups, exports and other files are never deleted. Each deletion
+  is logged and written to `backup_logs`, and its job rows become `pruned`
+  (kept). Two backups in the same second get `_2`, `_3`… names instead of
+  sharing one.
+- Database connections: `buildPoolConfig(target)` in
+  `infrastructure/config.ts` configures every pool on the app's database
+  (the request pool, the one `reconfigurePool` switches to after setup, the
+  startup pool): at most 10 connections, 2 kept open however long the app
+  is idle, the rest closed after 5 minutes unused, 5 s to get a connection.
+  Health checks and startup connect with the shorter 1.5 s timeout.
+  PostgreSQL cancels any statement after 15 s (`DB_STATEMENT_TIMEOUT_MS`);
+  the central error handler answers that (SQLSTATE 57014) with a 503
+  `QUERY_TIMEOUT`, and a request that got no connection in time with a 503
+  `DATABASE_BUSY`, both in Arabic. Work that may legitimately run longer
+  starts its transaction with `SET LOCAL statement_timeout = 0`: the backup
+  snapshot, the restore and the migration transaction (which also runs
+  without the startup pool's client-side read timeout, `withMigrationPool`).
+  Measurements behind the values: `docs/PERFORMANCE.md`, "Pool, statement
+  timeout and dashboard".
+- The dashboard summary runs its queries at most two at a time
+  (`inParallel` in `dashboard.repository.ts`); each running query holds a
+  connection, and after an idle pause every extra one is a new backend.
+  `test:dashboard` compares its response with the pre-merge queries kept in
+  `server/scripts/dashboard-reference.ts`.
 - User-facing messages are Arabic. Keep request/response shapes stable: the
-  renderer types in `apps/renderer/src/types` mirror them by hand.
+  renderer types in `apps/renderer/src/types` mirror them by hand, and
+  `test:contract` checks every response the renderer reads against the type
+  its service declares (`request<T>(path)`).
 - Add a service file only when a repository alone would mix concerns; most
   modules are CRUD and stay `routes → repository`.
 - Migrations live in `server/drizzle` and are never edited or deleted once
-  shipped. `run-migrations.ts` deliberately skips the retired contract-system
-  migrations by tag (`0001_contract_studio`/`0002_studio_ux`) and gates
-  `0003_remove_contract_system` behind explicit approval; the current
-  `0001_default_document_types` is unrelated and runs normally.
+  shipped. `run-migrations.ts` applies, in journal order, each one newer
+  than the last applied, and refuses to start when an applied one's hash
+  changed. The retired contract system has no removal path: its tables, rows
+  and files on an existing install stay as they are, the app never reads
+  them, and no migration drops them. A cleanup needs the owner's separate
+  approval after a backup and a real restore test
+  (`docs/CONTRACT_SYSTEM_REMOVAL_MAP.md`).
 - The runner hashes each migration's raw bytes, so line endings are part of a
   shipped migration. `.gitattributes` pins `server/drizzle/*.sql` to LF (what
   drizzle-kit writes and what packaged builds and existing databases recorded),
@@ -129,9 +253,11 @@ Conventions:
   inserted by a data migration once per database; system permissions and the
   Super Admin role are re-seeded on every startup by `seedSystemRbac`.
 - Indexes that existing data may block (the plot-identity unique index, the
-  `pg_trgm` search indexes) are created best-effort by hand-written migrations
+  `pg_trgm` indexes on `search_text` and on `plot_number`) are created
+  best-effort by hand-written migrations
   (`DO $$ … EXCEPTION … RAISE NOTICE`) and are not declared in `schema.ts`;
-  the runner logs migration notices.
+  the runner logs migration notices. Without `pg_trgm` the search still
+  works, by scanning.
 
 ## Renderer (`apps/renderer/src`)
 

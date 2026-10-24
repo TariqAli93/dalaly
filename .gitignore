@@ -8,8 +8,11 @@ apps/renderer/dist
 apps/desktop/release
 server/dist
 
+# Development data folder of the API (APP_DATA_DIR defaults to server/data):
+# backups, documents, seed images, the web demo. Nothing in it is source.
+server/data/
+
 # وضع web-demo والتصوير
-server/data/web-demo
 test-results
 playwright-report
 
@@ -22,12 +25,9 @@ tests
 tools/libreoffice/
 tools/.document-renderer-setup/
 tools/chromium/
-server/data/backups/studio-*/
-server/data/studio-*.json
-server/data/studio-*.ts
-server/data/studio-tests/
-server/data/documents/
-
-server/data/removal-review/
-server/data/removal-tests/
+# Fetched at package time by scripts/fetch-cloudflared.mjs (pinned, checksummed).
+tools/cloudflared/*
+!tools/cloudflared/.gitkeep
 perf-results
+.claude
+.claude-flow

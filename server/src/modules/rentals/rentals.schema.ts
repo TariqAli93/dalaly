@@ -11,6 +11,7 @@ import {
   refineLocation,
 } from "../../shared/validation/location.js";
 import {
+  booleanField,
   optionalCount,
   optionalId,
   optionalText,
@@ -46,7 +47,7 @@ export const rentalPayloadSchema = z
     owner_phone: z.string().trim().min(1),
     owner_notes: optionalText,
     status: z.enum(RENTAL_STATUSES).default("available"),
-    is_negotiable: z.coerce.boolean().default(false),
+    is_negotiable: booleanField.default(false),
     notes: optionalText,
   })
   .superRefine(refineLocation);

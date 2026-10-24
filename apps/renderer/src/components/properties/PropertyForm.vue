@@ -17,7 +17,7 @@ import { AMENITY_OPTIONS } from "../../utils/amenities";
 
 const model = defineModel<PropertyForm>({ required: true });
 
-const props = defineProps<{
+defineProps<{
   editing?: boolean;
   saving?: boolean;
 }>();

@@ -6,7 +6,7 @@ import ThemeToggle from "./ThemeToggle.vue";
 
 // title للعرض فقط (يمرّره AppLayout من عنوان الصفحة الحالية)، وcanRefresh:
 // هل سجّلت الصفحة الحالية ما يعيد تحميلها.
-const props = defineProps<{ title?: string; canRefresh?: boolean }>();
+defineProps<{ title?: string; canRefresh?: boolean }>();
 const emit = defineEmits<{ refresh: []; "toggle-drawer": [] }>();
 
 const router = useRouter();

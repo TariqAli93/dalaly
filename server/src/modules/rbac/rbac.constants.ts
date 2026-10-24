@@ -64,6 +64,11 @@ export const SYSTEM_PERMISSIONS = [
   { key: "settings.read", name: "قراءة الإعدادات", module: "settings" },
   { key: "settings.update", name: "تعديل الإعدادات", module: "settings" },
   {
+    key: "remote_access.manage",
+    name: "تشغيل وإيقاف الاتصال الخارجي",
+    module: "remote_access",
+  },
+  {
     key: "locations.manage",
     name: "إدارة المحافظات والمناطق",
     module: "locations",

@@ -28,6 +28,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      # pnpm lint runs this and the typecheck above.
+      - run: pnpm exec eslint .
       # Fast suites only; they blank DB settings and need no PostgreSQL.
       - run: pnpm test
       - run: pnpm build
@@ -44,12 +46,6 @@ jobs:
     # - test:removal:electron drives a packaged Windows build (win-unpacked).
     # - test:removal:browser drives the built renderer in Playwright's
     #   Chromium; it is a UI suite, not a database one.
-    # - test:removal and test:removal:legacy: removal-core.test.ts and
-    #   removal-legacy.test.ts replay the contract-system retirement migration
-    #   0003, which the migration squash (eb63ea4) deleted. Restoring or
-    #   formally retiring that path is an owner decision
-    #   (docs/AUDIT_AND_ROADMAP.md, section 2.1). Their third file runs below
-    #   as test:removal:backup.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -116,9 +112,21 @@ jobs:
       - name: test:permissions
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:permissions
+      - name: test:remote-access
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:remote-access
       - name: test:backup:safety
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:backup:safety
+      - name: test:backup:compat
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:backup:compat
+      - name: test:backup:retention
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:backup:retention
+      - name: test:backup:encrypted
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:backup:encrypted
       - name: test:limits
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:limits
@@ -134,6 +142,27 @@ jobs:
       - name: test:paging
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:paging
+      - name: test:thumbnails
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:thumbnails
+      - name: test:import
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:import
+      - name: test:queries
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:queries
+      - name: test:dashboard
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:dashboard
+      - name: test:timeouts
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:timeouts
+      - name: test:search
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:search
+      - name: test:contract
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:contract
       - name: test:removal:backup
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:removal:backup

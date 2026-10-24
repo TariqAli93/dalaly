@@ -38,7 +38,7 @@ const location = computed(() =>
     <div class="ps__head">
       <div class="min-w-0">
         <div class="ps__code">
-          {{ rental.name || `rentals ${rental.code}` }}
+          {{ rental.name || `إيجار ${rental.code}` }}
         </div>
         <div class="ps__type money">
           {{ rental.code }} ·

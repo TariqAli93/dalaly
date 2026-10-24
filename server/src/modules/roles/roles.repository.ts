@@ -1,8 +1,10 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import { roles } from "../../infrastructure/database/schema.js";
+import { DomainError } from "../../shared/errors.js";
 import {
   grantAllPermissionsToRole,
+  getPermissionIdsForRoles,
   getRolePermissionIds,
   hasAnyUserWithRole,
   setRolePermissionIds,
@@ -15,7 +17,10 @@ export async function listRoles() {
     .select()
     .from(roles)
     .orderBy(desc(roles.createdAt), desc(roles.id));
-  return Promise.all(rows.map(toRoleDto));
+  const permissionIds = await getPermissionIdsForRoles(
+    rows.map((role) => role.id),
+  );
+  return rows.map((role) => roleDto(role, permissionIds.get(role.id) ?? []));
 }
 
 export async function getRole(id: number) {
@@ -48,10 +53,10 @@ export async function deleteRole(id: number) {
   const role = await getRawRole(id);
   if (!role) return null;
   if (role.name === SUPER_ADMIN_ROLE || role.isSystem) {
-    throw new Error("لا يمكن حذف دور نظامي.");
+    throw new DomainError(400, "لا يمكن حذف دور نظامي.");
   }
   if (await hasAnyUserWithRole(id)) {
-    throw new Error("لا يمكن حذف دور مرتبط بمستخدمين.");
+    throw new DomainError(400, "لا يمكن حذف دور مرتبط بمستخدمين.");
   }
 
   const [deleted] = await db.delete(roles).where(eq(roles.id, id)).returning();
@@ -79,6 +84,10 @@ async function getRawRole(id: number) {
 }
 
 async function toRoleDto(role: typeof roles.$inferSelect) {
+  return roleDto(role, await getRolePermissionIds(role.id));
+}
+
+function roleDto(role: typeof roles.$inferSelect, permissionIds: number[]) {
   return {
     id: role.id,
     name: role.name,
@@ -86,6 +95,6 @@ async function toRoleDto(role: typeof roles.$inferSelect) {
     is_system: role.isSystem,
     created_at: role.createdAt,
     updated_at: role.updatedAt,
-    permission_ids: await getRolePermissionIds(role.id),
+    permission_ids: permissionIds,
   };
 }

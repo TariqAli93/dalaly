@@ -3,7 +3,7 @@ import path from "node:path";
 import { readMigrationFiles } from "drizzle-orm/migrator";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "./schema.js";
-import { withStartupPool } from "./pool.js";
+import { withMigrationPool } from "./pool.js";
 import { bootstrapDefaultAdmin } from "../../modules/auth/auth.service.js";
 import { seedSystemRbac } from "../../modules/rbac/rbac.service.js";
 import {
@@ -18,15 +18,18 @@ import {
  */
 export async function applyMigrations(
   migrationsFolder = getMigrationsFolder(),
-  options: { initialize?: boolean; approvedRetirement?: boolean } = {},
+  options: { initialize?: boolean } = {},
 ) {
-  await withStartupPool(async (startupPool) => {
+  await withMigrationPool(async (startupPool) => {
     const startupDb = drizzle(startupPool, { schema });
     if (options.initialize && (await installationInitialized(startupPool)))
       await markInstallationInitialized(startupPool);
     const client = await startupPool.connect();
     try {
       await client.query("BEGIN");
+      // Building an index or rewriting a table may take longer than any
+      // request; a migration cut off halfway would keep the app from starting.
+      await client.query("SET LOCAL statement_timeout = 0");
       await client.query("SELECT pg_advisory_xact_lock(192822)");
       await client.query("CREATE SCHEMA IF NOT EXISTS drizzle");
       await client.query(
@@ -57,46 +60,7 @@ export async function applyMigrations(
         if (previous && previous.hash !== migration.hash)
           throw new Error(`ملف هجرة مطبق تغير: ${tag}`);
         if (applied.some((row) => row.hash === migration.hash)) continue;
-        // Retired creation migrations are immutable historical records, never
-        // executed for a fresh install or replayed after the removal receipt.
-        if (["0001_contract_studio", "0002_studio_ux"].includes(tag)) continue;
-        const retirement = tag === "0003_remove_contract_system";
-        if (!retirement && migration.folderMillis <= latest) continue;
-        if (retirement) {
-          const pending = await client.query(`SELECT
-            EXISTS(SELECT 1 FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'studio_%' OR tablename IN ('contracts','contract_templates','contract_parties','party_snapshots','contract_office_snapshots','contract_asset_snapshots','contract_attachments','contract_legal_snapshots','contract_procedures','contract_procedure_attachments','legal_reviewers','legal_formulations','legal_contract_templates','legal_contract_clauses','legal_content_events','legal_task_notifications'))) AS tables,
-            EXISTS(SELECT 1 FROM permissions WHERE key ~ '^(contracts|contract_templates|legal_content|legal_formulations|formulations|studio)\\.') AS permissions,
-            EXISTS(SELECT 1 FROM app_settings WHERE key ~ '^(studio|contracts|contract_templates|legal_content)\\.') AS settings,
-            EXISTS(SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname IN ('studio_immutable_record','protect_issued_contract','protect_issued_contract_snapshot','protect_issued_party_snapshot')) AS functions,
-            EXISTS(SELECT 1 FROM audit_logs WHERE entity_type IN ('contract','contracts','contract_template','contract_templates','studio_contract','studio_template','legal_content','legal_formulation')) AS audit`);
-          if (
-            !options.approvedRetirement &&
-            Object.values(pending.rows[0]).some(Boolean)
-          ) {
-            // A historical installation may have lost its accounts before the
-            // setup marker existed. Preserve that protection during retirement;
-            // this is a migration check, not an active model or API dependency.
-            if (options.initialize && pending.rows[0].tables) {
-              const history = await client.query(
-                "SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename IN ('contracts','studio_contracts')",
-              );
-              for (const { tablename } of history.rows) {
-                const records = await client.query(
-                  `SELECT 1 FROM public."${tablename}" LIMIT 1`,
-                );
-                if (records.rowCount) {
-                  await markInstallationInitialized(client);
-                  break;
-                }
-              }
-            }
-            continue;
-          }
-          if (options.approvedRetirement)
-            await client.query(
-              "SELECT set_config('dalaly.approved_module_removal','contracts',true)",
-            );
-        }
+        if (migration.folderMillis <= latest) continue;
         // Migrations report a skipped optional step (an index that existing
         // data or permissions prevent) with RAISE NOTICE; log it, or nobody sees it.
         const logNotice = (notice: { message?: string }) =>

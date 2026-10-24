@@ -13,7 +13,10 @@ import PropertyActions from "./PropertyActions.vue";
 import StatusChip from "../shared/StatusChip.vue";
 import EmptyState from "../shared/EmptyState.vue";
 import { amenitiesText } from "../../utils/amenities";
-import PropertyImages from "./PropertyImages.vue";
+import RowThumbnail from "../shared/RowThumbnail.vue";
+import * as imagesService from "../../services/images.service";
+import { usePermissions } from "../../composables/usePermissions";
+import { useThumbnailBackfill } from "../../composables/useThumbnailBackfill";
 
 const props = defineProps<{
   properties: PropertyRecord[];
@@ -57,6 +60,29 @@ function onRowClick(event: MouseEvent, ctx: { item: PropertyRecord }) {
 
 function rowProps(ctx: { item: PropertyRecord }) {
   return ctx.item.id === props.selectedId ? { class: "dal-row--selected" } : {};
+}
+
+const { can } = usePermissions();
+const { queueThumbnail } = useThumbnailBackfill();
+
+// الصورة الرئيسية تأتي مع الصف: مصغّرتها، أو الأصل إن لم تُصنع بعد.
+function rowImageUrl(item: PropertyRecord) {
+  const image = item.primary_image;
+  if (!image) return null;
+  return image.thumbnail
+    ? imagesService.thumbnailUrl(item.id, image.id)
+    : imagesService.imageFileUrl(item.id, image.id);
+}
+
+// صورة رُفعت قبل المصغّرات: بعد عرض أصلها يصنع من يدير الصور مصغّرتها.
+function onRowImageLoad(item: PropertyRecord) {
+  const image = item.primary_image;
+  if (!image || image.thumbnail || !can("properties.images.manage")) return;
+  queueThumbnail({
+    key: `property:${image.id}`,
+    source: imagesService.imageFileUrl(item.id, image.id),
+    save: (data) => imagesService.saveThumbnail(item.id, image.id, data),
+  });
 }
 
 const ALL_HEADERS = [
@@ -169,7 +195,7 @@ const serverBindings = computed(() =>
       @click:row="onRowClick"
     >
       <template #item.image="{ item }">
-        <PropertyImages primary-only :property-id="item.id" />
+        <RowThumbnail :src="rowImageUrl(item)" @load="onRowImageLoad(item)" />
       </template>
       <template #item.name="{ item }">
         <router-link :to="`/properties/${item.id}`" class="record-link">{{

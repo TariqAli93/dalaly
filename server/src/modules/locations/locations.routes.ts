@@ -95,17 +95,10 @@ export const locationsRoutes: FastifyPluginAsync = async (app) => {
       const id = parseId((request.params as { id: string }).id);
       if (!id)
         return reply.code(400).send({ message: "معرف المحافظة غير صحيح." });
-      try {
-        const governorate = await deleteGovernorate(id);
-        if (!governorate)
-          return reply.code(404).send({ message: "المحافظة غير موجودة." });
-        return { deleted: true, governorate };
-      } catch (error) {
-        return reply.code(400).send({
-          message:
-            error instanceof Error ? error.message : "تعذر حذف المحافظة.",
-        });
-      }
+      const governorate = await deleteGovernorate(id);
+      if (!governorate)
+        return reply.code(404).send({ message: "المحافظة غير موجودة." });
+      return { deleted: true, governorate };
     },
   );
 
@@ -141,16 +134,10 @@ export const locationsRoutes: FastifyPluginAsync = async (app) => {
       const id = parseId((request.params as { id: string }).id);
       if (!id)
         return reply.code(400).send({ message: "معرف المنطقة غير صحيح." });
-      try {
-        const district = await deleteDistrict(id);
-        if (!district)
-          return reply.code(404).send({ message: "المنطقة غير موجودة." });
-        return { deleted: true, district };
-      } catch (error) {
-        return reply.code(400).send({
-          message: error instanceof Error ? error.message : "تعذر حذف المنطقة.",
-        });
-      }
+      const district = await deleteDistrict(id);
+      if (!district)
+        return reply.code(404).send({ message: "المنطقة غير موجودة." });
+      return { deleted: true, district };
     },
   );
 
@@ -184,16 +171,10 @@ export const locationsRoutes: FastifyPluginAsync = async (app) => {
     async (request, reply) => {
       const id = parseId((request.params as { id: string }).id);
       if (!id) return reply.code(400).send({ message: "معرف الحي غير صحيح." });
-      try {
-        const neighborhood = await deleteNeighborhood(id);
-        if (!neighborhood)
-          return reply.code(404).send({ message: "الحي غير موجود." });
-        return { deleted: true, neighborhood };
-      } catch (error) {
-        return reply.code(400).send({
-          message: error instanceof Error ? error.message : "تعذر حذف الحي.",
-        });
-      }
+      const neighborhood = await deleteNeighborhood(id);
+      if (!neighborhood)
+        return reply.code(404).send({ message: "الحي غير موجود." });
+      return { deleted: true, neighborhood };
     },
   );
 };

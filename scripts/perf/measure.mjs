@@ -1,7 +1,7 @@
 // Repeatable performance measurements of a packaged build.
 //
 //   node scripts/perf/measure.mjs --app apps/desktop/release/win-unpacked [--label main]
-//        [--runs 8] [--properties 5000] [--skip-api] [--skip-startup]
+//        [--runs 8] [--properties 5000] [--photos 3] [--skip-api] [--skip-startup]
 //
 // Needs the local PostgreSQL (DB_* from .env). Creates and drops its own
 // dalaly_perf_<timestamp> database and uses temporary profiles, so it never
@@ -17,18 +17,24 @@ import {
   childPids,
   createDatabase,
   databaseUrl,
+  download,
   dropDatabase,
   freePort,
   makeTempDir,
   packagedApp,
+  painted,
   portIsFree,
+  query,
   root,
+  rowImagesPainted,
   seedDataset,
+  seedPhotos,
   sleep,
   startApi,
   stats,
   stopProcess,
   timeRequests,
+  trackApi,
   waitForHealth,
   windowsProcessInfo,
   cleanEnv,
@@ -42,6 +48,8 @@ const { values: options } = parseArgs({
     label: { type: "string" },
     runs: { type: "string", default: "8" },
     properties: { type: "string", default: "5000" },
+    // Photos per property and rental (12 MP JPEGs of 3–4.5 MB); 0 = none.
+    photos: { type: "string", default: "0" },
     "skip-api": { type: "boolean", default: false },
     "skip-startup": { type: "boolean", default: false },
   },
@@ -55,6 +63,7 @@ const label = options.label ?? path.basename(path.dirname(app.dir));
 const fileLabel = label.replace(/[^A-Za-z0-9._-]+/g, "-");
 const runs = Number(options.runs);
 const propertyCount = Number(options.properties);
+const photosPerListing = Number(options.photos);
 const sizes = {
   properties: propertyCount,
   rentals: Math.round(propertyCount * 0.4),
@@ -66,6 +75,8 @@ const sizes = {
 // The renderer's API base is fixed at build time to this port.
 const APP_API_PORT = 34567;
 const IDLE_SAMPLE_MS = 10_000;
+// Longer than pg's default 10 s idle timeout for pooled connections.
+const PAUSE_MS = 12_000;
 // The list request a page sends: the whole array (before server paging) or
 // one page from /paged. Image and audit requests do not match.
 const LIST_REQUEST = {
@@ -83,6 +94,8 @@ const PAGE_SEARCH = "بغداد";
 const TOPBAR_SEARCH = "شارع";
 // Matches no offer, so the list shows its "clear filters" button.
 const NO_MATCH = "zzqx";
+// A seeded owner phone ('0780' || g % people): a search that finds a few rows.
+const PHONE_SEARCH = "07800000777";
 // A seeded person ('زبون ' || g), searched for in the person pickers.
 const PERSON_SEARCH = "زبون 777";
 
@@ -94,7 +107,10 @@ const results = {
   dataset: sizes,
 };
 
+const outputFile = path.join(root, "perf-results", `${fileLabel}.json`);
 const temporary = makeTempDir(fileLabel);
+// The API's images folder (startApi), shared with each app profile.
+const seededImagesDir = () => path.join(temporary, "images", "properties");
 let databaseName;
 let apiChild;
 try {
@@ -110,8 +126,10 @@ try {
   await api(fixturePort, "/auth/setup-admin", { method: "POST", body: ADMIN });
   const seedStarted = performance.now();
   await seedDataset(databaseName, sizes);
+  if (photosPerListing > 0)
+    results.photos = await seedPhotos(databaseName, seededImagesDir(), photosPerListing);
   results.seedSeconds = Math.round((performance.now() - seedStarted) / 100) / 10;
-  console.log(`Seeded ${databaseName} in ${results.seedSeconds} s`, sizes);
+  console.log(`Seeded ${databaseName} in ${results.seedSeconds} s`, sizes, results.photos ?? "no photos");
   results.build = await probeBuild(fixturePort);
   console.log("Build:", results.build);
   results.bundle = rendererBundle();
@@ -124,15 +142,22 @@ try {
     await waitForHealth(fixturePort, (health) => health.startup_state === "READY");
     results.api = await measureApi(fixturePort, apiChild.pid, results.build);
     printApi(results.api);
+    // Kept even if a launch of the startup pass fails.
+    writeResults();
   }
   await stopProcess(apiChild);
   apiChild = undefined;
 
   if (!options["skip-startup"]) {
-    if (!(await portIsFree(APP_API_PORT)))
-      throw new Error(`Port ${APP_API_PORT} is in use; close Dalaly before measuring startup.`);
-    results.startup = await measureStartup(results.build);
-    printStartup(results.startup);
+    // Checked only now, after the API pass, so keep what that pass measured.
+    if (!(await portIsFree(APP_API_PORT))) {
+      results.startupSkipped = `port ${APP_API_PORT} in use`;
+      console.error(`\nPort ${APP_API_PORT} is in use (Dalaly or pnpm dev running): startup pass skipped.`);
+      process.exitCode = 1;
+    } else {
+      results.startup = await measureStartup(results.build);
+      printStartup(results.startup);
+    }
   }
 } finally {
   await stopProcess(apiChild);
@@ -140,11 +165,13 @@ try {
   fs.rmSync(temporary, { recursive: true, force: true });
 }
 
-const outputDir = path.join(root, "perf-results");
-fs.mkdirSync(outputDir, { recursive: true });
-const outputFile = path.join(outputDir, `${fileLabel}.json`);
-fs.writeFileSync(outputFile, `${JSON.stringify(results, null, 2)}\n`);
+writeResults();
 console.log(`\nWrote ${path.relative(root, outputFile)}`);
+
+function writeResults() {
+  fs.mkdirSync(path.dirname(outputFile), { recursive: true });
+  fs.writeFileSync(outputFile, `${JSON.stringify(results, null, 2)}\n`);
+}
 
 /**
  * What the build under test can do, so both passes send what its pages send:
@@ -159,13 +186,20 @@ async function probeBuild(port) {
       .ok;
   const { body: newest } = await api(port, "/properties?limit=1", { token: session.token });
   const { body: newestRental } = await api(port, "/rentals?limit=1", { token: session.token });
+  const pagedOffers = await ok("/properties/paged?page_size=1");
+  const { body: images } = await api(port, `/properties/${newest[0].id}/images`, { token: session.token });
   return {
-    pagedOffers: await ok("/properties/paged?page_size=1"),
+    pagedOffers,
     pagedPeople: await ok("/people/paged?page_size=1"),
+    // Paged rows carry their primary image, so table rows ask for no image list.
+    primaryImages:
+      pagedOffers &&
+      "primary_image" in (await api(port, "/properties/paged?page_size=1", { token: session.token })).body.items[0],
     ownerId: newest[0].owner_person_id,
     // Opened in their edit forms; the rental is linked to a person.
     propertyId: newest[0].id,
     rentalId: newestRental[0].id,
+    imageId: images[0]?.id,
   };
 }
 
@@ -182,6 +216,7 @@ async function measureApi(port, apiPid, build) {
     "GET /dashboard/summary": "/dashboard/summary",
     "GET /properties": "/properties",
     "GET /properties?search=بغداد": `/properties?search=${encodeURIComponent("بغداد")}`,
+    [`GET /properties?search=${PHONE_SEARCH}`]: `/properties?search=${PHONE_SEARCH}`,
     "GET /rentals": "/rentals",
     "GET /people": "/people",
     "GET /rental-requests": "/rental-requests",
@@ -189,11 +224,17 @@ async function measureApi(port, apiPid, build) {
     ...(requestId
       ? { "GET /matching/rental-requests/:id/offers": `/matching/rental-requests/${requestId}/offers` }
       : {}),
+    ...(build.imageId ? { "GET /properties/:id/images": `/properties/${build.propertyId}/images` } : {}),
   };
   const sequential = {};
   for (const [name, pathname] of Object.entries(endpoints)) {
     sequential[name] = await timeRequests(get(pathname), { warmup: 3, count: 30 });
   }
+  if (build.imageId)
+    sequential["GET /properties/:id/images/:imageId/file (original photo)"] = await timeRequests(
+      () => download(port, `/properties/${build.propertyId}/images/${build.imageId}/file`, { token }),
+      { warmup: 3, count: 30 },
+    );
 
   // The request each list page sends for the same user action, so builds
   // before and after server paging compare like for like: before, every
@@ -223,7 +264,19 @@ async function measureApi(port, apiPid, build) {
         : `/properties?q=${encodeURIComponent("شارع 1")}`,
     ),
   );
+  // Four clients opening the dashboard, as office PCs do after logging in.
+  const concurrentDashboard = await concurrently(get("/dashboard/summary"));
   const after = windowsProcessInfo([apiPid])[apiPid];
+  const connectionsAfterLoad = await apiConnections();
+
+  // The first request after a pause in which nobody used the app: pg closes
+  // connections idle for 10 s by default, so it may wait for a new one.
+  const afterPause = {};
+  for (const [name, pathname] of [
+    ["GET /auth/me", "/auth/me"],
+    ["GET /dashboard/summary", "/dashboard/summary"],
+  ])
+    afterPause[name] = await timeAfterPause(get(pathname));
 
   return {
     sequential,
@@ -231,6 +284,9 @@ async function measureApi(port, apiPid, build) {
     pageRequests,
     concurrentSearch,
     concurrentPageSearch,
+    concurrentDashboard,
+    afterPause: { pauseSeconds: PAUSE_MS / 1000, ...afterPause },
+    connections: { afterLoad: connectionsAfterLoad, afterPause: await apiConnections() },
     apiProcess: {
       workingSetMBBefore: round(before?.workingSetMB),
       workingSetMBAfter: round(after?.workingSetMB),
@@ -252,6 +308,7 @@ async function listPageRequests(port, token, build) {
     offers = {
       "Properties page: open": all,
       [`Properties page: search ${PAGE_SEARCH}`]: `/properties?q=${encodeURIComponent(PAGE_SEARCH)}`,
+      [`Properties page: search ${PHONE_SEARCH}`]: `/properties?q=${PHONE_SEARCH}`,
       "Properties page: sort by area": all,
       "Properties page: last page": all,
       "Rentals page: open": "/rentals",
@@ -262,6 +319,7 @@ async function listPageRequests(port, token, build) {
     offers = {
       "Properties page: open": `/properties/paged?${first}`,
       [`Properties page: search ${PAGE_SEARCH}`]: `/properties/paged?q=${encodeURIComponent(PAGE_SEARCH)}&${first}`,
+      [`Properties page: search ${PHONE_SEARCH}`]: `/properties/paged?q=${PHONE_SEARCH}&${first}`,
       "Properties page: sort by area": "/properties/paged?page=1&page_size=10&sort_by=area&sort_order=desc",
       "Properties page: last page": `/properties/paged?page=${lastPage}&page_size=10&sort_by=created_at&sort_order=desc`,
       "Rentals page: open": `/rentals/paged?${first}`,
@@ -288,6 +346,27 @@ async function listPageRequests(port, token, build) {
     "Purchase requests page: open": `/purchase-requests/paged?q=&${updated}`,
     "Documents page: open (list request)": "/documents/paged?page=1&page_size=10&sort_by=uploaded_at&sort_order=desc",
   };
+}
+
+/** `request` timed 6 times, each after PAUSE_MS without any request. */
+async function timeAfterPause(request) {
+  const samples = [];
+  for (let i = 0; i < 6; i += 1) {
+    await sleep(PAUSE_MS);
+    const started = performance.now();
+    await request();
+    samples.push(performance.now() - started);
+  }
+  return stats(samples);
+}
+
+/** Connections the API holds to the perf database (not counting this query's). */
+async function apiConnections() {
+  const { rows } = await query(
+    databaseName,
+    "SELECT count(*)::int AS count FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid()",
+  );
+  return rows[0].count;
 }
 
 /** Four clients sending `request` 15 times each, in parallel. */
@@ -320,6 +399,13 @@ async function measureStartup(build) {
       path.join(profile, "config.json"),
       JSON.stringify({ databaseUrl: databaseUrl(databaseName) }),
     );
+    // Every profile sees the seeded photos (the app keeps images under its
+    // profile); anything else the app writes under images/ stays per profile.
+    const photos = path.join(profile, "images", "properties");
+    if (photosPerListing > 0 && !fs.existsSync(photos)) {
+      fs.mkdirSync(path.dirname(photos), { recursive: true });
+      fs.symlinkSync(seededImagesDir(), photos, "junction");
+    }
     return _electron.launch({
       executablePath: app.exe,
       args: [`--user-data-dir=${profile}`],
@@ -329,10 +415,12 @@ async function measureStartup(build) {
   };
 
   const samples = { fresh: [], repeat: [] };
-  const memory = [];
+  const memory = { fresh: undefined, repeat: undefined };
   try {
     // Untimed launch so the "repeat" profile has Chromium caches populated.
-    await runOnce(await launchApp(repeatProfile), { login: false });
+    // With photos it also walks the lists once, as a user did the day before
+    // (whatever the app keeps for images it has shown is then in place).
+    await runOnce(await launchApp(repeatProfile), { login: photosPerListing > 0, build });
     for (let index = 0; index < runs; index += 1) {
       for (const mode of ["fresh", "repeat"]) {
         const profile = mode === "fresh" ? path.join(profiles, `fresh-${index}`) : repeatProfile;
@@ -341,11 +429,12 @@ async function measureStartup(build) {
         const timing = await runOnce(electron, {
           started,
           login: true,
-          sampleMemory: mode === "repeat" && index === 0,
+          // The fresh profile only on the properties list, with photos.
+          sampleMemory: index === 0 && (mode === "repeat" ? "all" : photosPerListing > 0 && "properties"),
           build,
         });
         samples[mode].push(timing.marks);
-        if (timing.memory) memory.push(timing.memory);
+        memory[mode] ??= timing.memory;
         console.log(`  ${mode} #${index + 1}: login form ${Math.round(timing.marks.loginVisible)} ms`);
       }
     }
@@ -357,7 +446,13 @@ async function measureStartup(build) {
     Object.fromEntries(
       Object.keys(list[0]).map((mark) => [mark, stats(list.map((entry) => entry[mark]))]),
     );
-  return { runs, fresh: summarize(samples.fresh), repeat: summarize(samples.repeat), memory: memory[0] };
+  return {
+    runs,
+    fresh: summarize(samples.fresh),
+    repeat: summarize(samples.repeat),
+    memory: memory.repeat,
+    memoryFresh: memory.fresh,
+  };
 }
 
 async function runOnce(electron, { started = performance.now(), login, sampleMemory = false, build }) {
@@ -392,8 +487,9 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
     marks.splashClosed = performance.now() - started;
 
     if (!login) return { marks };
-    let memory;
-    if (sampleMemory) memory = { idleAtLogin: await sampleProcesses(electron) };
+    const sampleAll = sampleMemory === "all";
+    const memory = sampleMemory ? {} : undefined;
+    if (sampleAll) memory.idleAtLogin = await sampleProcesses(electron);
 
     await page.getByLabel("اسم المستخدم", { exact: true }).fill(ADMIN.username);
     await page.getByLabel("الرمز السري", { exact: true }).fill(ADMIN.pin);
@@ -440,30 +536,32 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
     if (inPage.content !== null) marks.loginToDashboardContentPainted = inPage.content;
     if (inPage.charts !== null) marks.loginToDashboardChartsDrawn = inPage.charts;
 
-    if (sampleMemory) memory.idleOnDashboard = await sampleProcesses(electron);
+    if (sampleAll) memory.idleOnDashboard = await sampleProcesses(electron);
 
     // Dashboard → properties list → a search → rentals list. `…Data` is the
     // list response fully received, `…Painted` the new rows on screen.
-    // `…Requests` counts what each step sent (see trackApiRequests).
+    // With photos, also when every row's photo is decoded and on screen
+    // (`…ImagesPainted`) and what the step sent to the API (`…Requests`,
+    // `…ImageRequests`, `…ApiKB`), until no request was in flight for 1 s.
+    // Always, the list, locations and aborted requests each step sent
+    // (`…ListRequests` and the like, see trackApiRequests).
+    const images = photosPerListing > 0;
     let requests = trackApiRequests(page, LIST_REQUEST.properties);
     const scripts = trackScripts(page);
-    const properties = await openList(page, "#/properties", LIST_REQUEST.properties, "PERF-P");
-    marks.dashboardToPropertiesData = properties.data;
-    marks.dashboardToPropertiesPainted = properties.painted;
+    const properties = await openList(page, "#/properties", LIST_REQUEST.properties, "PERF-P", 3, { images });
+    Object.assign(marks, stepMarks("dashboardToProperties", properties));
     marks.dashboardToPropertiesScriptKB = scripts();
     Object.assign(marks, requestMarks("dashboardToProperties", await requests()));
     if (sampleMemory) memory.idleOnProperties = await sampleProcesses(electron);
 
     requests = trackApiRequests(page, LIST_REQUEST.properties);
-    const search = await searchProperties(page);
-    marks.propertiesSearchData = search.data;
-    marks.propertiesSearchPainted = search.painted;
+    const search = await searchProperties(page, { images });
+    Object.assign(marks, stepMarks("propertiesSearch", search));
     Object.assign(marks, requestMarks("propertiesSearch", await requests()));
 
     requests = trackApiRequests(page, LIST_REQUEST.rentals);
-    const rentals = await openList(page, "#/rentals", LIST_REQUEST.rentals, "PERF-R");
-    marks.propertiesToRentalsData = rentals.data;
-    marks.propertiesToRentalsPainted = rentals.painted;
+    const rentals = await openList(page, "#/rentals", LIST_REQUEST.rentals, "PERF-R", 3, { images });
+    Object.assign(marks, stepMarks("propertiesToRentals", rentals));
     Object.assign(marks, requestMarks("propertiesToRentals", await requests()));
 
     // Rentals → people → one person's properties → rental requests →
@@ -471,7 +569,7 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
     const people = await openList(page, "#/people", LIST_REQUEST.people, "PERF-C", 2);
     marks.rentalsToPeopleData = people.data;
     marks.rentalsToPeoplePainted = people.painted;
-    if (sampleMemory) memory.idleOnPeople = await sampleProcesses(electron);
+    if (sampleAll) memory.idleOnPeople = await sampleProcesses(electron);
 
     const person = await openPersonProperties(page, build);
     marks.peopleToPersonPropertiesData = person.data;
@@ -490,7 +588,7 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
     marks.purchaseRequestsToDocumentsData = documents.data;
     marks.purchaseRequestsToDocumentsPainted = documents.painted;
     marks.documentsPageApiKB = await documentsBytes();
-    if (sampleMemory) memory.idleOnDocuments = await sampleProcesses(electron);
+    if (sampleAll) memory.idleOnDocuments = await sampleProcesses(electron);
 
     // The person pickers: the documents filter, the request form's customer
     // list, the property and rental edit forms (`…ApiKB`: what each step
@@ -551,15 +649,13 @@ function firstRowStartsWith(page, column, prefix) {
   );
 }
 
-async function painted(page) {
-  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-}
-
 /**
  * Routes to a list page and waits for its first rows: the code in the
- * `column`th cell (the third, in the properties and rentals grids).
+ * `column`th cell (the third, in the properties and rentals grids). With
+ * `images`, then for every row's photo and the API traffic of the step.
  */
-async function openList(page, hash, request, codePrefix, column = 3) {
+async function openList(page, hash, request, codePrefix, column = 3, { images = false } = {}) {
+  const traffic = images ? trackApi(page, { quietMs: 1000 }) : undefined;
   const started = performance.now();
   const finished = page.waitForEvent("requestfinished", {
     predicate: (entry) => request.test(entry.url()),
@@ -570,7 +666,25 @@ async function openList(page, hash, request, codePrefix, column = 3) {
   const data = performance.now() - started;
   await firstRowStartsWith(page, column, codePrefix);
   await painted(page);
-  return { data, painted: performance.now() - started };
+  const result = { data, painted: performance.now() - started };
+  if (!images) return result;
+  await rowImagesPainted(page);
+  return { ...result, imagesPainted: performance.now() - started, traffic: await traffic() };
+}
+
+/** The marks of one list step, named after `prefix`. */
+function stepMarks(prefix, step) {
+  const marks = { [`${prefix}Data`]: step.data, [`${prefix}Painted`]: step.painted };
+  if (step.imagesPainted === undefined) return marks;
+  return {
+    ...marks,
+    [`${prefix}ImagesPainted`]: step.imagesPainted,
+    [`${prefix}Requests`]: step.traffic.requests,
+    [`${prefix}ImageRequests`]: step.traffic.imageRequests,
+    // Thumbnails the page saved for older images it showed.
+    [`${prefix}Writes`]: step.traffic.writes,
+    [`${prefix}ApiKB`]: step.traffic.kb,
+  };
 }
 
 /**
@@ -604,10 +718,11 @@ async function openPersonProperties(page, build) {
 }
 
 /** Searches the properties list (Enter skips the 300 ms debounce). */
-async function searchProperties(page) {
+async function searchProperties(page, { images = false } = {}) {
   const before = await firstRowCode(page);
   const field = page.getByPlaceholder(PROPERTY_SEARCH_PLACEHOLDER, { exact: true });
   await field.fill(PAGE_SEARCH);
+  const traffic = images ? trackApi(page, { quietMs: 1000 }) : undefined;
   const started = performance.now();
   const finished = page.waitForEvent("requestfinished", {
     predicate: (entry) =>
@@ -626,7 +741,10 @@ async function searchProperties(page) {
     { timeout: 60_000 },
   );
   await painted(page);
-  return { data, painted: performance.now() - started };
+  const result = { data, painted: performance.now() - started };
+  if (!images) return result;
+  await rowImagesPainted(page);
+  return { ...result, imagesPainted: performance.now() - started, traffic: await traffic() };
 }
 
 /**
@@ -635,38 +753,8 @@ async function searchProperties(page) {
  * stops counting and returns the KB.
  */
 function trackApiBytes(page) {
-  const sizes = [];
-  let inFlight = 0;
-  let lastChange = performance.now();
-  const isApi = (request) => request.url().includes("/api/");
-  const onRequest = (request) => {
-    if (!isApi(request)) return;
-    inFlight += 1;
-    lastChange = performance.now();
-  };
-  const onDone = (request) => {
-    if (!isApi(request)) return;
-    inFlight -= 1;
-    lastChange = performance.now();
-    sizes.push(request.sizes().then((size) => size.responseBodySize, () => 0));
-  };
-  const onFailed = (request) => {
-    if (!isApi(request)) return;
-    inFlight -= 1;
-    lastChange = performance.now();
-  };
-  page.on("request", onRequest);
-  page.on("requestfinished", onDone);
-  page.on("requestfailed", onFailed);
-  return async () => {
-    const deadline = performance.now() + 5_000;
-    while ((inFlight > 0 || performance.now() - lastChange < 150) && performance.now() < deadline) await sleep(25);
-    page.off("request", onRequest);
-    page.off("requestfinished", onDone);
-    page.off("requestfailed", onFailed);
-    const bytes = (await Promise.all(sizes)).reduce((sum, size) => sum + size, 0);
-    return Math.round(bytes / 1024);
-  };
+  const traffic = trackApi(page);
+  return async () => (await traffic()).kb;
 }
 
 /**
@@ -962,6 +1050,10 @@ function printApi(result) {
   );
   console.log("Concurrent search:", result.concurrentSearch);
   console.log("Concurrent search, as the page sends it:", result.concurrentPageSearch);
+  console.log("Concurrent dashboard:", result.concurrentDashboard);
+  console.log(`After a ${result.afterPause.pauseSeconds} s pause:`);
+  console.table({ "GET /auth/me": result.afterPause["GET /auth/me"], "GET /dashboard/summary": result.afterPause["GET /dashboard/summary"] });
+  console.log("API database connections:", result.connections);
   console.log("API process:", result.apiProcess);
 }
 
@@ -971,6 +1063,10 @@ function printStartup(result) {
   for (const mode of ["fresh", "repeat"])
     for (const [mark, s] of Object.entries(result[mode])) rows[`${mode} ${mark}`] = { median: s.median, max: s.max };
   console.table(rows);
+  if (result.memoryFresh) {
+    console.log("Fresh profile: memory and idle CPU on the properties list:");
+    console.table(result.memoryFresh.idleOnProperties);
+  }
   if (result.memory) {
     console.log("Memory and idle CPU at login form:");
     console.table(result.memory.idleAtLogin);

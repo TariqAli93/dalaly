@@ -12,6 +12,7 @@ import {
   totalRowsColumn,
   type SortOrder,
 } from "../../shared/utils/paging.js";
+import { containsPattern } from "../../shared/utils/search.js";
 import type {
   PersonFilters,
   PersonPageQuery,
@@ -63,16 +64,18 @@ function personConditions(filters: PersonFilters) {
   if (filters.status) where.push(eq(people.status, filters.status));
   else where.push(ne(people.status, "archived"));
   const q = filters.q?.trim();
-  if (q)
+  if (q) {
+    const pattern = containsPattern(q);
     where.push(
       or(
-        ilike(people.code, `%${q}%`),
-        ilike(people.fullName, `%${q}%`),
-        ilike(people.phonePrimary, `%${q}%`),
-        ilike(people.email, `%${q}%`),
-        ilike(people.nationalId, `%${q}%`),
+        ilike(people.code, pattern),
+        ilike(people.fullName, pattern),
+        ilike(people.phonePrimary, pattern),
+        ilike(people.email, pattern),
+        ilike(people.nationalId, pattern),
       )!,
     );
+  }
   return and(...where);
 }
 
@@ -83,7 +86,6 @@ export async function listPeople(filters: PersonFilters) {
       .from(people)
       .where(personConditions(filters))
       .orderBy(desc(people.updatedAt), desc(people.id)),
-    "people",
   );
 }
 
@@ -127,10 +129,7 @@ export async function listPeoplePage(query: PersonPageQuery) {
   const total =
     rows[0]?.total ?? (query.page > 1 ? await db.$count(people, condition) : 0);
   return {
-    items: toApiObjects(
-      rows.map((row) => row.person),
-      "people",
-    ),
+    items: toApiObjects(rows.map((row) => row.person)),
     total,
     page: query.page,
     page_size: query.page_size,
@@ -143,7 +142,7 @@ export async function getPerson(id: number) {
     .from(people)
     .where(eq(people.id, id))
     .limit(1);
-  return row ? toApiObject(row, "people") : null;
+  return row ? toApiObject(row) : null;
 }
 
 export async function createPerson(payload: PersonPayload) {
@@ -153,7 +152,7 @@ export async function createPerson(payload: PersonPayload) {
       .values({ ...normalize(payload), code: await generateCode(tx) })
       .returning(),
   );
-  return toApiObject(row, "people");
+  return toApiObject(row);
 }
 
 export async function updatePerson(id: number, payload: PersonPayload) {
@@ -162,7 +161,7 @@ export async function updatePerson(id: number, payload: PersonPayload) {
     .set(normalize(payload))
     .where(eq(people.id, id))
     .returning();
-  return row ? toApiObject(row, "people") : null;
+  return row ? toApiObject(row) : null;
 }
 
 export async function archivePerson(id: number) {
@@ -171,7 +170,7 @@ export async function archivePerson(id: number) {
     .set({ status: "archived", updatedAt: new Date() })
     .where(eq(people.id, id))
     .returning();
-  return row ? toApiObject(row, "people") : null;
+  return row ? toApiObject(row) : null;
 }
 
 export async function restorePerson(id: number) {
@@ -180,5 +179,5 @@ export async function restorePerson(id: number) {
     .set({ status: "active", updatedAt: new Date() })
     .where(eq(people.id, id))
     .returning();
-  return row ? toApiObject(row, "people") : null;
+  return row ? toApiObject(row) : null;
 }

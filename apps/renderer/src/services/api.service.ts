@@ -1,3 +1,5 @@
+import type { ApiErrorBody } from "../types";
+
 const configuredApiBase = import.meta.env.VITE_API_BASE_URL as
   string | undefined;
 
@@ -51,11 +53,7 @@ async function parseBody(response: Response): Promise<unknown> {
 
 export function formatApiError(body: unknown) {
   if (body && typeof body === "object") {
-    const payload = body as {
-      message?: string;
-      error?: string;
-      issues?: Array<{ message: string }>;
-    };
+    const payload = body as Partial<ApiErrorBody> & { error?: string };
 
     if (payload.issues?.length) {
       return payload.issues.map((issue) => issue.message).join("، ");
@@ -73,17 +71,20 @@ export function getErrorMessage(error: unknown) {
 }
 
 export class ApiError extends Error {
-  readonly issues: Array<{
-    message: string;
-    path?: string | Array<string | number>;
-    code?: string;
-  }>;
+  /** The body's machine-readable `code`, e.g. "BACKUP_PASSWORD_REQUIRED". */
+  readonly code: string | undefined;
+  readonly issues: NonNullable<ApiErrorBody["issues"]>;
   constructor(
     body: unknown,
     readonly status: number,
   ) {
     super(formatApiError(body));
     this.name = "ApiError";
+    const code =
+      body && typeof body === "object" && "code" in body
+        ? (body as { code?: unknown }).code
+        : undefined;
+    this.code = typeof code === "string" ? code : undefined;
     this.issues =
       body && typeof body === "object" && "issues" in body
         ? ((body as { issues?: ApiError["issues"] }).issues ?? [])

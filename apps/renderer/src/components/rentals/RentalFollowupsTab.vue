@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import type { FollowupRecord, FollowupType } from "../../types";
+import type { FollowupType, RentalFollowupRecord } from "../../types";
 import * as service from "../../services/rental-followups.service";
 import { getErrorMessage } from "../../services/api.service";
 import { useSnackbar } from "../../composables/useSnackbar";
 import { formatDateTime } from "../../utils/format";
 const props = defineProps<{ rentalId: number }>();
 const { notifyError, notifySuccess } = useSnackbar();
-const items = ref<FollowupRecord[]>([]);
+const items = ref<RentalFollowupRecord[]>([]);
 const notes = ref("");
 const type = ref<FollowupType>("phone_call");
 const scheduled = ref("");
@@ -48,7 +48,7 @@ async function add() {
     saving.value = false;
   }
 }
-async function remove(item: FollowupRecord) {
+async function remove(item: RentalFollowupRecord) {
   try {
     await service.deleteRentalFollowup(props.rentalId, item.id);
     await load();

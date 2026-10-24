@@ -51,9 +51,20 @@ measurably. The remaining unpacked size is dominated by the Electron runtime
 | `fix(seed): refuse --reset on databases with non-seed properties`      | **Verified.** `db:seed:reset` deleted all properties and locations of whatever database `.env` pointed at.                                                                                                      |
 | `chore(ci): typecheck, unit tests and build on windows-latest`         | There was no CI.                                                                                                                                                                                                |
 
-## 2. Decisions needed from the owner
+## 2. Owner decisions
 
 These are not code-quality calls; they change history, data or behavior.
+The owner decided all six on 2026-10-24. The numbered questions below the
+table are what they answer.
+
+| Decision | What the owner decided                                                                                                                                                                      | Status |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| D1       | Keep only the newest backups (retention, question 5 and Phase 1.2).                                                                                                                         | Done   |
+| D2       | Starting and stopping the remote-access tunnel needs a dedicated `remote_access.manage` permission, Super Admin only by default; the unused `REMOTE_ACCESS_ENABLED` flag goes (question 4). | Done   |
+| D3       | Scheduled email backups are encrypted and hold the database only (question 5).                                                                                                              | Done   |
+| D4       | Formally retire the contract-removal path: old contract tables on existing installs stay untouched, no migration drops them, and the dead runner code and obsolete tests go (question 1).   | Done   |
+| D5       | Stop tracking data files, and download `cloudflared.exe` at package time instead of committing it (question 2).                                                                             | Done   |
+| D6       | Unnamed listings get Arabic names (question 3).                                                                                                                                             | Done   |
 
 1. **Migration history was squashed (commit `eb63ea4`).** `0001`–`0003` were
    deleted and `0000` renamed and re-stamped, contrary to the append-only rule
@@ -79,9 +90,18 @@ These are not code-quality calls; they change history, data or behavior.
      schema-only baseline, so fresh installs had an empty type list.
      `0001_default_document_types` restores them (`ON CONFLICT DO NOTHING`).
 
-   Decide whether any installed database predates the squash; then either
-   restore the retirement path or formally retire it (update `CLAUDE.md`,
-   `run-migrations.ts`, the removal tests).
+   _Decided (D4): formally retired._ `run-migrations.ts` no longer checks
+   the deleted tags and lost the `approvedRetirement` option (its hash
+   check stays); `removal-core`, `removal-legacy` and `removal-rehearsal`
+   and their scripts are gone, `removal-backup` still runs as
+   `test:removal:backup`. With them went `removal-legacy`'s "a historical
+   contract alone marks the installation initialized" protection, which
+   lived only in the `0003` branch and had not run since the squash; setup
+   still treats a setup marker, a user, or any people, property or rental
+   row as an initialized install. `CLAUDE.md`, `ARCHITECTURE.md` and the
+   removal map say that old contract data stays untouched until a cleanup
+   the owner approves separately, after a full `pg_dump` and a real
+   restore test.
 
 2. **Files tracked in git that should not be** (~55 MB of the 84 MB `.git`):
    `tools/cloudflared/cloudflared.exe` (54 MB), PostgreSQL dumps under
@@ -89,27 +109,66 @@ These are not code-quality calls; they change history, data or behavior.
    requires approval), `server/data/documents/**` (tracked despite
    `.gitignore`), demo images. Untracking is safe for the working tree;
    purging history is a separate, force-push decision.
+   - _Implemented (owner decision 5, 2026-10-24):_ the owner confirmed the
+     dumps and documents hold no real customer data. They, the 60 seed
+     images (68-byte PNGs that `pnpm db:seed` writes; the web demo copies
+     its own from `source-assets/`) and `cloudflared.exe` are untracked,
+     and `.gitignore` covers `server/data/` and `tools/cloudflared/` (except
+     its `.gitkeep`). The packaging scripts run `pnpm fetch:cloudflared`,
+     which downloads cloudflared 2026.5.0 from Cloudflare's GitHub release
+     and checks a pinned SHA-256 (`scripts/fetch-cloudflared.mjs`; the hash
+     is that of the binary previously tracked). `pnpm build`, `pnpm dev`
+     and the tests do not need the file or the network. History was not
+     rewritten, so a full clone still downloads the old blobs: its `.git`
+     stays about 31–33 MB (single-branch clone of `main` before, of this
+     branch after). The checkout falls from 70.8 MB in 504 files to
+     20.5 MB in 429 files, and a `--depth 1` clone's `.git` from 23.5 MB to
+     6.4 MB. Shrinking full clones still needs the history purge above.
 3. **Synthetic English listing names.** `toApiObject` fills a missing `name`
    with `"properties P-0001"` / `"rentals R-…"`, so English shows in the Arabic
    UI and the renderer's Arabic fallbacks never run. Fixing it changes the
    API response (`name` becomes `null`); check exports/PDF first.
+   _Decided (D6), done:_ `name` stays filled, in Arabic: "عقار P-0001",
+   "إيجار R-0001", so exports, the PDF and matching keep a title. People
+   no longer get one (they have `full_name`; nothing read it). The
+   renderer's fallbacks (rental table and favorites, details, summaries,
+   Excel, text and folder exports) use the same words. Not changed: the
+   edit forms prefill `name` from the API, so saving an unnamed listing
+   stores its fallback as its name, as it stored the English one before.
 4. **Remote access defaults.** `REMOTE_ACCESS_ENABLED` is reported but never
    enforced, and the cloudflared child is not killed when the API exits, so a
    public tunnel can outlive the app. Decide whether the flag should gate
    `/api/remote-access/enable`.
-5. **Backup contents.** Resolved in part: backups no longer include
-   `config.json` (the database password). The scheduled backup still emails
-   the archive, including ID scans, unencrypted.
+   _Decided (D2), done:_ the flag is removed (with the `enabled` field it
+   fed in `/remote-access/status`). `enable` and `disable` need
+   `remote_access.manage`, which `seedSystemRbac` grants to Super Admin on
+   every startup, so existing installs have it after their next launch; a
+   custom role with `settings.update` no longer starts the tunnel until
+   it is given the new permission. Status stays on `settings.read`. Test:
+   `test:remote-access`. The tunnel outliving the app is unchanged
+   (Phase 1.1).
+5. **Backup contents and retention.** _Decided 2026-10-24 and implemented._
+   Backups no longer include `config.json` (the database password). The
+   scheduled email carries only a password-encrypted, database-only archive
+   (`.dalaly-enc`: no images or ID scans, far below mail size limits); the
+   password is set in the scheduled-backup card, a lost password makes the
+   emailed copies unrecoverable, and full backups stay in the local folder.
+   The app keeps the newest 10 scheduled backups and the newest 10
+   pre-restore copies, never deletes manual backups or exports, and logs
+   each deletion. See `docs/ARCHITECTURE.md` (backup conventions);
+   `test:backup:retention` and `test:backup:encrypted`.
 
 ## 3. Findings by area (open)
 
 ### Server and database
 
-- **Pool defaults** (max 10, 10 s idle, 1.5 s connect/queue timeout, no
-  statement timeout); `reconfigurePool` rebuilds a bare config.
-- **Dashboard runs ~13 sequential queries** (properties scanned ~8 times);
-  the RBAC leak (rentals, audit activity and follow-ups under
-  `properties.read`; matching across domains) is fixed in Phase 1.
+- ~~**Pool defaults**~~ (max 10, 10 s idle, 1.5 s connect/queue timeout, no
+  statement timeout; `reconfigurePool` rebuilt a bare config): done in
+  Phase 2.4.
+- ~~**Dashboard runs ~13 sequential queries**~~ (properties scanned ~8
+  times): done in Phase 2.2. The RBAC leak (rentals, audit activity and
+  follow-ups under `properties.read`; matching across domains) is fixed in
+  Phase 1.
 - **Every authenticated request costs 3 queries** (session + roles +
   permissions); a 20-thumbnail gallery ≈ 80 queries. A short-TTL, explicitly
   invalidated session cache is the single biggest backend win.
@@ -119,15 +178,23 @@ These are not code-quality calls; they change history, data or behavior.
   requests and documents are paged on the server, and person details asks
   for its owner's offers; Phase 2.6. The person pickers search the server
   too.)
-- **Search**: properties ORs `ILIKE` over ~28 columns plus casts per token;
-  `%`/`_` not escaped; duplicate-plot check is a sequential scan per save.
-- **N+1**: `listUsers` (2 per user), `listRoles`, location names (3 lookups per
-  save), Excel import (~7 queries per row, no transaction or row cap).
+- **Search**: property and rental search use one indexed `search_text`
+  column, and every search and text filter escapes `%`, `_` and `\`
+  (Phase 2.7). People and requests search still OR `ILIKE` over a few
+  columns with no index; their cost has not been measured. (The
+  duplicate-plot check before a save is an index scan since Phase 2.5.)
+- **N+1**: fixed in Phase 2.5 for the users and roles lists, location names
+  and the Excel import, which also commits in one transaction and caps the
+  file at 5,000 rows.
 - **Non-atomic writes**: entity write and audit row are separate, audit errors
   are swallowed; files are written before their row, orphaned on failure.
-- **Backup/restore block the event loop**: adm-zip reads every image and
-  compresses synchronously; no retention; images extracted after the DB
-  commit. (Lock and pre-restore copy added in Phase 1.)
+- **Backup/restore block the event loop**: resolved in Phase 4.1. adm-zip
+  read every image into memory and compressed synchronously: a 2 GB backup
+  froze the API for its whole length and peaked at 6.7 GB, a restore at
+  8.7 GB; with 2.4 GB of files the backup failed ("Array buffer allocation
+  failed") and archives over 2 GiB could not be restored. Still: images
+  extracted after the DB commit. (Lock and pre-restore copy added in
+  Phase 1, retention after the owner's decision, section 2.5.)
 - **Uploads** are base64 inside JSON (50 MB route limit since Phase 1, 1 MB
   elsewhere), no per-file limit, no content sniffing, no thumbnails.
 - **Error shapes** vary (`{code,messageKey,message}` / `{message}` /
@@ -147,6 +214,8 @@ These are not code-quality calls; they change history, data or behavior.
   clicking "استيراد"; `xlsx@0.18.5` also has known parsing CVEs.
 - **Table rows each mount an image manager**: one `GET /images` per row and
   full-size originals as thumbnails (paste/click bugs fixed in this batch).
+  (Done since: list rows carry their primary image and show a 320 px
+  thumbnail; see Phase 3 item 4.)
 - **Stale responses** can overwrite newer searches (no AbortController or
   request id); clearing filters and topbar navigation fire duplicate loads.
 - **Waterfalls**: the rentals page loads reference data sequentially;
@@ -179,7 +248,8 @@ These are not code-quality calls; they change history, data or behavior.
 ### Tests and tooling
 
 - Runtime smoke suites hardcode `postgres`/`root` on `127.0.0.1:5432` and fixed
-  database names; `test:removal` is broken by the migration squash.
+  database names; `test:removal` is broken by the migration squash
+  (removed, D4).
 - No ESLint, no `.editorconfig`; `lint` equals `typecheck`. Renderer has no
   tests. `.gitignore` ignores `tests`.
 
@@ -202,7 +272,9 @@ phases below:
    Done for properties and rentals: ~11 KB and ~7 ms per page, the list
    paints ~45% sooner (`docs/PERFORMANCE.md`, "Server pagination").
 2. **Search under 4 concurrent clients ~1 s, CPU-bound** → search rewrite
-   (Phase 2.7).
+   (Phase 2.7). Done: 4 clients searching as the properties page does get
+   16–18 ms (62–65 ms before); the old array request still returns every
+   matching row and stays slow for words in most rows.
 3. **~0.55 s from API READY to login form** and **~0.55 s to render the
    dashboard after its data arrives** → Phase 3.1–3.2 and dashboard render
    profiling.
@@ -217,11 +289,13 @@ phases below:
    on Windows (libuv) die with their parent; cloudflared, a child of the API,
    should go the same way but was not tested with a live tunnel. An
    IPC-based shutdown was implemented, measured against this and dropped.
-   Enforcing `REMOTE_ACCESS_ENABLED` stays an owner decision (section 2).
+   `REMOTE_ACCESS_ENABLED` was removed rather than enforced; the tunnel
+   needs `remote_access.manage` (D2).
 2. Done: backups no longer include `config.json`; backup, export, scheduled
    run and restore share one lock (409 when busy); restore first writes
-   `Dalaly_Before_Restore_<time>.zip`. **Not done:** retention of the last N
-   backups — it deletes user files, so it needs an owner decision.
+   `Dalaly_Before_Restore_<time>.zip`. Retention, decided by the owner
+   (section 2.5): the newest 10 scheduled backups and 10 pre-restore copies
+   are kept; nothing else is deleted.
 3. Done: dashboard sections and matching follow their domains' read
    permissions.
 4. Done: auth runs on `onRequest`; 1 MB global body limit, 50 MB on the
@@ -250,8 +324,15 @@ fix).
 
 1. Session/permission cache (30–60 s TTL, invalidated on logout and on user,
    role or permission changes).
-2. Dashboard: two aggregate queries with `count(*) FILTER (…)` plus
-   `Promise.all` for the rest.
+2. Done: dashboard. One aggregate per table for the status counts and money
+   figures (`count(*) FILTER (…)`), the monthly activity in one pass instead
+   of a nested loop, the 20 newest audit rows taken before their joins, and
+   the 12 statements run two at a time (an unbounded `Promise.all` was
+   slowest after an idle pause: one new backend per query). Same response,
+   byte for byte (`test:dashboard` against the old queries). Packaged:
+   42.5–42.9 → 15.6–21.4 ms, 4 clients 57–69 → 130–142 requests/s; login →
+   dashboard in the app within noise. The merged aggregate alone was within
+   noise; an audit index (item 3) would cut the remaining 3.7 ms.
 3. Index migration for measured query patterns (`created_at`/`updated_at`
    orderings, `owner_person_id`, `audit_logs(entity_type, created_at)`); drop
    the duplicate `sessions.token_hash` index. Verify with
@@ -259,8 +340,34 @@ fix).
    `owner_person_id`: a sequential scan of 0.8 ms at 5,000 properties and
    8 ms at 50,000, so no index yet (`docs/PERFORMANCE.md`, "Paging the
    remaining lists").
-4. Pool tuning and a statement timeout (exempting backup/restore).
-5. Fix N+1s: users/roles listing, location names, import (transaction + cap).
+4. Done: pool tuning and a statement timeout. One `buildPoolConfig` for the
+   request, post-setup and startup pools: max 10, 2 connections kept while
+   idle, others closed after 5 minutes, 5 s to get a connection (health and
+   startup keep 1.5 s). The first request after a 12 s pause: `/auth/me`
+   41–42 → 3.4–4.6 ms, dashboard 90–96 → 15.7–31.4 ms. PostgreSQL cancels
+   statements after 15 s, answered with an Arabic 503 (and a 503 when no
+   connection comes in time); backup, restore and migrations lift it inside
+   their transactions (`test:timeouts`). Costs: up to 8 open connections for
+   5 minutes after a burst (~6 MB each in PostgreSQL), and a statement that
+   waits more than 15 s now fails. See `docs/PERFORMANCE.md`, "Pool,
+   statement timeout and dashboard".
+5. Done: N+1s and the import. The users and roles lists load every listed
+   row's roles and permissions together (3 and 2 queries instead of
+   1 + 2 per user and 1 + 1 per role); saving a property, rental or
+   request reads its picked locations' names in one query instead of
+   three; the duplicate-plot check states its index's predicate, so it is
+   an index scan (0.02 ms) instead of a scan of every listing (3 ms at
+   5,000, 25 ms at 50,000). The Excel import commits in one transaction
+   holding the properties code lock, so a failure part-way saves nothing;
+   it reads what the rows need once per file and inserts 100 rows per
+   statement: 5,000 rows in ~1.6 s instead of ~33 s, 66 statements
+   instead of ~35,000. Validate and commit refuse files over 5,000 rows.
+   Cost: a listing saved during an import waits for its commit (up to
+   ~1 s at 5,000 rows). Results in `docs/PERFORMANCE.md`, "Excel import
+   and N+1 queries". **Found on the way:** both import steps report zod's
+   built-in messages in English (`Too small: expected string…`), only the
+   custom checks are Arabic; a missing linked owner used to come back as
+   the driver's `Failed query: insert …` text (now Arabic).
 6. Done: server pagination end to end. `GET /properties/paged` and
    `/rentals/paged` (page, size, whitelisted sort including area in m²,
    total), then `/people/paged`, `/rental-requests/paged`,
@@ -269,10 +376,24 @@ fix).
    `v-data-table-server`. Person details asks `/properties/paged` for its
    owner's offers (`owner_person_id`, `include_archived`) instead of
    downloading every property. Results in `docs/PERFORMANCE.md`.
-7. Search: replace the per-token `ILIKE` over ~28 columns (plus casts and a
-   `regexp_replace` on phone) with one generated, normalized `search_text`
-   column and a `pg_trgm` index (new migration); escape `%`/`_` in input.
-   Compare with `pnpm perf` before and after.
+7. Done: property and rental search match each token with one `LIKE` on
+   `search_text`, a stored generated column (migration `0003_search_text`)
+   with a `pg_trgm` index created best-effort; the four per-column trigram
+   indexes only the old search used are dropped; `%`, `_` and `\` are
+   escaped. `test:search` checks the rows found are the old search's.
+   Searches for one listing (a phone, code, owner, plot, price) take under
+   1 ms in PostgreSQL instead of 35–89 ms at 5,000 properties (215–431 ms at
+   50,000); 4 clients searching as the page does get 16–18 ms instead of
+   62–65 ms. Costs: bulk inserts and updates ~2–2.5× slower, single-row
+   saves unchanged at the median; the table about twice as large, so
+   unsearched list pages read more (+2–4 ms at 5,000 in-process, within
+   noise through the API in one of two rounds; up to +70 ms at 50,000); the
+   first start after the update runs the migration (~0.5 s at 5,000, ~5 s
+   at 50,000). See `docs/PERFORMANCE.md`, "Search on one indexed column".
+   People, rental and purchase request search and the property district and
+   plot filters escape `%`, `_` and `\` the same way (`containsPattern`).
+   Not done: Arabic letter normalization (hamza forms, ة/ه, ى/ي), a product
+   decision since it widens what matches.
 
 ### Phase 3 — renderer startup and responsiveness
 
@@ -284,8 +405,13 @@ fix).
 2. Icons: measured, not worth it for the splash (dropping the icon CSS did
    not change its load time). Revisit only with evidence for the main window.
 3. Lazy-load xlsx; remove dead exports.
-4. Table thumbnails: return the primary image id in list responses, render a
-   lazy `<img>`; generate thumbnails server-side (or downscale on upload).
+4. Done: table thumbnails. Paged and favorites list rows carry
+   `primary_image`; tables render a lazy `<img>` of its thumbnail (JPEG,
+   320 px), which the renderer makes on upload and, for older images, the
+   first time a table shows them; the API stores thumbnails beside the
+   images folder (out of backups) and decodes nothing. See
+   `docs/PERFORMANCE.md`, "Table thumbnails". Galleries still load
+   originals, including their small thumbnail strips.
 5. Request hygiene: AbortController in list loads (done for the
    properties and rentals lists, `createPagedList`), remove duplicate fires
    (the top-bar search still loads twice: Enter and the filter debounce),
@@ -295,23 +421,81 @@ fix).
 
 ### Phase 4 — files and backup at scale
 
-1. Stream backups to a temp file (yazl/archiver or a worker thread), rename
-   on success.
-2. Multipart/streamed uploads with size and type checks.
+1. Done: backups stream to `<name>.zip.partial` (yazl), renamed on
+   success; restore reads entries from the zip on disk (yauzl). Same
+   layout; `test:backup:compat` restores an archive from the adm-zip build.
+   Results in `docs/PERFORMANCE.md` ("Backup and restore"). **Open (owner
+   decision):** photos are deflated although they do not compress, most of
+   a backup's time and CPU; storing image entries took a 2 GB backup from
+   ~83 s to ~14 s in an isolated test, but changes how entries are
+   compressed.
+2. Multipart/streamed uploads with size and type checks. (Thumbnails now
+   travel with image uploads and are checked: JPEG, at most 256 KB. The
+   originals are still base64 JSON, stored as sent.)
 3. App fonts TTF → WOFF2.
 
 ### Phase 5 — maintainability gates
 
-1. ESLint (typescript-eslint + eslint-plugin-vue), errors only at first, in
-   CI.
-2. One `DomainError(status, message)`; remove route catch-alls; one error
-   response shape; fix `z.coerce.boolean()`.
+1. Done: ESLint 9 flat config at the root (`eslint.config.mjs`) over
+   `server`, `apps/renderer` and `apps/desktop`; `pnpm lint` runs it and
+   the typecheck, CI's `check` job runs it. Errors only, defects only:
+   `eslint:recommended` (no-undef in `.js`, empty blocks except `catch`),
+   unused variables and imports, `@typescript-eslint/no-floating-promises`
+   in `server/src` and `apps/renderer/src` (type-aware), and
+   eslint-plugin-vue's `essential` set. Prettier still formats. Left out:
+   floating promises in `.js` (Electron main has no type information) and in
+   the test scripts (node:test's `test()` returns a promise), and the root
+   `scripts/` tooling (perf harness, web demo).
+2. Done: `DomainError(status, message, code?)` in `shared/errors.ts`, handled
+   by the central error handler; `DuplicatePlotError`, `SetupError`,
+   `BackupBusyError` and `ImportError` extend it (the streamed archive's
+   read errors are 400 `DomainError`s too), `ThumbnailError` and the dead
+   `DocumentError` are gone. Every error body is `{ code, message }` (`issues` added for
+   validation), Arabic message; a `preSerialization` hook gives the plain
+   `reply.code(…).send({ message })` answers their status's code, and unknown
+   routes answer 404 in Arabic. Removed: the catch-alls in the users, roles,
+   locations, backup, setup and setup-admin routes. Their Arabic business
+   messages are `DomainError`s now (same text and status); unexpected
+   failures, which used to send the driver's or file system's English text
+   (400 in users/roles/locations, 500 `{ ok: false }` in backup), are a 409
+   for unique/foreign-key violations and otherwise a generic 500. Setup keeps
+   showing PostgreSQL's reason on purpose (`setupFailure`). Status changes:
+   a backup file that cannot be read, the archive checks and the export-path
+   checks are 400s (were 500s), and so is an empty document or image upload
+   (was a generic 500). `booleanField` replaces
+   `z.coerce.boolean()` (documents, properties, rentals). Shape changes:
+   `ok: false` (backup, setup errors) and `messageKey` are gone, `code` is
+   added; no caller read either (the renderer and Electron read `message`
+   and the HTTP status). Fast test: `scripts/error-shape.test.ts` in
+   `pnpm test`.
 3. Shared renderer pieces where duplication is real: `FilterBar` +
    `useDebouncedApply`, one `ImageGallery` with a service adapter,
    `useListingSort`.
-4. API contract tests: for each list/detail endpoint, assert the response keys
-   and types against the renderer types (run against the isolated test DB).
+4. Done: `test:contract` (`scripts/api-contract.test.ts`, in CI's `database`
+   job) calls every list and detail endpoint the renderer reads, plus the
+   creates it uses, on a `removalTestContext()` database, and checks each
+   body's keys and value types both ways against the renderer's own types.
+   The expectations are generated: `scripts/renderer-contract.ts` reads the
+   `request<T>(path)` calls in `apps/renderer/src/services` with the
+   TypeScript compiler API, so drift on either side fails, and so does a
+   renderer GET the test does not call. Error bodies are checked against
+   the renderer's `ApiErrorBody`. What it found was fixed on the type side
+   (a stale `RentalRecord.image`, roles embedded in users without
+   `permission_ids`, rental follow-ups with `rental_id`, timestamps and
+   `archived_at`/`permissions` the types left out). Not fixed, listed in
+   `KNOWN_DRIFT` (API bugs; changing them changes responses): creating a
+   follow-up returns the raw camelCase row. _Resolved (owner decision D6):_
+   `toApiObject(row, table)` added a synthetic English `name` ("people
+   P-1", and "properties P-1" for an unnamed property, which person
+   details shows); people no longer get one, and unnamed listings read
+   "عقار P-1" / "إيجار R-1". Also found:
+   `PersonEditor.vue` maps validation issues by `issue.path`, but the API
+   sends `field`, so field errors never reach their inputs (the message
+   shows in the dialog's alert instead). Not covered: mutation responses
+   other than the creates the test makes, file and image downloads,
+   `/stats` (no renderer caller).
 5. Done: the `database` job in `ci.yml` (Linux, PostgreSQL 18 service) runs
    the runtime, restore and other database suites. Left out, with reasons in
    the workflow and the README: the Electron, packaged-build and Playwright
-   suites, and `removal-core`/`removal-legacy` until decision 2.1.
+   suites. `removal-core`/`removal-legacy` were removed with the retired
+   removal path (D4).

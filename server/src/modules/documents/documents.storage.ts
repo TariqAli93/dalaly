@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "../../infrastructure/config.js";
+import { DomainError } from "../../shared/errors.js";
 
 function decode(data: string) {
   const match = /^data:([^;]+);base64,(.*)$/s.exec(data);
@@ -20,7 +21,7 @@ export function saveManagedFile(
   fileType: string,
 ) {
   const buffer = decode(data);
-  if (!buffer.length) throw new Error("الملف فارغ أو غير صالح.");
+  if (!buffer.length) throw new DomainError(400, "الملف فارغ أو غير صالح.");
   const relativeDirectory = scope.replace(/[^a-z0-9_-]/gi, "-");
   const directory = path.join(config.documentsDir, relativeDirectory);
   fs.mkdirSync(directory, { recursive: true });
@@ -36,7 +37,7 @@ export function resolveManagedFile(filePath: string) {
   const root = path.resolve(config.documentsDir);
   const absolute = path.resolve(root, filePath);
   if (absolute !== root && !absolute.startsWith(`${root}${path.sep}`))
-    throw new Error("مسار الملف غير صالح.");
+    throw new DomainError(400, "مسار الملف غير صالح.");
   return absolute;
 }
 export function contentTypeForFile(filePath: string) {

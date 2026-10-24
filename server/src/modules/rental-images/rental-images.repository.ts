@@ -1,7 +1,8 @@
-import { and, asc, eq, max } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, max } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import { rentalImages } from "../../infrastructure/database/schema.js";
 import { toApiObject, toApiObjects } from "../../shared/utils/case.js";
+import { type PrimaryImageRow } from "../images/images.repository.js";
 
 export async function listRentalImages(rentalId: number) {
   return toApiObjects(
@@ -11,6 +12,25 @@ export async function listRentalImages(rentalId: number) {
       .where(eq(rentalImages.rentalId, rentalId))
       .orderBy(asc(rentalImages.sortOrder), asc(rentalImages.id)),
   );
+}
+/** الصورة التي يعرضها جدول الإيجارات لكل إيجار: الرئيسية، وإلا الأولى بالترتيب. */
+export async function primaryRentalImagesOf(rentalIds: number[]) {
+  if (!rentalIds.length) return new Map<number, PrimaryImageRow>();
+  const rows = await db
+    .selectDistinctOn([rentalImages.rentalId], {
+      ownerId: rentalImages.rentalId,
+      id: rentalImages.id,
+      filePath: rentalImages.filePath,
+    })
+    .from(rentalImages)
+    .where(inArray(rentalImages.rentalId, rentalIds))
+    .orderBy(
+      rentalImages.rentalId,
+      desc(rentalImages.isPrimary),
+      asc(rentalImages.sortOrder),
+      asc(rentalImages.id),
+    );
+  return new Map(rows.map(({ ownerId, ...image }) => [ownerId, image]));
 }
 export async function getRentalImage(rentalId: number, imageId: number) {
   const [row] = await db

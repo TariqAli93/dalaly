@@ -1,12 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
-import { type FastifyPluginAsync, type FastifyReply } from "fastify";
+import { type FastifyPluginAsync, type FastifyRequest } from "fastify";
 import { z } from "zod";
 import { config } from "../../infrastructure/config.js";
 import { requirePermission } from "../auth/auth.hooks.js";
+import { MIN_BACKUP_PASSWORD_LENGTH } from "./backup.crypto.js";
 import {
-  BackupBusyError,
   createBackup,
+  createEmailArchive,
   exportBackup,
   getBackupDir,
   getBackupJob,
@@ -32,18 +33,22 @@ const restoreSchema = z.object({
     .default("full"),
   file_path: z.string().optional(),
   data: z.string().optional(),
+  // Only an encrypted (.dalaly-enc) backup needs it.
+  password: z.string().optional(),
 });
 
 const dirSchema = z.object({ dir: z.string().trim().min(1) });
 
 const exportSchema = z.object({ outputPath: z.string().trim().min(1) });
 
-/** 409 while another backup or restore runs, otherwise the failure as 500. */
-function failure(reply: FastifyReply, error: unknown, fallback: string) {
-  return reply.code(error instanceof BackupBusyError ? 409 : 500).send({
-    ok: false,
-    message: error instanceof Error ? error.message : fallback,
-  });
+const emailArchiveSchema = z.object({
+  password: z.string().min(MIN_BACKUP_PASSWORD_LENGTH),
+});
+
+/** Electron main's scheduled run, authenticated by the per-launch token. */
+function isInternalCall(request: FastifyRequest) {
+  const token = request.headers["x-internal-token"];
+  return Boolean(config.internalToken) && token === config.internalToken;
 }
 
 export const backupRoutes: FastifyPluginAsync = async (app) => {
@@ -81,27 +86,16 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
   app.post(
     "/create",
     { preHandler: requirePermission("backups.create") },
-    async (request, reply) => {
-      try {
-        const result = await createBackup("manual", request.user?.id);
-        return result;
-      } catch (error) {
-        return failure(reply, error, "تعذر إنشاء النسخة الاحتياطية.");
-      }
-    },
+    async (request) => createBackup("manual", request.user?.id),
   );
 
   // تصدير يدوي إلى مسار يختاره المستخدم عبر حوار حفظ Electron.
   app.post(
     "/export",
     { preHandler: requirePermission("backups.create") },
-    async (request, reply) => {
+    async (request) => {
       const payload = exportSchema.parse(request.body);
-      try {
-        return await exportBackup(payload.outputPath, request.user?.id);
-      } catch (error) {
-        return failure(reply, error, "تعذر تصدير النسخة الاحتياطية.");
-      }
+      return exportBackup(payload.outputPath, request.user?.id);
     },
   );
 
@@ -131,45 +125,53 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
     },
     async (request, reply) => {
       const payload = restoreSchema.parse(request.body);
-      let buffer: Buffer | null = null;
+      let source: string | Buffer | null = null;
 
       if (payload.file_path) {
         if (!fs.existsSync(payload.file_path)) {
           return reply.code(400).send({ message: "ملف النسخة غير موجود." });
         }
-        buffer = fs.readFileSync(payload.file_path);
+        // Read from disk entry by entry during the restore, never whole.
+        source = payload.file_path;
       } else if (payload.data) {
         const base64 = payload.data.replace(/^data:[^,]+,/, "");
-        buffer = Buffer.from(base64, "base64");
+        source = Buffer.from(base64, "base64");
       }
 
-      if (!buffer) {
+      if (!source) {
         return reply.code(400).send({ message: "لم يتم تحديد ملف النسخة." });
       }
 
-      try {
-        const result = await restoreBackup(
-          buffer,
-          payload.scope as RestoreScope,
-          request.user?.id,
-        );
-        return result;
-      } catch (error) {
-        return failure(reply, error, "تعذر استرجاع النسخة الاحتياطية.");
-      }
+      return restoreBackup(
+        source,
+        payload.scope as RestoreScope,
+        request.user?.id,
+        payload.password || undefined,
+      );
     },
   );
 
   // نقاط داخلية للجدولة من عملية Electron الرئيسية (محمية بتوكن داخلي).
+  // The scheduled run's full backup, kept in the backup folder.
   app.post("/internal-run", async (request, reply) => {
-    const token = request.headers["x-internal-token"];
-    if (!config.internalToken || token !== config.internalToken) {
+    if (!isInternalCall(request)) {
       return reply.code(401).send({ message: "غير مصرّح." });
     }
-    try {
-      return await createBackup("email");
-    } catch (error) {
-      return failure(reply, error, "فشل النسخ المجدول.");
+    return createBackup("email");
+  });
+
+  // What the scheduled run emails: the database alone, encrypted.
+  app.post("/internal-email-archive", async (request, reply) => {
+    if (!isInternalCall(request)) {
+      return reply.code(401).send({ message: "غير مصرّح." });
     }
+    const { password } = emailArchiveSchema.parse(request.body);
+    const archive = await createEmailArchive(password);
+    reply.header(
+      "Content-Disposition",
+      `attachment; filename="${archive.file_name}"`,
+    );
+    reply.type("application/octet-stream");
+    return reply.send(archive.data);
   });
 };

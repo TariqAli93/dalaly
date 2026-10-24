@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, Menu, shell, ipcMain } from "electron";
+import { app, BrowserWindow, shell, ipcMain } from "electron";
 import log from "electron-log/main.js";
 import { appConfigPath, readAppConfig, writeAppConfig } from "./app-config.js";
 import { createBackupScheduler, registerBackupHandlers } from "./backup.js";
@@ -91,60 +91,6 @@ let startupInFlight = false;
 
 // تُغلق شاشة البدء فور جاهزية التطبيق، دون مدة ظهور مصطنعة.
 const SLOW_AFTER_MS = 8000; // بعدها نُظهر حالة "يستغرق وقتاً أطول" دون فشل.
-
-function createApplicationMenu() {
-  const menu = Menu.buildFromTemplate([
-    {
-      label: "ملف",
-      submenu: [
-        { label: "إعادة تحميل", role: "reload" },
-        { type: "separator" },
-        { label: "خروج", role: "quit" },
-      ],
-    },
-    {
-      label: "تحرير",
-      submenu: [
-        { label: "تراجع", role: "undo" },
-        { label: "إعادة", role: "redo" },
-        { type: "separator" },
-        { label: "قص", role: "cut" },
-        { label: "نسخ", role: "copy" },
-        { label: "لصق", role: "paste" },
-        { label: "تحديد الكل", role: "selectAll" },
-      ],
-    },
-    {
-      label: "عرض",
-      submenu: [
-        { label: "تكبير", role: "zoomIn" },
-        { label: "تصغير", role: "zoomOut" },
-        { label: "الحجم الافتراضي", role: "resetZoom" },
-        { label: "ملء الشاشة", role: "togglefullscreen" },
-        { label: "أدوات المطور", role: "toggleDevTools" },
-      ],
-    },
-    {
-      label: "مساعدة",
-      submenu: [
-        {
-          label: "حول دلالي",
-          click: () => {
-            void dialog.showMessageBox(mainWindow ?? undefined, {
-              type: "info",
-              title: "حول دلالي",
-              message: "دلالي",
-              detail: "نظام إدارة العروض العقارية لمكتب الوساطة.",
-              buttons: ["موافق"],
-            });
-          },
-        },
-      ],
-    },
-  ]);
-
-  Menu.setApplicationMenu(menu);
-}
 
 async function createWindow(initialPath = "/") {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.destroy();
@@ -505,7 +451,6 @@ app.whenReady().then(() => {
     app.setAppUserModelId(
       isPackaged ? "codel.dalaly.desktop" : process.execPath,
     );
-  // createApplicationMenu();
   createSplashWindow(splashOptions);
   void runStartup();
 

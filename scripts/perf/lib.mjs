@@ -110,7 +110,7 @@ export async function query(databaseName, sql, params) {
  * Starts the packaged API the way Electron does (the app exe with
  * ELECTRON_RUN_AS_NODE), isolated from the repo's .env by its cwd.
  */
-export function startApi(app, { databaseName, port, dataDir }) {
+export function startApi(app, { databaseName, port, dataDir, env = {} }) {
   const child = spawn(app.exe, [app.serverEntry], {
     cwd: dataDir,
     windowsHide: true,
@@ -125,6 +125,7 @@ export function startApi(app, { databaseName, port, dataDir }) {
       APP_DATA_DIR: dataDir,
       IMAGES_DIR: path.join(dataDir, "images", "properties"),
       BACKUP_DIR: path.join(dataDir, "backups"),
+      ...env,
     },
   });
   // Drain the pipes like Electron's main process does.
@@ -181,7 +182,7 @@ export async function waitForHealth(port, accept, timeoutMs = 60_000) {
 }
 
 export async function api(port, pathname, { token, method = "GET", body } = {}) {
-  const response = await fetch(`http://127.0.0.1:${port}/api${pathname}`, {
+  const response = await fetchOnce(`http://127.0.0.1:${port}/api${pathname}`, {
     method,
     headers: {
       ...(body ? { "content-type": "application/json" } : {}),
@@ -193,6 +194,29 @@ export async function api(port, pathname, { token, method = "GET", body } = {}) 
   if (!response.ok)
     throw new Error(`${method} ${pathname} → ${response.status}: ${text}`);
   return { body: text ? JSON.parse(text) : null, bytes: Buffer.byteLength(text) };
+}
+
+/**
+ * fetch, sent again once if the API reset the connection: after a pause
+ * longer than its 72 s keep-alive (a long seed), the pooled socket may
+ * already be closed when it is reused.
+ */
+async function fetchOnce(url, init) {
+  try {
+    return await fetch(url, init);
+  } catch (error) {
+    if (error?.cause?.code !== "ECONNRESET") throw error;
+    return fetch(url, init);
+  }
+}
+
+/** GET of a binary response, such as an image file; returns its size. */
+export async function download(port, pathname, { token } = {}) {
+  const response = await fetch(`http://127.0.0.1:${port}/api${pathname}`, {
+    headers: token ? { authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) throw new Error(`GET ${pathname} → ${response.status}`);
+  return { bytes: (await response.arrayBuffer()).byteLength };
 }
 
 /**
@@ -287,6 +311,122 @@ export async function seedDataset(databaseName, sizes) {
   }
 }
 
+/**
+ * Gives every property and rental `perListing` photos (the first one
+ * primary): image rows in the database and files under `imagesDir`, hard
+ * links to a few synthetic phone-sized JPEGs so thousands of them take no
+ * disk space. Returns the number of images and source photos.
+ */
+export async function seedPhotos(databaseName, imagesDir, perListing) {
+  await query(
+    databaseName,
+    `INSERT INTO property_images(property_id, file_path, original_name, is_primary, sort_order)
+     SELECT p.id, p.id || '/perf-' || k || '.jpg', 'IMG_' || p.id || '_' || k || '.jpg', k = 0, k + 1
+     FROM properties p CROSS JOIN generate_series(0, $1::int - 1) k`,
+    [perListing],
+  );
+  await query(
+    databaseName,
+    `INSERT INTO rental_images(rental_id, file_path, original_name, is_primary, sort_order)
+     SELECT r.id, 'rentals/' || r.id || '/perf-' || k || '.jpg', 'IMG_R' || r.id || '_' || k || '.jpg', k = 0, k + 1
+     FROM rentals r CROSS JOIN generate_series(0, $1::int - 1) k`,
+    [perListing],
+  );
+  const { rows } = await query(
+    databaseName,
+    "SELECT file_path FROM property_images UNION ALL SELECT file_path FROM rental_images",
+  );
+  // NTFS allows 1,024 links to one file.
+  const sources = await ensurePhotos(Math.max(24, Math.ceil(rows.length / 900)));
+  const folders = new Set();
+  rows.forEach((row, index) => {
+    const target = path.join(imagesDir, row.file_path);
+    const folder = path.dirname(target);
+    if (!folders.has(folder)) {
+      fs.mkdirSync(folder, { recursive: true });
+      folders.add(folder);
+    }
+    fs.linkSync(sources[index % sources.length], target);
+  });
+  const sizes = sources.map((file) => fs.statSync(file).size);
+  return {
+    perListing,
+    images: rows.length,
+    sourcePhotos: sources.length,
+    averagePhotoMB: Math.round((sizes.reduce((a, b) => a + b, 0) / sizes.length / 2 ** 20) * 100) / 100,
+  };
+}
+
+/**
+ * Synthetic 12-megapixel JPEGs of 3–4.5 MB, like phone photos: drawn in
+ * Chromium from a fixed seed and kept in the temp folder (the volume the
+ * data folders are on, so seeding can hard-link them) for later runs.
+ */
+async function ensurePhotos(count) {
+  const dir = path.join(os.tmpdir(), "dalaly-perf-photos-v1");
+  fs.mkdirSync(dir, { recursive: true });
+  const files = Array.from({ length: count }, (_, index) =>
+    path.join(dir, `photo-${String(index + 1).padStart(3, "0")}.jpg`),
+  );
+  const missing = files.filter((file) => !fs.existsSync(file));
+  if (!missing.length) return files;
+  const { chromium } = await import("@playwright/test");
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    for (const file of missing) {
+      const base64 = await page.evaluate(drawPhoto, files.indexOf(file) + 1);
+      fs.writeFileSync(`${file}.tmp`, Buffer.from(base64, "base64"));
+      fs.renameSync(`${file}.tmp`, file);
+    }
+  } finally {
+    await browser.close();
+  }
+  return files;
+}
+
+/** Runs in the page: sky, ground, buildings with windows and sensor-like noise. */
+async function drawPhoto(seed) {
+  const width = 4000;
+  const height = 3000;
+  let state = seed * 7919;
+  const rand = () => (state = (Math.imul(state, 1664525) + 1013904223) >>> 0) / 2 ** 32;
+  const canvas = new OffscreenCanvas(width, height);
+  const ctx = canvas.getContext("2d");
+  const sky = ctx.createLinearGradient(0, 0, 0, height * 0.55);
+  sky.addColorStop(0, `hsl(${200 + rand() * 20}, 55%, ${55 + rand() * 15}%)`);
+  sky.addColorStop(1, `hsl(${190 + rand() * 20}, 35%, 88%)`);
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, width, height);
+  ctx.fillStyle = `hsl(${25 + rand() * 30}, 30%, ${35 + rand() * 20}%)`;
+  ctx.fillRect(0, height * 0.55, width, height * 0.45);
+  for (let building = 0; building < 9; building += 1) {
+    const w = 300 + rand() * 900;
+    const h = 400 + rand() * 1200;
+    const x = rand() * (width - w);
+    const y = height * 0.6 - h;
+    ctx.fillStyle = `hsl(${rand() * 360}, ${20 + rand() * 30}%, ${40 + rand() * 40}%)`;
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = `hsl(${180 + rand() * 40}, 30%, ${20 + rand() * 30}%)`;
+    for (let wy = y + 60; wy < y + h - 80; wy += 140)
+      for (let wx = x + 40; wx < x + w - 80; wx += 120) ctx.fillRect(wx, wy, 60, 80);
+  }
+  const image = ctx.getImageData(0, 0, width, height);
+  const data = image.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const noise = (rand() - 0.5) * 16;
+    data[i] += noise;
+    data[i + 1] += noise + (rand() - 0.5) * 4;
+    data[i + 2] += noise;
+  }
+  ctx.putImageData(image, 0, 0);
+  const blob = await canvas.convertToBlob({ type: "image/jpeg", quality: 0.93 + rand() * 0.02 });
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(binary);
+}
+
 /** Runs `count` sequential requests after `warmup` and returns timing stats. */
 export async function timeRequests(fn, { warmup = 5, count = 40 } = {}) {
   for (let i = 0; i < warmup; i += 1) await fn();
@@ -316,6 +456,92 @@ export function stats(samples) {
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** Two frames: whatever the page rendered is on screen. */
+export async function painted(page) {
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+}
+
+/**
+ * Every row of the list grid that is on screen shows a loaded, decoded photo
+ * in its first cell (rows below the fold load theirs lazily, if at all).
+ * Returns how many rows that was.
+ */
+export async function rowImagesPainted(page) {
+  await page.waitForFunction(
+    () => {
+      const rows = [...document.querySelectorAll(".dal-grid tbody tr")].filter(
+        (row) => row.getBoundingClientRect().top < innerHeight,
+      );
+      return (
+        rows.length > 0 &&
+        rows.every((row) => {
+          const image = row.querySelector("td:first-child img");
+          return image?.complete && image.naturalWidth > 0;
+        })
+      );
+    },
+    undefined,
+    { timeout: 60_000, polling: "raf" },
+  );
+  const rows = await page.evaluate(async () => {
+    const images = [...document.querySelectorAll(".dal-grid tbody tr td:first-child img")].filter(
+      (image) => image.complete && image.naturalWidth > 0,
+    );
+    await Promise.all(images.map((image) => image.decode().catch(() => {})));
+    return images.length;
+  });
+  await painted(page);
+  return rows;
+}
+
+/**
+ * Counts a step's API requests, its image file requests (an original or a
+ * thumbnail), its writes (a thumbnail saved) and the KB of the response
+ * bodies. The returned function waits until no API request has been in
+ * flight for `quietMs` (at most 5 s longer), stops counting and returns
+ * { requests, imageRequests, writes, kb }.
+ */
+export function trackApi(page, { quietMs = 150 } = {}) {
+  const sizes = [];
+  let requests = 0;
+  let imageRequests = 0;
+  let writes = 0;
+  let inFlight = 0;
+  let lastChange = performance.now();
+  const isApi = (request) => request.url().includes("/api/");
+  const onRequest = (request) => {
+    if (!isApi(request)) return;
+    requests += 1;
+    if (/\/images\/\d+\/(file|thumbnail)(\?|$)/.test(request.url()) && request.method() === "GET") imageRequests += 1;
+    if (request.method() !== "GET") writes += 1;
+    inFlight += 1;
+    lastChange = performance.now();
+  };
+  const onDone = (request) => {
+    if (!isApi(request)) return;
+    inFlight -= 1;
+    lastChange = performance.now();
+    sizes.push(request.sizes().then((size) => size.responseBodySize, () => 0));
+  };
+  const onFailed = (request) => {
+    if (!isApi(request)) return;
+    inFlight -= 1;
+    lastChange = performance.now();
+  };
+  page.on("request", onRequest);
+  page.on("requestfinished", onDone);
+  page.on("requestfailed", onFailed);
+  return async () => {
+    const deadline = performance.now() + quietMs + 5_000;
+    while ((inFlight > 0 || performance.now() - lastChange < quietMs) && performance.now() < deadline) await sleep(25);
+    page.off("request", onRequest);
+    page.off("requestfinished", onDone);
+    page.off("requestfailed", onFailed);
+    const bytes = (await Promise.all(sizes)).reduce((sum, size) => sum + size, 0);
+    return { requests, imageRequests, writes, kb: Math.round(bytes / 1024) };
+  };
+}
+
 /**
  * Working set, private bytes and cumulative CPU time for processes, via
  * PowerShell (Windows only). Keyed by pid.
@@ -330,6 +556,56 @@ export function windowsProcessInfo(pids) {
     info[pid] = { workingSetMB: workingSet / 2 ** 20, privateMB: privateBytes / 2 ** 20, cpuMs };
   }
   return info;
+}
+
+/**
+ * Samples one process every `intervalMs` from a single long-running
+ * PowerShell (Windows only): working set, private bytes, CPU time and the
+ * OS peak counters, which cover the whole life of the process. `ready`
+ * resolves on the third sample, as PowerShell takes up to seconds to reach
+ * a steady pace; `stop()` returns every sample.
+ */
+export function sampleProcess(pid, intervalMs = 250) {
+  const script = `$p = Get-Process -Id ${pid}; while (-not $p.HasExited) { $p.Refresh(); "{0} {1} {2} {3} {4}" -f $p.WorkingSet64, $p.PrivateMemorySize64, $p.PeakWorkingSet64, $p.PeakPagedMemorySize64, [int64]$p.TotalProcessorTime.TotalMilliseconds; Start-Sleep -Milliseconds ${intervalMs} }`;
+  const child = spawn("powershell.exe", ["-NoProfile", "-Command", script], {
+    windowsHide: true,
+    stdio: ["ignore", "pipe", "ignore"],
+  });
+  const samples = [];
+  let pending = "";
+  let resolveReady;
+  const ready = new Promise((resolve) => (resolveReady = resolve));
+  child.stdout.setEncoding("utf8");
+  child.stdout.on("data", (chunk) => {
+    pending += chunk;
+    const lines = pending.split(/\r?\n/);
+    pending = lines.pop();
+    for (const line of lines.filter((text) => text.trim())) {
+      const [workingSet, privateBytes, peakWorkingSet, peakPrivate, cpuMs] = line.trim().split(/\s+/).map(Number);
+      samples.push({
+        at: performance.now(),
+        workingSetMB: workingSet / 2 ** 20,
+        privateMB: privateBytes / 2 ** 20,
+        peakWorkingSetMB: peakWorkingSet / 2 ** 20,
+        peakPrivateMB: peakPrivate / 2 ** 20,
+        cpuMs,
+      });
+      if (samples.length >= 3) resolveReady();
+    }
+  });
+  child.once("exit", () => resolveReady());
+  return {
+    ready,
+    samples,
+    async stop() {
+      if (child.exitCode === null) {
+        const exited = new Promise((resolve) => child.once("exit", resolve));
+        child.kill();
+        await exited;
+      }
+      return samples;
+    },
+  };
 }
 
 /** Direct children of `parentPid` whose command line matches `pattern`. */

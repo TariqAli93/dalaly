@@ -1,6 +1,6 @@
 import { type FastifyPluginAsync, type FastifyReply } from "fastify";
 import { getSetupStatus } from "../../infrastructure/database/health.js";
-import { createFirstAdmin, SetupError } from "../setup/setup.service.js";
+import { createFirstAdmin } from "../setup/setup.service.js";
 import { requireLocalSetup } from "../setup/setup.security.js";
 import { requirePermission } from "./auth.hooks.js";
 import {
@@ -34,14 +34,8 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     { preHandler: requireLocalSetup },
     async (request, reply) => {
       const payload = setupAdminSchema.parse(request.body);
-      try {
-        const user = await createFirstAdmin(payload.username, payload.pin);
-        return reply.code(201).send({ user });
-      } catch (error) {
-        if (error instanceof SetupError)
-          return reply.code(error.statusCode).send({ message: error.message });
-        throw error;
-      }
+      const user = await createFirstAdmin(payload.username, payload.pin);
+      return reply.code(201).send({ user });
     },
   );
 

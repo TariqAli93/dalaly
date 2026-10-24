@@ -24,6 +24,7 @@ function fileExtension(filePath: string) {
 
 function safeFileName(value: string, fallback: string) {
   const sanitized = value
+    // eslint-disable-next-line no-control-regex -- Windows file names cannot hold control characters
     .replace(/[<>:"/\\|?*\u0000-\u001f]/g, "-")
     .replace(/[. ]+$/g, "")
     .trim();
@@ -73,7 +74,7 @@ function textFile(text: string): FolderExportFile {
 
 function propertyText(property: PropertyRecord) {
   let text = "";
-  text += line("الاسم", property.name ?? `properties ${property.code}`);
+  text += line("الاسم", property.name ?? `عقار ${property.code}`);
   text += line("كود العرض", property.code);
   text += line("نوع العقار", property.property_type);
   text += line("المحافظة", property.governorate || property.governorate_text);
@@ -113,7 +114,7 @@ function propertyText(property: PropertyRecord) {
 
 function rentalText(rental: RentalRecord) {
   let text = "";
-  text += line("الاسم", rental.name ?? `rentals ${rental.code}`);
+  text += line("الاسم", rental.name ?? `إيجار ${rental.code}`);
   text += line("كود الإيجار", rental.code);
   text += line("نوع العقار", rental.property_type);
   text += line("سعر الإيجار", `${formatMoney(rental.rent_price)} دينار`);
@@ -149,7 +150,7 @@ export async function exportPropertyFolder(
   ];
   return platform.exportFolder({
     files,
-    suggestedFolderName: property.name ?? `properties ${property.code}`,
+    suggestedFolderName: property.name ?? `عقار ${property.code}`,
     title: `تصدير ${property.name ?? property.code}`,
   });
 }
@@ -166,7 +167,7 @@ export async function exportRentalFolder(
   ];
   return platform.exportFolder({
     files,
-    suggestedFolderName: rental.name ?? `rentals ${rental.code}`,
+    suggestedFolderName: rental.name ?? `إيجار ${rental.code}`,
     title: `تصدير ${rental.name ?? rental.code}`,
   });
 }

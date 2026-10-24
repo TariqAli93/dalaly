@@ -61,7 +61,7 @@ const sections = computed(() =>
     ),
   })).filter((section) => section.items.length),
 );
-function go(to: string) {
+function go() {
   if (!mdAndUp.value) drawer.value = false;
 }
 
@@ -127,7 +127,7 @@ async function onLogout() {
                       ? 'العملاء والأشخاص'
                       : item.title
                 "
-                @click="go(item.to)"
+                @click="go()"
               />
             </template>
           </v-tooltip>

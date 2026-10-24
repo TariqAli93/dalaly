@@ -14,6 +14,7 @@ const publicPaths = new Set([
   "/api/setup/initialize",
   "/api/setup/recover",
   "/api/backup/internal-run",
+  "/api/backup/internal-email-archive",
   "/api/auth/setup-status",
   "/api/auth/setup-admin",
   "/api/auth/login",

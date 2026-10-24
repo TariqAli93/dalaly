@@ -139,6 +139,70 @@ export async function getUserRolesAndPermissions(userId: number) {
   };
 }
 
+/**
+ * أدوار وصلاحيات عدة مستخدمين باستعلامين مهما كان عددهم (قائمة المستخدمين)،
+ * لكل مستخدم بنفس شكل getUserRolesAndPermissions.
+ */
+export async function getRolesAndPermissionsForUsers(userIds: number[]) {
+  const access = new Map(
+    userIds.map((id) => [
+      id,
+      {
+        roles: [] as AuthRole[],
+        permissions: new Map<string, AuthPermission>(),
+      },
+    ]),
+  );
+  if (userIds.length > 0) {
+    const [roleRows, permissionRows] = await Promise.all([
+      db
+        .select({
+          userId: userRoles.userId,
+          id: roles.id,
+          name: roles.name,
+          description: roles.description,
+          is_system: roles.isSystem,
+        })
+        .from(userRoles)
+        .innerJoin(roles, eq(userRoles.roleId, roles.id))
+        .where(inArray(userRoles.userId, userIds))
+        .orderBy(userRoles.userId, roles.id),
+      db
+        .select({
+          userId: userRoles.userId,
+          id: permissions.id,
+          key: permissions.key,
+          name: permissions.name,
+          description: permissions.description,
+          module: permissions.module,
+        })
+        .from(userRoles)
+        .innerJoin(
+          rolePermissions,
+          eq(userRoles.roleId, rolePermissions.roleId),
+        )
+        .innerJoin(
+          permissions,
+          eq(rolePermissions.permissionId, permissions.id),
+        )
+        .where(inArray(userRoles.userId, userIds))
+        .orderBy(userRoles.userId, permissions.id),
+    ]);
+    for (const { userId, ...role } of roleRows)
+      access.get(userId)?.roles.push(role);
+    for (const { userId, ...permission } of permissionRows)
+      if (isActivePermissionKey(permission.key))
+        access.get(userId)?.permissions.set(permission.key, permission);
+  }
+
+  return new Map(
+    [...access].map(([id, { roles, permissions }]) => [
+      id,
+      { roles, permissions: [...permissions.values()] },
+    ]),
+  );
+}
+
 export async function userHasPermission(userId: number, permissionKey: string) {
   if (!isActivePermissionKey(permissionKey)) return false;
   const [row] = await db
@@ -203,6 +267,26 @@ export async function getRolePermissionIds(roleId: number) {
   return rows
     .filter((row) => isActivePermissionKey(row.key))
     .map((row) => row.permissionId);
+}
+
+/** معرّفات صلاحيات عدة أدوار باستعلام واحد (قائمة الأدوار). */
+export async function getPermissionIdsForRoles(roleIds: number[]) {
+  const ids = new Map(roleIds.map((id) => [id, [] as number[]]));
+  if (roleIds.length === 0) return ids;
+  const rows = await db
+    .select({
+      roleId: rolePermissions.roleId,
+      permissionId: rolePermissions.permissionId,
+      key: permissions.key,
+    })
+    .from(rolePermissions)
+    .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+    .where(inArray(rolePermissions.roleId, roleIds))
+    .orderBy(rolePermissions.roleId, rolePermissions.permissionId);
+  for (const row of rows)
+    if (isActivePermissionKey(row.key))
+      ids.get(row.roleId)?.push(row.permissionId);
+  return ids;
 }
 
 export async function hasAnyUserWithRole(roleId: number) {
