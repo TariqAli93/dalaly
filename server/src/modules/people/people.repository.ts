@@ -86,7 +86,6 @@ export async function listPeople(filters: PersonFilters) {
       .from(people)
       .where(personConditions(filters))
       .orderBy(desc(people.updatedAt), desc(people.id)),
-    "people",
   );
 }
 
@@ -130,10 +129,7 @@ export async function listPeoplePage(query: PersonPageQuery) {
   const total =
     rows[0]?.total ?? (query.page > 1 ? await db.$count(people, condition) : 0);
   return {
-    items: toApiObjects(
-      rows.map((row) => row.person),
-      "people",
-    ),
+    items: toApiObjects(rows.map((row) => row.person)),
     total,
     page: query.page,
     page_size: query.page_size,
@@ -146,7 +142,7 @@ export async function getPerson(id: number) {
     .from(people)
     .where(eq(people.id, id))
     .limit(1);
-  return row ? toApiObject(row, "people") : null;
+  return row ? toApiObject(row) : null;
 }
 
 export async function createPerson(payload: PersonPayload) {
@@ -156,7 +152,7 @@ export async function createPerson(payload: PersonPayload) {
       .values({ ...normalize(payload), code: await generateCode(tx) })
       .returning(),
   );
-  return toApiObject(row, "people");
+  return toApiObject(row);
 }
 
 export async function updatePerson(id: number, payload: PersonPayload) {
@@ -165,7 +161,7 @@ export async function updatePerson(id: number, payload: PersonPayload) {
     .set(normalize(payload))
     .where(eq(people.id, id))
     .returning();
-  return row ? toApiObject(row, "people") : null;
+  return row ? toApiObject(row) : null;
 }
 
 export async function archivePerson(id: number) {
@@ -174,7 +170,7 @@ export async function archivePerson(id: number) {
     .set({ status: "archived", updatedAt: new Date() })
     .where(eq(people.id, id))
     .returning();
-  return row ? toApiObject(row, "people") : null;
+  return row ? toApiObject(row) : null;
 }
 
 export async function restorePerson(id: number) {
@@ -183,5 +179,5 @@ export async function restorePerson(id: number) {
     .set({ status: "active", updatedAt: new Date() })
     .where(eq(people.id, id))
     .returning();
-  return row ? toApiObject(row, "people") : null;
+  return row ? toApiObject(row) : null;
 }

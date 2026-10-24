@@ -96,7 +96,11 @@ Conventions:
 
 - Routes parse input with the module's zod schema (`schema.parse` errors become
   localized 400s in the central error handler), call a repository or service,
-  and return snake_case objects (`toApiObject`).
+  and return snake_case objects (`toApiObject`). Given `"properties"` or
+  `"rentals"`, `toApiObject` names an unnamed listing after its code in
+  Arabic (`عقار P-0001`, `إيجار R-0001`), and the renderer's fallbacks
+  (tables, exports) use the same words; people have `full_name` and get no
+  `name`.
 - Errors: a failure the user should read is a
   `DomainError(status, message, code?)` from `shared/errors.ts`, thrown
   wherever it is detected; routes do not catch errors to reword them. The

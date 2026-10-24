@@ -148,7 +148,7 @@ test("paged property and rental lists: pages, totals, sorting and filters", asyn
       assert.equal(first.items.length, 10);
       assert.equal(first.total, 12);
       assert.equal(first.items[0].code, "PG-01", "newest first by default");
-      assert.equal(first.items[1].name, "properties PG-02", "items keep the list's name fallback");
+      assert.equal(first.items[1].name, "عقار PG-02", "items keep the list's name fallback");
 
       const last = await get("/properties/paged?page=3&page_size=5");
       assert.deepEqual(codes(last.items), ["PG-12", "PG-13"]);
@@ -159,6 +159,7 @@ test("paged property and rental lists: pages, totals, sorting and filters", asyn
       const rentals = await readAllPages(get, "/rentals/paged?sort_order=desc", 3);
       assert.equal(rentals.length, 7);
       assert.equal(rentals[0].code, "RG-01");
+      assert.equal(rentals.find((row) => row.code === "RG-02")?.name, "إيجار RG-02");
     });
 
     await t.test("every property sort key, both directions, matches the old client-side order", async () => {

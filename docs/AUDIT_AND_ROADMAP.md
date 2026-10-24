@@ -424,9 +424,11 @@ fix).
    `permission_ids`, rental follow-ups with `rental_id`, timestamps and
    `archived_at`/`permissions` the types left out). Not fixed, listed in
    `KNOWN_DRIFT` (API bugs; changing them changes responses): creating a
-   follow-up returns the raw camelCase row, and `toApiObject(row, table)`
-   adds a synthetic English `name` ("people P-1", and "properties P-1" for
-   an unnamed property, which person details shows). Also found:
+   follow-up returns the raw camelCase row. _Resolved (owner decision D6):_
+   `toApiObject(row, table)` added a synthetic English `name` ("people
+   P-1", and "properties P-1" for an unnamed property, which person
+   details shows); people no longer get one, and unnamed listings read
+   "عقار P-1" / "إيجار R-1". Also found:
    `PersonEditor.vue` maps validation issues by `issue.path`, but the API
    sends `field`, so field errors never reach their inputs (the message
    shows in the dialog's alert instead). Not covered: mutation responses
