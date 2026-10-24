@@ -26,7 +26,7 @@ const {
   loading,
   filters,
   list,
-  loadProperties,
+  applyFilters,
   reloadProperties,
   clearFilters,
 } = useProperties();
@@ -200,7 +200,7 @@ onMounted(() => {
       </div>
     </template>
 
-    <PropertyFilters v-model="filters" @apply="loadProperties" />
+    <PropertyFilters v-model="filters" @apply="applyFilters" />
 
     <!-- شريط النتائج: العدد بسياقه، اختيارات سريعة، والفرز -->
     <div class="dal-resultsbar bg-surface pa-3 border">

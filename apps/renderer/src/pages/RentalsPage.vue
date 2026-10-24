@@ -54,10 +54,12 @@ const detailsDialog = ref(false);
 const paneOpen = ref(false);
 
 // صفحة واحدة من الخادم؛ الترتيب (والمساحة فيه بالمتر المربع) والمفضلة هناك.
-const list = createPagedList<RentalRecord, RentalSortKey>(
-  (page, signal) => rentals.listRentalsPage(filters.value, page, signal),
-  RENTAL_SORT_OPTIONS[0],
-);
+// الفلاتر كما أُرسلت في آخر طلب.
+let requestedFilters = "";
+const list = createPagedList<RentalRecord, RentalSortKey>((page, signal) => {
+  requestedFilters = JSON.stringify(filters.value);
+  return rentals.listRentalsPage(filters.value, page, signal);
+}, RENTAL_SORT_OPTIONS[0]);
 const {
   items,
   total,
@@ -109,6 +111,10 @@ async function loadFavoriteIds() {
 /** فلاتر جديدة: من الصفحة الأولى. */
 function load() {
   return list.loadFirstPage();
+}
+/** تطبيق شريط الفلاتر بعد توقّف الكتابة: لا يعيد طلب فلاتر أرسلها قبله المسح. */
+function applyFilters() {
+  if (JSON.stringify(filters.value) !== requestedFilters) void load();
 }
 /** بعد أرشفة أو حذف أو تحديث: نفس الصفحة. */
 async function reload() {
@@ -266,7 +272,7 @@ onBeforeUnmount(() => list.cancel());
       </div>
     </template>
 
-    <RentalFilters v-model="filters" @apply="load" @clear="clear" />
+    <RentalFilters v-model="filters" @apply="applyFilters" @clear="clear" />
 
     <div class="dal-resultsbar bg-surface pa-3 border">
       <span class="dal-resultsbar__count">{{ resultsLabel }}</span>

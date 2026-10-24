@@ -31,16 +31,29 @@ function emptyFilters(): PropertyFilters {
 }
 
 const filters = ref<PropertyFilters>(emptyFilters());
+// الفلاتر كما أُرسلت في آخر طلب.
+let requestedFilters = "";
 // الصفحة الحالية من الخادم؛ الفلاتر والصفحة والترتيب تبقى بين زيارات الصفحة.
 const list = createPagedList<PropertyRecord, PropertySortKey>(
-  (page, signal) =>
-    propertiesService.listPropertiesPage(filters.value, page, signal),
+  (page, signal) => {
+    requestedFilters = JSON.stringify(filters.value);
+    return propertiesService.listPropertiesPage(filters.value, page, signal);
+  },
   PROPERTY_SORT_OPTIONS[0],
 );
 
 /** فلاتر جديدة (من الصفحة أو لوحة التحكم أو البحث العلوي): من الصفحة الأولى. */
 function loadProperties() {
   return list.loadFirstPage();
+}
+
+/**
+ * تطبيق شريط الفلاتر بعد توقّف الكتابة: لا يعيد طلب فلاتر أرسلها قبله Enter
+ * أو مسح الفلاتر أو البحث العلوي.
+ */
+function applyFilters() {
+  if (JSON.stringify(filters.value) !== requestedFilters)
+    return loadProperties();
 }
 
 function clearFilters() {
@@ -56,6 +69,7 @@ export function useProperties() {
     filters,
     list,
     loadProperties,
+    applyFilters,
     reloadProperties: list.reload,
     clearFilters,
     service: propertiesService,
