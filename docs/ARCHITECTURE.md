@@ -126,6 +126,24 @@ Conventions:
 - Properties and rentals also filter by `owner_person_id`, and
   `include_archived=true` lists archived rows with the rest; person details
   uses both on `/properties/paged`.
+- Property and rental search (`q`, or `search` on properties) splits the
+  query on whitespace; every token must match. A token matches with one
+  `LIKE` against the row's `search_text`, a stored generated column
+  (migration `0003_search_text`) holding every searched column lower-cased
+  and space-separated, so the `pg_trgm` index on it can serve the search
+  (`searchTextContains` in `shared/utils/search.ts`; a token's `%`, `_` and
+  `\` are escaped). Properties also match a token's digits against the owner
+  phone's digits, which lead `search_text` (an anchored regex on the same
+  column), and Arabic status labels on `status`. There is no Arabic letter
+  normalization: hamza forms and ة/ه match as typed. `search_text` is not
+  declared in `schema.ts`, so selects, backups and restores leave it out.
+  Searching a new column means a new migration that redefines the column's
+  expression, and adding the column to the reference search in
+  `server/scripts/search-text.test.ts`.
+- User-typed text reaches a `LIKE`/`ILIKE` pattern only through
+  `containsPattern` (`shared/utils/search.ts`), which escapes `%`, `_` and
+  `\`, so a search or text filter matches what was typed (people, requests,
+  the property district and plot filters, and `searchTextContains`).
 - Each row of the paged property and rental lists, and of the two favorites
   lists, carries `primary_image: { id, thumbnail } | null`: the image its
   table shows (the primary one, else the first in order) and whether that
@@ -144,6 +162,44 @@ Conventions:
   image to a user with the images permission
   (`composables/useThumbnailBackfill.ts`). Until then the row shows the
   original. Deleting an image deletes its thumbnail.
+- A list that returns related rows loads them for every row at once (an
+  `IN` query or a join), not with a query per row: users with their roles
+  and permissions, roles with their permission ids. Saving a record reads
+  the names of its picked locations in one query (`getLocationNames`).
+- The Excel import commits in one transaction holding the properties code
+  lock, so either every accepted row is saved or none is. It reads what the
+  rows need (saved phones, location names, matching plots, linked people,
+  last codes) once for the whole file and inserts 100 rows per statement.
+  Files over `MAX_IMPORT_ROWS` (5,000) are refused by validate and commit,
+  which bounds how long other new listings wait for that lock.
+- Backup archives are streamed (`modules/backup/backup.archive.ts`, yazl and
+  yauzl): a backup writes files into `<name>.zip.partial` one at a time and
+  renames it on success; a restore reads entries from the zip on disk (or
+  the uploaded buffer) and writes each file once its CRC-32 matched. Never
+  load a whole archive or media folder into memory. Keep the layout older
+  builds read with adm-zip 0.5.17 (`manifest.json`, `data.json`,
+  `images/properties/…`, `documents/…`, directory entries);
+  `test:backup:compat` restores an archive written by such a build.
+- Database connections: `buildPoolConfig(target)` in
+  `infrastructure/config.ts` configures every pool on the app's database
+  (the request pool, the one `reconfigurePool` switches to after setup, the
+  startup pool): at most 10 connections, 2 kept open however long the app
+  is idle, the rest closed after 5 minutes unused, 5 s to get a connection.
+  Health checks and startup connect with the shorter 1.5 s timeout.
+  PostgreSQL cancels any statement after 15 s (`DB_STATEMENT_TIMEOUT_MS`);
+  the central error handler answers that (SQLSTATE 57014) with a 503
+  `QUERY_TIMEOUT`, and a request that got no connection in time with a 503
+  `DATABASE_BUSY`, both in Arabic. Work that may legitimately run longer
+  starts its transaction with `SET LOCAL statement_timeout = 0`: the backup
+  snapshot, the restore and the migration transaction (which also runs
+  without the startup pool's client-side read timeout, `withMigrationPool`).
+  Measurements behind the values: `docs/PERFORMANCE.md`, "Pool, statement
+  timeout and dashboard".
+- The dashboard summary runs its queries at most two at a time
+  (`inParallel` in `dashboard.repository.ts`); each running query holds a
+  connection, and after an idle pause every extra one is a new backend.
+  `test:dashboard` compares its response with the pre-merge queries kept in
+  `server/scripts/dashboard-reference.ts`.
 - User-facing messages are Arabic. Keep request/response shapes stable: the
   renderer types in `apps/renderer/src/types` mirror them by hand, and
   `test:contract` checks every response the renderer reads against the type
@@ -164,9 +220,11 @@ Conventions:
   inserted by a data migration once per database; system permissions and the
   Super Admin role are re-seeded on every startup by `seedSystemRbac`.
 - Indexes that existing data may block (the plot-identity unique index, the
-  `pg_trgm` search indexes) are created best-effort by hand-written migrations
+  `pg_trgm` indexes on `search_text` and on `plot_number`) are created
+  best-effort by hand-written migrations
   (`DO $$ … EXCEPTION … RAISE NOTICE`) and are not declared in `schema.ts`;
-  the runner logs migration notices.
+  the runner logs migration notices. Without `pg_trgm` the search still
+  works, by scanning.
 
 ## Renderer (`apps/renderer/src`)
 

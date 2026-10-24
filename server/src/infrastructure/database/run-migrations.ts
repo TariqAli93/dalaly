@@ -3,7 +3,7 @@ import path from "node:path";
 import { readMigrationFiles } from "drizzle-orm/migrator";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "./schema.js";
-import { withStartupPool } from "./pool.js";
+import { withMigrationPool } from "./pool.js";
 import { bootstrapDefaultAdmin } from "../../modules/auth/auth.service.js";
 import { seedSystemRbac } from "../../modules/rbac/rbac.service.js";
 import {
@@ -20,13 +20,16 @@ export async function applyMigrations(
   migrationsFolder = getMigrationsFolder(),
   options: { initialize?: boolean; approvedRetirement?: boolean } = {},
 ) {
-  await withStartupPool(async (startupPool) => {
+  await withMigrationPool(async (startupPool) => {
     const startupDb = drizzle(startupPool, { schema });
     if (options.initialize && (await installationInitialized(startupPool)))
       await markInstallationInitialized(startupPool);
     const client = await startupPool.connect();
     try {
       await client.query("BEGIN");
+      // Building an index or rewriting a table may take longer than any
+      // request; a migration cut off halfway would keep the app from starting.
+      await client.query("SET LOCAL statement_timeout = 0");
       await client.query("SELECT pg_advisory_xact_lock(192822)");
       await client.query("CREATE SCHEMA IF NOT EXISTS drizzle");
       await client.query(

@@ -27,17 +27,34 @@ type RecordAuditInput = {
  */
 export async function recordAudit(input: RecordAuditInput) {
   try {
-    await db.insert(auditLogs).values({
-      entityType: input.entityType,
-      entityId: input.entityId,
-      action: input.action,
-      oldValue: input.oldValue ?? null,
-      newValue: input.newValue ?? null,
-      userId: input.userId ?? null,
-    });
+    await db.insert(auditLogs).values(auditRow(input));
   } catch {
     // تجاهل أخطاء التدقيق بهدوء.
   }
+}
+
+/** مثل recordAudit لعدة أحداث، بإدراج واحد لكل دفعة من 500 حدث. */
+export async function recordAudits(inputs: RecordAuditInput[]) {
+  for (let start = 0; start < inputs.length; start += 500) {
+    try {
+      await db
+        .insert(auditLogs)
+        .values(inputs.slice(start, start + 500).map(auditRow));
+    } catch {
+      // تجاهل أخطاء التدقيق بهدوء.
+    }
+  }
+}
+
+function auditRow(input: RecordAuditInput) {
+  return {
+    entityType: input.entityType,
+    entityId: input.entityId,
+    action: input.action,
+    oldValue: input.oldValue ?? null,
+    newValue: input.newValue ?? null,
+    userId: input.userId ?? null,
+  };
 }
 
 export async function listEntityAudit(entityType: string, entityId: number) {

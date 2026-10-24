@@ -12,6 +12,7 @@ import {
   totalRowsColumn,
   type SortOrder,
 } from "../../shared/utils/paging.js";
+import { containsPattern } from "../../shared/utils/search.js";
 import type {
   PersonFilters,
   PersonPageQuery,
@@ -63,16 +64,18 @@ function personConditions(filters: PersonFilters) {
   if (filters.status) where.push(eq(people.status, filters.status));
   else where.push(ne(people.status, "archived"));
   const q = filters.q?.trim();
-  if (q)
+  if (q) {
+    const pattern = containsPattern(q);
     where.push(
       or(
-        ilike(people.code, `%${q}%`),
-        ilike(people.fullName, `%${q}%`),
-        ilike(people.phonePrimary, `%${q}%`),
-        ilike(people.email, `%${q}%`),
-        ilike(people.nationalId, `%${q}%`),
+        ilike(people.code, pattern),
+        ilike(people.fullName, pattern),
+        ilike(people.phonePrimary, pattern),
+        ilike(people.email, pattern),
+        ilike(people.nationalId, pattern),
       )!,
     );
+  }
   return and(...where);
 }
 

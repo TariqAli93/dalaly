@@ -1,5 +1,6 @@
-import { asc, count, eq } from "drizzle-orm";
+import { asc, count, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
+import { type Transaction } from "../../infrastructure/database/record-codes.js";
 import {
   districts,
   governorates,
@@ -149,31 +150,72 @@ export async function deleteNeighborhood(id: number) {
   return row ? toApiObject(row) : null;
 }
 
-export async function getGovernorateName(id: number) {
-  const [row] = await db
-    .select({ name: governorates.name })
-    .from(governorates)
-    .where(eq(governorates.id, id))
-    .limit(1);
-  return row?.name ?? null;
+export type LocationIds = {
+  governorate_id?: number | null;
+  district_id?: number | null;
+  neighborhood_id?: number | null;
+};
+
+type LocationLevel = "governorate" | "district" | "neighborhood";
+
+/**
+ * أسماء المحافظات والمناطق والأحياء المختارة من القوائم لعدة سجلات، باستعلام
+ * واحد مهما كان عددها. المعرّف غير الموجود لا يظهر في النتيجة.
+ */
+export async function getLocationNamesByIds(
+  records: LocationIds[],
+  database: Pick<Transaction, "execute"> = db,
+) {
+  const names: Record<LocationLevel, Map<number, string>> = {
+    governorate: new Map(),
+    district: new Map(),
+    neighborhood: new Map(),
+  };
+  const idsOf = (pick: (record: LocationIds) => number | null | undefined) => [
+    ...new Set(records.map(pick).filter((id): id is number => Boolean(id))),
+  ];
+  const levels = [
+    ["governorate", governorates, idsOf((r) => r.governorate_id)],
+    ["district", districts, idsOf((r) => r.district_id)],
+    ["neighborhood", neighborhoods, idsOf((r) => r.neighborhood_id)],
+  ] as const;
+  const selects = levels
+    .filter(([, , ids]) => ids.length > 0)
+    .map(
+      ([level, table, ids]) =>
+        sql`select ${level}::text as level, ${table.id} as id, ${table.name} as name from ${table} where ${inArray(table.id, ids)}`,
+    );
+  if (selects.length === 0) return names;
+
+  const result = await database.execute<{
+    level: LocationLevel;
+    id: string | number;
+    name: string;
+  }>(sql.join(selects, sql` union all `));
+  for (const row of result.rows) names[row.level].set(Number(row.id), row.name);
+  return names;
 }
 
-export async function getDistrictName(id: number) {
-  const [row] = await db
-    .select({ name: districts.name })
-    .from(districts)
-    .where(eq(districts.id, id))
-    .limit(1);
-  return row?.name ?? null;
+/** أسماء المواقع المختارة لسجل واحد (null لما لم يُختر من القوائم). */
+export async function getLocationNames(
+  ids: LocationIds,
+  database: Pick<Transaction, "execute"> = db,
+) {
+  return locationNamesOf(await getLocationNamesByIds([ids], database), ids);
 }
 
-export async function getNeighborhoodName(id: number) {
-  const [row] = await db
-    .select({ name: neighborhoods.name })
-    .from(neighborhoods)
-    .where(eq(neighborhoods.id, id))
-    .limit(1);
-  return row?.name ?? null;
+/** أسماء مواقع سجل واحد من نتيجة getLocationNamesByIds. */
+export function locationNamesOf(
+  names: Awaited<ReturnType<typeof getLocationNamesByIds>>,
+  ids: LocationIds,
+) {
+  const nameOf = (level: LocationLevel, id?: number | null) =>
+    id ? (names[level].get(id) ?? null) : null;
+  return {
+    governorate: nameOf("governorate", ids.governorate_id),
+    district: nameOf("district", ids.district_id),
+    neighborhood: nameOf("neighborhood", ids.neighborhood_id),
+  };
 }
 
 async function countPropertiesByGovernorate(id: number) {

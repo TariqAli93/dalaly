@@ -4,7 +4,10 @@ import { ZodError } from "zod";
 import { config } from "./infrastructure/config.js";
 import { DomainError, errorCodeForStatus } from "./shared/errors.js";
 import { DEFAULT_BODY_LIMIT } from "./shared/constants/limits.js";
-import { postgresError } from "./shared/utils/postgres-errors.js";
+import {
+  isPoolTimeout,
+  postgresError,
+} from "./shared/utils/postgres-errors.js";
 import { getSetupStatus } from "./infrastructure/database/health.js";
 import { waitForDatabasePreparation } from "./infrastructure/database/startup.js";
 import { registerAuthHook } from "./modules/auth/auth.hooks.js";
@@ -161,6 +164,23 @@ export async function buildServer(options: { logger?: boolean } = {}) {
         code: "DUPLICATE_VALUE",
         message: "القيمة مستخدمة مسبقاً في سجل آخر.",
       });
+    // A statement ran past the statement timeout (or was cancelled), or no
+    // connection was free in time: worth retrying, not a fault in the request.
+    if (sqlState === "57014") {
+      request.log.warn({ err: error }, "statement cancelled");
+      return reply.code(503).send({
+        code: "QUERY_TIMEOUT",
+        message:
+          "استغرقت العملية وقتاً أطول من المسموح فأُوقفت. أعد المحاولة بعد قليل.",
+      });
+    }
+    if (isPoolTimeout(error)) {
+      request.log.warn({ err: error }, "no database connection in time");
+      return reply.code(503).send({
+        code: "DATABASE_BUSY",
+        message: "قاعدة البيانات مشغولة حالياً. أعد المحاولة بعد قليل.",
+      });
+    }
 
     // Fastify's own client errors (malformed JSON, body too large, wrong
     // content type) keep their status. Their messages are English, and only

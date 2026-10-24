@@ -558,6 +558,56 @@ export function windowsProcessInfo(pids) {
   return info;
 }
 
+/**
+ * Samples one process every `intervalMs` from a single long-running
+ * PowerShell (Windows only): working set, private bytes, CPU time and the
+ * OS peak counters, which cover the whole life of the process. `ready`
+ * resolves on the third sample, as PowerShell takes up to seconds to reach
+ * a steady pace; `stop()` returns every sample.
+ */
+export function sampleProcess(pid, intervalMs = 250) {
+  const script = `$p = Get-Process -Id ${pid}; while (-not $p.HasExited) { $p.Refresh(); "{0} {1} {2} {3} {4}" -f $p.WorkingSet64, $p.PrivateMemorySize64, $p.PeakWorkingSet64, $p.PeakPagedMemorySize64, [int64]$p.TotalProcessorTime.TotalMilliseconds; Start-Sleep -Milliseconds ${intervalMs} }`;
+  const child = spawn("powershell.exe", ["-NoProfile", "-Command", script], {
+    windowsHide: true,
+    stdio: ["ignore", "pipe", "ignore"],
+  });
+  const samples = [];
+  let pending = "";
+  let resolveReady;
+  const ready = new Promise((resolve) => (resolveReady = resolve));
+  child.stdout.setEncoding("utf8");
+  child.stdout.on("data", (chunk) => {
+    pending += chunk;
+    const lines = pending.split(/\r?\n/);
+    pending = lines.pop();
+    for (const line of lines.filter((text) => text.trim())) {
+      const [workingSet, privateBytes, peakWorkingSet, peakPrivate, cpuMs] = line.trim().split(/\s+/).map(Number);
+      samples.push({
+        at: performance.now(),
+        workingSetMB: workingSet / 2 ** 20,
+        privateMB: privateBytes / 2 ** 20,
+        peakWorkingSetMB: peakWorkingSet / 2 ** 20,
+        peakPrivateMB: peakPrivate / 2 ** 20,
+        cpuMs,
+      });
+      if (samples.length >= 3) resolveReady();
+    }
+  });
+  child.once("exit", () => resolveReady());
+  return {
+    ready,
+    samples,
+    async stop() {
+      if (child.exitCode === null) {
+        const exited = new Promise((resolve) => child.once("exit", resolve));
+        child.kill();
+        await exited;
+      }
+      return samples;
+    },
+  };
+}
+
 /** Direct children of `parentPid` whose command line matches `pattern`. */
 export function childPids(parentPid, pattern) {
   const script = `Get-CimInstance Win32_Process -Filter "ParentProcessId=${parentPid}" | ForEach-Object { "{0}\`t{1}" -f $_.ProcessId, $_.CommandLine }`;
