@@ -496,16 +496,21 @@ export async function rowImagesPainted(page) {
 
 /**
  * Counts a step's API requests, its image file requests (an original or a
- * thumbnail), its writes (a thumbnail saved) and the KB of the response
- * bodies. The returned function waits until no API request has been in
- * flight for `quietMs` (at most 5 s longer), stops counting and returns
- * { requests, imageRequests, writes, kb }.
+ * thumbnail), its writes (a thumbnail saved), its list requests (matching
+ * `list`) and locations requests, how many were aborted (a superseded
+ * load; it still reached the API) and the KB of the response bodies. The
+ * returned function waits until no API request has been in flight for
+ * `quietMs` (at most 5 s longer), stops counting and returns
+ * { requests, imageRequests, writes, listRequests, locationsRequests, aborted, kb }.
  */
-export function trackApi(page, { quietMs = 150 } = {}) {
+export function trackApi(page, { quietMs = 150, list } = {}) {
   const sizes = [];
   let requests = 0;
   let imageRequests = 0;
   let writes = 0;
+  let listRequests = 0;
+  let locationsRequests = 0;
+  let aborted = 0;
   let inFlight = 0;
   let lastChange = performance.now();
   const isApi = (request) => request.url().includes("/api/");
@@ -514,6 +519,8 @@ export function trackApi(page, { quietMs = 150 } = {}) {
     requests += 1;
     if (/\/images\/\d+\/(file|thumbnail)(\?|$)/.test(request.url()) && request.method() === "GET") imageRequests += 1;
     if (request.method() !== "GET") writes += 1;
+    if (list?.test(request.url())) listRequests += 1;
+    if (/\/api\/locations(\?|$)/.test(request.url())) locationsRequests += 1;
     inFlight += 1;
     lastChange = performance.now();
   };
@@ -525,6 +532,7 @@ export function trackApi(page, { quietMs = 150 } = {}) {
   };
   const onFailed = (request) => {
     if (!isApi(request)) return;
+    aborted += 1;
     inFlight -= 1;
     lastChange = performance.now();
   };
@@ -538,7 +546,7 @@ export function trackApi(page, { quietMs = 150 } = {}) {
     page.off("requestfinished", onDone);
     page.off("requestfailed", onFailed);
     const bytes = (await Promise.all(sizes)).reduce((sum, size) => sum + size, 0);
-    return { requests, imageRequests, writes, kb: Math.round(bytes / 1024) };
+    return { requests, imageRequests, writes, listRequests, locationsRequests, aborted, kb: Math.round(bytes / 1024) };
   };
 }
 

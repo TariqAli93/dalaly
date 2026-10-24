@@ -278,6 +278,16 @@ Conventions: Arabic UI and RTL throughout; numbers and dates use Latin digits
 maps come from `constants/` (for example `RENT_PERIODS` /
 `RENT_PERIOD_LABELS`) rather than per-component copies.
 
+The signed-in pages are children of one route whose component is
+`layouts/AppLayout.vue` (sidebar, top bar, `<router-view>`), so the shell
+stays mounted while the user moves between pages and keeps its state (an
+expanded sidebar). Each page wraps its content in
+`components/app/AppPage.vue`: the page header (title, subtitle, the
+`header-actions` slot) and the title for the top bar (`usePageTitle`). A
+page that can reload its data registers it with `useRefresh` in
+`onMounted`; the registration ends when the page unmounts, and the top
+bar's refresh button is disabled on pages without one.
+
 Server-paged tables (`PropertiesTable`, `RentalTable` when given a `total`,
 the people, requests and documents pages, a person's properties) use
 `v-data-table-server` with their page, size and sort state in
@@ -286,7 +296,17 @@ request and only the newest one writes its result; header keys of sortable
 columns are the API's sort keys. A page that renders its table at once
 starts the first load in `setup`, before the table emits its initial
 options, so that load is not sent twice; `onError` replaces the snackbar
-for a page that shows the error in place of the table.
+for a page that shows the error in place of the table. The properties and
+rentals filter bars apply after a 300 ms pause; that apply is skipped when
+the filters equal those of the list's latest request (clearing the filters
+or the top-bar search already loaded them). Code that sets the properties
+filters elsewhere (dashboard, top-bar search, the offer form) calls
+`startFromFirstPage` and opens the page, which loads once. Concurrent
+`loadLocations` calls share one request.
+
+Large libraries needed by one action load with `import()` when that action
+runs (`xlsx` when the import dialog parses a file; Leaflet and Chart.js
+likewise), not with the page.
 
 Choosing a person goes through `components/people/PersonPicker.vue`, which
 searches `/people/paged` (first 20 by name, then matches after a 300 ms

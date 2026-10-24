@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import AppLayout from "../layouts/AppLayout.vue";
+import AppPage from "../components/app/AppPage.vue";
 import RentalFilters from "../components/rentals/RentalFilters.vue";
 import RentalTable from "../components/rentals/RentalTable.vue";
 import RentalSummary from "../components/rentals/RentalSummary.vue";
@@ -9,7 +9,6 @@ import RentalDetailsDialog from "../components/rentals/RentalDetailsDialog.vue";
 import MasterDetailLayout from "../components/shared/MasterDetailLayout.vue";
 import * as rentals from "../services/rentals.service";
 import { getErrorMessage } from "../services/api.service";
-import { useLocations } from "../composables/useLocations";
 import { usePermissions } from "../composables/usePermissions";
 import { useSnackbar } from "../composables/useSnackbar";
 import { useConfirm } from "../composables/useConfirm";
@@ -24,7 +23,6 @@ import type {
 } from "../types";
 
 const router = useRouter();
-const { loadLocations } = useLocations();
 const { can } = usePermissions();
 const { notifyError, notifySuccess } = useSnackbar();
 const { openConfirm } = useConfirm();
@@ -56,10 +54,12 @@ const detailsDialog = ref(false);
 const paneOpen = ref(false);
 
 // صفحة واحدة من الخادم؛ الترتيب (والمساحة فيه بالمتر المربع) والمفضلة هناك.
-const list = createPagedList<RentalRecord, RentalSortKey>(
-  (page, signal) => rentals.listRentalsPage(filters.value, page, signal),
-  RENTAL_SORT_OPTIONS[0],
-);
+// الفلاتر كما أُرسلت في آخر طلب.
+let requestedFilters = "";
+const list = createPagedList<RentalRecord, RentalSortKey>((page, signal) => {
+  requestedFilters = JSON.stringify(filters.value);
+  return rentals.listRentalsPage(filters.value, page, signal);
+}, RENTAL_SORT_OPTIONS[0]);
 const {
   items,
   total,
@@ -111,6 +111,10 @@ async function loadFavoriteIds() {
 /** فلاتر جديدة: من الصفحة الأولى. */
 function load() {
   return list.loadFirstPage();
+}
+/** تطبيق شريط الفلاتر بعد توقّف الكتابة: لا يعيد طلب فلاتر أرسلها قبله المسح. */
+function applyFilters() {
+  if (JSON.stringify(filters.value) !== requestedFilters) void load();
 }
 /** بعد أرشفة أو حذف أو تحديث: نفس الصفحة. */
 async function reload() {
@@ -229,16 +233,15 @@ async function exportSelected() {
   }
 }
 
-onMounted(async () => {
-  await loadLocations();
-  setRefreshHandler(reload);
-  await reload();
-});
+// قبل أن يُظهر الجدول خياراته الأولى، فلا يطلب الصفحة نفسها مرتين. المواقع
+// تطلبها الفلاتر، والجدول لا ينتظرها (أسماء المواقع في صفوفه).
+void reload();
+onMounted(() => setRefreshHandler(reload));
 onBeforeUnmount(() => list.cancel());
 </script>
 
 <template>
-  <AppLayout title="الإيجارات" subtitle="إدارة العروض الإيجارية داخل المكتب.">
+  <AppPage title="الإيجارات" subtitle="إدارة العروض الإيجارية داخل المكتب.">
     <template #header-actions>
       <div class="d-flex flex-wrap ga-2">
         <v-btn
@@ -269,7 +272,7 @@ onBeforeUnmount(() => list.cancel());
       </div>
     </template>
 
-    <RentalFilters v-model="filters" @apply="load" @clear="clear" />
+    <RentalFilters v-model="filters" @apply="applyFilters" @clear="clear" />
 
     <div class="dal-resultsbar bg-surface pa-3 border">
       <span class="dal-resultsbar__count">{{ resultsLabel }}</span>
@@ -360,7 +363,7 @@ onBeforeUnmount(() => list.cancel());
       @restore="restore"
       @delete="remove"
     />
-  </AppLayout>
+  </AppPage>
 </template>
 
 <style scoped>

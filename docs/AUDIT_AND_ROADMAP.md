@@ -216,21 +216,27 @@ table are what they answer.
   full-size originals as thumbnails (paste/click bugs fixed in this batch).
   (Done since: list rows carry their primary image and show a 320 px
   thumbnail; see Phase 3 item 4.)
-- **Stale responses** can overwrite newer searches (no AbortController or
-  request id); clearing filters and topbar navigation fire duplicate loads.
-- **Waterfalls**: the rentals page loads reference data sequentially;
-  `useLocations` has no in-flight dedupe. (The rental and property forms, the
-  documents and request pages no longer wait for every person: the person
-  pickers search the server.)
+- ~~**Stale responses** can overwrite newer searches; clearing filters and
+  topbar navigation fire duplicate loads~~: fixed. `createPagedList` aborts
+  a superseded load, and the duplicate loads are gone (Phase 3.5).
+- ~~**Waterfalls**: the rentals page loads reference data sequentially;
+  `useLocations` has no in-flight dedupe~~: fixed (Phase 3.5). (The rental
+  and property forms, the documents and request pages no longer wait for
+  every person: the person pickers search the server.)
 - **The sale offer form cannot link its owner to a person** (the rental form
   can, "ربط المالك بعميل"), so person details lists only offers linked by
   data or import. Its `people` prop was never shown and has been removed.
-- **Shell remounts per route** (17 pages wrap themselves in `AppLayout`;
-  sidebar rail state resets); `useRefresh` keeps the previous page's handler.
+- ~~**Shell remounts per route**; `useRefresh` keeps the previous page's
+  handler~~: fixed (Phase 3.6).
+- **The offer and rental forms keep their first route's mode**: going
+  straight from an edit form to "add" in the sidebar reuses the page
+  (the router does not remount a component shared by two routes) and it
+  reads the route only in `onMounted`, so the form stays in edit mode.
+  Same before and after the persistent shell.
 - **Types drift**: `RentalRecord.image` does not exist server-side;
   `RentalStatus` has 34 values vs 5 on the server.
-- Dead exports: `exportPropertiesToXlsx`, `exportRentalsToXlsx`,
-  `backupDownloadUrl`, `logoUrl`, several service functions.
+- Dead exports: ~~`exportPropertiesToXlsx`, `exportRentalsToXlsx`~~
+  (removed), `backupDownloadUrl`, `logoUrl`, several service functions.
 - Already good: every route lazy-loaded, Leaflet and Chart.js loaded lazily
   and cleaned up, debounced filters, no `any`, no sourcemaps in production.
 
@@ -404,7 +410,11 @@ fix).
    `docs/PERFORMANCE.md`, "Renderer startup and dashboard".
 2. Icons: measured, not worth it for the splash (dropping the icon CSS did
    not change its load time). Revisit only with evidence for the main window.
-3. Lazy-load xlsx; remove dead exports.
+3. Done: `xlsx` loads when the import dialog parses a file (properties
+   page chunk 350 → 25 KB, the route's JS 441 → 116 KB; with the shell
+   below the list paints ~60 ms sooner, the first import ~15 ms later);
+   the unused Excel exports are removed. See `docs/PERFORMANCE.md`,
+   "Persistent shell, lazy xlsx and duplicate loads".
 4. Done: table thumbnails. Paged and favorites list rows carry
    `primary_image`; tables render a lazy `<img>` of its thumbnail (JPEG,
    320 px), which the renderer makes on upload and, for older images, the
@@ -412,12 +422,17 @@ fix).
    images folder (out of backups) and decodes nothing. See
    `docs/PERFORMANCE.md`, "Table thumbnails". Galleries still load
    originals, including their small thumbnail strips.
-5. Request hygiene: AbortController in list loads (done for the
-   properties and rentals lists, `createPagedList`), remove duplicate fires
-   (the top-bar search still loads twice: Enter and the filter debounce),
-   `Promise.all` waterfalls, cached people/locations.
-6. Persistent shell (`AppLayout` in a parent route), `useRefresh` cleanup,
-   `shallowRef` for list payloads, cached `Intl.NumberFormat`.
+5. Done: AbortController in list loads (`createPagedList`) and no
+   duplicate fires: the filter bar's debounce skips filters just loaded
+   (top-bar search, clearing filters), code that sets filters elsewhere
+   lets the properties page load once, concurrent `loadLocations` calls
+   share one request, and the rentals page no longer waits for the
+   locations before its list. People are no longer downloaded at all (the
+   person pickers search the server).
+6. Done: persistent shell (`AppLayout` in a parent route, pages in
+   `AppPage`; every page change paints 36–54 ms sooner) and `useRefresh`
+   cleanup. Not done: `shallowRef` for list payloads, cached
+   `Intl.NumberFormat`.
 
 ### Phase 4 — files and backup at scale
 

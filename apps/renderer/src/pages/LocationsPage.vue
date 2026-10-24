@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import AppLayout from "../layouts/AppLayout.vue";
+import AppPage from "../components/app/AppPage.vue";
 import { getErrorMessage } from "../services/api.service";
 import { useLocations } from "../composables/useLocations";
 import { useConfirm } from "../composables/useConfirm";
@@ -233,7 +233,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <AppLayout
+  <AppPage
     title="المحافظات والمناطق والأحياء"
     subtitle="اختيار مواقع العقارات عند إدخالها والبحث فيها."
   >
@@ -483,5 +483,5 @@ onMounted(() => {
         </v-card-actions>
       </v-card>
     </v-dialog>
-  </AppLayout>
+  </AppPage>
 </template>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import AppLayout from "../layouts/AppLayout.vue";
+import AppPage from "../components/app/AppPage.vue";
 import { getErrorMessage } from "../services/api.service";
 import * as remoteService from "../services/remote.service";
 import type { RemoteStatus } from "../services/remote.service";
@@ -139,7 +139,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <AppLayout title="الإعدادات" subtitle="خصّص مساحة العمل وأدر إعدادات المكتب.">
+  <AppPage title="الإعدادات" subtitle="خصّص مساحة العمل وأدر إعدادات المكتب.">
     <v-card variant="flat" border class="settings-navigation"
       ><v-tabs v-model="settingsTab" color="primary"
         ><v-tab value="appearance" prepend-icon="mdi-palette-outline"
@@ -321,7 +321,7 @@ onMounted(() => {
       ></v-window
     >
     <ChangePinDialog v-model="changePinOpen"
-  /></AppLayout>
+  /></AppPage>
 </template>
 <style scoped>
 .settings-navigation {

@@ -4,17 +4,23 @@ import { useProperties } from "../../composables/useProperties";
 import { useAuth } from "../../composables/useAuth";
 import ThemeToggle from "./ThemeToggle.vue";
 
-// title/subtitle للعرض فقط (يمرّرهما AppLayout من عنوان الصفحة الحالي).
-defineProps<{ title?: string; subtitle?: string }>();
+// title للعرض فقط (يمرّره AppLayout من عنوان الصفحة الحالية)، وcanRefresh:
+// هل سجّلت الصفحة الحالية ما يعيد تحميلها.
+defineProps<{ title?: string; canRefresh?: boolean }>();
 const emit = defineEmits<{ refresh: []; "toggle-drawer": [] }>();
 
 const router = useRouter();
-const { filters, loadProperties } = useProperties();
+const { filters, loadProperties, startFromFirstPage } = useProperties();
 const { currentUser, logout } = useAuth();
 
-// نفس سلوك البحث السابق تماماً: يذهب لصفحة العروض ثم يعيد التحميل.
+// على صفحة العروض يحمّل الآن؛ من صفحة أخرى يفتحها على أول صفحة وتحمّلها هي.
 function runSearch() {
-  void router.push("/properties").then(() => loadProperties());
+  if (router.currentRoute.value.name === "properties") {
+    void loadProperties();
+    return;
+  }
+  startFromFirstPage();
+  void router.push("/properties");
 }
 
 async function onLogout() {
@@ -65,6 +71,7 @@ async function onLogout() {
       variant="text"
       title="تحديث"
       aria-label="تحديث البيانات"
+      :disabled="!canRefresh"
       @click="emit('refresh')"
     />
 

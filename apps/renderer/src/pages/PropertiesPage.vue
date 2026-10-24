@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import AppLayout from "../layouts/AppLayout.vue";
+import AppPage from "../components/app/AppPage.vue";
 import PropertyFilters from "../components/properties/PropertyFilters.vue";
 import PropertiesTable from "../components/properties/PropertiesTable.vue";
 
@@ -26,7 +26,7 @@ const {
   loading,
   filters,
   list,
-  loadProperties,
+  applyFilters,
   reloadProperties,
   clearFilters,
 } = useProperties();
@@ -159,16 +159,17 @@ function paneDelete() {
   if (selectedProperty.value) askDelete(selectedProperty.value);
 }
 
+// نفس الصفحة والفلاتر من الزيارة السابقة، قبل أن يُظهر الجدول خياراته الأولى
+// فلا يطلب الصفحة نفسها مرتين.
+void reloadProperties();
 onMounted(() => {
   setRefreshHandler(reloadProperties);
-  // نفس الصفحة والفلاتر من الزيارة السابقة.
-  void reloadProperties();
   void loadFavoriteIds();
 });
 </script>
 
 <template>
-  <AppLayout title="العروض العقارية" subtitle="إدارة عروض البيع داخل المكتب.">
+  <AppPage title="العروض العقارية" subtitle="إدارة عروض البيع داخل المكتب.">
     <template #header-actions>
       <div class="d-flex flex-wrap ga-2">
         <v-btn
@@ -199,7 +200,7 @@ onMounted(() => {
       </div>
     </template>
 
-    <PropertyFilters v-model="filters" @apply="loadProperties" />
+    <PropertyFilters v-model="filters" @apply="applyFilters" />
 
     <!-- شريط النتائج: العدد بسياقه، اختيارات سريعة، والفرز -->
     <div class="dal-resultsbar bg-surface pa-3 border">
@@ -283,7 +284,7 @@ onMounted(() => {
     </MasterDetailLayout>
 
     <ExcelImportDialog v-model="importOpen" @imported="refreshData" />
-  </AppLayout>
+  </AppPage>
 </template>
 
 <style scoped>

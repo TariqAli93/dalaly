@@ -1,13 +1,15 @@
 // Repeatable performance measurements of a packaged build.
 //
 //   node scripts/perf/measure.mjs --app apps/desktop/release/win-unpacked [--label main]
-//        [--runs 8] [--properties 5000] [--photos 3] [--skip-api] [--skip-startup]
+//        [--runs 8] [--properties 5000] [--photos 3] [--skip-api] [--skip-startup] [--reroute]
 //
 // Needs the local PostgreSQL (DB_* from .env). Creates and drops its own
 // dalaly_perf_<timestamp> database and uses temporary profiles, so it never
-// touches real data. The startup pass needs port 34567 free (close Dalaly).
+// touches real data. The startup pass needs port 34567 free (close Dalaly),
+// or --reroute, whose timings do not compare (request counts do).
 // Results go to perf-results/<label>.json and are printed as tables.
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { _electron } from "@playwright/test";
@@ -52,6 +54,10 @@ const { values: options } = parseArgs({
     photos: { type: "string", default: "0" },
     "skip-api": { type: "boolean", default: false },
     "skip-startup": { type: "boolean", default: false },
+    // The app's API on a free port, the renderer's requests to 34567 routed
+    // there by Playwright: for request counts while 34567 is taken. Every
+    // request passes through Playwright, so its timings do not compare.
+    reroute: { type: "boolean", default: false },
   },
 });
 if (!options.app) throw new Error("--app <win-unpacked folder> is required");
@@ -74,6 +80,8 @@ const sizes = {
 };
 // The renderer's API base is fixed at build time to this port.
 const APP_API_PORT = 34567;
+// Where the app's API listens in the startup pass: 34567, or a free port with --reroute.
+let appApiPort = APP_API_PORT;
 const IDLE_SAMPLE_MS = 10_000;
 // Longer than pg's default 10 s idle timeout for pooled connections.
 const PAUSE_MS = 12_000;
@@ -88,7 +96,11 @@ const LIST_REQUEST = {
   documents: /\/api\/documents(\/paged)?(\?|$)/,
 };
 const PROPERTY_SEARCH_PLACEHOLDER = "ابحث باسم المالك، الهاتف، رقم القطعة، المنطقة أو أي وصف";
+const TOPBAR_SEARCH_PLACEHOLDER = "البحث في العروض العقارية…";
 const PAGE_SEARCH = "بغداد";
+const TOPBAR_SEARCH = "شارع";
+// Matches no offer, so the list shows its "clear filters" button.
+const NO_MATCH = "zzqx";
 // A seeded owner phone ('0780' || g % people): a search that finds a few rows.
 const PHONE_SEARCH = "07800000777";
 // A seeded person ('زبون ' || g), searched for in the person pickers.
@@ -127,6 +139,8 @@ try {
   console.log(`Seeded ${databaseName} in ${results.seedSeconds} s`, sizes, results.photos ?? "no photos");
   results.build = await probeBuild(fixturePort);
   console.log("Build:", results.build);
+  results.bundle = rendererBundle();
+  console.log("Renderer JS (KB):", results.bundle);
 
   if (!options["skip-api"]) {
     // Restart so the API runs against the seeded data with cold caches.
@@ -142,10 +156,17 @@ try {
   apiChild = undefined;
 
   if (!options["skip-startup"]) {
+    if (options.reroute) {
+      appApiPort = await freePort();
+      results.rerouted = true;
+      console.log(`\nAPI on port ${appApiPort}, requests rerouted: compare request counts, not timings.`);
+    }
     // Checked only now, after the API pass, so keep what that pass measured.
-    if (!(await portIsFree(APP_API_PORT))) {
-      results.startupSkipped = `port ${APP_API_PORT} in use`;
-      console.error(`\nPort ${APP_API_PORT} is in use (Dalaly or pnpm dev running): startup pass skipped.`);
+    if (!(await portIsFree(appApiPort))) {
+      results.startupSkipped = `port ${appApiPort} in use`;
+      console.error(
+        `\nPort ${appApiPort} is in use (Dalaly or pnpm dev running): startup pass skipped. --reroute runs it for request counts.`,
+      );
       process.exitCode = 1;
     } else {
       results.startup = await measureStartup(results.build);
@@ -399,12 +420,17 @@ async function measureStartup(build) {
       fs.mkdirSync(path.dirname(photos), { recursive: true });
       fs.symlinkSync(seededImagesDir(), photos, "junction");
     }
-    return _electron.launch({
+    const electron = await _electron.launch({
       executablePath: app.exe,
       args: [`--user-data-dir=${profile}`],
-      env: cleanEnv(),
+      env: { ...cleanEnv(), ...(options.reroute ? { API_PORT: String(appApiPort) } : {}) },
       timeout: 60_000,
     });
+    if (options.reroute)
+      await electron.context().route(`http://127.0.0.1:${APP_API_PORT}/api/**`, (route) =>
+        route.continue({ url: route.request().url().replace(`:${APP_API_PORT}/`, `:${appApiPort}/`) }),
+      );
+    return electron;
   };
 
   const samples = { fresh: [], repeat: [] };
@@ -455,7 +481,7 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
   const healthPoll = (async () => {
     while (apiReadyAt === undefined && !stopPolling) {
       try {
-        const response = await fetch(`http://127.0.0.1:${APP_API_PORT}/api/health`, {
+        const response = await fetch(`http://127.0.0.1:${appApiPort}/api/health`, {
           signal: AbortSignal.timeout(1000),
         });
         if ((await response.json()).startup_state === "READY") apiReadyAt = performance.now();
@@ -536,16 +562,26 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
     // With photos, also when every row's photo is decoded and on screen
     // (`…ImagesPainted`) and what the step sent to the API (`…Requests`,
     // `…ImageRequests`, `…ApiKB`), until no request was in flight for 1 s.
+    // Always, the list, locations and aborted requests each step sent
+    // (`…ListRequests` and the like, see trackApiRequests).
     const images = photosPerListing > 0;
+    let requests = trackApiRequests(page, LIST_REQUEST.properties);
+    const scripts = trackScripts(page);
     const properties = await openList(page, "#/properties", LIST_REQUEST.properties, "PERF-P", 3, { images });
     Object.assign(marks, stepMarks("dashboardToProperties", properties));
+    marks.dashboardToPropertiesScriptKB = scripts();
+    Object.assign(marks, requestMarks("dashboardToProperties", await requests()));
     if (sampleMemory) memory.idleOnProperties = await sampleProcesses(electron);
 
+    requests = trackApiRequests(page, LIST_REQUEST.properties);
     const search = await searchProperties(page, { images });
     Object.assign(marks, stepMarks("propertiesSearch", search));
+    Object.assign(marks, requestMarks("propertiesSearch", await requests()));
 
+    requests = trackApiRequests(page, LIST_REQUEST.rentals);
     const rentals = await openList(page, "#/rentals", LIST_REQUEST.rentals, "PERF-R", 3, { images });
     Object.assign(marks, stepMarks("propertiesToRentals", rentals));
+    Object.assign(marks, requestMarks("propertiesToRentals", await requests()));
 
     // Rentals → people → one person's properties → rental requests →
     // purchase requests → documents (first row's code or number on screen).
@@ -593,6 +629,10 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
     marks.rentalEditReady = rentalEdit.ready;
     marks.rentalEditOwnerShown = rentalEdit.owner;
     marks.rentalEditApiKB = rentalEdit.kb;
+
+    // Last, so the steps above stay comparable with earlier results.
+    Object.assign(marks, await repeatedLoads(page));
+    marks.importFileParsed = await importParse(page);
     // The repeat profile would otherwise open straight on the dashboard next
     // time; a daily start normally finds the 12-hour session expired.
     await page.evaluate(() => localStorage.removeItem("dalaly.session"));
@@ -602,8 +642,8 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
     await electron.close();
     // before-quit stops the API; the next launch needs its port.
     const deadline = Date.now() + 20_000;
-    while (!(await portIsFree(APP_API_PORT))) {
-      if (Date.now() > deadline) throw new Error(`API still holds port ${APP_API_PORT} after quit`);
+    while (!(await portIsFree(appApiPort))) {
+      if (Date.now() > deadline) throw new Error(`API still holds port ${appApiPort} after quit`);
       await sleep(100);
     }
   }
@@ -735,6 +775,162 @@ async function searchProperties(page, { images = false } = {}) {
 function trackApiBytes(page) {
   const traffic = trackApi(page);
   return async () => (await traffic()).kb;
+}
+
+/**
+ * The requests of a step (trackApi), counted until the API has been quiet
+ * for 800 ms: longer than the filters' 300 ms debounce, so a debounced
+ * repeat counts too.
+ */
+function trackApiRequests(page, list) {
+  return trackApi(page, { quietMs: 800, list });
+}
+
+/** `stepListRequests`, `stepApiRequests`, … marks from trackApiRequests' counts. */
+function requestMarks(step, traffic) {
+  return {
+    [`${step}ListRequests`]: traffic.listRequests,
+    [`${step}ApiRequests`]: traffic.requests,
+    [`${step}LocationsRequests`]: traffic.locationsRequests,
+    [`${step}AbortedRequests`]: traffic.aborted,
+  };
+}
+
+/** KB on disk of the renderer's own JS files a step loads (a route's chunks). */
+function trackScripts(page) {
+  const names = new Set();
+  const onRequest = (request) => {
+    const url = request.url();
+    if (url.startsWith("file:") && url.endsWith(".js")) names.add(path.basename(new URL(url).pathname));
+  };
+  page.on("request", onRequest);
+  return () => {
+    page.off("request", onRequest);
+    const assets = path.join(app.dir, "resources/renderer/dist/assets");
+    const bytes = [...names].reduce(
+      (sum, name) => sum + (fs.statSync(path.join(assets, name), { throwIfNoEntry: false })?.size ?? 0),
+      0,
+    );
+    return Math.round(bytes / 1024);
+  };
+}
+
+/** Sizes of the packaged renderer's JS: all of it, the properties route's chunk, xlsx's own chunk. */
+function rendererBundle() {
+  const assets = path.join(app.dir, "resources/renderer/dist/assets");
+  const files = fs.readdirSync(assets).filter((name) => name.endsWith(".js"));
+  const kb = (names) =>
+    Math.round(names.reduce((sum, name) => sum + fs.statSync(path.join(assets, name)).size, 0) / 1024);
+  return {
+    totalJsKB: kb(files),
+    propertiesPageKB: kb(files.filter((name) => name.startsWith("PropertiesPage-"))),
+    xlsxChunkKB: kb(files.filter((name) => name.startsWith("xlsx"))),
+  };
+}
+
+/**
+ * The actions the audit found sending a list twice, each counted until the
+ * API has been quiet (trackApiRequests): a second visit to the properties
+ * list, the top-bar search there and from the rentals list, clearing the
+ * filters from an empty list, and the rentals list as the first page after
+ * a reload (empty caches, so its locations are requested too).
+ */
+async function repeatedLoads(page) {
+  const marks = {};
+  const settle = () => trackApiRequests(page, LIST_REQUEST.properties)();
+  const topSearch = page.getByPlaceholder(TOPBAR_SEARCH_PLACEHOLDER, { exact: true });
+
+  let requests = trackApiRequests(page, LIST_REQUEST.properties);
+  await openList(page, "#/properties", LIST_REQUEST.properties, "PERF-P");
+  Object.assign(marks, requestMarks("propertiesRevisit", await requests()));
+
+  // Enter right after typing, as with the page's own search field.
+  requests = trackApiRequests(page, LIST_REQUEST.properties);
+  await topSearch.fill(TOPBAR_SEARCH);
+  await topSearch.press("Enter");
+  Object.assign(marks, requestMarks("topbarSearch", await requests()));
+
+  const search = page.getByPlaceholder(PROPERTY_SEARCH_PLACEHOLDER, { exact: true });
+  await search.fill(NO_MATCH);
+  await search.press("Enter");
+  const clear = page.getByRole("button", { name: "مسح الفلاتر", exact: true });
+  await clear.waitFor({ state: "visible", timeout: 60_000 });
+  await settle();
+  requests = trackApiRequests(page, LIST_REQUEST.properties);
+  let started = performance.now();
+  await clear.click();
+  await firstRowStartsWith(page, 3, "PERF-P");
+  await painted(page);
+  marks.clearFiltersPainted = performance.now() - started;
+  Object.assign(marks, requestMarks("clearFilters", await requests()));
+  const unfiltered = await firstRowCode(page);
+
+  // From another page the search opens the properties list.
+  await openList(page, "#/rentals", LIST_REQUEST.rentals, "PERF-R");
+  await settle();
+  requests = trackApiRequests(page, LIST_REQUEST.properties);
+  started = performance.now();
+  await topSearch.fill(PAGE_SEARCH);
+  await topSearch.press("Enter");
+  await page.waitForFunction(
+    (previous) => {
+      const code = document.querySelector(".dal-grid tbody tr td:nth-child(3)")?.textContent?.trim();
+      return Boolean(code?.startsWith("PERF-P")) && code !== previous;
+    },
+    unfiltered,
+    { timeout: 60_000 },
+  );
+  await painted(page);
+  marks.topbarSearchFromRentalsPainted = performance.now() - started;
+  Object.assign(marks, requestMarks("topbarSearchFromRentals", await requests()));
+
+  await openList(page, "#/rentals", LIST_REQUEST.rentals, "PERF-R");
+  await settle();
+  requests = trackApiRequests(page, LIST_REQUEST.rentals);
+  await page.reload();
+  await firstRowStartsWith(page, 3, "PERF-R");
+  Object.assign(marks, requestMarks("rentalsAfterReload", await requests()));
+  return marks;
+}
+
+/**
+ * The Excel import on the properties list: a three-row .xlsx chosen in the
+ * dialog → its row count and column mapping on screen (ms). Builds that
+ * ship xlsx with the page parse at once; later ones load it for this file.
+ */
+async function importParse(page) {
+  await openList(page, "#/properties", LIST_REQUEST.properties, "PERF-P");
+  await page.getByRole("button", { name: "استيراد ملف إكسل", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  const input = dialog.locator('input[type="file"]');
+  await input.waitFor({ state: "attached", timeout: 60_000 });
+  const started = performance.now();
+  await input.setInputFiles({
+    name: "offers.xlsx",
+    mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    buffer: importSheet(),
+  });
+  await dialog.getByText("تم العثور على 3 صف", { exact: false }).waitFor({ state: "visible", timeout: 60_000 });
+  await painted(page);
+  const parsed = performance.now() - started;
+  await dialog.locator(".v-card-title .v-btn").click();
+  await dialog.waitFor({ state: "hidden", timeout: 60_000 });
+  return parsed;
+}
+
+/** A small offers workbook, made with the renderer's own xlsx. */
+function importSheet() {
+  const XLSX = createRequire(path.join(root, "apps/renderer/package.json"))("xlsx");
+  const rows = [1, 2, 3].map((n) => ({
+    "نوع العقار": "أرض",
+    المساحة: 200 + n,
+    "السعر الكلي": 100_000_000 + n,
+    "اسم المالك": `مالك ${n}`,
+    "هاتف المالك": `0780000100${n}`,
+  }));
+  const book = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(rows), "العروض");
+  return XLSX.write(book, { type: "buffer", bookType: "xlsx" });
 }
 
 /** Types into a person picker until the matching option shows. */

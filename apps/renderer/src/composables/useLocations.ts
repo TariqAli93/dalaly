@@ -27,8 +27,11 @@ function neighborhoodsByDistrict(districtId: number | null) {
   );
 }
 
-async function loadLocations(force = false) {
-  if (loaded.value && !force) return;
+// الطلب الجاري: الصفحة وفلاترها أو حقول الموقع تطلب المواقع معاً عند فتحها،
+// فيشتركون في طلب واحد.
+let pending: Promise<void> | null = null;
+
+async function fetchLocations() {
   const { notifyError } = useSnackbar();
   try {
     const result = await locationsService.getLocations();
@@ -39,6 +42,17 @@ async function loadLocations(force = false) {
   } catch (error) {
     notifyError(getErrorMessage(error));
   }
+}
+
+/** force: بعد تعديل المواقع، طلب جديد ولو كان غيره جارياً. */
+function loadLocations(force = false): Promise<void> {
+  if (loaded.value && !force) return Promise.resolve();
+  if (pending && !force) return pending;
+  const request = fetchLocations().finally(() => {
+    if (pending === request) pending = null;
+  });
+  pending = request;
+  return request;
 }
 
 export function useLocations() {

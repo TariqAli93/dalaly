@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import AppLayout from "../layouts/AppLayout.vue";
+import AppPage from "../components/app/AppPage.vue";
 import PropertiesTable from "../components/properties/PropertiesTable.vue";
 
 import { listFavorites } from "../services/favorites.service";
@@ -97,7 +97,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <AppLayout title="العروض المفضلة" subtitle="العروض التي أضفتها للمفضلة.">
+  <AppPage title="العروض المفضلة" subtitle="العروض التي أضفتها للمفضلة.">
     <PropertiesTable
       :properties="items"
       :loading="loading"
@@ -108,5 +108,5 @@ onMounted(() => {
       @delete="askDelete"
       @create="router.push('/properties/new')"
     />
-  </AppLayout>
+  </AppPage>
 </template>

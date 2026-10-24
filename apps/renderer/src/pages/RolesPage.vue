@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import AppLayout from "../layouts/AppLayout.vue";
+import AppPage from "../components/app/AppPage.vue";
 import { getErrorMessage } from "../services/api.service";
 import * as rolesService from "../services/roles.service";
 import * as permissionsService from "../services/permissions.service";
@@ -151,7 +151,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <AppLayout :title="t('roles.title')">
+  <AppPage :title="t('roles.title')">
     <div class="flex flex-col gap-4">
       <v-card variant="flat" border>
         <v-card-title class="d-flex align-center">
@@ -321,5 +321,5 @@ onMounted(() => {
         </v-card-actions>
       </v-card>
     </v-dialog>
-  </AppLayout>
+  </AppPage>
 </template>

@@ -15,7 +15,9 @@ declare module "vue-router" {
   }
 }
 
-const routes: RouteRecordRaw[] = [
+// صفحات ما بعد تسجيل الدخول: أبناء AppLayout، فيبقى الإطار (القائمة والشريط
+// العلوي) مركّباً أثناء التنقّل بينها.
+const appPages: RouteRecordRaw[] = [
   {
     path: "/clients/:id",
     alias: "/people/:id",
@@ -38,23 +40,7 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
-    path: "/setup",
-    alias: "/first-run",
-    name: "first-run",
-    component: () => import("../pages/FirstRunWizardPage.vue"),
-  },
-  {
-    path: "/startup-error",
-    name: "startup-error",
-    component: () => import("../pages/StartupErrorPage.vue"),
-  },
-  {
-    path: "/login",
-    name: "login",
-    component: () => import("../pages/LoginPage.vue"),
-  },
-  {
-    path: "/",
+    path: "",
     name: "dashboard",
     component: () => import("../pages/DashboardPage.vue"),
     meta: { requiresAuth: true, titleKey: "routes.dashboard" },
@@ -225,6 +211,30 @@ const routes: RouteRecordRaw[] = [
     name: "help",
     component: () => import("../pages/HelpPage.vue"),
     meta: { requiresAuth: true, titleKey: "routes.help" },
+  },
+];
+
+const routes: RouteRecordRaw[] = [
+  {
+    path: "/setup",
+    alias: "/first-run",
+    name: "first-run",
+    component: () => import("../pages/FirstRunWizardPage.vue"),
+  },
+  {
+    path: "/startup-error",
+    name: "startup-error",
+    component: () => import("../pages/StartupErrorPage.vue"),
+  },
+  {
+    path: "/login",
+    name: "login",
+    component: () => import("../pages/LoginPage.vue"),
+  },
+  {
+    path: "/",
+    component: () => import("../layouts/AppLayout.vue"),
+    children: appPages,
   },
   { path: "/:pathMatch(.*)*", redirect: "/" },
 ];

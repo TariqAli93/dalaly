@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
-import AppLayout from "../layouts/AppLayout.vue";
+import AppPage from "../components/app/AppPage.vue";
 import PersonPicker from "../components/people/PersonPicker.vue";
 import * as documentsService from "../services/documents.service";
 import { getErrorMessage } from "../services/api.service";
@@ -102,7 +102,7 @@ onMounted(async () => {
 onBeforeUnmount(() => list.cancel());
 </script>
 <template>
-  <AppLayout
+  <AppPage
     title="مستمَسكات الأشخاص"
     subtitle="أدر ملفات الهوية والمستمسكات المرتبطة بالأشخاص."
   >
@@ -165,7 +165,7 @@ onBeforeUnmount(() => list.cancel());
             variant="text"
             @click="openFile(item.id)" /></template></v-data-table-server
     ></v-card>
-  </AppLayout>
+  </AppPage>
 </template>
 <style scoped>
 .toolbar {

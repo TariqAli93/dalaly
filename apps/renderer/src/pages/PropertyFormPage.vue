@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import AppLayout from "../layouts/AppLayout.vue";
+import AppPage from "../components/app/AppPage.vue";
 import PropertyForm from "../components/properties/PropertyForm.vue";
 import { DIRECT_PRICE } from "../constants/domain";
 import { getErrorMessage } from "../services/api.service";
@@ -18,7 +18,7 @@ import type {
 
 const route = useRoute();
 const router = useRouter();
-const { service, loadProperties } = useProperties();
+const { service, startFromFirstPage } = useProperties();
 const { notifySuccess, notifyError } = useSnackbar();
 
 function defaultForm(): PropertyFormType {
@@ -187,7 +187,8 @@ async function save() {
         // Matching is advisory and must not block saving an offer.
       }
     }
-    await loadProperties();
+    // صفحة العروض تحمّل أول صفحة حين تُفتح بعد الحفظ.
+    startFromFirstPage();
     if (matches.value.length) matchDialog.value = true;
     else await router.push("/properties");
   } catch (error) {
@@ -231,7 +232,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <AppLayout :title="isEditing ? 'تعديل عرض عقاري' : 'إضافة عرض عقاري'">
+  <AppPage :title="isEditing ? 'تعديل عرض عقاري' : 'إضافة عرض عقاري'">
     <PropertyForm
       ref="formRef"
       v-model="form"
@@ -247,5 +248,5 @@ onMounted(async () => {
       @update:model-value="closeMatches"
       @open="openMatch"
     />
-  </AppLayout>
+  </AppPage>
 </template>

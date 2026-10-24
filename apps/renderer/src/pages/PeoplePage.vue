@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref } from "vue";
-import AppLayout from "../layouts/AppLayout.vue";
+import AppPage from "../components/app/AppPage.vue";
 import PersonEditor from "../components/people/PersonEditor.vue";
 import * as peopleService from "../services/people.service";
 import { getErrorMessage } from "../services/api.service";
@@ -66,7 +66,7 @@ void list.reload();
 onBeforeUnmount(() => list.cancel());
 </script>
 <template>
-  <AppLayout
+  <AppPage
     title="العملاء والأشخاص"
     subtitle="دليل العملاء وجهات الاتصال في المكتب."
   >
@@ -161,7 +161,7 @@ onBeforeUnmount(() => list.cancel());
             @click="restore(item)" /></template></v-data-table-server
     ></v-card>
     <PersonEditor v-model="dialog" :person="editing" @saved="list.reload" />
-  </AppLayout>
+  </AppPage>
 </template>
 <style scoped>
 .person-cell {

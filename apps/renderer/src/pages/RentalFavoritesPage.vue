@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import AppLayout from "../layouts/AppLayout.vue";
+import AppPage from "../components/app/AppPage.vue";
 import RentalTable from "../components/rentals/RentalTable.vue";
 import RentalDetailsDialog from "../components/rentals/RentalDetailsDialog.vue";
 import * as rentals from "../services/rentals.service";
@@ -116,7 +116,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <AppLayout
+  <AppPage
     title="مفضلة الإيجارات"
     subtitle="العروض الإيجارية المحفوظة للمستخدم الحالي."
   >
@@ -140,5 +140,5 @@ onMounted(() => {
       @restore="askRestore"
       @delete="askDelete"
     />
-  </AppLayout>
+  </AppPage>
 </template>
