@@ -52,8 +52,18 @@ import {
   type BackupArchive,
   openArchive,
   writeArchive,
+  zipBuffers,
 } from "./backup.archive.js";
+import {
+  decryptBackup,
+  encryptBackup,
+  ENCRYPTED_BACKUP_EXTENSION,
+  ENCRYPTED_BACKUP_MAGIC_BYTES,
+  isEncryptedBackup,
+} from "./backup.crypto.js";
 const BACKUP_VERSION = 3;
+/** manifest.json `contents` of an archive without images and documents. */
+const DATABASE_ONLY = "database";
 /** PostgreSQL's limit on bind parameters in one statement is 65535. */
 const MAX_BIND_PARAMETERS = 60_000;
 
@@ -319,12 +329,8 @@ export type CreateBackupResult = {
   duration_ms: number;
 };
 
-/**
- * يبني أرشيف ZIP كامل: JSON منطقي + صور + metadata. Electron's config.json is
- * deliberately left out: it holds the database URL with its password, restore
- * never used it, and scheduled backups are emailed.
- */
-async function writeBackupArchive(filePath: string, backupType: string) {
+/** manifest.json and data.json, the part of an archive every kind holds. */
+async function databaseEntries(backupType: string, databaseOnly = false) {
   const database = await exportDatabase();
   const manifest = {
     version: BACKUP_VERSION,
@@ -332,21 +338,49 @@ async function writeBackupArchive(filePath: string, backupType: string) {
     created_at: new Date().toISOString(),
     backup_type: backupType,
     tables_count: Object.keys(database).length,
+    // Absent from full archives, which older builds wrote the same way.
+    ...(databaseOnly ? { contents: DATABASE_ONLY } : {}),
   };
-  await writeArchive(
-    filePath,
-    [
-      {
-        name: "manifest.json",
-        data: Buffer.from(JSON.stringify(manifest, null, 2)),
-      },
-      { name: "data.json", data: Buffer.from(JSON.stringify(database)) },
-    ],
-    [
-      { dir: config.imagesDir, prefix: "images/properties" },
-      { dir: config.documentsDir, prefix: "documents" },
-    ],
-  );
+  return [
+    {
+      name: "manifest.json",
+      data: Buffer.from(JSON.stringify(manifest, null, 2)),
+    },
+    { name: "data.json", data: Buffer.from(JSON.stringify(database)) },
+  ];
+}
+
+/**
+ * يبني أرشيف ZIP كامل: JSON منطقي + صور + metadata. Electron's config.json is
+ * deliberately left out: it holds the database URL with its password, and
+ * restore never used it.
+ */
+async function writeBackupArchive(filePath: string, backupType: string) {
+  await writeArchive(filePath, await databaseEntries(backupType), [
+    { dir: config.imagesDir, prefix: "images/properties" },
+    { dir: config.documentsDir, prefix: "documents" },
+  ]);
+}
+
+/** A failed backup's job and log rows; the caller rethrows the error. */
+async function recordFailure(
+  type: string,
+  startedAt: number,
+  error: unknown,
+  userId?: number,
+) {
+  const message = error instanceof Error ? error.message : String(error);
+  const [job] = await db
+    .insert(backupJobs)
+    .values({
+      type,
+      status: "failure",
+      durationMs: Date.now() - startedAt,
+      error: message,
+      userId: userId ?? null,
+    })
+    .returning();
+  await logBackup(job?.id ?? null, "error", `فشل ${type}: ${message}`);
 }
 
 /** المنطق المشترك: يبني الأرشيف ويكتبه إلى المسار ويسجّل النتيجة في backup_jobs/backup_logs. */
@@ -390,18 +424,7 @@ async function writeBackupTo(
       duration_ms: durationMs,
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const [job] = await db
-      .insert(backupJobs)
-      .values({
-        type,
-        status: "failure",
-        durationMs: Date.now() - startedAt,
-        error: message,
-        userId: userId ?? null,
-      })
-      .returning();
-    await logBackup(job?.id ?? null, "error", `فشل ${type}: ${message}`);
+    await recordFailure(type, startedAt, error, userId);
     throw error;
   }
 }
@@ -540,6 +563,47 @@ export async function createBackup(
     const result = await writeBackupTo(filePath, type, userId);
     if (type !== "manual") await applyRetention("scheduled");
     return result;
+  });
+}
+
+export type EmailArchive = { file_name: string; data: Buffer };
+
+/**
+ * The scheduled email's attachment: the database alone (manifest.json and
+ * data.json; no images or documents, so ID scans never leave the office and
+ * the file stays far below mail size limits), encrypted with `password`.
+ * Built in memory and never written to disk; full backups stay in the
+ * backup folder.
+ */
+export async function createEmailArchive(
+  password: string,
+): Promise<EmailArchive> {
+  return exclusive(async () => {
+    const type = "email_encrypted";
+    const startedAt = Date.now();
+    try {
+      const zip = await zipBuffers(await databaseEntries(type, true));
+      const data = await encryptBackup(zip, password);
+      const fileName = `Dalaly_Database_${timestampLabel(new Date())}${ENCRYPTED_BACKUP_EXTENSION}`;
+      const [job] = await db
+        .insert(backupJobs)
+        .values({
+          type,
+          status: "success",
+          fileSize: data.length,
+          durationMs: Date.now() - startedAt,
+        })
+        .returning();
+      await logBackup(
+        job.id,
+        "info",
+        `${type}: ${fileName} (${data.length} bytes)، قاعدة البيانات فقط، مشفّرة`,
+      );
+      return { file_name: fileName, data };
+    } catch (error) {
+      await recordFailure(type, startedAt, error);
+      throw error;
+    }
   });
 }
 
@@ -695,30 +759,52 @@ async function validateBackupSchema(
     )
   )
     throw new DomainError(400, "تحتوي النسخة على علاقات صلاحيات غير صالحة.");
+  return manifest as { contents?: unknown };
 }
 
 /**
  * يسترجع نسخة احتياطية حسب النطاق المحدد، من مسار ملف ZIP (يُقرأ من القرص
- * عند الحاجة) أو من محتواه المرفوع.
+ * عند الحاجة) أو من محتواه المرفوع. An encrypted backup needs `password`.
  */
 export async function restoreBackup(
   source: string | Buffer,
   scope: RestoreScope,
   userId?: number,
+  password?: string,
 ) {
-  return exclusive(() => restoreArchive(source, scope, userId));
+  return exclusive(() => restoreArchive(source, scope, userId, password));
+}
+
+/**
+ * An encrypted backup decrypted in memory (it holds the database alone,
+ * which restore reads whole anyway); a zip as it is.
+ */
+async function decryptedSource(source: string | Buffer, password?: string) {
+  if (typeof source !== "string")
+    return isEncryptedBackup(source) ? decryptBackup(source, password) : source;
+  const head = Buffer.alloc(ENCRYPTED_BACKUP_MAGIC_BYTES);
+  const file = await fs.promises.open(source, "r");
+  try {
+    await file.read(head, 0, head.length, 0);
+  } finally {
+    await file.close();
+  }
+  return isEncryptedBackup(head)
+    ? decryptBackup(await fs.promises.readFile(source), password)
+    : source;
 }
 
 async function restoreArchive(
   source: string | Buffer,
   scope: RestoreScope,
   userId?: number,
+  password?: string,
 ) {
   const startedAt = Date.now();
   let schemaValidated = false;
   let archive: BackupArchive | undefined;
   try {
-    archive = await openArchive(source);
+    archive = await openArchive(await decryptedSource(source, password));
     const dataEntry = archive.entries.get("data.json");
     if (!dataEntry) {
       throw new DomainError(
@@ -730,7 +816,15 @@ async function restoreArchive(
       (await archive.read(dataEntry)).toString("utf8"),
     ) as Record<string, Record<string, unknown>[]>;
 
-    await validateBackupSchema(archive, database);
+    const manifest = await validateBackupSchema(archive, database);
+    // A database-only archive (the emailed one) restores rows and writes no
+    // files; the images and documents on disk stay as they are.
+    const databaseOnly = manifest.contents === DATABASE_ONLY;
+    if (databaseOnly && scope === "images")
+      throw new DomainError(
+        400,
+        "هذه النسخة تحتوي على قاعدة البيانات فقط ولا تحتوي على صور. اختر نطاقاً آخر للاسترجاع.",
+      );
     schemaValidated = true;
     // Restore replaces whole tables. Keep the current data first so a wrong
     // file can be undone; if that copy cannot be written, nothing is touched.
@@ -815,7 +909,7 @@ async function restoreArchive(
     await logBackup(
       job.id,
       "info",
-      `تم الاسترجاع (${scope}). الجداول: ${tablesToRestore.join(", ")}. صور: ${imagesRestored}`,
+      `تم الاسترجاع (${scope}${databaseOnly ? "، قاعدة البيانات فقط" : ""}). الجداول: ${tablesToRestore.join(", ")}. صور: ${imagesRestored}`,
     );
 
     return {
@@ -824,6 +918,7 @@ async function restoreArchive(
       tables: tablesToRestore,
       images_restored: imagesRestored,
       documents_restored: documentsRestored,
+      database_only: databaseOnly,
       safety_backup_path: safetyBackup.file_path,
     };
   } catch (error) {
