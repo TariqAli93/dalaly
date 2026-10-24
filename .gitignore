@@ -25,6 +25,9 @@ tests
 tools/libreoffice/
 tools/.document-renderer-setup/
 tools/chromium/
+# Fetched at package time by scripts/fetch-cloudflared.mjs (pinned, checksummed).
+tools/cloudflared/*
+!tools/cloudflared/.gitkeep
 perf-results
 .claude
 .claude-flow
