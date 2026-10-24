@@ -51,9 +51,20 @@ measurably. The remaining unpacked size is dominated by the Electron runtime
 | `fix(seed): refuse --reset on databases with non-seed properties`      | **Verified.** `db:seed:reset` deleted all properties and locations of whatever database `.env` pointed at.                                                                                                      |
 | `chore(ci): typecheck, unit tests and build on windows-latest`         | There was no CI.                                                                                                                                                                                                |
 
-## 2. Decisions needed from the owner
+## 2. Owner decisions
 
 These are not code-quality calls; they change history, data or behavior.
+The owner decided all six on 2026-10-24. The numbered questions below the
+table are what they answer.
+
+| Decision | What the owner decided                                                                                                                                                                      | Status                       |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| D1       | Keep only the newest backups (retention of the last N, Phase 1.2).                                                                                                                          | In progress, separate branch |
+| D2       | Starting and stopping the remote-access tunnel needs a dedicated `remote_access.manage` permission, Super Admin only by default; the unused `REMOTE_ACCESS_ENABLED` flag goes (question 4). | Done                         |
+| D3       | Scheduled email backups are encrypted and hold the database only (question 5).                                                                                                              | In progress, separate branch |
+| D4       | Formally retire the contract-removal path: old contract tables on existing installs stay untouched, no migration drops them, and the dead runner code and obsolete tests go (question 1).   | Done                         |
+| D5       | Stop tracking data files, and download `cloudflared.exe` at package time instead of committing it (question 2).                                                                             | In progress, separate branch |
+| D6       | Unnamed listings get Arabic names (question 3).                                                                                                                                             | Done                         |
 
 1. **Migration history was squashed (commit `eb63ea4`).** `0001`–`0003` were
    deleted and `0000` renamed and re-stamped, contrary to the append-only rule
@@ -79,9 +90,17 @@ These are not code-quality calls; they change history, data or behavior.
      schema-only baseline, so fresh installs had an empty type list.
      `0001_default_document_types` restores them (`ON CONFLICT DO NOTHING`).
 
-   Decide whether any installed database predates the squash; then either
-   restore the retirement path or formally retire it (update `CLAUDE.md`,
-   `run-migrations.ts`, the removal tests).
+   _Decided (D4): formally retired._ `run-migrations.ts` no longer checks
+   the deleted tags and lost the `approvedRetirement` option (its hash
+   check stays); `removal-core`, `removal-legacy` and `removal-rehearsal`
+   and their scripts are gone, `removal-backup` still runs as
+   `test:removal:backup`. With them went `removal-legacy`'s "a historical
+   contract alone marks the installation initialized" protection, which
+   lived only in the `0003` branch and had not run since the squash; setup
+   still treats a setup marker, a user, or any people, property or rental
+   row as an initialized install. `CLAUDE.md`, `ARCHITECTURE.md` and the removal map say that old
+   contract data stays untouched until a cleanup the owner approves
+   separately, after a full `pg_dump` and a real restore test.
 
 2. **Files tracked in git that should not be** (~55 MB of the 84 MB `.git`):
    `tools/cloudflared/cloudflared.exe` (54 MB), PostgreSQL dumps under
@@ -93,10 +112,25 @@ These are not code-quality calls; they change history, data or behavior.
    with `"properties P-0001"` / `"rentals R-…"`, so English shows in the Arabic
    UI and the renderer's Arabic fallbacks never run. Fixing it changes the
    API response (`name` becomes `null`); check exports/PDF first.
+   _Decided (D6), done:_ `name` stays filled, in Arabic: "عقار P-0001",
+   "إيجار R-0001", so exports, the PDF and matching keep a title. People
+   no longer get one (they have `full_name`; nothing read it). The
+   renderer's fallbacks (rental table and favorites, details, summaries,
+   Excel, text and folder exports) use the same words. Not changed: the
+   edit forms prefill `name` from the API, so saving an unnamed listing
+   stores its fallback as its name, as it stored the English one before.
 4. **Remote access defaults.** `REMOTE_ACCESS_ENABLED` is reported but never
    enforced, and the cloudflared child is not killed when the API exits, so a
    public tunnel can outlive the app. Decide whether the flag should gate
    `/api/remote-access/enable`.
+   _Decided (D2), done:_ the flag is removed (with the `enabled` field it
+   fed in `/remote-access/status`). `enable` and `disable` need
+   `remote_access.manage`, which `seedSystemRbac` grants to Super Admin on
+   every startup, so existing installs have it after their next launch; a
+   custom role with `settings.update` no longer starts the tunnel until
+   it is given the new permission. Status stays on `settings.read`. Test:
+   `test:remote-access`. The tunnel outliving the app is unchanged
+   (Phase 1.1).
 5. **Backup contents.** Resolved in part: backups no longer include
    `config.json` (the database password). The scheduled backup still emails
    the archive, including ID scans, unencrypted.
@@ -191,7 +225,8 @@ These are not code-quality calls; they change history, data or behavior.
 ### Tests and tooling
 
 - Runtime smoke suites hardcode `postgres`/`root` on `127.0.0.1:5432` and fixed
-  database names; `test:removal` is broken by the migration squash.
+  database names; `test:removal` is broken by the migration squash
+  (removed, D4).
 - No ESLint, no `.editorconfig`; `lint` equals `typecheck`. Renderer has no
   tests. `.gitignore` ignores `tests`.
 
@@ -231,7 +266,8 @@ phases below:
    on Windows (libuv) die with their parent; cloudflared, a child of the API,
    should go the same way but was not tested with a live tunnel. An
    IPC-based shutdown was implemented, measured against this and dropped.
-   Enforcing `REMOTE_ACCESS_ENABLED` stays an owner decision (section 2).
+   `REMOTE_ACCESS_ENABLED` was removed rather than enforced; the tunnel
+   needs `remote_access.manage` (D2).
 2. Done: backups no longer include `config.json`; backup, export, scheduled
    run and restore share one lock (409 when busy); restore first writes
    `Dalaly_Before_Restore_<time>.zip`. **Not done:** retention of the last N
@@ -437,4 +473,5 @@ fix).
 5. Done: the `database` job in `ci.yml` (Linux, PostgreSQL 18 service) runs
    the runtime, restore and other database suites. Left out, with reasons in
    the workflow and the README: the Electron, packaged-build and Playwright
-   suites, and `removal-core`/`removal-legacy` until decision 2.1.
+   suites. `removal-core`/`removal-legacy` were removed with the retired
+   removal path (D4).
