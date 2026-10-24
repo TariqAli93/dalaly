@@ -79,6 +79,7 @@ pnpm --filter @dalaly/server test:restore:large  # restore beyond one INSERT's b
 pnpm --filter @dalaly/server test:backup:safety  # no config.json, one operation at a time, pre-restore copy
 pnpm --filter @dalaly/server test:backup:compat  # an archive from the adm-zip build restores; new archives keep its layout
 pnpm --filter @dalaly/server test:backup:retention # newest 10 scheduled/pre-restore copies kept; nothing else deleted
+pnpm --filter @dalaly/server test:backup:encrypted # emailed archive: database only, encrypted; wrong password changes nothing
 pnpm --filter @dalaly/server test:permissions    # dashboard/matching follow read permissions
 pnpm --filter @dalaly/server test:limits         # auth before body parsing, 1 MB limit off upload routes
 pnpm --filter @dalaly/server test:codes          # concurrent saves get distinct codes; duplicates are 409

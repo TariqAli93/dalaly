@@ -127,6 +127,9 @@ jobs:
       - name: test:backup:retention
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:backup:retention
+      - name: test:backup:encrypted
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:backup:encrypted
       - name: test:limits
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:limits

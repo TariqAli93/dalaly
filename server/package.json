@@ -36,6 +36,7 @@
     "test:backup:safety": "tsx --test scripts/backup-safety.test.ts",
     "test:backup:compat": "tsx --test scripts/backup-compat.test.ts",
     "test:backup:retention": "tsx --test scripts/backup-retention.test.ts",
+    "test:backup:encrypted": "tsx --test scripts/backup-encrypted.test.ts",
     "test:permissions": "tsx --test scripts/permissions-scope.test.ts",
     "test:limits": "tsx --test scripts/request-limits.test.ts",
     "test:codes": "tsx --test scripts/record-codes.test.ts",
