@@ -143,101 +143,125 @@ export type NavItem = {
   permission?: string;
 };
 
-export const NAV_ITEMS: NavItem[] = [
-  { title: "لوحة البداية", to: "/", icon: "mdi-view-dashboard-outline" },
+export type NavSection = { title: string | null; items: NavItem[] };
+
+/**
+ * التنقّل الجانبي بمجموعاته وترتيبه. صفحات الإنشاء ليست هنا: تُفتح من زر
+ * "إضافة" في صفحتها أو في لوحة التحكم. تُخفى العناصر بلا صلاحية.
+ */
+export const NAV_SECTIONS: NavSection[] = [
+  {
+    title: null,
+    items: [
+      { title: "لوحة التحكم", to: "/", icon: "mdi-view-dashboard-outline" },
+    ],
+  },
+  {
+    title: "العقارات والعروض",
+    items: [
+      {
+        title: "عروض البيع",
+        to: "/properties",
+        icon: "mdi-home-city-outline",
+        permission: "properties.read",
+      },
+      {
+        title: "المفضلة",
+        to: "/favorites",
+        icon: "mdi-heart-outline",
+        permission: "properties.read",
+      },
+    ],
+  },
   {
     title: "الإيجارات",
-    to: "/rentals",
-    icon: "mdi-key-chain",
-    permission: "rentals.read",
+    items: [
+      {
+        title: "عروض الإيجار",
+        to: "/rentals",
+        icon: "mdi-key-chain",
+        permission: "rentals.read",
+      },
+      {
+        title: "مفضلة الإيجارات",
+        to: "/rental-favorites",
+        icon: "mdi-heart-multiple-outline",
+        permission: "rentals.read",
+      },
+    ],
   },
   {
-    title: "إضافة إيجار",
-    to: "/rentals/new",
-    icon: "mdi-key-plus",
-    permission: "rentals.create",
-  },
-  {
-    title: "مفضلة الإيجارات",
-    to: "/rental-favorites",
-    icon: "mdi-heart-multiple-outline",
-    permission: "rentals.read",
-  },
-  {
-    title: "العروض العقارية",
-    to: "/properties",
-    icon: "mdi-home-city-outline",
-    permission: "properties.read",
-  },
-  {
-    title: "إضافة عرض",
-    to: "/properties/new",
-    icon: "mdi-plus-box-outline",
-    permission: "properties.create",
-  },
-  {
-    title: "المفضلة",
-    to: "/favorites",
-    icon: "mdi-heart-outline",
-    permission: "properties.read",
-  },
-  {
-    title: "المستخدمون",
-    to: "/users",
-    icon: "mdi-account-group-outline",
-    permission: "users.read",
-  },
-  {
-    title: "الأدوار والصلاحيات",
-    to: "/roles",
-    icon: "mdi-shield-key-outline",
-    permission: "roles.read",
-  },
-  {
-    title: "المحافظات والمناطق والأحياء",
-    to: "/locations",
-    icon: "mdi-map-marker-outline",
-    permission: "locations.manage",
-  },
-  {
-    title: "الإعدادات",
-    to: "/settings",
-    icon: "mdi-cog-outline",
-    permission: "settings.read",
-  },
-  {
-    title: "المساعدة",
-    to: "/help",
-    icon: "mdi-help-circle-outline",
-  },
-];
-
-export const CRM_NAV_ITEMS: NavItem[] = [
-  {
-    title: "الأشخاص",
-    to: "/people",
-    icon: "mdi-account-group-outline",
-    permission: "people.read",
-  },
-  {
-    title: "طلبات الإيجار",
-    to: "/rental-requests",
-    icon: "mdi-home-search-outline",
-    permission: "requests.read",
-  },
-  {
-    title: "طلبات الشراء",
-    to: "/purchase-requests",
-    icon: "mdi-home-search-outline",
-    permission: "requests.read",
+    title: "الزبائن والطلبات",
+    items: [
+      {
+        title: "الزبائن",
+        to: "/people",
+        icon: "mdi-account-box-multiple-outline",
+        permission: "people.read",
+      },
+      {
+        title: "طلبات الشراء",
+        to: "/purchase-requests",
+        icon: "mdi-home-search-outline",
+        permission: "requests.read",
+      },
+      {
+        title: "طلبات الإيجار",
+        to: "/rental-requests",
+        icon: "mdi-text-box-search-outline",
+        permission: "requests.read",
+      },
+    ],
   },
   {
     title: "المستندات",
-    to: "/documents",
-    icon: "mdi-file-document-multiple-outline",
-    permission: "documents.read",
+    items: [
+      {
+        title: "المستندات",
+        to: "/documents",
+        icon: "mdi-file-document-multiple-outline",
+        permission: "documents.read",
+      },
+    ],
+  },
+  {
+    title: "إدارة النظام",
+    items: [
+      {
+        title: "المستخدمون",
+        to: "/users",
+        icon: "mdi-account-cog-outline",
+        permission: "users.read",
+      },
+      {
+        title: "الأدوار والصلاحيات",
+        to: "/roles",
+        icon: "mdi-shield-key-outline",
+        permission: "roles.read",
+      },
+      {
+        title: "المحافظات والمناطق",
+        to: "/locations",
+        icon: "mdi-map-marker-outline",
+        permission: "locations.manage",
+      },
+      {
+        title: "الإعدادات",
+        to: "/settings",
+        icon: "mdi-cog-outline",
+        permission: "settings.read",
+      },
+      { title: "المساعدة", to: "/help", icon: "mdi-help-circle-outline" },
+    ],
   },
 ];
+
+/** هل المسار الحالي داخل قسم العنصر (القائمة نفسها أو تفاصيلها أو نموذجها). */
+export function isNavActive(item: NavItem, path: string) {
+  if (item.to === "/") return path === "/";
+  if (item.to === "/people" && path.startsWith("/clients/")) return true;
+  return path === item.to || path.startsWith(`${item.to}/`);
+}
 
 export function statusLabel(status: string) {
   return STATUSES.find((item) => item.value === status)?.title ?? status;

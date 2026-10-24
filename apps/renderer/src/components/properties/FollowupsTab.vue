@@ -7,28 +7,17 @@ import { useSnackbar } from "../../composables/useSnackbar";
 import { useConfirm } from "../../composables/useConfirm";
 import type { FollowupRecord, FollowupType } from "../../types";
 import { formatDateTime } from "../../utils/format";
+import {
+  FOLLOWUP_TYPES,
+  followupTypeIcon,
+  followupTypeLabel,
+} from "../../constants/crm";
 
 const props = defineProps<{ propertyId: number }>();
 
 const { can } = usePermissions();
 const { notifySuccess, notifyError } = useSnackbar();
 const { openConfirm } = useConfirm();
-
-const TYPES = [
-  { title: "اتصال هاتفي", value: "phone_call" },
-  { title: "اجتماع", value: "meeting" },
-  { title: "معاينة", value: "visit" },
-  { title: "تفاوض", value: "negotiation" },
-  { title: "أخرى", value: "other" },
-];
-
-const ICONS: Record<string, string> = {
-  phone_call: "mdi-phone",
-  meeting: "mdi-account-group",
-  visit: "mdi-home-search",
-  negotiation: "mdi-handshake",
-  other: "mdi-note-text-outline",
-};
 
 const followups = ref<FollowupRecord[]>([]);
 const loading = ref(false);
@@ -40,9 +29,6 @@ const form = ref<{ type: FollowupType; notes: string; scheduled_at: string }>({
   scheduled_at: "",
 });
 
-function typeLabel(value: string) {
-  return TYPES.find((t) => t.value === value)?.title ?? value;
-}
 function fmt(value: string | null) {
   return value ? formatDateTime(value) : "";
 }
@@ -152,11 +138,13 @@ onMounted(load);
         dot-color="primary"
       >
         <template #icon>
-          <v-icon :icon="ICONS[item.type]" />
+          <v-icon :icon="followupTypeIcon(item.type)" />
         </template>
         <div class="d-flex">
           <div class="flex-grow-1">
-            <div class="font-weight-medium">{{ typeLabel(item.type) }}</div>
+            <div class="font-weight-medium">
+              {{ followupTypeLabel(item.type) }}
+            </div>
             <div v-if="item.notes" class="text-body-2">{{ item.notes }}</div>
             <div class="text-caption text-medium-emphasis">
               {{ item.user_name || "—" }} · {{ fmt(item.created_at) }}
@@ -192,7 +180,7 @@ onMounted(load);
           editingId ? "تعديل متابعة" : "إضافة متابعة"
         }}</v-card-title>
         <v-card-text>
-          <v-select v-model="form.type" :items="TYPES" label="النوع" />
+          <v-select v-model="form.type" :items="FOLLOWUP_TYPES" label="النوع" />
           <v-textarea v-model="form.notes" label="الملاحظات" rows="3" />
           <v-text-field
             v-model="form.scheduled_at"

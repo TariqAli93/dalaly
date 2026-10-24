@@ -1,19 +1,25 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import LocationSelects from "../properties/LocationSelects.vue";
 import PersonPicker from "../people/PersonPicker.vue";
-import StatusChip from "../shared/StatusChip.vue";
+import MatchingResultsDialog from "./MatchingResultsDialog.vue";
 import NumberField from "../app/NumberField.vue";
 import AppPage from "../app/AppPage.vue";
 import {
+  AREA_UNITS,
   LIST_PAGE_SIZES,
   PROPERTY_TYPES,
   RENT_PERIOD_LABELS,
   RENT_PERIODS,
   RENTAL_PROPERTY_TYPES,
 } from "../../constants/domain";
-import { REQUESTS_DEFAULT_SORT } from "../../constants/crm";
+import {
+  REQUEST_STATUSES,
+  REQUESTS_DEFAULT_SORT,
+  requestStatusColor,
+  requestStatusLabel,
+} from "../../constants/crm";
 import * as requests from "../../services/requests.service";
 import { getErrorMessage } from "../../services/api.service";
 import { usePermissions } from "../../composables/usePermissions";
@@ -39,6 +45,8 @@ const matchDialog = ref(false);
 const saving = ref(false);
 const editing = ref<(RentalRequestRecord | PurchaseRequestRecord) | null>(null);
 const matches = ref<Array<MatchResult>>([]);
+const matchTitle = ref("العروض المطابقة");
+const matchingId = ref<number | null>(null);
 const q = ref("");
 const form = ref({
   person_id: null as number | null,
@@ -85,6 +93,7 @@ const headers = computed(() => [
   { title: "الميزانية القصوى", key: "budget_max" },
   { title: "الموقع", key: "district" },
   { title: "الحالة", key: "status" },
+  { title: "", key: "actions", sortable: false, align: "end" as const },
 ]);
 const isRental = computed(() => props.mode === "rental");
 
@@ -141,8 +150,15 @@ function numberOrNull(value: unknown) {
 }
 /** بحث جديد: من الصفحة الأولى. */
 function load() {
+  clearTimeout(searchTimer);
   return list.loadFirstPage();
 }
+// البحث يُطبَّق بعد توقّف الكتابة كبقية القوائم، وEnter يطبّقه فوراً.
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
+watch(q, () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => void list.loadFirstPage(), 300);
+});
 
 function resetForm() {
   form.value = {
@@ -244,6 +260,7 @@ async function save() {
         ? await requests.rentalOfferMatches(saved.id)
         : await requests.purchaseOfferMatches(saved.id);
     matches.value = result.matches;
+    matchTitle.value = "العروض المطابقة";
     dialog.value = false;
     await list.reload();
     notifySuccess(
@@ -256,16 +273,41 @@ async function save() {
     saving.value = false;
   }
 }
+/** العروض المتاحة لطلب من الجدول، دون فتحه وحفظه. */
+async function showMatches(item: RentalRequestRecord | PurchaseRequestRecord) {
+  matchingId.value = item.id;
+  try {
+    const result =
+      props.mode === "rental"
+        ? await requests.rentalOfferMatches(item.id)
+        : await requests.purchaseOfferMatches(item.id);
+    matches.value = result.matches;
+    matchTitle.value = `العروض المطابقة للطلب ${item.code}`;
+    matchDialog.value = true;
+  } catch (error) {
+    notifyError(getErrorMessage(error));
+  } finally {
+    matchingId.value = null;
+  }
+}
 function openMatch(match: MatchResult) {
   const id = Number((match.record as { id?: number }).id);
   if (!id) return;
+  matchDialog.value = false;
   void router.push(
-    props.mode === "rental" ? `/rentals/${id}/edit` : `/properties/${id}`,
+    props.mode === "rental"
+      ? { path: "/rentals", query: { open: String(id) } }
+      : `/properties/${id}`,
   );
 }
 // قبل أن يُظهر الجدول خياراته الأولى، فلا يطلب الصفحة نفسها مرتين.
 void list.reload();
 onMounted(async () => {
+  // ?new=1 من زر "إضافة" في لوحة التحكم.
+  if (route.query.new && can("requests.create")) {
+    openCreate();
+    return;
+  }
   // ?open=<id> من شاشة مطابقة العرض: الطلب قد لا يكون في الصفحة الأولى.
   const requestedId = Number(route.query.open);
   if (!requestedId) return;
@@ -279,7 +321,10 @@ onMounted(async () => {
     notifyError(getErrorMessage(error));
   }
 });
-onBeforeUnmount(() => list.cancel());
+onBeforeUnmount(() => {
+  clearTimeout(searchTimer);
+  list.cancel();
+});
 </script>
 <template>
   <AppPage :title="title" subtitle="طلبات العملاء ومطابقتها بالعروض المتاحة.">
@@ -337,9 +382,27 @@ onBeforeUnmount(() => list.cancel());
             .join(" · ") || "-"
         }}</template
         ><template #item.status="{ item }"
-          ><StatusChip :status="item.status"
-        /></template> </v-data-table-server
-    ></v-card>
+          ><v-chip
+            size="small"
+            variant="tonal"
+            label
+            :color="requestStatusColor(item.status)"
+            >{{ requestStatusLabel(item.status) }}</v-chip
+          ></template
+        ><template #item.actions="{ item }"
+          ><v-btn
+            v-if="item.status === 'open'"
+            size="small"
+            variant="text"
+            color="primary"
+            prepend-icon="mdi-home-search-outline"
+            :loading="matchingId === item.id"
+            @click.stop="showMatches(item)"
+            >المطابقات</v-btn
+          ></template
+        >
+      </v-data-table-server></v-card
+    >
     <v-dialog v-model="dialog" max-width="900"
       ><v-card
         ><v-card-title
@@ -372,9 +435,11 @@ onBeforeUnmount(() => list.cancel());
               v-model="form.area_max"
               type="number"
               label="المساحة إلى"
-            /><v-text-field
+            /><v-select
               v-model="form.area_unit"
+              :items="AREA_UNITS"
               label="وحدة المساحة"
+              clearable
             /><v-text-field
               v-model="form.rooms_count"
               type="number"
@@ -389,11 +454,7 @@ onBeforeUnmount(() => list.cancel());
               label="الطوابق"
             /><v-select
               v-model="form.status"
-              :items="[
-                { title: 'مفتوح', value: 'open' },
-                { title: 'تمت المطابقة', value: 'matched' },
-                { title: 'مغلق', value: 'closed' },
-              ]"
+              :items="REQUEST_STATUSES"
               label="الحالة"
             />
           </div>
@@ -421,45 +482,12 @@ onBeforeUnmount(() => list.cancel());
         ></v-card
       ></v-dialog
     >
-    <v-dialog v-model="matchDialog" max-width="760"
-      ><v-card
-        ><v-card-title>العروض المطابقة: {{ matches.length }}</v-card-title
-        ><v-card-text
-          ><v-list lines="three"
-            ><v-list-item
-              v-for="match in matches"
-              :key="String((match.record as { id: number }).id)"
-              :title="
-                String(
-                  (match.record as { name?: string; code?: string }).name ||
-                    (match.record as { code?: string }).code ||
-                    'عرض',
-                )
-              "
-              :subtitle="`نسبة المطابقة ${match.score}%`"
-              @click="openMatch(match)"
-              ><template #append
-                ><v-chip size="small" color="success" variant="tonal"
-                  >{{ match.score }}%</v-chip
-                ></template
-              >
-              <div class="text-caption">
-                {{
-                  match.reasons
-                    .filter((reason) => reason.matched)
-                    .map((reason) => reason.detail)
-                    .join(" · ")
-                }}
-              </div></v-list-item
-            ></v-list
-          ></v-card-text
-        ><v-card-actions
-          ><v-spacer /><v-btn @click="matchDialog = false"
-            >إغلاق</v-btn
-          ></v-card-actions
-        ></v-card
-      ></v-dialog
-    >
+    <MatchingResultsDialog
+      v-model="matchDialog"
+      :matches="matches"
+      :title="matchTitle"
+      @open="openMatch"
+    />
   </AppPage>
 </template>
 <style scoped>

@@ -20,10 +20,21 @@ const { mdAndUp } = useDisplay();
 // ملاحظة Vuetify: عند ربط v-model لا يُفعَّل التهيئة التلقائية لـ permanent،
 // لذا نضبط القيمة الابتدائية يدوياً ونزامنها مع نقطة الكسر.
 const drawer = ref(mdAndUp.value);
-const rail = ref(true);
+// الطيّ تفضيل للمستخدم على هذا الجهاز يبقى بين التشغيلات؛ التخزين قد يكون
+// محجوباً فيُعامل غيابه كالقيمة الافتراضية (مطويّ).
+const RAIL_KEY = "dalaly.sidebar.rail.v1";
+function savedRail() {
+  try {
+    return localStorage.getItem(RAIL_KEY) !== "false";
+  } catch {
+    return true;
+  }
+}
+const rail = ref(mdAndUp.value && savedRail());
 watch(mdAndUp, (value) => {
   drawer.value = value;
-  if (!value) rail.value = false; // على الجوال لا يوجد وضع طيّ (rail)
+  // على الجوال لا يوجد وضع طيّ (rail)
+  rail.value = value && savedRail();
 });
 // على الجوال يُغلق الدرج عند الانتقال إلى صفحة أخرى، كما كان حين كان الإطار
 // يُعاد تركيبه مع كل صفحة.
@@ -38,6 +49,11 @@ watch(
 function toggleNav() {
   if (mdAndUp.value) {
     rail.value = !rail.value;
+    try {
+      localStorage.setItem(RAIL_KEY, String(rail.value));
+    } catch {
+      // التفضيل يبقى لهذه الجلسة فقط.
+    }
   } else {
     drawer.value = !drawer.value;
   }
