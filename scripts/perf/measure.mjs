@@ -96,7 +96,8 @@ const LIST_REQUEST = {
   documents: /\/api\/documents(\/paged)?(\?|$)/,
 };
 const PROPERTY_SEARCH_PLACEHOLDER = "ابحث باسم المالك، الهاتف، رقم القطعة، المنطقة أو أي وصف";
-const TOPBAR_SEARCH_PLACEHOLDER = "البحث في العروض العقارية…";
+// Builds before the operational dashboard said "البحث في العروض العقارية…".
+const TOPBAR_SEARCH_PLACEHOLDER = /^(البحث في العروض العقارية…|بحث في عروض البيع… \(Ctrl\+K\))$/;
 const PAGE_SEARCH = "بغداد";
 const TOPBAR_SEARCH = "شارع";
 // Matches no offer, so the list shows its "clear filters" button.
@@ -188,6 +189,31 @@ function writeResults() {
 }
 
 /**
+ * Resolves when the dashboard's data has arrived: the summary on builds
+ * before the operational dashboard, overview and matching after it.
+ */
+function dashboardDataLoaded(page) {
+  return new Promise((resolve, reject) => {
+    const seen = new Set();
+    const onResponse = (response) => {
+      const name = /\/api\/dashboard\/(summary|overview|matching)/.exec(response.url())?.[1];
+      if (!name) return;
+      seen.add(name);
+      if (seen.has("summary") || (seen.has("overview") && seen.has("matching"))) {
+        clearTimeout(timer);
+        page.off("response", onResponse);
+        resolve();
+      }
+    };
+    const timer = setTimeout(() => {
+      page.off("response", onResponse);
+      reject(new Error("The dashboard's data did not arrive within 60 s."));
+    }, 60_000);
+    page.on("response", onResponse);
+  });
+}
+
+/**
  * What the build under test can do, so both passes send what its pages send:
  * server paging of properties and rentals (PR 5), and of people, requests and
  * documents with the owner filter (person details). Also the person whose
@@ -205,6 +231,8 @@ async function probeBuild(port) {
   return {
     pagedOffers,
     pagedPeople: await ok("/people/paged?page_size=1"),
+    // The operational dashboard (overview + matching instead of the summary).
+    operations: await ok("/dashboard/overview"),
     // Paged rows carry their primary image, so table rows ask for no image list.
     primaryImages:
       pagedOffers &&
@@ -228,6 +256,12 @@ async function measureApi(port, apiPid, build) {
   const endpoints = {
     "GET /auth/me": "/auth/me",
     "GET /dashboard/summary": "/dashboard/summary",
+    ...(build.operations
+      ? {
+          "GET /dashboard/overview": "/dashboard/overview?stale_days=30",
+          "GET /dashboard/matching": "/dashboard/matching?kind=all&page=1&page_size=8",
+        }
+      : {}),
     "GET /properties": "/properties",
     "GET /properties?search=بغداد": `/properties?search=${encodeURIComponent("بغداد")}`,
     [`GET /properties?search=${PHONE_SEARCH}`]: `/properties?search=${PHONE_SEARCH}`,
@@ -279,7 +313,17 @@ async function measureApi(port, apiPid, build) {
     ),
   );
   // Four clients opening the dashboard, as office PCs do after logging in.
+  // Builds with the operational dashboard open it with overview + matching
+  // (both at once); concurrentDashboard stays the summary, for comparison.
   const concurrentDashboard = await concurrently(get("/dashboard/summary"));
+  const concurrentOperations = build.operations
+    ? await concurrently(() =>
+        Promise.all([
+          get("/dashboard/overview?stale_days=30")(),
+          get("/dashboard/matching?kind=all&page=1&page_size=8")(),
+        ]),
+      )
+    : undefined;
   const after = windowsProcessInfo([apiPid])[apiPid];
   const connectionsAfterLoad = await apiConnections();
 
@@ -298,6 +342,7 @@ async function measureApi(port, apiPid, build) {
     pageRequests,
     concurrentSearch,
     concurrentPageSearch,
+    concurrentOperations,
     concurrentDashboard,
     afterPause: { pauseSeconds: PAUSE_MS / 1000, ...afterPause },
     connections: { afterLoad: connectionsAfterLoad, afterPause: await apiConnections() },
@@ -519,9 +564,7 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
       document.addEventListener("click", (event) => (window.__dalalyLoginClick ??= event.timeStamp), { capture: true });
     });
     const clicked = performance.now();
-    const dashboard = page.waitForResponse((response) => response.url().includes("/api/dashboard/summary"), {
-      timeout: 60_000,
-    });
+    const dashboard = dashboardDataLoaded(page);
     await page.getByRole("button", { name: "تسجيل الدخول", exact: true }).click();
     await dashboard;
     marks.loginToDashboardData = performance.now() - clicked;
@@ -838,7 +881,7 @@ function rendererBundle() {
 async function repeatedLoads(page) {
   const marks = {};
   const settle = () => trackApiRequests(page, LIST_REQUEST.properties)();
-  const topSearch = page.getByPlaceholder(TOPBAR_SEARCH_PLACEHOLDER, { exact: true });
+  const topSearch = page.getByPlaceholder(TOPBAR_SEARCH_PLACEHOLDER);
 
   let requests = trackApiRequests(page, LIST_REQUEST.properties);
   await openList(page, "#/properties", LIST_REQUEST.properties, "PERF-P");

@@ -125,6 +125,10 @@ const rows = [
     (r) => r.api?.concurrentDashboard && `${r.api.concurrentDashboard.median} / ${r.api.concurrentDashboard.p95}`,
   ],
   ["4-client dashboard (requests/s)", (r) => r.api?.concurrentDashboard?.requestsPerSecond],
+  [
+    "4-client operational dashboard, overview ∥ matching (median / p95 ms)",
+    (r) => r.api?.concurrentOperations && `${r.api.concurrentOperations.median} / ${r.api.concurrentOperations.p95}`,
+  ],
   ...["GET /auth/me", "GET /dashboard/summary"].map((name) => [
     `${name} after a 12 s pause (median / max ms)`,
     (r) => {
