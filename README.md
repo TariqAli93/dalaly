@@ -102,6 +102,7 @@ pnpm --filter @dalaly/server test:thumbnails     # list rows' primary images, th
 pnpm --filter @dalaly/server test:import         # Excel import: all rows or none, row cap, same skips as before
 pnpm --filter @dalaly/server test:queries        # users/roles lists and location names in a fixed number of queries
 pnpm --filter @dalaly/server test:dashboard      # dashboard summary unchanged by its merged queries
+pnpm --filter @dalaly/server test:dashboard:operations # matching rules in SQL = evaluateMatch; sections follow permissions
 pnpm --filter @dalaly/server test:timeouts       # slow statements cut off in Arabic; backup, restore, migrations exempt
 pnpm --filter @dalaly/server test:search         # property/rental search finds the same rows as the per-column ILIKE
 pnpm --filter @dalaly/server test:contract       # API responses vs the renderer's hand-written types

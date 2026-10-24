@@ -193,6 +193,8 @@ test("API responses match the renderer's types", async (t) => {
         "/api/backup/history",
         "/api/office",
         "/api/dashboard/summary",
+        "/api/dashboard/overview?stale_days=30",
+        "/api/dashboard/matching?kind=all&page=1&page_size=8",
         "/api/documents/types",
         "/api/documents",
         "/api/documents/paged?page=1&page_size=10",
