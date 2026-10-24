@@ -118,6 +118,9 @@ jobs:
       - name: test:permissions
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:permissions
+      - name: test:remote-access
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:remote-access
       - name: test:backup:safety
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:backup:safety
