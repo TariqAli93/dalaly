@@ -23,7 +23,7 @@ pnpm test             # fast unit tests only; no database required
 pnpm perf -- --app <win-unpacked>  # startup/memory/API timings of a packaged build (docs/PERFORMANCE.md)
 pnpm db:migrate       # apply Drizzle migrations
 pnpm db:seed          # (also db:seed:reset)
-pnpm package          # Windows portable + NSIS installer into apps/desktop/release
+pnpm package          # fetches pinned cloudflared, then portable + NSIS installer into apps/desktop/release
 ```
 
 ### Tests
@@ -64,5 +64,5 @@ Three processes: **Electron main** spawns the **Fastify API** as an `ELECTRON_RU
 - **Migrations in `server/drizzle` are append-only** — never edit or delete a shipped one (`run-migrations.ts` fails if an applied migration's hash changed — the hash covers raw bytes, so `.gitattributes` pins their line endings; keep new migrations LF as drizzle-kit writes them). Generate with `pnpm --filter @dalaly/server db:generate`.
 - The retired contract/studio system has special migration handling: the tags `0001_contract_studio`/`0002_studio_ux` are permanently skipped (the current `0001_default_document_types` is unrelated and runs normally), and the destructive `0003_remove_contract_system` only runs with explicit approval (`approvedRetirement`). **Deleting legacy contract data from an existing database, or destroying its historical documents, requires separate user approval after a backup and a real restore test** — see `docs/CONTRACT_SYSTEM_REMOVAL_MAP.md`. Note `legal_type` and the "عقد زراعي 117/35" property attribute are ownership data that stay.
 - Operational scope is people, properties, rentals, requests, matching, general documents, settings, and backup. Property PDF export uses Electron's bundled engine — no standalone browser or Office dependency.
-- Remote access via `tools/cloudflared/cloudflared.exe` is optional; the app must keep working with that file absent.
+- Remote access via `tools/cloudflared/cloudflared.exe` is optional; the app must keep working with that file absent. The binary is not tracked: the packaging scripts run `pnpm fetch:cloudflared`, which downloads the version pinned in `scripts/fetch-cloudflared.mjs` and checks its SHA-256. `pnpm build`, `pnpm dev` and the tests must not need the file or the network.
 - Commits follow Conventional Commits (`feat(scope):`, `fix:`, `refactor:`, `docs:`, `chore(tests):`).

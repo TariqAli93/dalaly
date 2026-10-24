@@ -7,7 +7,8 @@ Dalaly is a local desktop app for managing real-estate offers for an Iraqi broke
 - Node.js 20+
 - pnpm 10+
 - PostgreSQL running locally
-- Optional: `tools/cloudflared/cloudflared.exe` for remote access
+- Packaging only: network access the first time, to fetch the pinned
+  `cloudflared.exe` (see [Remote Access](#remote-access))
 
 ## Setup
 
@@ -39,6 +40,9 @@ Dalaly is a local desktop app for managing real-estate offers for an Iraqi broke
 
 The Electron app starts the Fastify API on `127.0.0.1:34567` and loads the Vue/Vuetify renderer from Vite. On first startup the app validates PostgreSQL connectivity and shows a setup/login screen.
 
+In development the API keeps its photos, documents and backups in `server/data`,
+which git ignores; `pnpm db:seed` writes the seed photos there.
+
 The setup screen creates the first administrator from the username and PIN entered
 by the operator. No default administrator account is created automatically.
 
@@ -57,6 +61,15 @@ pnpm package:portable # Windows portable exe
 pnpm package:installer # Windows NSIS installer
 pnpm release          # full release build into apps/desktop/release
 ```
+
+Each of these first runs `pnpm fetch:cloudflared`
+(`scripts/fetch-cloudflared.mjs`), which puts cloudflared 2026.5.0 from
+Cloudflare's GitHub release at `tools/cloudflared/cloudflared.exe` and checks
+its pinned SHA-256. It downloads only when that file is missing or does not
+match, so packaging again works offline, and a failed or mismatched download
+stops the build. Running `electron-builder` directly (for example `--dir`) does
+not fetch it: run `pnpm fetch:cloudflared` first, or that package has no
+remote access.
 
 ## Checks and Tests
 
@@ -139,13 +152,18 @@ The Playwright capture suite and its `capture:*` scripts were removed; the
 
 ## Remote Access
 
-Remote access is optional. Place `cloudflared.exe` at:
+Remote access is optional. `cloudflared.exe` is not in the repository: packaging
+fetches it (see [Distribution Builds](#distribution-builds)) and the package ships
+it as `resources/tools/cloudflared/cloudflared.exe`. Nothing else needs it:
+`pnpm build`, `pnpm dev`, the tests and the app itself run without the file and
+without network access, and the remote-access page shows a clear unavailable
+message. To try remote access from `pnpm dev`, run `pnpm fetch:cloudflared`.
 
-```text
-tools/cloudflared/cloudflared.exe
-```
-
-The core app works normally when this file is missing. The remote-access page will show a clear unavailable message.
+Without network access, copy the official `cloudflared-windows-amd64.exe`
+2026.5.0 to `tools/cloudflared/cloudflared.exe`; the script accepts any copy
+with the pinned hash. To upgrade, change `VERSION` and `SHA256` in
+`scripts/fetch-cloudflared.mjs` to the new release's (its release notes list
+the checksums).
 
 
 ## نطاق التطبيق والبيانات التاريخية
