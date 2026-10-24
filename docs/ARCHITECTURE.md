@@ -97,11 +97,13 @@ Conventions:
   and return snake_case objects (`toApiObject`).
 - Errors: a failure the user should read is a
   `DomainError(status, message, code?)` from `shared/errors.ts`, thrown
-  wherever it is detected; routes do not catch errors to reword them. The central handler in `server.ts` answers
-  every error with one body, `{ code, message }` (plus `issues` for
-  validation), the message in Arabic: zod → 400 `VALIDATION_ERROR`,
-  `DomainError` → its status and code, unique/foreign-key violations → 409
-  `DUPLICATE_VALUE`/`RECORD_IN_USE`, Fastify's own client errors → their
+  wherever it is detected; routes do not catch errors to reword them. The
+  central handler in `server.ts` answers every error with one body,
+  `{ code, message }` (plus `issues` for validation), the message in
+  Arabic: zod → 400 `VALIDATION_ERROR`, `DomainError` → its status and code,
+  unique/foreign-key violations → 409 `DUPLICATE_VALUE`/`RECORD_IN_USE`, a
+  statement timeout or no free connection → 503
+  `QUERY_TIMEOUT`/`DATABASE_BUSY` (below), Fastify's own client errors → their
   status with an Arabic message, anything else → 500 `INTERNAL_ERROR` with a
   generic message (the error goes to the log). A route that answers
   `reply.code(404).send({ message })` gets the status's `code` from a

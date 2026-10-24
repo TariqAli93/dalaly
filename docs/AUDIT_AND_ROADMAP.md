@@ -387,9 +387,10 @@ fix).
    the test scripts (node:test's `test()` returns a promise), and the root
    `scripts/` tooling (perf harness, web demo).
 2. Done: `DomainError(status, message, code?)` in `shared/errors.ts`, handled
-   by the central error handler; `DuplicatePlotError`, `SetupError` and
-   `BackupBusyError` extend it, `ThumbnailError` and the dead `DocumentError`
-   are gone. Every error body is `{ code, message }` (`issues` added for
+   by the central error handler; `DuplicatePlotError`, `SetupError`,
+   `BackupBusyError` and `ImportError` extend it (the streamed archive's
+   read errors are 400 `DomainError`s too), `ThumbnailError` and the dead
+   `DocumentError` are gone. Every error body is `{ code, message }` (`issues` added for
    validation), Arabic message; a `preSerialization` hook gives the plain
    `reply.code(…).send({ message })` answers their status's code, and unknown
    routes answer 404 in Arabic. Removed: the catch-alls in the users, roles,
