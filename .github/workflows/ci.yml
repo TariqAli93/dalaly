@@ -46,12 +46,6 @@ jobs:
     # - test:removal:electron drives a packaged Windows build (win-unpacked).
     # - test:removal:browser drives the built renderer in Playwright's
     #   Chromium; it is a UI suite, not a database one.
-    # - test:removal and test:removal:legacy: removal-core.test.ts and
-    #   removal-legacy.test.ts replay the contract-system retirement migration
-    #   0003, which the migration squash (eb63ea4) deleted. Restoring or
-    #   formally retiring that path is an owner decision
-    #   (docs/AUDIT_AND_ROADMAP.md, section 2.1). Their third file runs below
-    #   as test:removal:backup.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -118,6 +112,9 @@ jobs:
       - name: test:permissions
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:permissions
+      - name: test:remote-access
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:remote-access
       - name: test:backup:safety
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:backup:safety

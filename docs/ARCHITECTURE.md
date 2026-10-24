@@ -23,7 +23,9 @@ Electron main (apps/desktop/src)
   requires a bearer session token; `requirePermission` checks RBAC keys per
   route. Anonymous setup mutations are further limited to local callers by
   `requireLocalSetup`, which also refuses requests forwarded by the optional
-  Cloudflare tunnel (they arrive from 127.0.0.1). Wrong PINs are throttled
+  Cloudflare tunnel (they arrive from 127.0.0.1). Starting or stopping that
+  tunnel needs `remote_access.manage`, which only Super Admin has by
+  default; its status needs `settings.read`. Wrong PINs are throttled
   per account in `modules/auth/login-throttle.ts`.
 - **Logging**: the API's pino output is piped into electron-log in
   production. Request URLs are logged without their query string (image and
@@ -94,7 +96,11 @@ Conventions:
 
 - Routes parse input with the module's zod schema (`schema.parse` errors become
   localized 400s in the central error handler), call a repository or service,
-  and return snake_case objects (`toApiObject`).
+  and return snake_case objects (`toApiObject`). Given `"properties"` or
+  `"rentals"`, `toApiObject` names an unnamed listing after its code in
+  Arabic (`عقار P-0001`, `إيجار R-0001`), and the renderer's fallbacks
+  (tables, exports) use the same words; people have `full_name` and get no
+  `name`.
 - Errors: a failure the user should read is a
   `DomainError(status, message, code?)` from `shared/errors.ts`, thrown
   wherever it is detected; routes do not catch errors to reword them. The
@@ -231,10 +237,13 @@ Conventions:
 - Add a service file only when a repository alone would mix concerns; most
   modules are CRUD and stay `routes → repository`.
 - Migrations live in `server/drizzle` and are never edited or deleted once
-  shipped. `run-migrations.ts` deliberately skips the retired contract-system
-  migrations by tag (`0001_contract_studio`/`0002_studio_ux`) and gates
-  `0003_remove_contract_system` behind explicit approval; the current
-  `0001_default_document_types` is unrelated and runs normally.
+  shipped. `run-migrations.ts` applies, in journal order, each one newer
+  than the last applied, and refuses to start when an applied one's hash
+  changed. The retired contract system has no removal path: its tables, rows
+  and files on an existing install stay as they are, the app never reads
+  them, and no migration drops them. A cleanup needs the owner's separate
+  approval after a backup and a real restore test
+  (`docs/CONTRACT_SYSTEM_REMOVAL_MAP.md`).
 - The runner hashes each migration's raw bytes, so line endings are part of a
   shipped migration. `.gitattributes` pins `server/drizzle/*.sql` to LF (what
   drizzle-kit writes and what packaged builds and existing databases recorded),

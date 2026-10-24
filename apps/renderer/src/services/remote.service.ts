@@ -1,7 +1,6 @@
 import { request } from "./api.service";
 
 export type RemoteStatus = {
-  enabled: boolean;
   running: boolean;
   url: string | null;
   message: string | null;

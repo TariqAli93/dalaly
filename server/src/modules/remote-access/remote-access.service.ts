@@ -4,7 +4,6 @@ import path from "node:path";
 import { config } from "../../infrastructure/config.js";
 
 type RemoteStatus = {
-  enabled: boolean;
   running: boolean;
   url: string | null;
   message: string | null;
@@ -16,7 +15,6 @@ let lastMessage: string | null = null;
 
 export function getRemoteStatus(): RemoteStatus {
   return {
-    enabled: config.remoteAccessEnabled,
     running: Boolean(processRef && !processRef.killed),
     url: publicUrl,
     message: lastMessage,

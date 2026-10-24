@@ -56,7 +56,6 @@ async function lockNow() {
 }
 
 const remoteStatus = ref<RemoteStatus>({
-  enabled: false,
   running: false,
   url: null,
   message: null,
@@ -301,7 +300,7 @@ onMounted(() => {
             <v-card-actions>
               <v-spacer />
               <v-btn
-                v-if="can('settings.update')"
+                v-if="can('remote_access.manage')"
                 color="primary"
                 prepend-icon="mdi-cloud-upload-outline"
                 @click="enableRemote"
@@ -309,7 +308,7 @@ onMounted(() => {
                 تشغيل
               </v-btn>
               <v-btn
-                v-if="can('settings.update')"
+                v-if="can('remote_access.manage')"
                 variant="text"
                 prepend-icon="mdi-cloud-off-outline"
                 @click="disableRemote"

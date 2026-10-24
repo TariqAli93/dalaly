@@ -98,7 +98,6 @@ export const config = {
     pin: process.env.ADMIN_PIN ?? "1234",
   },
   sessionTtlHours: Number(process.env.SESSION_TTL_HOURS ?? 12),
-  remoteAccessEnabled: process.env.REMOTE_ACCESS_ENABLED === "true",
   cloudflaredPath:
     process.env.CLOUDFLARED_PATH ?? "tools/cloudflared/cloudflared.exe",
 };
