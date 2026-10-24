@@ -62,7 +62,9 @@ interface DalalyConfigBridge {
   chooseExportPath?: () => Promise<{ canceled?: boolean; filePath?: string }>;
   pickBackupFile?: () => Promise<{ path?: string; canceled?: boolean }>;
   pickFolder?: () => Promise<{ path?: string; canceled?: boolean }>;
-  saveScheduledBackup?: (config: unknown) => Promise<{ ok: boolean }>;
+  saveScheduledBackup?: (
+    config: unknown,
+  ) => Promise<{ ok: boolean; message?: string }>;
   getScheduledBackup?: () => Promise<Record<string, unknown> | null>;
 }
 
