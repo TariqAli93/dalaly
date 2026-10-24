@@ -110,7 +110,7 @@ export const webPlatform: PlatformAdapter = {
   },
 
   async pickBackupFile(): Promise<PickedFile> {
-    return pickFileAsDataUrl(".zip");
+    return pickFileAsDataUrl(".zip,.dalaly-enc");
   },
 
   async pickFolder(): Promise<PickedFolder> {
