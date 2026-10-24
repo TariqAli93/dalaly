@@ -37,6 +37,8 @@ const rows = [
   ...requestRows,
   ["Clear filters → list painted (median ms)", (r) => r.startup?.repeat.clearFiltersPainted?.median],
   ["Top-bar search from rentals → list painted (median ms)", (r) => r.startup?.repeat.topbarSearchFromRentalsPainted?.median],
+  ["Import: .xlsx chosen → columns shown, repeat (median ms)", (r) => r.startup?.repeat.importFileParsed?.median],
+  ["Import: .xlsx chosen → columns shown, fresh (median ms)", (r) => r.startup?.fresh.importFileParsed?.median],
   ["Startup, repeat profile: login form (median ms)", (r) => r.startup?.repeat.loginVisible.median],
   ["Startup, repeat profile: login form (max ms)", (r) => r.startup?.repeat.loginVisible.max],
   ["Startup, fresh profile: login form (median ms)", (r) => r.startup?.fresh.loginVisible.median],

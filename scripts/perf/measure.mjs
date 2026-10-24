@@ -8,6 +8,7 @@
 // touches real data. The startup pass needs port 34567 free (close Dalaly).
 // Results go to perf-results/<label>.json and are printed as tables.
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { _electron } from "@playwright/test";
@@ -612,6 +613,7 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
 
     // Last, so the steps above stay comparable with earlier results.
     Object.assign(marks, await repeatedLoads(page));
+    marks.importFileParsed = await importParse(page);
     // The repeat profile would otherwise open straight on the dashboard next
     // time; a daily start normally finds the 12-hour session expired.
     await page.evaluate(() => localStorage.removeItem("dalaly.session"));
@@ -870,6 +872,46 @@ async function repeatedLoads(page) {
   await firstRowStartsWith(page, 3, "PERF-R");
   Object.assign(marks, requestMarks("rentalsAfterReload", await requests()));
   return marks;
+}
+
+/**
+ * The Excel import on the properties list: a three-row .xlsx chosen in the
+ * dialog → its row count and column mapping on screen (ms). Builds that
+ * ship xlsx with the page parse at once; later ones load it for this file.
+ */
+async function importParse(page) {
+  await openList(page, "#/properties", LIST_REQUEST.properties, "PERF-P");
+  await page.getByRole("button", { name: "استيراد ملف إكسل", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  const input = dialog.locator('input[type="file"]');
+  await input.waitFor({ state: "attached", timeout: 60_000 });
+  const started = performance.now();
+  await input.setInputFiles({
+    name: "offers.xlsx",
+    mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    buffer: importSheet(),
+  });
+  await dialog.getByText("تم العثور على 3 صف", { exact: false }).waitFor({ state: "visible", timeout: 60_000 });
+  await painted(page);
+  const parsed = performance.now() - started;
+  await dialog.locator(".v-card-title .v-btn").click();
+  await dialog.waitFor({ state: "hidden", timeout: 60_000 });
+  return parsed;
+}
+
+/** A small offers workbook, made with the renderer's own xlsx. */
+function importSheet() {
+  const XLSX = createRequire(path.join(root, "apps/renderer/package.json"))("xlsx");
+  const rows = [1, 2, 3].map((n) => ({
+    "نوع العقار": "أرض",
+    المساحة: 200 + n,
+    "السعر الكلي": 100_000_000 + n,
+    "اسم المالك": `مالك ${n}`,
+    "هاتف المالك": `0780000100${n}`,
+  }));
+  const book = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(rows), "العروض");
+  return XLSX.write(book, { type: "buffer", bookType: "xlsx" });
 }
 
 /** Types into a person picker until the matching option shows. */
