@@ -13,6 +13,10 @@ const { t } = useI18n();
 const available = ref(platform.supportsScheduledBackup);
 const saving = ref(false);
 const password = ref("");
+// Encrypts the emailed copy; Electron main refuses shorter ones too.
+const MIN_BACKUP_PASSWORD_LENGTH = 8;
+const backupPassword = ref("");
+const backupPasswordConfirm = ref("");
 
 const config = ref<ScheduledBackupConfig>({
   enabled: false,
@@ -21,6 +25,7 @@ const config = ref<ScheduledBackupConfig>({
   smtpPort: "587",
   smtpUser: "",
   hasPassword: false,
+  hasBackupPassword: false,
   frequency: "daily",
   time: "02:00",
   lastRunAt: null,
@@ -48,19 +53,44 @@ async function load() {
   }
 }
 
+/** Why the encryption password cannot be saved as typed, if it cannot. */
+function backupPasswordProblem() {
+  if (!backupPassword.value && !backupPasswordConfirm.value)
+    return config.value.enabled && !config.value.hasBackupPassword
+      ? t("backup.passwordRequired")
+      : null;
+  if (backupPassword.value.length < MIN_BACKUP_PASSWORD_LENGTH)
+    return t("backup.passwordTooShort");
+  if (backupPassword.value !== backupPasswordConfirm.value)
+    return t("backup.passwordMismatch");
+  return null;
+}
+
 async function save() {
   if (!platform.supportsScheduledBackup) {
     notifyError("الجدولة متاحة فقط داخل تطبيق سطح المكتب.");
     return;
   }
+  const problem = backupPasswordProblem();
+  if (problem) {
+    notifyError(problem);
+    return;
+  }
   saving.value = true;
   try {
-    await platform.saveScheduledBackup({
+    const result = await platform.saveScheduledBackup({
       ...config.value,
       port: Number(config.value.smtpPort),
       password: password.value || undefined,
+      backupPassword: backupPassword.value || undefined,
     });
+    if (!result.ok) {
+      notifyError(result.message ?? t("backup.saveFailed"));
+      return;
+    }
     password.value = "";
+    backupPassword.value = "";
+    backupPasswordConfirm.value = "";
     notifySuccess(t("backup.saved"));
     await load();
   } catch {
@@ -128,6 +158,30 @@ onMounted(load);
             type="password"
             :hint="t('backup.secureHint')"
             persistent-hint
+          />
+          <v-alert
+            type="warning"
+            variant="tonal"
+            class="span-2"
+            :text="t('backup.encryptionWarning')"
+          />
+          <v-text-field
+            v-model="backupPassword"
+            :label="
+              config.hasBackupPassword
+                ? t('backup.savedEncryptionPassword')
+                : t('backup.encryptionPassword')
+            "
+            type="password"
+            autocomplete="new-password"
+            :hint="t('backup.encryptionHint')"
+            persistent-hint
+          />
+          <v-text-field
+            v-model="backupPasswordConfirm"
+            :label="t('backup.confirmEncryptionPassword')"
+            type="password"
+            autocomplete="new-password"
           />
         </div>
         <div class="d-flex align-center mt-3">
