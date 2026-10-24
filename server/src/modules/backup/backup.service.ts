@@ -1,6 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
-import { getTableColumns, sql } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  getTableColumns,
+  inArray,
+  isNotNull,
+  sql,
+} from "drizzle-orm";
 import { config } from "../../infrastructure/config.js";
 import { db } from "../../infrastructure/database/db.js";
 import { pool } from "../../infrastructure/database/pool.js";
@@ -264,7 +272,6 @@ async function logBackup(jobId: number | null, level: string, message: string) {
 }
 
 export async function listBackupJobs(limit = 50) {
-  const { desc } = await import("drizzle-orm");
   const rows = await db
     .select()
     .from(backupJobs)
@@ -287,7 +294,6 @@ export async function getLastBackupAt() {
 }
 
 export async function getBackupJob(id: number) {
-  const { eq } = await import("drizzle-orm");
   const [row] = await db
     .select()
     .from(backupJobs)
@@ -400,6 +406,123 @@ async function writeBackupTo(
   }
 }
 
+/**
+ * The files the app deletes by itself (an owner decision): scheduled backups
+ * and pre-restore copies beyond the newest `RETAINED_BACKUPS` of each. A file
+ * goes only if a successful job of that kind recorded it, it is named the way
+ * that kind is named, and it sits directly in the configured backup folder.
+ * Manual backups, exports and every other file are never deleted.
+ */
+const RETENTION = {
+  scheduled: {
+    types: ["email", "scheduled"],
+    name: /^Dalaly_Backup_\d{4}-\d{2}-\d{2}_\d{6}(?:_\d+)?\.zip$/,
+  },
+  pre_restore: {
+    types: ["pre_restore"],
+    name: /^Dalaly_Before_Restore_\d{4}-\d{2}-\d{2}_\d{6}(?:_\d+)?\.zip$/,
+  },
+} as const;
+const RETAINED_BACKUPS = 10;
+type RetentionKind = keyof typeof RETENTION;
+
+/** One key per file: Windows paths differ only in letter case. */
+function fileKey(file: string) {
+  const resolved = path.resolve(file);
+  return process.platform === "win32" ? resolved.toLowerCase() : resolved;
+}
+
+/**
+ * Deletes the `kind` backups older than the newest `RETAINED_BACKUPS` still
+ * on disk, logs each deletion and marks its jobs `pruned` (rows are kept).
+ * Runs after a backup of that kind succeeded, under the operation lock.
+ */
+async function pruneBackups(kind: RetentionKind) {
+  const types: readonly string[] = RETENTION[kind].types;
+  const dir = fileKey(await getBackupDir());
+  const rows = await db
+    .select({
+      id: backupJobs.id,
+      type: backupJobs.type,
+      filePath: backupJobs.filePath,
+    })
+    .from(backupJobs)
+    .where(
+      and(eq(backupJobs.status, "success"), isNotNull(backupJobs.filePath)),
+    )
+    .orderBy(desc(backupJobs.createdAt), desc(backupJobs.id));
+  // A file another kind of job also recorded (a manual backup written in the
+  // same second by an older build) is that job's file and stays.
+  const othersFiles = new Set(
+    rows
+      .filter((row) => !types.includes(row.type))
+      .map((row) => fileKey(row.filePath!)),
+  );
+  // Newest first; several jobs may name one file.
+  const backups = new Map<string, { file: string; ids: number[] }>();
+  for (const row of rows) {
+    const file = path.resolve(row.filePath!);
+    const key = fileKey(file);
+    if (
+      !types.includes(row.type) ||
+      othersFiles.has(key) ||
+      path.dirname(key) !== dir ||
+      !RETENTION[kind].name.test(path.basename(file))
+    )
+      continue;
+    const known = backups.get(key);
+    if (known) known.ids.push(row.id);
+    else backups.set(key, { file, ids: [row.id] });
+  }
+  let retained = 0;
+  for (const { file, ids } of backups.values()) {
+    // Only copies still on disk count; a link is not a file the app wrote.
+    const stat = await fs.promises.lstat(file).catch(() => null);
+    if (!stat?.isFile()) continue;
+    if (retained < RETAINED_BACKUPS) {
+      retained += 1;
+      continue;
+    }
+    try {
+      await fs.promises.rm(file);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`Backup retention could not delete ${file}: ${message}`);
+      await logBackup(
+        ids[0],
+        "warn",
+        `تعذر حذف نسخة قديمة: ${file} (${message})`,
+      );
+      continue;
+    }
+    await db
+      .update(backupJobs)
+      .set({ status: "pruned" })
+      .where(inArray(backupJobs.id, ids));
+    console.info(`Backup retention deleted ${file}`);
+    await logBackup(
+      ids[0],
+      "info",
+      `حُذفت نسخة قديمة (${kind}) للإبقاء على أحدث ${RETAINED_BACKUPS}: ${file}`,
+    );
+  }
+}
+
+/** Retention never fails the backup that triggered it. */
+async function applyRetention(kind: RetentionKind) {
+  try {
+    await pruneBackups(kind);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`Backup retention (${kind}) failed: ${message}`);
+    await logBackup(
+      null,
+      "error",
+      `تعذر تطبيق حد الاحتفاظ بالنسخ (${kind}): ${message}`,
+    );
+  }
+}
+
 /** ينشئ نسخة احتياطية ويحفظها في مجلد النسخ الافتراضي. */
 export async function createBackup(
   type: "manual" | "scheduled" | "email",
@@ -414,7 +537,9 @@ export async function createBackup(
       dir,
       `Dalaly_Backup_${timestampLabel(new Date())}`,
     );
-    return writeBackupTo(filePath, type, userId);
+    const result = await writeBackupTo(filePath, type, userId);
+    if (type !== "manual") await applyRetention("scheduled");
+    return result;
   });
 }
 
@@ -617,6 +742,7 @@ async function restoreArchive(
       "pre_restore",
       userId,
     );
+    await applyRetention("pre_restore");
     const tablesToRestore = SCOPE_TABLES[scope] ?? SCOPE_TABLES.full;
     let documentsRestored = 0;
     if (scope === "full" || scope === "crm") {

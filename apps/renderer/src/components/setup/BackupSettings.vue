@@ -44,6 +44,11 @@ const SCOPES = [
 function fmt(value: string | null) {
   return value ? formatDateTime(value) : "—";
 }
+// "pruned": an old scheduled or pre-restore copy deleted by retention.
+function statusColor(status: string) {
+  if (status === "success") return "success";
+  return status === "pruned" ? undefined : "error";
+}
 function fmtSize(bytes: number | null) {
   if (!bytes) return "—";
   const mb = bytes / (1024 * 1024);
@@ -260,7 +265,7 @@ onMounted(() => {
             <td>
               <v-chip
                 size="x-small"
-                :color="job.status === 'success' ? 'success' : 'error'"
+                :color="statusColor(job.status)"
                 variant="tonal"
               >
                 {{ job.status }}
