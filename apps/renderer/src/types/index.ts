@@ -11,3 +11,4 @@ export * from "./rental.types";
 export * from "./paging.types";
 export * from "./api.types";
 export * from "./crm.types";
+export * from "./dashboard.types";
