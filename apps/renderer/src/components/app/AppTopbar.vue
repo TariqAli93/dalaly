@@ -10,12 +10,17 @@ defineProps<{ title?: string; canRefresh?: boolean }>();
 const emit = defineEmits<{ refresh: []; "toggle-drawer": [] }>();
 
 const router = useRouter();
-const { filters, loadProperties } = useProperties();
+const { filters, loadProperties, startFromFirstPage } = useProperties();
 const { currentUser, logout } = useAuth();
 
-// نفس سلوك البحث السابق تماماً: يذهب لصفحة العروض ثم يعيد التحميل.
+// على صفحة العروض يحمّل الآن؛ من صفحة أخرى يفتحها على أول صفحة وتحمّلها هي.
 function runSearch() {
-  void router.push("/properties").then(() => loadProperties());
+  if (router.currentRoute.value.name === "properties") {
+    void loadProperties();
+    return;
+  }
+  startFromFirstPage();
+  void router.push("/properties");
 }
 
 async function onLogout() {

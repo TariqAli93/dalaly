@@ -48,6 +48,14 @@ function loadProperties() {
 }
 
 /**
+ * فلاتر جديدة من خارج صفحة العروض (لوحة التحكم، البحث العلوي، بعد الحفظ):
+ * تُفتح الصفحة على صفحتها الأولى وتحمّلها هي عند فتحها، فلا يُرسل الطلب مرتين.
+ */
+function startFromFirstPage() {
+  list.page.value = 1;
+}
+
+/**
  * تطبيق شريط الفلاتر بعد توقّف الكتابة: لا يعيد طلب فلاتر أرسلها قبله Enter
  * أو مسح الفلاتر أو البحث العلوي.
  */
@@ -69,6 +77,7 @@ export function useProperties() {
     filters,
     list,
     loadProperties,
+    startFromFirstPage,
     applyFilters,
     reloadProperties: list.reload,
     clearFilters,

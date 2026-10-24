@@ -18,7 +18,7 @@ import type {
 
 const route = useRoute();
 const router = useRouter();
-const { service, loadProperties } = useProperties();
+const { service, startFromFirstPage } = useProperties();
 const { notifySuccess, notifyError } = useSnackbar();
 
 function defaultForm(): PropertyFormType {
@@ -187,7 +187,8 @@ async function save() {
         // Matching is advisory and must not block saving an offer.
       }
     }
-    await loadProperties();
+    // صفحة العروض تحمّل أول صفحة حين تُفتح بعد الحفظ.
+    startFromFirstPage();
     if (matches.value.length) matchDialog.value = true;
     else await router.push("/properties");
   } catch (error) {
