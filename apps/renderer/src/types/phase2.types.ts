@@ -127,6 +127,8 @@ export type ScheduledBackupConfig = {
   smtpPort: string | number;
   smtpUser: string;
   hasPassword: boolean;
+  /** An encryption password for the emailed copy is stored. */
+  hasBackupPassword: boolean;
   frequency: "daily" | "weekly";
   time: string;
   lastRunAt?: string | null;

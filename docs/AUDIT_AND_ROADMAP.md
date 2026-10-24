@@ -112,9 +112,16 @@ These are not code-quality calls; they change history, data or behavior.
    enforced, and the cloudflared child is not killed when the API exits, so a
    public tunnel can outlive the app. Decide whether the flag should gate
    `/api/remote-access/enable`.
-5. **Backup contents.** Resolved in part: backups no longer include
-   `config.json` (the database password). The scheduled backup still emails
-   the archive, including ID scans, unencrypted.
+5. **Backup contents and retention.** _Decided 2026-10-24 and implemented._
+   Backups no longer include `config.json` (the database password). The
+   scheduled email carries only a password-encrypted, database-only archive
+   (`.dalaly-enc`: no images or ID scans, far below mail size limits); the
+   password is set in the scheduled-backup card, a lost password makes the
+   emailed copies unrecoverable, and full backups stay in the local folder.
+   The app keeps the newest 10 scheduled backups and the newest 10
+   pre-restore copies, never deletes manual backups or exports, and logs
+   each deletion. See `docs/ARCHITECTURE.md` (backup conventions);
+   `test:backup:retention` and `test:backup:encrypted`.
 
 ## 3. Findings by area (open)
 
@@ -150,9 +157,9 @@ These are not code-quality calls; they change history, data or behavior.
   read every image into memory and compressed synchronously: a 2 GB backup
   froze the API for its whole length and peaked at 6.7 GB, a restore at
   8.7 GB; with 2.4 GB of files the backup failed ("Array buffer allocation
-  failed") and archives over 2 GiB could not be restored. Still: no
-  retention; images extracted after the DB commit. (Lock and pre-restore
-  copy added in Phase 1.)
+  failed") and archives over 2 GiB could not be restored. Still: images
+  extracted after the DB commit. (Lock and pre-restore copy added in
+  Phase 1, retention after the owner's decision, section 2.5.)
 - **Uploads** are base64 inside JSON (50 MB route limit since Phase 1, 1 MB
   elsewhere), no per-file limit, no content sniffing, no thumbnails.
 - **Error shapes** vary (`{code,messageKey,message}` / `{message}` /
@@ -249,8 +256,9 @@ phases below:
    Enforcing `REMOTE_ACCESS_ENABLED` stays an owner decision (section 2).
 2. Done: backups no longer include `config.json`; backup, export, scheduled
    run and restore share one lock (409 when busy); restore first writes
-   `Dalaly_Before_Restore_<time>.zip`. **Not done:** retention of the last N
-   backups — it deletes user files, so it needs an owner decision.
+   `Dalaly_Before_Restore_<time>.zip`. Retention, decided by the owner
+   (section 2.5): the newest 10 scheduled backups and 10 pre-restore copies
+   are kept; nothing else is deleted.
 3. Done: dashboard sections and matching follow their domains' read
    permissions.
 4. Done: auth runs on `onRequest`; 1 MB global body limit, 50 MB on the

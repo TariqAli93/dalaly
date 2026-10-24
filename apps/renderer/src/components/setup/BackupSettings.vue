@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import * as backupService from "../../services/backup.service";
-import { getErrorMessage } from "../../services/api.service";
+import { ApiError, getErrorMessage } from "../../services/api.service";
 import { platform } from "../../platform";
 import { usePermissions } from "../../composables/usePermissions";
 import { useSnackbar } from "../../composables/useSnackbar";
@@ -32,6 +32,9 @@ const restoreData = ref("");
 const restoreFileName = ref("");
 const restoring = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
+const restorePassword = ref("");
+// The API said the file is encrypted although its name does not end so.
+const passwordRequested = ref(false);
 
 const SCOPES = [
   { title: "استرجاع كامل", value: "full" },
@@ -41,8 +44,31 @@ const SCOPES = [
   { title: "الإعدادات فقط", value: "settings" },
 ];
 
+// The emailed copy: the database alone, encrypted, so it has no images to
+// restore and needs its password.
+const encrypted = computed(
+  () => passwordRequested.value || /\.dalaly-enc$/i.test(restoreFileName.value),
+);
+const scopes = computed(() =>
+  encrypted.value ? SCOPES.filter((s) => s.value !== "images") : SCOPES,
+);
+watch(encrypted, (value) => {
+  if (value && restoreScope.value === "images") restoreScope.value = "full";
+});
+
+function selectFile(name: string) {
+  restoreFileName.value = name;
+  restorePassword.value = "";
+  passwordRequested.value = false;
+}
+
 function fmt(value: string | null) {
   return value ? formatDateTime(value) : "—";
+}
+// "pruned": an old scheduled or pre-restore copy deleted by retention.
+function statusColor(status: string) {
+  if (status === "success") return "success";
+  return status === "pruned" ? undefined : "error";
 }
 function fmtSize(bytes: number | null) {
   if (!bytes) return "—";
@@ -110,7 +136,7 @@ function openRestore() {
   restoreScope.value = "full";
   restoreFilePath.value = "";
   restoreData.value = "";
-  restoreFileName.value = "";
+  selectFile("");
   restoreOpen.value = true;
 }
 
@@ -120,7 +146,7 @@ async function pickFile() {
     const result = await platform.pickBackupFile();
     if (result?.path) {
       restoreFilePath.value = result.path;
-      restoreFileName.value = result.path;
+      selectFile(result.path);
     }
     return;
   }
@@ -133,7 +159,7 @@ function onFileChange(event: Event) {
   const file = input.files?.[0];
   input.value = "";
   if (!file) return;
-  restoreFileName.value = file.name;
+  selectFile(file.name);
   const reader = new FileReader();
   reader.onload = () => {
     restoreData.value = String(reader.result);
@@ -158,15 +184,21 @@ async function runRestore() {
       scope: restoreScope.value,
       file_path: restoreFilePath.value || undefined,
       data: restoreData.value || undefined,
+      password: encrypted.value ? restorePassword.value : undefined,
     });
     restoreOpen.value = false;
+    const restored = result.database_only
+      ? "تم استرجاع قاعدة البيانات من النسخة المشفّرة، وبقيت الصور والمستندات على هذا الجهاز كما هي"
+      : "تم استرجاع النسخة الاحتياطية";
     notifySuccess(
       result.safety_backup_path
-        ? `تم استرجاع النسخة الاحتياطية، وحُفظت البيانات السابقة في: ${result.safety_backup_path}. قد تحتاج إلى إعادة تسجيل الدخول.`
-        : "تم استرجاع النسخة الاحتياطية. قد تحتاج إلى إعادة تسجيل الدخول.",
+        ? `${restored}، وحُفظت البيانات السابقة في: ${result.safety_backup_path}. قد تحتاج إلى إعادة تسجيل الدخول.`
+        : `${restored}. قد تحتاج إلى إعادة تسجيل الدخول.`,
     );
     await load();
   } catch (error) {
+    if (error instanceof ApiError && error.code === "BACKUP_PASSWORD_REQUIRED")
+      passwordRequested.value = true;
     notifyError(getErrorMessage(error));
   } finally {
     restoring.value = false;
@@ -260,7 +292,7 @@ onMounted(() => {
             <td>
               <v-chip
                 size="x-small"
-                :color="job.status === 'success' ? 'success' : 'error'"
+                :color="statusColor(job.status)"
                 variant="tonal"
               >
                 {{ job.status }}
@@ -285,7 +317,7 @@ onMounted(() => {
           />
           <v-select
             v-model="restoreScope"
-            :items="SCOPES"
+            :items="scopes"
             label="نطاق الاسترجاع"
             class="mb-2"
           />
@@ -302,10 +334,25 @@ onMounted(() => {
           <input
             ref="fileInput"
             type="file"
-            accept=".zip"
+            accept=".zip,.dalaly-enc"
             hidden
             @change="onFileChange"
           />
+          <template v-if="encrypted">
+            <v-alert
+              type="info"
+              variant="tonal"
+              class="mt-3"
+              text="نسخة مشفّرة من قاعدة البيانات فقط، كالتي تُرسل بالبريد: تُسترجع البيانات، وتبقى الصور والمستندات الموجودة على هذا الجهاز كما هي."
+            />
+            <v-text-field
+              v-model="restorePassword"
+              class="mt-3"
+              label="كلمة مرور تشفير النسخة"
+              type="password"
+              autocomplete="off"
+            />
+          </template>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -314,7 +361,10 @@ onMounted(() => {
             color="error"
             variant="flat"
             :loading="restoring"
-            :disabled="!restoreFilePath && !restoreData"
+            :disabled="
+              (!restoreFilePath && !restoreData) ||
+              (encrypted && !restorePassword)
+            "
             @click="confirmRestore"
           >
             استرجاع
