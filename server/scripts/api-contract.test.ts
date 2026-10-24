@@ -23,11 +23,6 @@ const KNOWN_DRIFT = [
     problem: /./,
     reason: "creating a follow-up returns the raw row in camelCase (no toApiObject); the renderer reloads the list and never reads it",
   },
-  {
-    route: /^GET \/people/,
-    problem: /\.name: not in the renderer type$/,
-    reason: 'toApiObject(row, "people") adds name = "people <code>" to every person',
-  },
 ];
 
 /** The renderer endpoint a concrete URL is a call of; literal segments win over parameters. */

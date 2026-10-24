@@ -14,12 +14,12 @@ export const remoteAccessRoutes: FastifyPluginAsync = async (app) => {
   );
   app.post(
     "/enable",
-    { preHandler: requirePermission("settings.update") },
+    { preHandler: requirePermission("remote_access.manage") },
     async () => enableRemoteAccess(),
   );
   app.post(
     "/disable",
-    { preHandler: requirePermission("settings.update") },
+    { preHandler: requirePermission("remote_access.manage") },
     async () => disableRemoteAccess(),
   );
 };

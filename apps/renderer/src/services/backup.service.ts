@@ -40,11 +40,15 @@ export function restoreBackup(input: {
   scope: RestoreScope;
   file_path?: string;
   data?: string;
+  /** Only an encrypted (.dalaly-enc) backup needs it. */
+  password?: string;
 }) {
   return request<{
     ok: boolean;
     scope: string;
     images_restored: number;
+    /** The archive held the database alone; no file was written. */
+    database_only?: boolean;
     /** Copy of the data the restore replaced (absent from older APIs). */
     safety_backup_path?: string;
   }>("/backup/restore", { method: "POST", body: JSON.stringify(input) });

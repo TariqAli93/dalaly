@@ -14,6 +14,7 @@ import { useRefresh } from "../composables/useRefresh";
 import { useIdleLock } from "../composables/useIdleLock";
 import ChangePinDialog from "../components/auth/ChangePinDialog.vue";
 import BackupSettings from "../components/setup/BackupSettings.vue";
+import ScheduledBackupSettings from "../components/setup/ScheduledBackupSettings.vue";
 import * as companyService from "../services/company-settings.service";
 import { readFileAsDataUrl } from "../utils/files";
 import AppearanceSettings from "../components/settings/AppearanceSettings.vue";
@@ -55,7 +56,6 @@ async function lockNow() {
 }
 
 const remoteStatus = ref<RemoteStatus>({
-  enabled: false,
   running: false,
   url: null,
   message: null,
@@ -250,7 +250,10 @@ onMounted(() => {
             </v-btn>
           </v-card-text>
         </v-card></v-window-item
-      ><v-window-item value="backups"><BackupSettings /></v-window-item
+      ><v-window-item value="backups"
+        ><BackupSettings /><ScheduledBackupSettings
+          v-if="can('backups.schedule')"
+          class="mt-4" /></v-window-item
       ><v-window-item value="system"
         ><div class="settings-system-grid">
           <v-card variant="flat" border>
@@ -297,7 +300,7 @@ onMounted(() => {
             <v-card-actions>
               <v-spacer />
               <v-btn
-                v-if="can('settings.update')"
+                v-if="can('remote_access.manage')"
                 color="primary"
                 prepend-icon="mdi-cloud-upload-outline"
                 @click="enableRemote"
@@ -305,7 +308,7 @@ onMounted(() => {
                 تشغيل
               </v-btn>
               <v-btn
-                v-if="can('settings.update')"
+                v-if="can('remote_access.manage')"
                 variant="text"
                 prepend-icon="mdi-cloud-off-outline"
                 @click="disableRemote"

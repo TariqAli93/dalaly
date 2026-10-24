@@ -1,11 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
-import { type FastifyPluginAsync } from "fastify";
+import { type FastifyPluginAsync, type FastifyRequest } from "fastify";
 import { z } from "zod";
 import { config } from "../../infrastructure/config.js";
 import { requirePermission } from "../auth/auth.hooks.js";
+import { MIN_BACKUP_PASSWORD_LENGTH } from "./backup.crypto.js";
 import {
   createBackup,
+  createEmailArchive,
   exportBackup,
   getBackupDir,
   getBackupJob,
@@ -31,11 +33,23 @@ const restoreSchema = z.object({
     .default("full"),
   file_path: z.string().optional(),
   data: z.string().optional(),
+  // Only an encrypted (.dalaly-enc) backup needs it.
+  password: z.string().optional(),
 });
 
 const dirSchema = z.object({ dir: z.string().trim().min(1) });
 
 const exportSchema = z.object({ outputPath: z.string().trim().min(1) });
+
+const emailArchiveSchema = z.object({
+  password: z.string().min(MIN_BACKUP_PASSWORD_LENGTH),
+});
+
+/** Electron main's scheduled run, authenticated by the per-launch token. */
+function isInternalCall(request: FastifyRequest) {
+  const token = request.headers["x-internal-token"];
+  return Boolean(config.internalToken) && token === config.internalToken;
+}
 
 export const backupRoutes: FastifyPluginAsync = async (app) => {
   app.get(
@@ -132,16 +146,32 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
         source,
         payload.scope as RestoreScope,
         request.user?.id,
+        payload.password || undefined,
       );
     },
   );
 
   // نقاط داخلية للجدولة من عملية Electron الرئيسية (محمية بتوكن داخلي).
+  // The scheduled run's full backup, kept in the backup folder.
   app.post("/internal-run", async (request, reply) => {
-    const token = request.headers["x-internal-token"];
-    if (!config.internalToken || token !== config.internalToken) {
+    if (!isInternalCall(request)) {
       return reply.code(401).send({ message: "غير مصرّح." });
     }
     return createBackup("email");
+  });
+
+  // What the scheduled run emails: the database alone, encrypted.
+  app.post("/internal-email-archive", async (request, reply) => {
+    if (!isInternalCall(request)) {
+      return reply.code(401).send({ message: "غير مصرّح." });
+    }
+    const { password } = emailArchiveSchema.parse(request.body);
+    const archive = await createEmailArchive(password);
+    reply.header(
+      "Content-Disposition",
+      `attachment; filename="${archive.file_name}"`,
+    );
+    reply.type("application/octet-stream");
+    return reply.send(archive.data);
   });
 };

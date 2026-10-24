@@ -71,6 +71,8 @@ export function getErrorMessage(error: unknown) {
 }
 
 export class ApiError extends Error {
+  /** The body's machine-readable `code`, e.g. "BACKUP_PASSWORD_REQUIRED". */
+  readonly code: string | undefined;
   readonly issues: NonNullable<ApiErrorBody["issues"]>;
   constructor(
     body: unknown,
@@ -78,6 +80,11 @@ export class ApiError extends Error {
   ) {
     super(formatApiError(body));
     this.name = "ApiError";
+    const code =
+      body && typeof body === "object" && "code" in body
+        ? (body as { code?: unknown }).code
+        : undefined;
+    this.code = typeof code === "string" ? code : undefined;
     this.issues =
       body && typeof body === "object" && "issues" in body
         ? ((body as { issues?: ApiError["issues"] }).issues ?? [])

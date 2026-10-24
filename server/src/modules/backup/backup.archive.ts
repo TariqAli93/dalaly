@@ -52,6 +52,18 @@ export async function writeArchive(
   }
 }
 
+/** A zip of `buffers` alone, in memory: the database-only archive. */
+export async function zipBuffers(
+  buffers: Array<{ name: string; data: Buffer }>,
+) {
+  const zip = new yazl.ZipFile();
+  for (const { name, data } of buffers) zip.addBuffer(data, name);
+  zip.end();
+  const chunks: Buffer[] = [];
+  for await (const chunk of zip.outputStream) chunks.push(chunk as Buffer);
+  return Buffer.concat(chunks);
+}
+
 async function addFolder(zip: yazl.ZipFile, dir: string, prefix: string) {
   let entries: fs.Dirent[];
   try {
