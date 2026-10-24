@@ -66,7 +66,7 @@ watch(
     <v-card v-if="rental" class="property-detail-card">
       <v-card-title class="d-flex align-center ga-2">
         <span
-          >{{ rental.name || `rentals ${rental.code}` }} ·
+          >{{ rental.name || `إيجار ${rental.code}` }} ·
           {{ rental.code }}</span
         >
         <v-chip :color="statusColor(rental.status)" variant="tonal">

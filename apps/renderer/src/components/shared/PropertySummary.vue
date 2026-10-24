@@ -69,7 +69,7 @@ const rows = computed(() => {
     <div class="ps__head">
       <div class="min-w-0">
         <div class="ps__code">
-          {{ property.name || `properties ${property.code}` }}
+          {{ property.name || `عقار ${property.code}` }}
         </div>
         <div class="ps__type money">
           {{ property.code }} · {{ property.property_type }}

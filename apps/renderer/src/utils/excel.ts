@@ -25,7 +25,7 @@ async function saveWorkbook(
 /** تصدير قائمة العروض إلى ملف Excel وتنزيله. */
 export async function exportPropertiesToXlsx(properties: PropertyRecord[]) {
   const rows = properties.map((p) => ({
-    الاسم: p.name ?? `properties ${p.code}`,
+    الاسم: p.name ?? `عقار ${p.code}`,
     المميزات: amenitiesText(p.amenities),
     الكود: p.code,
     النوع: p.property_type,
@@ -68,7 +68,7 @@ export async function exportRentalsToXlsx(rentals: RentalRecord[]) {
   };
 
   const rows = rentals.map((rental) => ({
-    الاسم: rental.name ?? `rentals ${rental.code}`,
+    الاسم: rental.name ?? `إيجار ${rental.code}`,
     الكود: rental.code,
     "نوع العقار":
       propertyTypeLabels[rental.property_type] ?? rental.property_type,

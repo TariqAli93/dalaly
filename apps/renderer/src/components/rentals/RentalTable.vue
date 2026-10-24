@@ -192,7 +192,7 @@ const serverBindings = computed(() =>
         <RowThumbnail :src="rowImageUrl(item)" @load="onRowImageLoad(item)" />
       </template>
       <template #item.name="{ item }">
-        {{ item.name || `rentals ${item.code}` }}
+        {{ item.name || `إيجار ${item.code}` }}
       </template>
       <template #item.property_type="{ item }">
         {{ typeLabel[item.property_type] ?? item.property_type }}
