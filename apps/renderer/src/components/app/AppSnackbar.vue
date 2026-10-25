@@ -1,24 +1,38 @@
 <script setup lang="ts">
-import { useSnackbar } from "../../composables/useSnackbar";
+import {
+  useSnackbar,
+  type SnackbarMessage,
+} from "../../composables/useSnackbar";
 
-const { state } = useSnackbar();
+const { queue, actionFor } = useSnackbar();
+
+async function runAction(item: SnackbarMessage, close: () => void) {
+  close();
+  await actionFor(item.id)?.run();
+}
 </script>
 
 <template>
-  <v-snackbar
+  <!-- أسفل الحافة الأمامية بعيداً عن شريط الأوامر وأزرار الحوارات. المرور
+       بالمؤشر يوقف العدّ، والخطأ لا يختفي إلا بإغلاقه. -->
+  <v-snackbar-queue
+    v-model="queue"
     class="app-notification"
-    v-model="state.show"
-    :color="state.color"
-    timeout="3600"
-    location="top center"
+    location="bottom start"
   >
-    {{ state.text }}
-  </v-snackbar>
+    <template #actions="{ item, props }">
+      <v-btn
+        v-if="actionFor((item as SnackbarMessage).id)"
+        variant="text"
+        @click="runAction(item as SnackbarMessage, props.onClick)"
+        >{{ actionFor((item as SnackbarMessage).id)?.label }}</v-btn
+      >
+      <v-btn
+        variant="text"
+        icon="mdi-close"
+        aria-label="إغلاق الإشعار"
+        @click="props.onClick"
+      />
+    </template>
+  </v-snackbar-queue>
 </template>
-
-<style scoped>
-/* This notification has no actions; it must not cover document controls. */
-.app-notification :deep(.v-snackbar__wrapper) {
-  pointer-events: none;
-}
-</style>
