@@ -371,7 +371,7 @@ onBeforeUnmount(() => {
 }
 .map-canvas :deep(.leaflet-control-attribution) {
   direction: ltr;
-  font-size: 11px;
+  font-size: 0.82rem;
 }
 .map-canvas :deep(.leaflet-popup-content) {
   direction: rtl;
@@ -383,7 +383,7 @@ onBeforeUnmount(() => {
   filter: brightness(0.78) saturate(0.85);
 }
 .map-dark :deep(.leaflet-container) {
-  background: #202833;
+  background: rgb(var(--v-theme-background));
 }
 .map-dark :deep(.leaflet-bar a),
 .map-dark :deep(.leaflet-popup-content-wrapper),
@@ -393,7 +393,7 @@ onBeforeUnmount(() => {
   color: rgb(var(--v-theme-on-surface));
 }
 .map-dark :deep(.leaflet-control-attribution a) {
-  color: #8bbcff;
+  color: rgb(var(--v-theme-primary));
 }
 .map-dark :deep(.leaflet-bar a:hover) {
   background: rgb(var(--v-theme-surface-variant));

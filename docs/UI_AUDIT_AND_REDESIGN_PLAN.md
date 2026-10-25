@@ -1,10 +1,11 @@
 # UI/UX audit and desktop redesign plan (October 2026)
 
-Status: **phases 0 and 1 implemented (2026-10-25); phases 2–7 planned.** It
-covers the renderer (`apps/renderer`) only. No API, schema or migration change
-is proposed here. Items that would need one are listed separately in section 9
+Status: **phases 0–2 implemented (2026-10-25); phases 3–7 planned.** It
+covers the renderer (`apps/renderer`), plus the Electron window-close handling
+that phase 2 needed (section 13). No API, schema or migration change is
+proposed here. Items that would need one are listed separately in section 9
 and wait for owner approval. The owner's decisions are in section 10, and the
-phase records in sections 11 and 12.
+phase records in sections 11–13.
 
 ## How this was produced
 
@@ -1052,3 +1053,104 @@ a `pnpm dev` instance holds port 34567.
   the rental and request lists.
 - **`DataPanel`, `FilterBar`, `Money`/`Phone`:** extracted when a second list
   uses them (phase 3), from `PropertyFilters` and the table cells.
+
+## 13. Phase 2 record (2026-10-25)
+
+### What changed
+
+- **Record page (`/properties/:id`).**
+  - The command bar carries the code and status, one primary "تعديل",
+    "تسجيل متابعة", export, and a "⋯" menu for archive, restore and delete.
+    There are no breadcrumbs.
+  - `RecordFacts` strip: price with the unit price, plot, location with its
+    landmark, the owner with call and WhatsApp links (`PhoneLink`), and area
+    with type and legal status. The plan's `RecordHeader` became this strip
+    plus the command bar's status slot.
+  - Tabs التفاصيل · الموقع · المتابعات · الملاحظات · السجل beside a fixed
+    الصور panel (not a tab, so the photos stay in view). Details use
+    `DetailList` sections and hide empty items. History loads when its tab
+    first opens.
+  - A follow-up recorded from the command bar appears in its tab without a
+    reload.
+- **Photos (`PropertyImages`).**
+  - The strip uses the thumbnail endpoint and falls back to the original.
+    For users who manage photos, a missing thumbnail is made in idle time,
+    as the list does.
+  - Previews use object URLs, and uploads leave the queue one by one.
+  - Ctrl+→/← reorders, with focus kept on the moved photo.
+  - Star and delete are small named buttons, and a load error is shown.
+- **Follow-ups tab.** Load errors are shown. The dialog is a real form
+  (Enter submits) and stays open while saving. Named edit and delete buttons;
+  an icon replaces the emoji.
+- **Form (`/properties/new`, `/:id/edit`).**
+  - Sections, as `FormSection` fieldsets: الموقع والقطعة first, then العرض,
+    المساحة والسعر, المالك, تفاصيل إضافية, الموقع على الخريطة and ملاحظات
+    العقار. Required labels end in "*".
+  - The sticky `FormActionsBar` holds "حفظ (Ctrl+S)", "إلغاء" and an
+    unsaved-changes indicator. Ctrl+S matches `event.code`, so it works on
+    the Arabic layout, and it is ignored while a dialog is open.
+  - A failed check focuses the first invalid field. Server errors land on
+    their fields through `useApiFormErrors`; a 409 `DUPLICATE_PLOT` goes
+    under رقم القطعة and takes focus.
+  - **Duplicate warning before save.** When the plot or location changes
+    (400 ms debounce), the form looks up candidates by plot number and
+    compares the same identity the server uses (`samePlot`: location names,
+    number and letter), with a link to the existing listing. The server still
+    decides.
+  - `normalizeDigits` turns Arabic-Indic and Persian digits into Latin
+    digits in number fields and `PhoneField`. `CountField` stores an empty
+    count as `null`.
+  - Validation messages take space only when present. In this form that
+    means `hideDetails: "auto"` through a `v-defaults-provider`; the global
+    default stays as the owner left it. Edit pages are about 300px shorter.
+    Areas load without ".00".
+  - Save opens the record (after the purchase-matches dialog when there are
+    matches). Cancel goes back to the record when editing, otherwise to the
+    list. The same component reloads when the route moves between records
+    or to `/new`.
+  - `LocationSelects` keeps the three fields at one height, with the
+    manual-entry toggles aligned. This also applies in the rental form.
+- **Window close in Electron.** `useDirtyForm` now protects closing the
+  window too. Before, it skipped `beforeunload` on the desktop because
+  nothing answered it. `main.js` asks through `will-prevent-unload`, and the
+  API and backup scheduler now stop on `will-quit` rather than `before-quit`
+  (see ARCHITECTURE.md, "Closing and quitting").
+- **API client.** A network failure becomes an Arabic message ("تعذر الاتصال
+  بخادم البرنامج…") instead of the browser's `TypeError`.
+- **Map.** The attribution is on the documented Label step (0.82rem), and the
+  dark theme uses theme roles instead of two literal colours.
+
+### Results
+
+| Criterion                         | Result                                                                                                       |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Record identity without scrolling | facts end at 141px of 688 (1366×688) and 214px of 550 (1093×550); one edit action, no breadcrumbs            |
+| Ctrl+S                            | saves an edit, then shows the record (after the matches dialog when there are matches); no leave prompt      |
+| Leaving a dirty form              | asks; "stay" keeps the edit, "leave" changes nothing on the server                                           |
+| First invalid field               | focused on Ctrl+S (scripted against the first field Vuetify marks invalid)                                   |
+| Plot identity                     | first section; duplicate warning before save, and a 409 lands on رقم القطعة with focus                       |
+| Tab stops to the owner fields     | 17 (limit 20)                                                                                                |
+| Edit round trip                   | untouched save: 0 fields differ in a scripted before/after compare                                           |
+| Digits                            | "٣٠٠" → 300 and "٠٧٧٠١٢٣٤٥٦٧" → 07701234567                                                                  |
+| Window close (Electron)           | scripted in Electron: clean form closes without asking; dirty form asks; File → Exit + stay keeps the API up |
+| Accessible names                  | 0 unnamed controls on the record page and the form                                                           |
+| Detector                          | 0 findings in phase 2 files, including `PropertyLocationMap.vue`                                             |
+| Checks                            | ESLint and all typechecks clean, `pnpm test` 43/43 (new `renderer-utils.test.ts`), `test:contract` 67/67     |
+
+The phase 1 keyboard script still passes 16 of 17 checks. The exception is
+its old "≤20 tab stops to the first row" check, which section 7 replaced with
+the shortcut paths; those pass.
+
+The Electron check drove a test window with the same handler and listener,
+and stubbed the dialog's answer. The running app was not restarted, because a
+`pnpm dev` instance was in use. Restart it once to load the new `main.js` and
+`preload.cjs`.
+
+### Deferred
+
+- **Status menu in the record header:** there is no status-only endpoint;
+  only archive and restore exist. Needs owner approval (section 9).
+- **`ListingImages`:** `PropertyImages` carries the new behaviour; the rental
+  gallery moves onto it in phase 3.
+- **Rental form:** its areas still show ".00", and its sections, save bar and
+  shortcuts arrive with phase 3.

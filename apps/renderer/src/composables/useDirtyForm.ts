@@ -125,9 +125,9 @@ export function useDirtyForm<T>(form: Ref<T>, key: () => string) {
   }
   let removeGuard: (() => void) | null = null;
 
-  // المتصفح يعرض سؤاله عند إغلاق التبويب. في Electron لا تفعل: منع الإغلاق
-  // هناك يحتاج معالجة will-prevent-unload في العملية الرئيسية، وبدونها تبقى
-  // النافذة مفتوحة بلا أي سؤال.
+  // إغلاق النافذة أو التبويب: المتصفح يسأل بنفسه، وElectron يسأل في عمليته
+  // الرئيسية (will-prevent-unload). نسخة سطح مكتب أقدم لا تسأل، فتبقى نافذتها
+  // معلّقة بلا سؤال؛ لذا لا يُلغى الإغلاق إلا حيث يوجد من يسأل.
   function onBeforeUnload(event: BeforeUnloadEvent) {
     if (!isDirty.value) return;
     event.preventDefault();
@@ -139,7 +139,7 @@ export function useDirtyForm<T>(form: Ref<T>, key: () => string) {
     removeGuard = router.beforeEach((to, from) =>
       to.path === from.path ? true : guardLeave(),
     );
-    if (!platform.isDesktop)
+    if (platform.guardsUnsavedClose)
       window.addEventListener("beforeunload", onBeforeUnload);
   });
   onBeforeUnmount(() => {

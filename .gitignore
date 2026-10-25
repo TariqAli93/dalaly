@@ -31,3 +31,5 @@ tools/cloudflared/*
 perf-results
 .claude
 .claude-flow
+# Playwright CLI output (may contain credentials)
+.playwright-cli/

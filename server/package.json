@@ -5,7 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "test": "tsx --test scripts/startup.test.ts scripts/setup-security.test.ts scripts/login-throttle.test.ts scripts/postgres-errors.test.ts scripts/error-shape.test.ts scripts/json-file.test.ts scripts/location.test.ts",
+    "test": "tsx --test scripts/startup.test.ts scripts/setup-security.test.ts scripts/login-throttle.test.ts scripts/postgres-errors.test.ts scripts/error-shape.test.ts scripts/json-file.test.ts scripts/location.test.ts scripts/renderer-utils.test.ts",
     "test:startup": "tsx --test scripts/startup.test.ts scripts/setup-security.test.ts",
     "test:startup:electron": "node scripts/startup-electron.mjs",
     "dev": "tsx watch src/index.ts",
@@ -15,7 +15,7 @@
     "db:seed": "tsx src/infrastructure/database/seed.ts",
     "db:seed:reset": "tsx src/infrastructure/database/seed.ts --reset",
     "db:generate": "drizzle-kit generate",
-    "test:maps": "tsx --test scripts/location.test.ts",
+    "test:maps": "tsx --test scripts/location.test.ts scripts/renderer-utils.test.ts",
     "test:maps:runtime": "tsx scripts/location-smoke.ts",
     "test:runtime": "node scripts/runtime-smoke.mjs",
     "test:runtime:phase1": "node scripts/runtime-smoke-phase1.mjs",

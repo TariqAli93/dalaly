@@ -56,9 +56,12 @@ async function copy() {
 </script>
 
 <template>
-  <v-card variant="flat" border rounded="lg">
-    <v-card-title>الموقع على الخريطة</v-card-title>
-    <v-card-text>
+  <!-- قسم داخل لوح السجل، لا بطاقة فوق بطاقة. -->
+  <section class="location-view" aria-labelledby="location-view-title">
+    <h2 id="location-view-title" class="location-view__title">
+      الموقع على الخريطة
+    </h2>
+    <div>
       <v-sheet v-if="address" class="text-body-2 mb-3">{{ address }}</v-sheet>
       <template v-if="point">
         <PropertyLocationMap
@@ -125,6 +128,14 @@ async function copy() {
           >
         </v-sheet>
       </template>
-    </v-card-text>
-  </v-card>
+    </div>
+  </section>
 </template>
+
+<style scoped>
+.location-view__title {
+  margin: 0 0 8px;
+  font-size: calc(14px * var(--dal-font-scale));
+  font-weight: 700;
+}
+</style>

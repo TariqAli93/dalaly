@@ -68,6 +68,7 @@ function pickFileAsDataUrl(accept: string): Promise<PickedFile> {
 export const webPlatform: PlatformAdapter = {
   name: "web-demo",
   isDesktop: false,
+  guardsUnsavedClose: true,
   supportsScheduledBackup: false,
   async exportPdf({ html, suggestedName }): Promise<SaveResult> {
     // لا window.print() ولا نافذة منبثقة: كلاهما يحجب الواجهة أثناء التصوير.

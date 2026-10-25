@@ -103,7 +103,6 @@ watch(neighborhoodText, (text) => {
         item-value="id"
         label="المحافظة"
         clearable
-        density="comfortable"
         class="w-100"
         @update:model-value="selectGovernorate"
       />
@@ -111,7 +110,6 @@ watch(neighborhoodText, (text) => {
         v-else
         v-model="governorateText"
         label="المحافظة (إدخال يدوي)"
-        density="comfortable"
         class="w-100"
       />
       <v-btn
@@ -137,7 +135,6 @@ watch(neighborhoodText, (text) => {
         "
         persistent-hint
         clearable
-        density="comfortable"
         class="w-100"
         @update:model-value="selectDistrict"
       />
@@ -145,7 +142,6 @@ watch(neighborhoodText, (text) => {
         v-else
         v-model="districtText"
         label="المنطقة (إدخال يدوي)"
-        density="comfortable"
         class="w-100"
       />
       <v-btn
@@ -169,14 +165,12 @@ watch(neighborhoodText, (text) => {
         :hint="!districtId ? 'اختر المنطقة أولاً أو أدخل الحي يدوياً' : ''"
         persistent-hint
         clearable
-        density="comfortable"
         class="w-100"
       />
       <v-text-field
         v-else
         v-model="neighborhoodText"
         label="الحي (إدخال يدوي)"
-        density="comfortable"
         class="w-100"
       />
       <v-btn
@@ -200,6 +194,14 @@ watch(neighborhoodText, (text) => {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+}
+/* الحقل بطوله الطبيعي وإن حمل جاره تلميحاً (والأعمدة تتمدّد معاً)، وزر الإدخال
+   اليدوي أسفل عموده فتصطفّ الأزرار الثلاثة. */
+.location-field > :deep(.v-input) {
+  flex: 0 0 auto;
+}
+.location-field > :deep(.v-btn) {
+  margin-top: auto;
 }
 @media (max-width: 960px) {
   .location-grid {

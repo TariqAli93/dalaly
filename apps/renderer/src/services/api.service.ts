@@ -92,12 +92,28 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * fetch يرمي TypeError ("Failed to fetch") حين لا يصل إلى الخادم المحلي؛
+ * تُعرض بدلها رسالة عربية تقول ما العمل. الإلغاء (AbortError) يمرّ كما هو.
+ */
+async function send(url: string, init: RequestInit) {
+  try {
+    return await fetch(url, init);
+  } catch (cause) {
+    if (cause instanceof DOMException && cause.name === "AbortError")
+      throw cause;
+    throw new Error(
+      "تعذر الاتصال بخادم البرنامج. أعد المحاولة، وإن تكرر فأعد تشغيل البرنامج.",
+    );
+  }
+}
+
 /** طلب عام لا يتطلب توكن (الصحة، الإعداد، تسجيل الدخول). */
 export async function publicRequest<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, buildRequest(init, false));
+  const response = await send(`${API_BASE}${path}`, buildRequest(init, false));
   const body = await parseBody(response);
 
   if (!response.ok) {
@@ -112,7 +128,7 @@ export async function request<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, buildRequest(init, true));
+  const response = await send(`${API_BASE}${path}`, buildRequest(init, true));
   const body = await parseBody(response);
 
   if (response.status === 401) {

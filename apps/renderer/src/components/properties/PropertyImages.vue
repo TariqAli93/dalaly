@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import ListingImage from "../shared/ListingImage.vue";
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from "vue";
 import * as imagesService from "../../services/images.service";
 import { getErrorMessage } from "../../services/api.service";
 import { useSnackbar } from "../../composables/useSnackbar";
@@ -8,6 +16,7 @@ import { useConfirm } from "../../composables/useConfirm";
 import type { PropertyImage } from "../../types";
 import { readFileAsDataUrl } from "../../utils/files";
 import { makeThumbnail } from "../../utils/thumbnails";
+import { useThumbnailBackfill } from "../../composables/useThumbnailBackfill";
 
 const props = defineProps<{
   propertyId: number;
@@ -16,14 +25,21 @@ const props = defineProps<{
 
 const { notifySuccess, notifyError } = useSnackbar();
 const { openConfirm } = useConfirm();
+const { queueThumbnail } = useThumbnailBackfill();
 
 const images = ref<PropertyImage[]>([]);
 const loading = ref(false);
+const loadError = ref<string | null>(null);
 const uploading = ref(false);
-const pending = ref<Array<{ name: string; dataUrl: string; file: File }>>([]);
+// المعاينة برابط object لا base64: صورة 12 ميغابكسل كانت تُحمل نصاً بنحو 5MB
+// في الذاكرة لكل ملف قبل الرفع. يُقرأ الملف بياناتٍ عند رفعه فقط.
+const pending = ref<Array<{ name: string; preview: string; file: File }>>([]);
 const dragOver = ref(false);
 const activeImageId = ref<number | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
+const strip = ref<HTMLElement | null>(null);
+// مصغّرات تعذّر تحميلها (صور رُفعت قبل المصغّرات): يُعرض أصلها بدلها.
+const missingThumbs = reactive(new Set<number>());
 
 let dragIndex = -1;
 
@@ -39,37 +55,56 @@ const activeImage = computed(
 function imageUrl(image: PropertyImage) {
   return imagesService.imageFileUrl(props.propertyId, image.id);
 }
+// شريط المصغّرات يطلب المصغّرة لا الأصل (3–5MB تُفكّ لكل صورة صغيرة).
+// صورة بلا مصغّرة يُعرض أصلها، ثم يصنع من يدير الصور مصغّرتها وقت الفراغ كما
+// يفعل جدول العروض، فتكون الزيارة التالية خفيفة.
+function onThumbLoad(image: PropertyImage) {
+  if (!missingThumbs.has(image.id) || !props.canManage) return;
+  queueThumbnail({
+    key: `property:${image.id}`,
+    source: imageUrl(image),
+    save: (data) =>
+      imagesService.saveThumbnail(props.propertyId, image.id, data),
+  });
+}
+function thumbUrl(image: PropertyImage) {
+  return missingThumbs.has(image.id)
+    ? imageUrl(image)
+    : imagesService.thumbnailUrl(props.propertyId, image.id);
+}
 
 async function load() {
   loading.value = true;
+  loadError.value = null;
   try {
     images.value = await imagesService.listImages(props.propertyId);
   } catch (error) {
-    notifyError(getErrorMessage(error));
+    loadError.value = getErrorMessage(error);
   } finally {
     loading.value = false;
   }
 }
 
-async function addFiles(files: File[]) {
-  const imageFiles = files.filter((f) => f.type.startsWith("image/"));
-  for (const file of imageFiles) {
-    const dataUrl = await readFileAsDataUrl(file);
-    pending.value.push({ name: file.name, dataUrl, file });
+function addFiles(files: File[]) {
+  for (const file of files.filter((f) => f.type.startsWith("image/"))) {
+    pending.value.push({
+      name: file.name,
+      preview: URL.createObjectURL(file),
+      file,
+    });
   }
 }
 
 function onFileChange(event: Event) {
   const input = event.target as HTMLInputElement;
-  if (input.files) void addFiles([...input.files]);
+  if (input.files) addFiles([...input.files]);
   input.value = "";
 }
 
 function onDrop(event: DragEvent) {
   dragOver.value = false;
-  if (event.dataTransfer?.files?.length) {
-    void addFiles([...event.dataTransfer.files]);
-  }
+  if (event.dataTransfer?.files?.length)
+    addFiles([...event.dataTransfer.files]);
 }
 
 function onPaste(event: ClipboardEvent) {
@@ -84,35 +119,48 @@ function onPaste(event: ClipboardEvent) {
       if (file) files.push(file);
     }
   }
-  if (files.length) void addFiles(files);
+  if (files.length) addFiles(files);
 }
 
 function removePending(index: number) {
-  pending.value.splice(index, 1);
+  const [removed] = pending.value.splice(index, 1);
+  if (removed) URL.revokeObjectURL(removed.preview);
+}
+function clearPending() {
+  for (const item of pending.value) URL.revokeObjectURL(item.preview);
+  pending.value = [];
 }
 
 async function uploadPending() {
-  if (!pending.value.length) return;
+  if (!pending.value.length || uploading.value) return;
   uploading.value = true;
+  let uploaded = 0;
   try {
-    // رفع كل صورة في طلب منفصل لتفادي حدود حجم الطلب، ومعها مصغّرتها
-    // لجدول العروض.
-    for (const item of pending.value) {
+    // كل صورة في طلب منفصل لتفادي حدود حجم الطلب، ومعها مصغّرتها لجدول
+    // العروض. ما رُفع يخرج من القائمة فوراً، فإعادة المحاولة بعد فشل لا تكرّره.
+    while (pending.value.length) {
+      const item = pending.value[0]!;
       await imagesService.uploadImages(props.propertyId, [
         {
-          data: item.dataUrl,
+          data: await readFileAsDataUrl(item.file),
           original_name: item.name,
           thumbnail: await makeThumbnail(item.file),
         },
       ]);
+      URL.revokeObjectURL(item.preview);
+      pending.value.shift();
+      uploaded++;
     }
-    pending.value = [];
-    await load();
-    notifySuccess("تم رفع الصور.");
+    notifySuccess(`تم رفع ${uploaded} صورة.`);
   } catch (error) {
-    notifyError(getErrorMessage(error));
+    notifyError(
+      uploaded
+        ? `رُفعت ${uploaded} صورة ثم تعذّر رفع الباقي: ${getErrorMessage(error)}`
+        : getErrorMessage(error),
+    );
   } finally {
     uploading.value = false;
+    if (uploaded) await load();
   }
 }
 
@@ -142,17 +190,12 @@ function askDelete(image: PropertyImage) {
   });
 }
 
-function onDragStart(index: number) {
-  dragIndex = index;
-}
-
-async function onDropReorder(index: number) {
-  if (dragIndex < 0 || dragIndex === index) return;
+async function moveImage(from: number, to: number) {
+  if (to < 0 || to >= images.value.length || from === to) return;
   const next = [...images.value];
-  const [moved] = next.splice(dragIndex, 1);
-  next.splice(index, 0, moved);
+  const [moved] = next.splice(from, 1);
+  next.splice(to, 0, moved!);
   images.value = next;
-  dragIndex = -1;
   try {
     images.value = await imagesService.reorderImages(
       props.propertyId,
@@ -164,34 +207,80 @@ async function onDropReorder(index: number) {
   }
 }
 
-watch(() => props.propertyId, load);
+function onDragStart(index: number) {
+  dragIndex = index;
+}
+async function onDropReorder(index: number) {
+  const from = dragIndex;
+  dragIndex = -1;
+  if (from >= 0) await moveImage(from, index);
+}
+
+// إعادة الترتيب بلوحة المفاتيح: Ctrl+→ يقدّم الصورة (اليمين أول الترتيب في
+// RTL) وCtrl+← يؤخّرها، ويبقى التركيز عليها في مكانها الجديد.
+async function onThumbKeydown(event: KeyboardEvent, index: number) {
+  if (!props.canManage || !event.ctrlKey) return;
+  const delta =
+    event.key === "ArrowRight" ? -1 : event.key === "ArrowLeft" ? 1 : 0;
+  if (!delta) return;
+  event.preventDefault();
+  const id = images.value[index]?.id;
+  await moveImage(index, index + delta);
+  await nextTick();
+  strip.value
+    ?.querySelector<HTMLElement>(`[data-image-id="${id}"] button`)
+    ?.focus();
+}
+
+watch(
+  () => props.propertyId,
+  () => {
+    missingThumbs.clear();
+    void load();
+  },
+);
 onMounted(() => {
   window.addEventListener("paste", onPaste);
   void load();
 });
-onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
+onBeforeUnmount(() => {
+  window.removeEventListener("paste", onPaste);
+  clearPending();
+});
 </script>
 
 <template>
-  <div>
+  <div class="gallery-root">
     <v-progress-linear
       v-if="loading"
       indeterminate
       color="primary"
       class="mb-2"
     />
+    <v-alert
+      v-if="loadError"
+      type="error"
+      variant="tonal"
+      density="compact"
+      class="mb-2"
+    >
+      تعذر تحميل الصور: {{ loadError }}
+      <template #append>
+        <v-btn variant="text" size="small" @click="load">إعادة المحاولة</v-btn>
+      </template>
+    </v-alert>
 
-    <!-- معرض الصور -->
     <div v-if="primaryImage" class="gallery">
       <ListingImage
         :src="imageUrl(activeImage!)"
         class="gallery-primary"
         alt="صورة العقار"
       />
-      <div v-if="images.length" class="thumbs">
-        <div
+      <ol ref="strip" class="thumbs" aria-label="صور العقار">
+        <li
           v-for="(image, index) in images"
           :key="image.id"
+          :data-image-id="image.id"
           class="thumb-wrap"
           :class="{ 'thumb-active': image.id === activeImage?.id }"
           :draggable="canManage"
@@ -201,46 +290,63 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
         >
           <button
             type="button"
-            :aria-label="`عرض الصورة ${index + 1}`"
+            class="thumb-button"
+            :aria-label="`الصورة ${index + 1} من ${images.length}${image.is_primary ? '، الرئيسية' : ''}`"
             :aria-pressed="image.id === activeImage?.id"
+            :aria-keyshortcuts="
+              canManage ? 'Control+ArrowRight Control+ArrowLeft' : undefined
+            "
+            :title="canManage ? 'Ctrl+→ / Ctrl+← لتغيير الترتيب' : undefined"
             @click="activeImageId = image.id"
+            @keydown="onThumbKeydown($event, index)"
           >
-            <ListingImage
-              :src="imageUrl(image)"
+            <img
+              :src="thumbUrl(image)"
               class="thumb"
-              alt="صورة العقار"
+              alt=""
+              width="84"
+              height="84"
+              loading="lazy"
+              decoding="async"
+              @error="missingThumbs.add(image.id)"
+              @load="onThumbLoad(image)"
+            />
+            <v-icon
+              v-if="image.is_primary"
+              icon="mdi-star"
+              size="16"
+              class="thumb-primary"
+              aria-hidden="true"
             />
           </button>
           <div v-if="canManage" class="thumb-actions">
             <v-btn
               v-if="!image.is_primary"
               icon="mdi-star-outline"
-              size="x-small"
-              variant="flat"
-              color="warning"
+              size="small"
+              variant="text"
+              :aria-label="`تعيين الصورة ${index + 1} رئيسية`"
               title="تعيين رئيسية"
               @click="setPrimary(image)"
             />
-            <v-icon v-else icon="mdi-star" color="warning" />
+            <v-spacer />
             <v-btn
               icon="mdi-delete-outline"
-              size="x-small"
-              variant="flat"
+              size="small"
+              variant="text"
               color="error"
+              :aria-label="`حذف الصورة ${index + 1}`"
               title="حذف"
               @click="askDelete(image)"
             />
           </div>
-        </div>
-      </div>
+        </li>
+      </ol>
     </div>
-    <v-empty-state
-      v-else-if="!loading"
-      icon="mdi-image-multiple-outline"
-      title="لا توجد صور للعقار"
-    />
+    <p v-else-if="!loading && !loadError" class="gallery-empty">
+      لا توجد صور لهذا العقار.
+    </p>
 
-    <!-- منطقة الرفع -->
     <template v-if="canManage">
       <!-- زر فعلي لا div: منطقة الرفع يجب أن تُفتح بلوحة المفاتيح أيضاً. -->
       <button
@@ -252,10 +358,8 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
         @drop.prevent="onDrop"
         @click="fileInput?.click()"
       >
-        <v-icon icon="mdi-cloud-upload-outline" size="32" />
-        <div class="text-body-2 mt-1">
-          اسحب وأفلت الصور هنا، أو الصق صورة (Ctrl+V)، أو اضغط للاختيار
-        </div>
+        <v-icon icon="mdi-cloud-upload-outline" size="24" />
+        <span>اسحب الصور هنا، أو الصقها (Ctrl+V)، أو اضغط للاختيار</span>
         <input
           ref="fileInput"
           type="file"
@@ -266,27 +370,40 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
         />
       </button>
 
-      <!-- معاينة قبل الحفظ -->
-      <div v-if="pending.length" class="pending mt-3">
-        <div class="text-subtitle-2 mb-2">
+      <div v-if="pending.length" class="pending">
+        <div class="pending__title">
           معاينة قبل الرفع ({{ pending.length }})
         </div>
-        <div class="thumbs">
-          <div v-for="(item, index) in pending" :key="index" class="thumb-wrap">
-            <ListingImage :src="item.dataUrl" class="thumb" alt="" />
+        <ul class="thumbs">
+          <li
+            v-for="(item, index) in pending"
+            :key="item.preview"
+            class="thumb-wrap"
+          >
+            <img
+              :src="item.preview"
+              class="thumb"
+              alt=""
+              width="84"
+              height="84"
+            />
             <div class="thumb-actions">
+              <v-spacer />
               <v-btn
                 icon="mdi-close"
-                size="x-small"
-                variant="flat"
+                size="small"
+                variant="text"
                 color="error"
+                :aria-label="`إزالة ${item.name} من الرفع`"
                 @click="removePending(index)"
               />
             </div>
-          </div>
-        </div>
+          </li>
+        </ul>
         <div class="d-flex justify-end mt-2 ga-2">
-          <v-btn variant="text" @click="pending = []">إلغاء</v-btn>
+          <v-btn variant="text" :disabled="uploading" @click="clearPending"
+            >إلغاء</v-btn
+          >
           <v-btn
             color="primary"
             :loading="uploading"
@@ -305,60 +422,83 @@ onBeforeUnmount(() => window.removeEventListener("paste", onPaste));
 .gallery-primary {
   width: 100%;
   aspect-ratio: 4/3;
-  border-radius: 10px;
-  background: rgba(var(--v-theme-on-surface), 0.04);
+  border-radius: var(--dal-radius-card);
   object-fit: cover;
-  border-radius: 10px;
-  background: rgba(var(--v-theme-on-surface), 0.04);
 }
 .thumbs {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 10px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
 }
 .thumb-wrap {
-  position: relative;
+  width: 88px;
   border: 2px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--dal-radius-card);
   overflow: hidden;
-  max-width: 120px;
-  max-height: 100px;
 }
 .thumb-active {
   border-color: rgb(var(--v-theme-primary));
 }
+.thumb-button {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
 .thumb {
+  display: block;
   width: 84px;
   height: 84px;
   object-fit: cover;
-  cursor: pointer;
-  display: block;
+  background: var(--dal-hover);
 }
-
-.thumb-actions {
+.thumb-primary {
   position: absolute;
-  inset-block-start: 2px;
-  inset-inline-end: 2px;
+  inset-block-start: 4px;
+  inset-inline-start: 4px;
+  color: rgb(var(--v-theme-warning));
+}
+/* الأوامر تحت المصغّرة لا فوقها، والحذف في الطرف الآخر بعيداً عن «رئيسية». */
+.thumb-actions {
   display: flex;
-  gap: 2px;
+  align-items: center;
+}
+.gallery-empty {
+  margin: 0;
+  padding: 16px 0;
+  color: var(--dal-muted);
+  text-align: center;
 }
 .dropzone {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
-  margin-top: 14px;
-  border: 2px dashed rgba(var(--v-theme-on-surface), 0.3);
-  border-radius: 8px;
-  padding: 12px;
-  text-align: center;
+  margin-top: 12px;
+  border: 1px dashed rgba(var(--v-theme-on-surface), 0.5);
+  border-radius: var(--dal-radius-card);
+  padding: 10px 12px;
   cursor: pointer;
   background: transparent;
   color: inherit;
   font: inherit;
-  transition: border-color 0.2s;
+  font-size: calc(13px * var(--dal-font-scale));
 }
 .dropzone-over {
   border-color: rgb(var(--v-theme-primary));
-  background: rgba(var(--v-theme-primary), 0.06);
+  background: var(--dal-selection);
+}
+.pending {
+  margin-top: 12px;
+}
+.pending__title {
+  font-size: calc(13px * var(--dal-font-scale));
+  font-weight: 600;
 }
 </style>

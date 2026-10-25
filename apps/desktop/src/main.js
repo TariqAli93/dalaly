@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, ipcMain } from "electron";
+import { app, BrowserWindow, dialog, shell, ipcMain } from "electron";
 import log from "electron-log/main.js";
 import { appConfigPath, readAppConfig, writeAppConfig } from "./app-config.js";
 import { createBackupScheduler, registerBackupHandlers } from "./backup.js";
@@ -159,6 +159,22 @@ async function createWindow(initialPath = "/") {
       void shell
         .openExternal(safe)
         .catch((error) => log.warn("Could not open external link", error));
+  });
+  // نموذج بتعديلات غير محفوظة يلغي beforeunload (useDirtyForm). بلا هذا
+  // المعالج يبقى الإغلاق معلّقاً دون أي سؤال؛ الافتراضي البقاء.
+  mainWindow.webContents.on("will-prevent-unload", (event) => {
+    const choice = dialog.showMessageBoxSync(mainWindow, {
+      type: "warning",
+      buttons: ["البقاء في البرنامج", "الإغلاق دون حفظ"],
+      defaultId: 0,
+      cancelId: 0,
+      noLink: true,
+      title: "تعديلات غير محفوظة",
+      message: "في النموذج المفتوح تعديلات لم تُحفظ بعد.",
+      detail: "إن أغلقت الآن ستضيع هذه التعديلات.",
+    });
+    // preventDefault هنا يتجاهل إلغاء الصفحة فيُكمل الإغلاق.
+    if (choice === 1) event.preventDefault();
   });
 
   if (viteUrl) {
@@ -475,7 +491,13 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
+  closeSplashWindow();
+});
+
+// before-quit يسبق إغلاق النوافذ، وقد يلغي نموذجٌ غير محفوظ الخروجَ بعده
+// (will-prevent-unload، كخروج من قائمة «File ← Exit»). will-quit لا يأتي إلا
+// بعد إغلاق كل النوافذ، فلا يبقى البرنامج مفتوحاً على خادم متوقف.
+app.on("will-quit", () => {
   backupScheduler.stop();
   stopLocalApi();
-  closeSplashWindow();
 });
