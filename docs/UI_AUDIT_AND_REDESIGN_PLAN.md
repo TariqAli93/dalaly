@@ -1,9 +1,10 @@
 # UI/UX audit and desktop redesign plan (October 2026)
 
-Status: **phase 0 implemented (2026-10-25); phases 1–7 planned.** It covers
-the renderer (`apps/renderer`) only. No API, schema or migration change is
-proposed here. Items that would need one are listed separately in section 9
-and wait for owner approval. The owner's decisions are in section 10.
+Status: **phases 0 and 1 implemented (2026-10-25); phases 2–7 planned.** It
+covers the renderer (`apps/renderer`) only. No API, schema or migration change
+is proposed here. Items that would need one are listed separately in section 9
+and wait for owner approval. The owner's decisions are in section 10, and the
+phase records in sections 11 and 12.
 
 ## How this was produced
 
@@ -800,8 +801,11 @@ _Acceptance criteria for the sale list:_
 - **1093×550 (125%):** no horizontal scroll; **≥6 rows**.
 - **Keyboard:** from load, Ctrl+F → type a plot number → ↓ → Enter opens the
   record → Alt+← returns with filters, page and the same row focused. Every
-  row action is reachable in ≤3 keystrokes from its row. Tab stops before the
-  first row ≤8.
+  row action is reachable in ≤3 keystrokes from its row. From load, the first
+  row is ≤4 keystrokes away (skip link → Tab → ↓, or Ctrl+F → ↓). _(Revised
+  in phase 1 from "≤8 tab stops": with labelled navigation and sortable
+  column headers that count is about 24, and the shortcut paths are what the
+  criterion is for.)_
 - **Both themes:** text ≥4.5:1, field outlines, focus rings (including in the
   nav) and chips ≥3:1 / 4.5:1, measured on screenshots.
 - **States:** skeleton rows while loading; a failed load shows the error with
@@ -940,3 +944,111 @@ archive (it needs the snackbar queue).
 Checks: `pnpm test` 40/40, `test:contract` 67/67, ESLint and all typechecks
 clean. `pnpm lint` as a whole fails only on the untracked vendored scripts in
 `.github/skills/impeccable/scripts/`, which predate this work.
+
+## 12. Phase 1 record (2026-10-25)
+
+### What changed
+
+- **Tokens and defaults.**
+  - Two radii, 4px controls and 8px containers; Vuetify `rounded: true` for
+    fields, buttons and chips.
+  - `--dal-bar-height` 48, `--dal-row-height` 40, `--dal-head-height` 36,
+    `--dal-cell-px` 8, `--dal-gutter` 12 (16 from 1440px), `--dal-scrim`.
+  - A 12px floor for chips and validation messages; default page size 25.
+  - Twelve unused global classes removed, along with the commented duplicates
+    in `main.ts` and `theme.ts`.
+  - `hideDetails: "auto"` stays commented out as the owner left it; toolbars
+    pass `hide-details` themselves.
+- **Contrast**, measured on the rendered page:
+
+  | Check                             | Light | Dark  |
+  | --------------------------------- | ----- | ----- |
+  | Field outline                     | 3.06  | 3.36  |
+  | Placeholder                       | 5.89  | 7.53  |
+  | Focus ring in the navigation pane | 11.67 | 11.67 |
+  | Status chips                      | ≥4.61 | ≥5.15 |
+
+- **Shell.**
+  - One 48px command bar: the title is the page's `h1`, plus parent link,
+    result count, and teleported status and actions.
+  - Global search, theme, refresh, and a user menu that holds settings, help
+    and logout.
+  - Panels sit on the canvas; the inset workspace card is gone.
+  - Skip link; focus moves to the page title on navigation.
+  - Alt+← goes back, F1 opens Help.
+  - The navigation pane is expanded by default. It is a single tab stop with
+    arrow keys; its focus ring uses `on-sidebar` and it takes its colour from
+    the theme's `sidebar` role.
+- **`GlobalSearch` (Ctrl+K).** Sale and rental listings, customers, purchase
+  and rental requests, through the existing paged endpoints (5 per type,
+  permission-filtered), with combobox keyboard handling and "كل نتائج عروض
+  البيع".
+- **`DataGrid`.**
+  - Roving-tabindex rows: ↑/↓, Home/End, PgUp/PgDn, Enter, Space, and
+    Shift+F10 for a menu of every action.
+  - Focus returns to the opened row after Alt+←.
+  - Columns hide by priority through `rem` container queries.
+  - Four states: first-load skeleton, error with retry, no-match with "مسح
+    الفلاتر", empty.
+  - Rows stay visible while reloading, where before Vuetify swapped them for
+    the loading slot.
+  - Sticky header and visible footer; one shared row menu.
+- **`RowActions`.** Up to two inline icons with `aria-label` and a native
+  title; the rest in "المزيد", with destructive actions last after a divider.
+  Row export moved here from the disabled header button.
+- **Snackbar queue.** Errors stay until closed, others last 4 s, and messages
+  can carry an action.
+- **Sale list.**
+  - Nine columns, with the currency in the price header.
+  - The toolbar is one row of filters plus a row for quick views, chips,
+    "فلاتر إضافية" with a count, and a sort menu.
+  - Fixed: the governorate change now resets district and neighbourhood, and
+    Ctrl+F works by `event.code` (Arabic layout) and not inside dialogs.
+  - Empty filter values no longer float their labels.
+  - Ctrl+N opens a new listing.
+  - The pane offers "تسجيل متابعة". Its labels are at the muted token, the
+    code is isolated, and areas show without ".00".
+  - As an overlay (≤1100px) the pane opens from the inline end, takes focus,
+    and closes with Esc.
+
+### Results
+
+| Criterion                     | Result                                                                                                                                                                                                                                            |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1366×688, nav expanded        | 10 rows, no horizontal or page scroll                                                                                                                                                                                                             |
+| 1093×550 (125%), nav expanded | 7 rows, no horizontal or page scroll                                                                                                                                                                                                              |
+| Keyboard                      | 17 scripted checks pass (skip link, nav roving, Ctrl+F → ↓ → Enter → Alt+← back to the same row with filters, arrows/Home/End, Shift+F10 lists every action, Esc returns focus, Space opens the pane, Esc closes it, Ctrl+K across types, Ctrl+N) |
+| Accessible names              | 0 unnamed buttons or links on the page                                                                                                                                                                                                            |
+| Detector                      | 0 findings in phase 1 files; the remaining ones are in `PropertyLocationMap.vue` (phase 2)                                                                                                                                                        |
+| Checks                        | ESLint and all typechecks clean, `pnpm test` 40/40, `test:contract` 67/67, `vite build`                                                                                                                                                           |
+
+**Performance.** `main` vs this branch, web-demo builds, same API and 131
+listings, Chromium with 4× CPU throttling, 4 alternating runs, medians:
+
+| Metric                | Same page size (10) | As shipped (25)      |
+| --------------------- | ------------------- | -------------------- |
+| First rows after load | −4%                 | +22% (2.5× the rows) |
+| Render 100 rows       | −19%                | +3%                  |
+| Search to one row     | +12%                | +8%                  |
+| Long tasks            | +5%                 | +33%                 |
+| JS heap               | −30%                | −28%                 |
+| DOM nodes / per row   | −19% / −21%         | −19% / −21%          |
+
+The first-load cost of the shipped build comes from showing 25 rows instead
+of 10: about +0.4 s on first paint at 4× throttling, in exchange for a
+screen-full of rows. The first measurement put two `v-tooltip`s in every row
+and rendering 100 rows cost +27%; they were replaced by `aria-label` plus a
+native title. Search remains about 12% slower (about 70 ms throttled), which
+is still unexplained. `pnpm perf` against packaged builds was not run, because
+a `pnpm dev` instance holds port 34567.
+
+### Deferred
+
+- **Tailwind removal** moves to phase 7. Its Preflight reset still styles pages
+  that have not been migrated; removing it now would change all of them at
+  once.
+- **`useListState`** (filters in the URL): the sale list already keeps
+  filters, page and sort across visits in module state. URL sync comes with
+  the rental and request lists.
+- **`DataPanel`, `FilterBar`, `Money`/`Phone`:** extracted when a second list
+  uses them (phase 3), from `PropertyFilters` and the table cells.
