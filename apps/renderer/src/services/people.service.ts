@@ -22,7 +22,7 @@ export function listPeople(filters: Record<string, string | undefined> = {}) {
 
 /** صفحة واحدة مع العدد الكلي، لجدول الأشخاص. */
 export function listPeoplePage(
-  filters: { q?: string },
+  filters: { q?: string; status?: PersonRecord["status"] },
   page: PageQuery<PersonSortKey>,
   signal?: AbortSignal,
 ) {
