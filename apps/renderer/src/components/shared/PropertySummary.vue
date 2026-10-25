@@ -6,7 +6,7 @@
  * أرشفة/إرجاع/حذف)، فلا يتغيّر أي منطق أعمال.
  */
 import { computed } from "vue";
-import { formatMoney, formatPlot } from "../../utils/format";
+import { formatMoney, formatNumber, formatPlot } from "../../utils/format";
 import { usePermissions } from "../../composables/usePermissions";
 import StatusChip from "./StatusChip.vue";
 import FavoriteButton from "../properties/FavoriteButton.vue";
@@ -21,6 +21,7 @@ const emit = defineEmits<{
   archive: [];
   restore: [];
   delete: [];
+  followup: [];
   close: [];
 }>();
 
@@ -44,7 +45,10 @@ const rows = computed(() => {
   const p = props.property;
   const unit = p.area_unit || "";
   const items: Array<{ label: string; value: string; money?: boolean }> = [
-    { label: "المساحة", value: `${p.area_value ?? ""} ${unit}`.trim() },
+    {
+      label: "المساحة",
+      value: `${formatNumber(p.area_value)} ${unit}`.trim(),
+    },
     {
       label: "رقم القطعة",
       value: formatPlot(p.plot_number, p.plot_letter) || "—",
@@ -67,22 +71,23 @@ const rows = computed(() => {
   <div class="ps">
     <!-- رأس الـ pane: الكود والنوع والحالة وزر الإغلاق -->
     <div class="ps__head">
-      <div class="min-w-0">
+      <div class="ps__title">
         <div class="ps__code">
           {{ property.name || `عقار ${property.code}` }}
         </div>
-        <div class="ps__type money">
-          {{ property.code }} · {{ property.property_type }}
+        <!-- الرمز وحده معزول اتجاهه؛ نوع العقار نص عربي. -->
+        <div class="ps__type">
+          <bdi>{{ property.code }}</bdi> · {{ property.property_type }}
         </div>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="ps__tools">
         <StatusChip :status="property.status" />
         <FavoriteButton :property-id="property.id" />
         <v-btn
           icon="mdi-close"
-          size="x-small"
+          size="small"
           variant="text"
-          aria-label="إغلاق التفاصيل"
+          aria-label="إغلاق الملخّص (Esc)"
           @click="emit('close')"
         />
       </div>
@@ -94,7 +99,7 @@ const rows = computed(() => {
     <div class="ps__price">
       <div class="ps__price-label">السعر الإجمالي</div>
       <div class="ps__price-value">
-        <span class="money">{{ formatMoney(property.total_price) }}</span> دينار
+        <span class="money">{{ formatMoney(property.total_price) }}</span> د.ع
         <v-chip
           v-if="property.is_negotiable"
           size="x-small"
@@ -117,6 +122,7 @@ const rows = computed(() => {
           :href="`tel:${phoneDigits}`"
           class="ps__call"
           title="اتصال"
+          :aria-label="`اتصال بـ ${property.owner_name}`"
         >
           <v-icon icon="mdi-phone" size="16" />
         </a>
@@ -127,6 +133,7 @@ const rows = computed(() => {
           rel="noopener"
           class="ps__call"
           title="واتساب"
+          :aria-label="`مراسلة ${property.owner_name} عبر واتساب`"
         >
           <v-icon icon="mdi-whatsapp" size="16" />
         </a>
@@ -156,6 +163,15 @@ const rows = computed(() => {
     <div class="ps__actions">
       <v-btn color="primary" block @click="emit('open')">
         فتح التفاصيل الكاملة
+      </v-btn>
+      <v-btn
+        v-if="can('followups.create')"
+        variant="tonal"
+        block
+        prepend-icon="mdi-phone-plus-outline"
+        @click="emit('followup')"
+      >
+        تسجيل متابعة
       </v-btn>
       <PropertyExportMenu
         v-if="can('properties.export')"
@@ -215,20 +231,28 @@ const rows = computed(() => {
   gap: 0px;
   padding-bottom: 8px;
 }
+.ps__title {
+  min-width: 0;
+}
+.ps__tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
 .ps__code {
   font-size: calc(15px * var(--dal-font-scale));
   font-weight: 700;
 }
 .ps__type {
   font-size: calc(12px * var(--dal-font-scale));
-  color: rgba(var(--v-theme-on-surface), 0.6);
+  color: var(--dal-muted);
 }
 .ps__price {
   padding: 10px 2px;
 }
 .ps__price-label {
-  font-size: calc(11.5px * var(--dal-font-scale));
-  color: rgba(var(--v-theme-on-surface), 0.6);
+  font-size: calc(12px * var(--dal-font-scale));
+  color: var(--dal-muted);
 }
 .ps__price-value {
   font-size: calc(17px * var(--dal-font-scale));
@@ -242,8 +266,8 @@ const rows = computed(() => {
   border-top: 1px solid var(--dal-stroke);
 }
 .ps__label {
-  font-size: calc(11.5px * var(--dal-font-scale));
-  color: rgba(var(--v-theme-on-surface), 0.6);
+  font-size: calc(12px * var(--dal-font-scale));
+  color: var(--dal-muted);
   margin-bottom: 2px;
 }
 .ps__owner {
@@ -261,7 +285,7 @@ const rows = computed(() => {
 }
 .ps__muted {
   font-size: calc(12px * var(--dal-font-scale));
-  color: rgba(var(--v-theme-on-surface), 0.6);
+  color: var(--dal-muted);
 }
 .ps__grid {
   display: grid;

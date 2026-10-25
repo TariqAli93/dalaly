@@ -74,7 +74,7 @@ export const RENT_PERIOD_LABELS: Record<string, string> = Object.fromEntries(
 
 /** أحجام الصفحة في جداول العروض والإيجارات (الخادم يقبل حتى 100). */
 export const LIST_PAGE_SIZES = [10, 25, 50, 100];
-export const DEFAULT_LIST_PAGE_SIZE = 10;
+export const DEFAULT_LIST_PAGE_SIZE = 25;
 
 // خيارات "ترتيب" في شريط النتائج؛ كل خيار مفتاح ترتيب واتجاه في الخادم.
 // أول خيار هو الترتيب الافتراضي (الأحدث أولاً).

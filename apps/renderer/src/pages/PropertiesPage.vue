@@ -1,13 +1,20 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  useTemplateRef,
+  watch,
+} from "vue";
 import { useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import PropertyFilters from "../components/properties/PropertyFilters.vue";
 import PropertiesTable from "../components/properties/PropertiesTable.vue";
-
 import ExcelImportDialog from "../components/properties/ExcelImportDialog.vue";
 import MasterDetailLayout from "../components/shared/MasterDetailLayout.vue";
 import PropertySummary from "../components/shared/PropertySummary.vue";
+import RecordFollowupDialog from "../components/shared/RecordFollowupDialog.vue";
 import { useProperties } from "../composables/useProperties";
 import { usePropertyActions } from "../composables/usePropertyActions";
 import { useSnackbar } from "../composables/useSnackbar";
@@ -17,7 +24,7 @@ import { usePermissions } from "../composables/usePermissions";
 import { exportPropertyFolder } from "../utils/listingExport";
 import { PROPERTY_SORT_OPTIONS } from "../constants/domain";
 import { getErrorMessage } from "../services/api.service";
-import type { PropertyRecord } from "../types";
+import type { FollowupTarget, PropertyRecord } from "../types";
 
 const router = useRouter();
 const {
@@ -31,35 +38,39 @@ const {
   clearFilters,
 } = useProperties();
 // الصفحة والحجم والترتيب والمفضلة: مربوطة بالجدول وتُرسل إلى الخادم.
-const { page, pageSize, sortBy, favoritesOnly, onTableOptions } = list;
+const { page, pageSize, sortBy, favoritesOnly, onTableOptions, error } = list;
 
 const { notifyError, notifySuccess } = useSnackbar();
 const { setRefreshHandler } = useRefresh();
 const { favoriteIds, loadFavoriteIds } = useFavorites();
 const { can } = usePermissions();
 
+const table = useTemplateRef<{
+  focusFirstRow: () => void;
+  focusRow: (id: number) => void;
+}>("table");
 const selectedProperty = ref<PropertyRecord | null>(null);
 const importOpen = ref(false);
-// Details pane (Master–Detail): يعرض ملخّص الصف المحدد من بيانات القائمة نفسها.
+// Details pane: ملخّص الصف المحدد من بيانات القائمة نفسها.
 const paneOpen = ref(false);
+const followupOpen = ref(false);
+const followupTarget = ref<FollowupTarget | null>(null);
 
-// الترتيب على الخادم (صفحة واحدة فقط محمّلة)، والمساحة فيه بالمتر المربع. قائمة
-// "ترتيب" ورؤوس الأعمدة تكتبان نفس sortBy.
+// الترتيب على الخادم (صفحة واحدة فقط محمّلة). قائمة «ترتيب» ورؤوس الأعمدة
+// تكتبان نفس sortBy.
 const sortValue = computed(() => list.currentSortValue(PROPERTY_SORT_OPTIONS));
+// ترتيب من رؤوس الأعمدة بلا خيار مقابل يُعرض «مخصّص».
+const sortTitle = computed(
+  () =>
+    PROPERTY_SORT_OPTIONS.find((option) => option.value === sortValue.value)
+      ?.title ?? "مخصّص",
+);
 function selectSort(value: string | null) {
   const option = PROPERTY_SORT_OPTIONS.find((item) => item.value === value);
   if (option) void list.setSort(option);
 }
 
-// عدّاد النتائج مع سياق البحث (لا عنوان كبير ولا بطاقة).
-const resultsLabel = computed(() => {
-  const n = total.value;
-  if (filters.value.q)
-    return `عدد النتائج المطابقة لـ "${filters.value.q}": ${n}`;
-  return `عدد العروض: ${n}`;
-});
-
-// هل توجد فلاتر فعّالة؟ (لتمييز الحالة الفارغة ومسح الكل)
+// هل توجد فلاتر فعّالة؟ (لتمييز «لا نتائج» من «لا عروض بعد»)
 const hasActiveFilters = computed(() => {
   const f = filters.value;
   return (
@@ -84,19 +95,15 @@ const hasActiveFilters = computed(() => {
   );
 });
 
-// اختيار سريع "المتاحة": نفس قيمة الفلتر الحالية (status=available) ذهاباً وإياباً.
+// عرضان سريعان مستقلّان عن الترتيب: المتاحة (status=available) والمفضلة.
+const availableOnly = computed(() => filters.value.status === "available");
 function toggleAvailable() {
-  filters.value.status =
-    filters.value.status === "available" ? "" : "available";
+  filters.value.status = availableOnly.value ? "" : "available";
 }
-// مسح كل شيء بما فيه المفضلة (يعيد نفس clearFilters الحالي).
+// مسح كل شيء بما فيه المفضلة.
 function resetAll() {
   favoritesOnly.value = false;
   clearFilters();
-}
-
-async function refreshData() {
-  await reloadProperties();
 }
 
 // إزالة عقار من المفضلة أثناء عرض المفضلة فقط: أعد تحميل الصفحة.
@@ -107,56 +114,65 @@ watch(favoriteIds, () => {
 function viewDetails(property: PropertyRecord) {
   void router.push(`/properties/${property.id}`);
 }
-
 function editProperty(property: PropertyRecord) {
   void router.push(`/properties/${property.id}/edit`);
+}
+function createProperty() {
+  void router.push("/properties/new");
 }
 
 const { askArchive, askRestore, askDelete } = usePropertyActions(
   async (action, property) => {
-    if (action === "delete" && selectedProperty.value?.id === property.id)
+    if (action === "delete" && selectedProperty.value?.id === property.id) {
       selectedProperty.value = null;
-    await refreshData();
+      paneOpen.value = false;
+    }
+    await reloadProperties();
   },
 );
 
-async function exportSelected() {
+async function exportProperty(property: PropertyRecord) {
   try {
-    if (!selectedProperty.value) {
-      notifyError("اختر عقاراً أولاً لتصديره.");
-      return;
-    }
-    const result = await exportPropertyFolder(selectedProperty.value);
+    const result = await exportPropertyFolder(property);
     if (result.canceled) return;
-    if (!result.ok) throw new Error(result.message ?? "تعذر تصدير العروض.");
+    if (!result.ok) throw new Error(result.message ?? "تعذر تصدير العرض.");
     notifySuccess(
       `تم تصدير العقار مع صوره إلى: ${result.path ?? "المجلد المحدد"}`,
     );
-  } catch (error) {
-    notifyError(getErrorMessage(error));
+  } catch (cause) {
+    notifyError(getErrorMessage(cause));
   }
 }
 
-// تحديد صف يفتح الـ Details pane (لا يفتح الحوار). الحوار الكامل يبقى عبر
-// نفس حدث العرض الحالي (زر العين / زر "فتح التفاصيل" داخل الـ pane).
+// تحديد صف (نقرة أو Space) يفتح اللوحة الجانبية؛ Enter أو النقر المزدوج يفتح
+// صفحة السجل.
 function selectRow(property: PropertyRecord) {
   selectedProperty.value = property;
   paneOpen.value = true;
 }
-function paneOpenDetails() {
-  if (selectedProperty.value) viewDetails(selectedProperty.value);
+// إغلاق اللوحة يعيد التركيز إلى صفها.
+function closePane() {
+  paneOpen.value = false;
+  if (selectedProperty.value) table.value?.focusRow(selectedProperty.value.id);
 }
-function paneEdit() {
-  if (selectedProperty.value) editProperty(selectedProperty.value);
+function logFollowup() {
+  const property = selectedProperty.value;
+  if (!property) return;
+  followupTarget.value = {
+    kind: "sale",
+    listingId: property.id,
+    listingLabel: property.name || `عقار ${property.code}`,
+  };
+  followupOpen.value = true;
 }
-function paneArchive() {
-  if (selectedProperty.value) askArchive(selectedProperty.value);
-}
-function paneRestore() {
-  if (selectedProperty.value) askRestore(selectedProperty.value);
-}
-function paneDelete() {
-  if (selectedProperty.value) askDelete(selectedProperty.value);
+
+// Ctrl+N: عرض جديد من القائمة. code لا key، فيعمل مع العربية؛ لا يُعترض في حوار.
+function onShortcut(event: KeyboardEvent) {
+  if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyN") return;
+  if (event.altKey || event.shiftKey || !can("properties.create")) return;
+  if (document.querySelector(".v-overlay--active .v-dialog")) return;
+  event.preventDefault();
+  createProperty();
 }
 
 // نفس الصفحة والفلاتر من الزيارة السابقة، قبل أن يُظهر الجدول خياراته الأولى
@@ -165,148 +181,153 @@ void reloadProperties();
 onMounted(() => {
   setRefreshHandler(reloadProperties);
   void loadFavoriteIds();
+  window.addEventListener("keydown", onShortcut);
 });
+onBeforeUnmount(() => window.removeEventListener("keydown", onShortcut));
 </script>
 
 <template>
-  <AppPage title="عروض البيع" subtitle="إدارة عروض البيع داخل المكتب.">
+  <AppPage title="عروض البيع" :count="loading && !total ? null : total">
     <template #header-actions>
-      <div class="d-flex flex-wrap ga-2">
-        <v-btn
-          v-if="can('properties.export')"
-          variant="tonal"
-          prepend-icon="mdi-folder-multiple-outline"
-          :disabled="!selectedProperty"
-          @click="exportSelected"
-        >
-          تصدير ملف نصي والصور
-        </v-btn>
-        <v-btn
-          v-if="can('properties.create')"
-          variant="tonal"
-          prepend-icon="mdi-file-import-outline"
-          @click="importOpen = true"
-        >
-          استيراد ملف إكسل
-        </v-btn>
-        <v-btn
-          v-if="can('properties.create')"
-          color="primary"
-          prepend-icon="mdi-plus"
-          @click="router.push('/properties/new')"
-        >
-          إضافة عرض
-        </v-btn>
-      </div>
+      <v-btn
+        v-if="can('properties.create')"
+        color="primary"
+        prepend-icon="mdi-plus"
+        title="إضافة عرض (Ctrl+N)"
+        aria-keyshortcuts="Control+N"
+        @click="createProperty"
+      >
+        إضافة عرض
+      </v-btn>
+      <v-btn
+        v-if="can('properties.create')"
+        variant="text"
+        prepend-icon="mdi-file-import-outline"
+        @click="importOpen = true"
+      >
+        استيراد من إكسل
+      </v-btn>
     </template>
 
-    <PropertyFilters v-model="filters" @apply="applyFilters" />
-
-    <!-- شريط النتائج: العدد بسياقه، اختيارات سريعة، والفرز -->
-    <div class="dal-resultsbar bg-surface pa-3 border">
-      <span class="dal-resultsbar__count">{{ resultsLabel }}</span>
-      <div class="dal-quickpicks">
-        <v-btn
-          size="small"
-          :variant="filters.status === 'available' ? 'flat' : 'text'"
-          :color="filters.status === 'available' ? 'primary' : undefined"
-          @click="toggleAvailable"
-        >
-          المتاحة
-        </v-btn>
-        <v-btn
-          size="small"
-          :variant="sortValue === 'newest' ? 'flat' : 'text'"
-          :color="sortValue === 'newest' ? 'primary' : undefined"
-          @click="selectSort('newest')"
-        >
-          المضافة حديثاً
-        </v-btn>
-        <v-btn
-          size="small"
-          :variant="favoritesOnly ? 'flat' : 'text'"
-          :color="favoritesOnly ? 'error' : undefined"
-          prepend-icon="mdi-heart-outline"
-          @click="list.setFavoritesOnly(!favoritesOnly)"
-        >
-          المفضلة
-        </v-btn>
-      </div>
-      <v-spacer />
-      <v-select
-        :model-value="sortValue"
-        :items="PROPERTY_SORT_OPTIONS"
-        label="ترتيب"
-        density="compact"
-        hide-details
-        class="dal-sort"
-        @update:model-value="selectSort"
-      />
-    </div>
-
     <MasterDetailLayout
+      fill
       :open="paneOpen && !!selectedProperty"
-      @close="paneOpen = false"
+      detail-label="ملخّص العرض المحدد"
+      @close="closePane"
     >
       <template #main>
-        <PropertiesTable
-          v-model:page="page"
-          v-model:items-per-page="pageSize"
-          v-model:sort-by="sortBy"
-          :properties="properties"
-          :total="total"
-          :loading="loading"
-          :selected-id="selectedProperty?.id ?? null"
-          :has-filters="hasActiveFilters"
-          @view="viewDetails"
-          @edit="editProperty"
-          @archive="askArchive"
-          @restore="askRestore"
-          @delete="askDelete"
-          @create="router.push('/properties/new')"
-          @select="selectRow"
-          @clear-filters="resetAll"
-          @options="onTableOptions"
-        />
+        <section class="dal-panel dal-listpanel" aria-label="عروض البيع">
+          <PropertyFilters
+            v-model="filters"
+            @apply="applyFilters"
+            @cleared="favoritesOnly = false"
+            @down="table?.focusFirstRow()"
+          >
+            <template #views>
+              <div class="dal-views" role="group" aria-label="عرض سريع">
+                <v-btn
+                  size="small"
+                  :variant="availableOnly ? 'tonal' : 'text'"
+                  :color="availableOnly ? 'primary' : undefined"
+                  :aria-pressed="availableOnly"
+                  @click="toggleAvailable"
+                  >المتاحة</v-btn
+                >
+                <v-btn
+                  size="small"
+                  :variant="favoritesOnly ? 'tonal' : 'text'"
+                  :color="favoritesOnly ? 'primary' : undefined"
+                  :prepend-icon="
+                    favoritesOnly ? 'mdi-heart' : 'mdi-heart-outline'
+                  "
+                  :aria-pressed="favoritesOnly"
+                  @click="list.setFavoritesOnly(!favoritesOnly)"
+                  >المفضلة</v-btn
+                >
+              </div>
+            </template>
+            <template #end>
+              <!-- ترتيب في زر وقائمة لا حقل: يبقى الصف الثاني بارتفاع زر. -->
+              <v-menu location="bottom end">
+                <template #activator="{ props: menu }">
+                  <v-btn
+                    v-bind="menu"
+                    size="small"
+                    variant="text"
+                    append-icon="mdi-chevron-down"
+                    :aria-label="`ترتيب القائمة: ${sortTitle}`"
+                    >ترتيب: {{ sortTitle }}</v-btn
+                  >
+                </template>
+                <v-list density="compact" min-width="190">
+                  <v-list-item
+                    v-for="option in PROPERTY_SORT_OPTIONS"
+                    :key="option.value"
+                    :title="option.title"
+                    :active="option.value === sortValue"
+                    @click="selectSort(option.value)"
+                  />
+                </v-list>
+              </v-menu>
+            </template>
+          </PropertyFilters>
+
+          <PropertiesTable
+            ref="table"
+            v-model:page="page"
+            v-model:items-per-page="pageSize"
+            v-model:sort-by="sortBy"
+            :properties="properties"
+            :total="total"
+            :loading="loading"
+            :error="error"
+            :selected-id="selectedProperty?.id ?? null"
+            :has-filters="hasActiveFilters"
+            can-export
+            @view="viewDetails"
+            @edit="editProperty"
+            @archive="askArchive"
+            @restore="askRestore"
+            @delete="askDelete"
+            @export="exportProperty"
+            @create="createProperty"
+            @select="selectRow"
+            @clear-filters="resetAll"
+            @retry="reloadProperties"
+            @options="onTableOptions"
+          />
+        </section>
       </template>
       <template #detail>
         <PropertySummary
           v-if="selectedProperty"
           :property="selectedProperty"
-          @open="paneOpenDetails"
-          @edit="paneEdit"
-          @archive="paneArchive"
-          @restore="paneRestore"
-          @delete="paneDelete"
-          @close="paneOpen = false"
+          @open="viewDetails(selectedProperty)"
+          @edit="editProperty(selectedProperty)"
+          @archive="askArchive(selectedProperty)"
+          @restore="askRestore(selectedProperty)"
+          @delete="askDelete(selectedProperty)"
+          @followup="logFollowup"
+          @close="closePane"
         />
       </template>
     </MasterDetailLayout>
 
-    <ExcelImportDialog v-model="importOpen" @imported="refreshData" />
+    <ExcelImportDialog v-model="importOpen" @imported="reloadProperties" />
+    <RecordFollowupDialog v-model="followupOpen" :target="followupTarget" />
   </AppPage>
 </template>
 
 <style scoped>
-.dal-resultsbar {
+.dal-listpanel {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin: 8px 0 10px;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
 }
-.dal-resultsbar__count {
-  font-size: calc(13px * var(--dal-font-scale));
-  font-weight: 600;
-  color: rgba(var(--v-theme-on-surface), 0.8);
-}
-.dal-quickpicks {
+.dal-views {
   display: flex;
   align-items: center;
   gap: 4px;
-}
-.dal-sort {
-  max-width: 170px;
-  flex: 0 0 auto;
 }
 </style>

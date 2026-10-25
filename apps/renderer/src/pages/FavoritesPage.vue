@@ -101,6 +101,8 @@ onMounted(() => {
     <PropertiesTable
       :properties="items"
       :loading="loading"
+      empty-title="لا توجد عروض مفضلة"
+      empty-text="أضف عرضاً إلى المفضلة من زر القلب في قائمة عروض البيع ليظهر هنا."
       @view="view"
       @edit="edit"
       @archive="askArchive"

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 
-// صورة صف في جداول العروض والإيجارات: <img> عادي بتحميل كسول، بلا مكوّن
+// صورة صف في جداول العروض والإيجارات: عنصر img عادي بتحميل كسول، بلا مكوّن
 // معرض ولا طلب قائمة صور لكل صف.
 const props = defineProps<{ src: string | null }>();
 const emit = defineEmits<{ load: [] }>();
@@ -19,8 +19,8 @@ watch(
     :src="src"
     alt=""
     class="row-thumbnail"
-    width="48"
-    height="40"
+    width="36"
+    height="28"
     loading="lazy"
     decoding="async"
     @load="emit('load')"
@@ -34,7 +34,7 @@ watch(
   >
     <v-icon
       :icon="src ? 'mdi-image-off-outline' : 'mdi-home-city-outline'"
-      size="22"
+      size="18"
     />
   </div>
 </template>
@@ -42,10 +42,10 @@ watch(
 <style scoped>
 .row-thumbnail {
   display: block;
-  width: 48px;
-  height: 40px;
+  width: 36px;
+  height: 28px;
   margin-block: 6px;
-  border-radius: 6px;
+  border-radius: var(--dal-radius-control);
   object-fit: cover;
   background: var(--dal-hover);
 }
