@@ -64,17 +64,31 @@ function toggleNeighManual() {
   }
 }
 
-// عند تغيير المحافظة من القائمة، صفّر المنطقة والحي المختارَين من القائمة.
-watch(governorateId, () => {
-  if (!govManual.value) {
-    districtId.value = null;
-    if (!neighManual.value) neighborhoodId.value = null;
-  }
-});
-
-// عند تغيير المنطقة من القائمة، صفّر الحي المختار من القائمة.
-watch(districtId, () => {
+// التصفير عند اختيار المستخدم فقط: النموذج يصل من الأب بعد التركيب عند فتح
+// عرض للتعديل، ومراقبة القيم كانت تصفّر المنطقة والحي المحفوظين عندها.
+function selectGovernorate(value: number | null) {
+  if (value === governorateId.value) return;
+  governorateId.value = value;
+  districtId.value = null;
   if (!neighManual.value) neighborhoodId.value = null;
+}
+
+function selectDistrict(value: number | null) {
+  if (value === districtId.value) return;
+  districtId.value = value;
+  if (!neighManual.value) neighborhoodId.value = null;
+}
+
+// نص محمَّل بلا معرّف يعني إدخالاً يدوياً محفوظاً، فيُعرض في حقله. يُراقب النص
+// وحده: مسح القائمة يصفّر المعرّف ويُبقي اسم الموقع القديم، فلا يدلّ على إدخال يدوي.
+watch(governorateText, (text) => {
+  if (text && !governorateId.value) govManual.value = true;
+});
+watch(districtText, (text) => {
+  if (text && !districtId.value) distManual.value = true;
+});
+watch(neighborhoodText, (text) => {
+  if (text && !neighborhoodId.value) neighManual.value = true;
 });
 </script>
 
@@ -83,7 +97,7 @@ watch(districtId, () => {
     <div class="location-field">
       <v-select
         v-if="!govManual"
-        v-model="governorateId"
+        :model-value="governorateId"
         :items="activeGovernorates"
         item-title="name"
         item-value="id"
@@ -91,6 +105,7 @@ watch(districtId, () => {
         clearable
         density="comfortable"
         class="w-100"
+        @update:model-value="selectGovernorate"
       />
       <v-text-field
         v-else
@@ -111,7 +126,7 @@ watch(districtId, () => {
     <div class="location-field">
       <v-select
         v-if="!distManual"
-        v-model="districtId"
+        :model-value="districtId"
         :items="districtItems"
         item-title="name"
         item-value="id"
@@ -124,6 +139,7 @@ watch(districtId, () => {
         clearable
         density="comfortable"
         class="w-100"
+        @update:model-value="selectDistrict"
       />
       <v-text-field
         v-else
