@@ -45,6 +45,7 @@
     "test:import": "tsx --test scripts/import-commit.test.ts",
     "test:queries": "tsx --test scripts/list-queries.test.ts",
     "test:dashboard": "tsx --test scripts/dashboard-summary.test.ts",
+    "test:dashboard:operations": "tsx --test scripts/dashboard-operations.test.ts",
     "test:timeouts": "tsx --test scripts/statement-timeout.test.ts",
     "test:search": "tsx --test scripts/search-text.test.ts",
     "test:contract": "tsx --test scripts/api-contract.test.ts"

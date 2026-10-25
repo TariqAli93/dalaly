@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import RentalFilters from "../components/rentals/RentalFilters.vue";
 import RentalTable from "../components/rentals/RentalTable.vue";
@@ -20,9 +20,11 @@ import type {
   RentalFilters as RentalFiltersType,
   RentalRecord,
   RentalSortKey,
+  RentalStatus,
 } from "../types";
 
 const router = useRouter();
+const route = useRoute();
 const { can } = usePermissions();
 const { notifyError, notifySuccess } = useSnackbar();
 const { openConfirm } = useConfirm();
@@ -233,15 +235,43 @@ async function exportSelected() {
   }
 }
 
+// ?status=<حالة> من لوحة التحكم: القائمة تبدأ بها وحدها.
+const LINKED_STATUSES: RentalStatus[] = [
+  "available",
+  "reserved",
+  "negotiating",
+  "rented",
+  "archived",
+];
+const linkedStatus = LINKED_STATUSES.find(
+  (status) => status === route.query.status,
+);
+if (linkedStatus) filters.value = { ...defaultFilters(), status: linkedStatus };
 // قبل أن يُظهر الجدول خياراته الأولى، فلا يطلب الصفحة نفسها مرتين. المواقع
 // تطلبها الفلاتر، والجدول لا ينتظرها (أسماء المواقع في صفوفه).
 void reload();
-onMounted(() => setRefreshHandler(reload));
+// ?open=<id> من لوحة التحكم أو المطابقة: لا صفحة تفاصيل للإيجار، فيُفتح
+// حوار تفاصيله، والعرض قد لا يكون في الصفحة الأولى. يُراقَب لأن الموجّه
+// يُبقي الصفحة نفسها حين يتغيّر الاستعلام وحده.
+async function openFromQuery() {
+  const openId = Number(route.query.open);
+  if (!openId) return;
+  try {
+    view(await rentals.getRental(openId));
+  } catch (error) {
+    notifyError(getErrorMessage(error));
+  }
+}
+watch(() => route.query.open, openFromQuery);
+onMounted(() => {
+  setRefreshHandler(reload);
+  void openFromQuery();
+});
 onBeforeUnmount(() => list.cancel());
 </script>
 
 <template>
-  <AppPage title="الإيجارات" subtitle="إدارة العروض الإيجارية داخل المكتب.">
+  <AppPage title="عروض الإيجار" subtitle="إدارة العروض الإيجارية داخل المكتب.">
     <template #header-actions>
       <div class="d-flex flex-wrap ga-2">
         <v-btn

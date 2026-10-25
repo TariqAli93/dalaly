@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useProperties } from "../../composables/useProperties";
 import { useAuth } from "../../composables/useAuth";
@@ -27,6 +28,24 @@ async function onLogout() {
   await logout();
   void router.push("/login");
 }
+
+// Ctrl+K يضع المؤشر في البحث من أي مكان. KeyK رمز المفتاح لا الحرف، فيعمل
+// مع لوحة المفاتيح العربية أيضاً؛ ولا يُعترض داخل حوار مفتوح.
+const search = ref<{ focus: () => void } | null>(null);
+function onShortcut(event: KeyboardEvent) {
+  if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyK") return;
+  if (event.altKey || event.shiftKey) return;
+  if (
+    document.querySelector(
+      ".v-overlay--active .v-dialog, .v-overlay--active.v-dialog",
+    )
+  )
+    return;
+  event.preventDefault();
+  search.value?.focus();
+}
+onMounted(() => window.addEventListener("keydown", onShortcut));
+onBeforeUnmount(() => window.removeEventListener("keydown", onShortcut));
 </script>
 
 <template>
@@ -52,6 +71,7 @@ async function onLogout() {
     </div>
 
     <v-text-field
+      ref="search"
       v-model="filters.q"
       class="global-search"
       variant="solo-filled"
@@ -60,8 +80,9 @@ async function onLogout() {
       hide-details
       clearable
       prepend-inner-icon="mdi-magnify"
-      placeholder="البحث في العروض العقارية…"
-      aria-label="البحث في العروض العقارية"
+      placeholder="بحث في عروض البيع… (Ctrl+K)"
+      aria-label="بحث في عروض البيع"
+      aria-keyshortcuts="Control+K"
       @keyup.enter="runSearch"
     />
 

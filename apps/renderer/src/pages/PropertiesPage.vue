@@ -169,7 +169,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <AppPage title="العروض العقارية" subtitle="إدارة عروض البيع داخل المكتب.">
+  <AppPage title="عروض البيع" subtitle="إدارة عروض البيع داخل المكتب.">
     <template #header-actions>
       <div class="d-flex flex-wrap ga-2">
         <v-btn

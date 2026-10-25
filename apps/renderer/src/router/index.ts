@@ -112,7 +112,7 @@ const appPages: RouteRecordRaw[] = [
     meta: {
       requiresAuth: true,
       permission: "rentals.read",
-      titleKey: "routes.rentals",
+      titleKey: "routes.rentalFavorites",
     },
   },
   {
@@ -133,7 +133,7 @@ const appPages: RouteRecordRaw[] = [
     meta: {
       requiresAuth: true,
       permission: "requests.read",
-      titleKey: "routes.rentals",
+      titleKey: "routes.rentalRequests",
     },
   },
   {
@@ -143,7 +143,7 @@ const appPages: RouteRecordRaw[] = [
     meta: {
       requiresAuth: true,
       permission: "requests.read",
-      titleKey: "routes.properties",
+      titleKey: "routes.purchaseRequests",
     },
   },
   {
@@ -183,7 +183,7 @@ const appPages: RouteRecordRaw[] = [
     meta: {
       requiresAuth: true,
       permission: "properties.read",
-      titleKey: "routes.properties",
+      titleKey: "routes.favorites",
     },
   },
   {

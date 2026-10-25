@@ -69,6 +69,15 @@ function clearFilters() {
   void loadProperties();
 }
 
+/**
+ * يفتح القائمة على هذه الفلاتر وحدها (من لوحة التحكم): تُمسح البقية، وتحمّل
+ * الصفحة القائمة حين تُفتح كما في startFromFirstPage.
+ */
+function showOnly(partial: Partial<PropertyFilters>) {
+  filters.value = { ...emptyFilters(), ...partial };
+  startFromFirstPage();
+}
+
 export function useProperties() {
   return {
     properties: list.items,
@@ -81,6 +90,7 @@ export function useProperties() {
     applyFilters,
     reloadProperties: list.reload,
     clearFilters,
+    showOnly,
     service: propertiesService,
   };
 }

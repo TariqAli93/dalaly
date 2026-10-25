@@ -733,13 +733,13 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 .page-header__copy {
   min-width: 0;
 }
 .page-header h1 {
-  font-size: calc(24px * var(--dal-font-scale));
+  font-size: calc(20px * var(--dal-font-scale));
   line-height: 1.5;
   font-weight: 700;
   margin: 0;
@@ -804,7 +804,7 @@ body {
     padding: 20px;
   }
   .page-header h1 {
-    font-size: calc(22px * var(--dal-font-scale));
+    font-size: calc(19px * var(--dal-font-scale));
   }
 }
 @media (max-width: 900px) {

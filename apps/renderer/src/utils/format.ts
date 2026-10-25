@@ -1,6 +1,21 @@
+// منسّقات Intl تُنشأ مرة واحدة: إنشاء منسّق لكل خلية يكلّف أضعاف التنسيق
+// نفسه (docs/OPERATIONS_DASHBOARD.md، "Formatters").
+const DATE_TIME = new Intl.DateTimeFormat("ar-IQ", {
+  numberingSystem: "latn",
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+  second: "numeric",
+});
+const MONEY = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+const NUMBERS = new Map<number, Intl.NumberFormat>();
+
 /** تاريخ ووقت بالعربية مع أرقام لاتينية، كما في بقية الواجهة. */
 export function formatDateTime(value: string | number | Date) {
-  return new Date(value).toLocaleString("ar-IQ", { numberingSystem: "latn" });
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : DATE_TIME.format(date);
 }
 
 export function toNumber(value: unknown) {
@@ -12,16 +27,44 @@ export function toNumber(value: unknown) {
 
 export function formatMoney(value: unknown) {
   // en-US: أرقام لاتينية (latn) مع فواصل آلاف ASCII مثل 112,345,123.
-  return new Intl.NumberFormat("en-US", {
-    maximumFractionDigits: 0,
-  }).format(toNumber(value));
+  return MONEY.format(toNumber(value));
 }
 
 /** تنسيق عدد عام مع فواصل آلاف لاتينية، مع الحفاظ على الكسور إن وُجدت. */
 export function formatNumber(value: unknown, maximumFractionDigits = 2) {
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits }).format(
-    toNumber(value),
-  );
+  let formatter = NUMBERS.get(maximumFractionDigits);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat("en-US", { maximumFractionDigits });
+    NUMBERS.set(maximumFractionDigits, formatter);
+  }
+  return formatter.format(toNumber(value));
+}
+
+/** تاريخ قصير (يوم وشهر) بأرقام لاتينية، لقوائم المواعيد والطلبات. */
+const SHORT_DATE = new Intl.DateTimeFormat("ar-IQ", {
+  numberingSystem: "latn",
+  day: "numeric",
+  month: "short",
+});
+const SHORT_TIME = new Intl.DateTimeFormat("ar-IQ", {
+  numberingSystem: "latn",
+  hour: "numeric",
+  minute: "2-digit",
+});
+export function formatShortDate(value: string | number | Date) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : SHORT_DATE.format(date);
+}
+export function formatTime(value: string | number | Date) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : SHORT_TIME.format(date);
+}
+
+/** الأيام الكاملة منذ value حتى الآن (0 لتاريخ اليوم أو المستقبل أو غير الصالح). */
+export function daysSince(value: string | number | Date) {
+  const time = new Date(value).getTime();
+  if (Number.isNaN(time)) return 0;
+  return Math.max(0, Math.floor((Date.now() - time) / 86_400_000));
 }
 
 /**

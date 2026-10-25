@@ -1268,6 +1268,17 @@ within the run-to-run noise, which in startup marks is large on this PC
   the same rows ruled it out. `احمد` does not find `أحمد`; normalizing hamza
   forms, ة/ه and ى/ي would widen what matches, a product decision.
 
+## Operational dashboard, October 2026
+
+API cost of the new dashboard (`pnpm perf:dashboard`, the built API under
+Node): see [OPERATIONS_DASHBOARD.md](OPERATIONS_DASHBOARD.md),
+"Performance". In short, on 5,000 listings with 1,000 type-only requests
+(245,001 request × listing pairs), `GET /dashboard/matching` takes 162 ms
+median and opening the dashboard 187 ms of API time, against 34 ms for the
+old summary, which computed no matches. The packaged startup marks were not
+re-measured; `pnpm perf` now waits for overview and matching on builds that
+have them.
+
 ## Persistent shell, lazy xlsx and duplicate loads, October 2026
 
 Builds: `main` at `cb0250f` against the branch at `0982188` (the shell

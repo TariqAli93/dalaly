@@ -87,10 +87,16 @@ export type MatchReason = {
   label: string;
   matched: boolean;
   detail: string;
+  /** شرط أساسي (النوع، الموقع، الميزانية، نوع الإيجار) لا تفضيل. */
+  required: boolean;
 };
 export type MatchResult<T = Record<string, unknown>> = {
   score: number;
   reasons: MatchReason[];
+  /** كل الشروط الأساسية متحققة: مطابقة كاملة. */
+  required_met: boolean;
+  preferences_met: number;
+  preferences_total: number;
   record: T;
 };
 

@@ -67,8 +67,8 @@ onBeforeUnmount(() => list.cancel());
 </script>
 <template>
   <AppPage
-    title="العملاء والأشخاص"
-    subtitle="دليل العملاء وجهات الاتصال في المكتب."
+    title="الزبائن"
+    subtitle="دليل الزبائن وجهات الاتصال في المكتب، ومنهم المالكون."
   >
     <template #header-actions
       ><v-btn

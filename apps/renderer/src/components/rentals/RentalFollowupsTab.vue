@@ -5,6 +5,7 @@ import * as service from "../../services/rental-followups.service";
 import { getErrorMessage } from "../../services/api.service";
 import { useSnackbar } from "../../composables/useSnackbar";
 import { formatDateTime } from "../../utils/format";
+import { FOLLOWUP_TYPES, followupTypeLabel } from "../../constants/crm";
 const props = defineProps<{ rentalId: number }>();
 const { notifyError, notifySuccess } = useSnackbar();
 const items = ref<RentalFollowupRecord[]>([]);
@@ -12,14 +13,6 @@ const notes = ref("");
 const type = ref<FollowupType>("phone_call");
 const scheduled = ref("");
 const saving = ref(false);
-const types = [
-  { title: "اتصال", value: "phone_call" },
-  { title: "زيارة", value: "visit" },
-  { title: "أخرى", value: "other" },
-];
-function typeLabel(value: string) {
-  return types.find((item) => item.value === value)?.title ?? value;
-}
 async function load() {
   try {
     items.value = await service.listRentalFollowups(props.rentalId);
@@ -63,7 +56,7 @@ onMounted(() => void load());
     <div class="d-flex flex-wrap ga-2 align-start">
       <v-select
         v-model="type"
-        :items="types"
+        :items="FOLLOWUP_TYPES"
         label="نوع المتابعة"
         density="compact"
         class="followup-type"
@@ -85,7 +78,7 @@ onMounted(() => void load());
         v-for="item in items"
         :key="item.id"
         :title="item.notes || 'متابعة إيجار'"
-        :subtitle="`${typeLabel(item.type)} · ${item.scheduled_at ? formatDateTime(item.scheduled_at) : 'بدون موعد'}`"
+        :subtitle="`${followupTypeLabel(item.type)} · ${item.scheduled_at ? formatDateTime(item.scheduled_at) : 'بدون موعد'}`"
         ><template #append
           ><v-btn
             icon="mdi-delete-outline"

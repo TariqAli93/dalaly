@@ -1,5 +1,3 @@
-import type { PropertyRecord } from "./property.types";
-
 export type PropertyImage = {
   id: number;
   property_id: number;
@@ -44,71 +42,6 @@ export type BackupHistory = {
   jobs: BackupJob[];
   last_backup_at: string | null;
   backup_dir: string;
-};
-
-export type ReminderRecord = {
-  id: number;
-  property_id: number;
-  property_code: string;
-  type: string;
-  notes: string | null;
-  scheduled_at: string;
-};
-
-export type ActivityRecord = {
-  id: number;
-  action: string;
-  entity_id: number;
-  property_code: string | null;
-  user_name: string | null;
-  created_at: string;
-};
-
-export type DashboardSummary = {
-  counts: {
-    total: number;
-    available: number;
-    reserved: number;
-    negotiating: number;
-    sold: number;
-    rented: number;
-    archived: number;
-  };
-  financial: {
-    total_value: number;
-    avg_price: number;
-    max_price: number;
-    min_price: number;
-  };
-  latest: PropertyRecord[];
-  recent_activity: ActivityRecord[];
-  top_governorates: Array<{ name: string | null; count: number }>;
-  top_districts: Array<{ name: string | null; count: number }>;
-  needs_review: PropertyRecord[];
-  reminders: ReminderRecord[];
-  sales: {
-    by_type: Array<{ name: string; count: number }>;
-    monthly_activity: Array<{ month: string; created: number }>;
-  };
-  rentals: {
-    counts: {
-      total: number;
-      active: number;
-      available: number;
-      reserved: number;
-      negotiating: number;
-      rented: number;
-      archived: number;
-    };
-    financial: {
-      monthly_value: number;
-      avg_monthly_price: number;
-      available_monthly_value: number;
-      rented_monthly_value: number;
-    };
-    by_type: Array<{ name: string; count: number }>;
-    monthly_activity: Array<{ month: string; created: number }>;
-  };
 };
 
 export type ImportValidation = {
