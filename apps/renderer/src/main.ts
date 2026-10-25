@@ -15,6 +15,7 @@ import {
 import { setUnauthorizedHandler } from "./services/api.service";
 import { useAuth } from "./composables/useAuth";
 import { useSetup } from "./composables/useSetup";
+import { stashOpenDrafts } from "./composables/useDirtyForm";
 
 // Startup marks, read by scripts/perf/startup-trace.mjs.
 performance.mark("dalaly:modules-evaluated");
@@ -164,9 +165,12 @@ const vuetify = createVuetify({
 
 // عند انتهاء الجلسة (401) في أي طلب: امسح الحالة وانتقل لتسجيل الدخول.
 setUnauthorizedHandler(() => {
+  const current = router.currentRoute.value;
+  // تعديلات نموذج مفتوح تُحفظ مسودةً، ويعود المستخدم إلى الصفحة نفسها بعد الدخول.
+  stashOpenDrafts();
   useAuth().clearAuthState();
-  if (router.currentRoute.value.path !== "/login") {
-    void router.push({ path: "/login" });
+  if (current.path !== "/login") {
+    void router.push({ path: "/login", query: { redirect: current.fullPath } });
   }
 });
 

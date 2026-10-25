@@ -1,4 +1,4 @@
-import { reactive } from "vue";
+import { reactive, watch } from "vue";
 import { getErrorMessage } from "../services/api.service";
 import { useSnackbar } from "./useSnackbar";
 
@@ -30,7 +30,20 @@ const state = reactive<ConfirmState>({
   onConfirm: () => undefined,
 });
 
+// سؤال ينتظر جواباً (confirmAsync): يُحسم بـ false إن أُغلق الحوار بلا تأكيد.
+let pendingAnswer: ((confirmed: boolean) => void) | null = null;
+watch(
+  () => state.open,
+  (open) => {
+    if (open || !pendingAnswer) return;
+    pendingAnswer(false);
+    pendingAnswer = null;
+  },
+);
+
 function openConfirm(input: ConfirmInput) {
+  pendingAnswer?.(false);
+  pendingAnswer = null;
   state.open = true;
   state.loading = false;
   state.title = input.title;
@@ -57,6 +70,20 @@ async function runConfirmedAction() {
   }
 }
 
+/** الحوار نفسه، لمن يحتاج الجواب قيمةً (حارس مسار مثلاً) لا إجراءً. */
+function confirmAsync(input: Omit<ConfirmInput, "onConfirm">) {
+  return new Promise<boolean>((resolve) => {
+    openConfirm({
+      ...input,
+      onConfirm: () => {
+        pendingAnswer = null;
+        resolve(true);
+      },
+    });
+    pendingAnswer = resolve;
+  });
+}
+
 export function useConfirm() {
-  return { state, openConfirm, close, runConfirmedAction };
+  return { state, openConfirm, confirmAsync, close, runConfirmedAction };
 }

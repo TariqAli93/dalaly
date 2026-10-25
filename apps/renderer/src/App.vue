@@ -7,6 +7,7 @@ import { useThemeMode } from "./composables/useThemeMode";
 import { useAuth } from "./composables/useAuth";
 import { useIdleLock } from "./composables/useIdleLock";
 import { useSnackbar } from "./composables/useSnackbar";
+import { stashOpenDrafts } from "./composables/useDirtyForm";
 
 const router = useRouter();
 const { apply } = useThemeMode();
@@ -19,10 +20,13 @@ onMounted(() => {
   // تسجيل خروج تلقائي عند الخمول (قفل الشاشة).
   start(async () => {
     if (!isAuthenticated.value) return;
+    // نموذج مفتوح يُحفظ مسودةً ويعود إليه المستخدم بعد الدخول، بدل أن يضيع.
+    const current = router.currentRoute.value.fullPath;
+    stashOpenDrafts();
     await logout();
     notifyInfo("تم تسجيل الخروج تلقائياً بسبب الخمول.");
     if (router.currentRoute.value.path !== "/login") {
-      void router.push("/login");
+      void router.push({ path: "/login", query: { redirect: current } });
     }
   });
 });

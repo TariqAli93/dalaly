@@ -10,6 +10,8 @@ import { useSnackbar } from "../composables/useSnackbar";
 import * as requests from "../services/requests.service";
 import { toNumber } from "../utils/format";
 import MatchingResultsDialog from "../components/requests/MatchingResultsDialog.vue";
+import DraftNotice from "../components/shared/DraftNotice.vue";
+import { useDirtyForm } from "../composables/useDirtyForm";
 import type {
   MatchResult,
   PropertyForm as PropertyFormType,
@@ -118,6 +120,10 @@ const matches = ref<MatchResult[]>([]);
 const pendingRedirect = ref<string | null>(null);
 
 const isEditing = computed(() => editingId.value !== null);
+const changes = useDirtyForm(
+  form,
+  () => `property:${editingId.value ?? "new"}`,
+);
 
 const computedTotal = computed(() => {
   if (form.value.pricing_method === DIRECT_PRICE) {
@@ -144,6 +150,8 @@ function isPayloadValid() {
 }
 
 async function save() {
+  // Enter في حقل يرسل النموذج حتى أثناء الحفظ؛ loading يمنع النقر وحده.
+  if (saving.value) return;
   const valid = await formRef.value?.validate();
   if (!valid) {
     notifyError("تحقق من الحقول المطلوبة قبل الحفظ.");
@@ -169,10 +177,15 @@ async function save() {
     let savedId = editingId.value;
     if (editingId.value !== null) {
       await service.updateProperty(editingId.value, payload);
+      changes.markSaved();
       notifySuccess("تم تحديث العرض.");
     } else {
       const created = await service.createProperty(payload);
       savedId = created.id;
+      // مسودة «جديد» قبل تغيّر المفتاح إلى معرّف العرض.
+      changes.markSaved();
+      // حفظ ثانٍ والحوار مفتوح يحدّث العرض الجديد ولا يكرّره.
+      editingId.value = savedId;
       notifySuccess("تمت إضافة العرض.");
     }
     if (savedId !== null) {
@@ -217,22 +230,31 @@ function openMatch(match: MatchResult) {
 
 onMounted(async () => {
   const idParam = route.params.id;
-  if (idParam) {
-    const id = Number(idParam);
-    try {
-      const property = await service.getProperty(id);
-      form.value = propertyToForm(property);
-      editingId.value = id;
-    } catch (error) {
-      notifyError(getErrorMessage(error));
-      await router.replace("/properties");
-    }
+  if (!idParam) {
+    changes.markLoaded();
+    return;
+  }
+  const id = Number(idParam);
+  try {
+    const property = await service.getProperty(id);
+    form.value = propertyToForm(property);
+    editingId.value = id;
+    changes.markLoaded();
+  } catch (error) {
+    notifyError(getErrorMessage(error));
+    await router.replace("/properties");
   }
 });
 </script>
 
 <template>
   <AppPage :title="isEditing ? 'تعديل عرض عقاري' : 'إضافة عرض عقاري'">
+    <DraftNotice
+      v-if="changes.draft.value"
+      :saved-at="changes.draft.value.savedAt"
+      @restore="changes.restoreDraft"
+      @discard="changes.discardDraft"
+    />
     <PropertyForm
       ref="formRef"
       v-model="form"
