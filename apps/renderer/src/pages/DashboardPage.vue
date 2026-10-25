@@ -172,11 +172,28 @@ const kpis = computed<KpiItem[]>(() => {
   return items;
 });
 
+// الأولويات بعد أن يستقرّ كل قسم مسموح (بيانات أو خطأ): الملخّص يصل عادةً
+// قبل المطابقة، فكانت الشريحة تقول «لا أعمال معلّقة» والمطابقات لم تصل بعد.
+const overviewSettled = computed(
+  () => overview.value !== null || overviewError.value !== null,
+);
+const matchingSettled = computed(
+  () =>
+    !canMatch.value || matching.value !== null || matchingError.value !== null,
+);
 const priorities = computed(() =>
-  overview.value || matching.value
-    ? priorityItems(overview.value, matching.value)
+  overviewSettled.value && matchingSettled.value
+    ? priorityItems(overview.value, canMatch.value ? matching.value : null)
     : null,
 );
+// ما فُحص فعلاً، فلا تنفي عبارة الهدوء شيئاً عن قسم لم يُحمَّل أو لا يُسمح به.
+const priorityScope = computed(() => ({
+  appointments: overview.value !== null && canSeeAppointments.value,
+  matching: matching.value !== null && canMatch.value,
+  failed:
+    overviewError.value !== null ||
+    (canMatch.value && matchingError.value !== null),
+}));
 
 // ─── التنقّل داخل اللوحة ──────────────────────────────────────────────────
 const decisionsTab = ref<"customers" | "appointments">("customers");
@@ -409,7 +426,11 @@ async function runBackup() {
           >
         </template>
       </v-alert>
-      <PriorityStrip :items="priorities" @select="openSection" />
+      <PriorityStrip
+        :items="priorities"
+        :scope="priorityScope"
+        @select="openSection"
+      />
 
       <div class="ops__main" :class="{ ops__single: !canMatch }">
         <div id="dash-matches" tabindex="-1" class="ops__anchor">

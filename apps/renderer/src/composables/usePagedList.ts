@@ -33,6 +33,8 @@ export function createPagedList<T, K extends string>(
   const items = ref([]) as Ref<T[]>;
   const total = ref(0);
   const loading = ref(false);
+  // آخر فشل تحميل، كي يعرضه الجدول مكان «لا توجد بيانات» (يُمسح عند النجاح).
+  const error = ref<string | null>(null);
   const page = ref(1);
   const pageSize = ref(DEFAULT_LIST_PAGE_SIZE);
   // فارغ = الترتيب الافتراضي؛ الجدول يمسح الترتيب عند النقرة الثالثة.
@@ -75,9 +77,11 @@ export function createPagedList<T, K extends string>(
       }
       items.value = result.items;
       total.value = result.total;
-    } catch (error) {
+      error.value = null;
+    } catch (cause) {
       if (current.signal.aborted) return;
-      const message = getErrorMessage(error);
+      const message = getErrorMessage(cause);
+      error.value = message;
       if (options.onError) options.onError(message);
       else useSnackbar().notifyError(message);
     } finally {
@@ -133,6 +137,7 @@ export function createPagedList<T, K extends string>(
     items,
     total,
     loading,
+    error,
     page,
     pageSize,
     sortBy,

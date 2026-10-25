@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import RentalForm from "../components/rentals/RentalForm.vue";
 import MatchingResultsDialog from "../components/requests/MatchingResultsDialog.vue";
+import DraftNotice from "../components/shared/DraftNotice.vue";
+import { useDirtyForm } from "../composables/useDirtyForm";
 import * as rentals from "../services/rentals.service";
 import * as requests from "../services/requests.service";
 import { getErrorMessage } from "../services/api.service";
@@ -94,8 +96,11 @@ const matchDialog = ref(false);
 const matches = ref<MatchResult[]>([]);
 const pendingRedirect = ref<string | null>(null);
 const isEditing = computed(() => editingId.value !== null);
+const changes = useDirtyForm(form, () => `rental:${editingId.value ?? "new"}`);
 
 async function save() {
+  // Enter في حقل يرسل النموذج حتى أثناء الحفظ؛ loading يمنع النقر وحده.
+  if (saving.value) return;
   if (!(await formRef.value?.validate())) {
     notifyError("تحقق من الحقول المطلوبة.");
     return;
@@ -118,33 +123,38 @@ async function save() {
   };
   try {
     let savedId = editingId.value;
-    if (editingId.value) {
-      await rentals.updateRental(editingId.value, payload);
+    const wasEditing = savedId !== null;
+    if (savedId !== null) {
+      await rentals.updateRental(savedId, payload);
+      changes.markSaved();
       notifySuccess("تم تحديث العرض الإيجاري.");
     } else {
       const created = await rentals.createRental(payload);
       savedId = created.id;
+      // مسودة «جديد» قبل تغيّر المفتاح إلى معرّف العرض.
+      changes.markSaved();
+      // تصير الصفحة صفحة تعديل العرض الجديد قبل أي خطوة أخرى، فحفظ ثانٍ
+      // (بعد إغلاق حوار المطابقات مثلاً) يحدّثه ولا يُنشئ عرضاً مكرّراً.
+      editingId.value = savedId;
+      await router.replace(`/rentals/${savedId}/edit`);
       notifySuccess("تمت إضافة العرض الإيجاري.");
     }
 
-    const destination = editingId.value
-      ? "/rentals"
-      : `/rentals/${savedId}/edit`;
-    if (savedId !== null) {
-      try {
-        const result = await requests.rentalRequestMatches(savedId);
-        matches.value = result.matches;
-        if (result.count) {
-          notifySuccess(`طلبات الإيجار المطابقة: ${result.count}.`);
-          pendingRedirect.value = destination;
-        }
-      } catch {
-        // Matching is advisory and must not block saving an offer.
+    // بعد الإضافة تبقى الصفحة على العرض الجديد لإضافة صوره.
+    const destination = wasEditing ? "/rentals" : null;
+    try {
+      const result = await requests.rentalRequestMatches(savedId);
+      matches.value = result.matches;
+      if (result.count) {
+        notifySuccess(`طلبات الإيجار المطابقة: ${result.count}.`);
+        pendingRedirect.value = destination;
       }
+    } catch {
+      // Matching is advisory and must not block saving an offer.
     }
 
     if (matches.value.length) matchDialog.value = true;
-    else await router.push(destination);
+    else if (destination) await router.push(destination);
   } catch (error) {
     notifyError(getErrorMessage(error));
   } finally {
@@ -169,20 +179,31 @@ function openMatch(match: MatchResult) {
   void router.push({ path: "/rental-requests", query: { open: String(id) } });
 }
 
-onMounted(async () => {
-  await loadLocations();
-  const id = Number(route.params.id);
-  if (id) {
+// المكوّن نفسه يخدم ‎/rentals/new‎ و‎/rentals/:id/edit‎ ويُعاد استخدامه عند
+// الانتقال بينهما، فيُحمَّل النموذج كلما تغيّر المعرّف لا عند التركيب وحده.
+watch(
+  () => Number(route.params.id) || null,
+  async (id) => {
+    if (id !== null && id === editingId.value) return;
+    await loadLocations();
+    if (!id) {
+      form.value = empty();
+      editingId.value = null;
+      changes.markLoaded();
+      return;
+    }
     try {
       const item = await rentals.getRental(id);
       form.value = toForm(item);
       editingId.value = id;
+      changes.markLoaded();
     } catch (error) {
       notifyError(getErrorMessage(error));
       await router.replace("/rentals");
     }
-  }
-});
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -190,6 +211,12 @@ onMounted(async () => {
     :title="isEditing ? 'تعديل عرض إيجاري' : 'إضافة عرض إيجاري'"
     subtitle="بيانات العرض الإيجاري."
   >
+    <DraftNotice
+      v-if="changes.draft.value"
+      :saved-at="changes.draft.value.savedAt"
+      @restore="changes.restoreDraft"
+      @discard="changes.discardDraft"
+    />
     <RentalForm
       ref="formRef"
       v-model="form"

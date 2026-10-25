@@ -10,22 +10,43 @@ import { formatShortDate, formatTime } from "../../utils/format";
  * أهم عمل معلّق، وبعده ما يليه باختصار. الترتيب من priorityItems وقواعده
  * مكتوبة هناك. items = null أثناء التحميل الأول.
  */
-const props = defineProps<{ items: PriorityItem[] | null }>();
+const props = defineProps<{
+  items: PriorityItem[] | null;
+  /** الأقسام التي فُحصت فعلاً، وهل فشل تحميل أحدها. */
+  scope: { appointments: boolean; matching: boolean; failed: boolean };
+}>();
 const emit = defineEmits<{ select: [DashboardSection] }>();
 
 const first = computed(() => props.items?.[0] ?? null);
 const others = computed(() => props.items?.slice(1, 3) ?? []);
+
+// عبارة الهدوء تنفي ما فُحص فقط: قسم لم يُحمَّل أو لا تسمح به الصلاحيات لا
+// يُقال عنه «لا شيء».
+const calmText = computed(() => {
+  const checked = [
+    ...(props.scope.appointments
+      ? ["لا مواعيد اليوم", "لا معاينات بلا متابعة"]
+      : []),
+    ...(props.scope.matching ? ["لا طلبات مطابقة أو عالقة"] : []),
+  ];
+  if (!checked.length) return "لا توجد أعمال معلّقة ضمن صلاحياتك.";
+  return `لا توجد أعمال معلّقة: ${checked.map((part, i) => (i ? `و${part}` : part)).join("، ")}.`;
+});
 </script>
 
 <template>
   <section class="priority" aria-label="الأولوية الآن" aria-live="polite">
     <v-skeleton-loader v-if="items === null" type="list-item-two-line" />
+    <div v-else-if="!first && scope.failed" class="priority__calm">
+      <v-icon icon="mdi-alert-outline" color="warning" size="20" />
+      <span
+        >تعذر تحميل بعض أقسام اللوحة، فلا يمكن تأكيد خلوّها من الأعمال المعلّقة.
+        أعد المحاولة بزر التحديث.</span
+      >
+    </div>
     <div v-else-if="!first" class="priority__calm">
       <v-icon icon="mdi-check-circle-outline" color="success" size="20" />
-      <span
-        >لا توجد أعمال معلّقة: لا مواعيد اليوم، ولا معاينات بلا متابعة، ولا
-        طلبات مطابقة أو عالقة.</span
-      >
+      <span>{{ calmText }}</span>
     </div>
     <template v-else>
       <div class="priority__main" :class="`priority__main--${first.tone}`">

@@ -17,7 +17,6 @@ defineProps<{ status: string; size?: string; label?: string }>();
     variant="tonal"
     label
   >
-    <v-icon icon="mdi-circle" size="6" class="me-2" />
     {{ label ?? statusLabel(status) }}
   </v-chip>
 </template>

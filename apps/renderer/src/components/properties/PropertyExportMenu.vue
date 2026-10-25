@@ -12,7 +12,11 @@ import {
 import { exportPropertyFolder } from "../../utils/listingExport";
 import type { PropertyRecord } from "../../types";
 
-const props = defineProps<{ property: PropertyRecord }>();
+const props = defineProps<{
+  property: PropertyRecord;
+  /** في شريط الأوامر زر نصي، وفي اللوحة الجانبية tonal. */
+  variant?: "tonal" | "text";
+}>();
 
 const { notifySuccess, notifyError } = useSnackbar();
 
@@ -85,7 +89,7 @@ async function doAd() {
     <template #activator="{ props: menuProps }">
       <v-btn
         v-bind="menuProps"
-        variant="tonal"
+        :variant="props.variant ?? 'tonal'"
         prepend-icon="mdi-export-variant"
         append-icon="mdi-chevron-down"
       >

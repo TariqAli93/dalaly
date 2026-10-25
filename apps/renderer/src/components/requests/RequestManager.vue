@@ -26,6 +26,7 @@ import { usePermissions } from "../../composables/usePermissions";
 import { useSnackbar } from "../../composables/useSnackbar";
 import { createPagedList } from "../../composables/usePagedList";
 import { formatMoney } from "../../utils/format";
+import { AMENITY_OPTIONS, splitAmenityKeys } from "../../utils/amenities";
 import type {
   MatchResult,
   PageQuery,
@@ -71,7 +72,10 @@ const form = ref({
   status: "open",
   notes: "",
 });
-const amenitiesInput = ref("");
+// مفاتيح القائمة نفسها التي تحفظها العروض، وإلا لم تتحقق المطابقة أبداً.
+const amenityKeys = ref<string[]>([]);
+// مميزات طلبات قديمة كُتبت نصاً حراً ولا تقابل خياراً؛ تُحفظ كما هي حتى يزيلها المستخدم.
+const otherAmenities = ref<string[]>([]);
 const title = computed(() =>
   props.mode === "rental" ? "طلبات الإيجار" : "طلبات الشراء",
 );
@@ -184,11 +188,21 @@ function resetForm() {
     status: "open",
     notes: "",
   };
-  amenitiesInput.value = "";
+  amenityKeys.value = [];
+  otherAmenities.value = [];
 }
+// ما فُتح به الحوار: بعد أي تعديل لا يُغلقه Esc ولا النقر خارجه، فلا يضيع
+// طلب كُتب نصفه؛ «إلغاء» يبقى طريق الإغلاق المقصود.
+const openedWith = ref("");
+const formSnapshot = () =>
+  JSON.stringify([form.value, amenityKeys.value, otherAmenities.value]);
+const formDirty = computed(
+  () => dialog.value && formSnapshot() !== openedWith.value,
+);
 function openCreate() {
   editing.value = null;
   resetForm();
+  openedWith.value = formSnapshot();
   dialog.value = true;
 }
 function openEdit(item: RentalRequestRecord | PurchaseRequestRecord) {
@@ -217,8 +231,14 @@ function openEdit(item: RentalRequestRecord | PurchaseRequestRecord) {
     status: item.status,
     notes: item.notes ?? "",
   };
-  amenitiesInput.value = Object.keys(item.amenities ?? {}).join(", ");
+  const { known, other } = splitAmenityKeys(item.amenities);
+  amenityKeys.value = known;
+  otherAmenities.value = other;
+  openedWith.value = formSnapshot();
   dialog.value = true;
+}
+function removeOtherAmenity(name: string) {
+  otherAmenities.value = otherAmenities.value.filter((item) => item !== name);
 }
 function payload() {
   const base = {
@@ -228,11 +248,7 @@ function payload() {
     area_min: numberOrNull(form.value.area_min),
     area_max: numberOrNull(form.value.area_max),
     amenities: Object.fromEntries(
-      amenitiesInput.value
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean)
-        .map((value) => [value, true]),
+      [...otherAmenities.value, ...amenityKeys.value].map((key) => [key, true]),
     ),
   };
   if (props.mode === "rental") return base;
@@ -240,13 +256,14 @@ function payload() {
   return purchase;
 }
 async function save() {
+  if (saving.value) return;
   if (!form.value.person_id) {
     notifyError("اختر العميل أولاً.");
     return;
   }
   saving.value = true;
+  let saved: RentalRequestRecord | PurchaseRequestRecord;
   try {
-    let saved: RentalRequestRecord | PurchaseRequestRecord;
     if (props.mode === "rental")
       saved = editing.value
         ? await requests.updateRentalRequest(editing.value.id, payload())
@@ -255,20 +272,31 @@ async function save() {
       saved = editing.value
         ? await requests.updatePurchaseRequest(editing.value.id, payload())
         : await requests.createPurchaseRequest(payload());
+  } catch (error) {
+    notifyError(getErrorMessage(error));
+    saving.value = false;
+    return;
+  }
+  // حُفظ الطلب: يصير الحوار حوار تعديله، فلا يُنشئ تكرار المحاولة طلباً ثانياً.
+  editing.value = saved;
+  dialog.value = false;
+  void list.reload();
+  try {
+    // المطابقة استشارية: فشلها لا يُبطل الحفظ ولا يعيد فتح النموذج.
     const result =
       props.mode === "rental"
         ? await requests.rentalOfferMatches(saved.id)
         : await requests.purchaseOfferMatches(saved.id);
     matches.value = result.matches;
     matchTitle.value = "العروض المطابقة";
-    dialog.value = false;
-    await list.reload();
     notifySuccess(
       `تم حفظ ${endpointLabel.value}. العروض المطابقة: ${result.count}.`,
     );
     if (result.count) matchDialog.value = true;
-  } catch (error) {
-    notifyError(getErrorMessage(error));
+  } catch {
+    notifySuccess(
+      `تم حفظ ${endpointLabel.value}. تعذر عرض المطابقات الآن؛ افتحها من زر «المطابقات» في الجدول.`,
+    );
   } finally {
     saving.value = false;
   }
@@ -403,7 +431,11 @@ onBeforeUnmount(() => {
         >
       </v-data-table-server></v-card
     >
-    <v-dialog v-model="dialog" max-width="900"
+    <v-dialog
+      v-model="dialog"
+      max-width="900"
+      scrollable
+      :persistent="formDirty || saving"
       ><v-card
         ><v-card-title
           >{{ editing ? "تعديل" : "إضافة" }} {{ endpointLabel }}</v-card-title
@@ -464,9 +496,34 @@ onBeforeUnmount(() => {
             v-model:neighborhood-id="form.neighborhood_id"
             v-model:governorate-text="form.governorate"
             v-model:district-text="form.district"
-            v-model:neighborhood-text="form.neighborhood" /><v-text-field
-            v-model="amenitiesInput"
-            label="المميزات (مفصولة بفواصل)" /><v-textarea
+            v-model:neighborhood-text="form.neighborhood" />
+          <fieldset class="request-amenities">
+            <legend class="text-subtitle-2">المميزات المطلوبة</legend>
+            <v-chip-group v-model="amenityKeys" column multiple>
+              <v-chip
+                v-for="item in AMENITY_OPTIONS"
+                :key="item.key"
+                :value="item.key"
+                filter
+                variant="outlined"
+                >{{ item.title }}</v-chip
+              >
+            </v-chip-group>
+            <div v-if="otherAmenities.length" class="request-amenities__other">
+              <span class="text-medium-emphasis"
+                >مكتوبة يدوياً ولا تدخل في المطابقة:</span
+              >
+              <v-chip
+                v-for="name in otherAmenities"
+                :key="name"
+                closable
+                :close-label="`إزالة ${name}`"
+                @click:close="removeOtherAmenity(name)"
+                >{{ name }}</v-chip
+              >
+            </div>
+          </fieldset>
+          <v-textarea
             v-model="form.other_requirements"
             label="متطلبات إضافية"
             rows="2" /><v-textarea
@@ -500,5 +557,17 @@ onBeforeUnmount(() => {
   .form-grid {
     grid-template-columns: 1fr;
   }
+}
+.request-amenities {
+  border: 0;
+  margin: 8px 0 12px;
+  padding: 0;
+}
+.request-amenities__other {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
 }
 </style>

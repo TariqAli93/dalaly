@@ -15,6 +15,7 @@ import {
 import { setUnauthorizedHandler } from "./services/api.service";
 import { useAuth } from "./composables/useAuth";
 import { useSetup } from "./composables/useSetup";
+import { stashOpenDrafts } from "./composables/useDirtyForm";
 
 // Startup marks, read by scripts/perf/startup-trace.mjs.
 performance.mark("dalaly:modules-evaluated");
@@ -42,10 +43,12 @@ function initialTheme() {
 // كثافة سطح المكتب: حقول بإطار ومضغوطة (40px) — لغة برامج Windows لا
 // لغة الويب. hideDetails:"auto" يحذف شريط الرسائل (22px) المحجوز تحت كل
 // حقل ولا يُظهره إلا عند خطأ تحقق أو hint، وهو أكبر مكسب في كثافة النماذج.
+// rounded: true هو 4px: زاويتان فقط في النظام، 4px للعناصر و8px للألواح
+// والحوارات (VCard وVAlert وVSnackbar).
 const field = {
   variant: "outlined",
   density: "compact",
-  rounded: "lg",
+  rounded: true,
   // hideDetails: "auto",
 };
 
@@ -95,15 +98,15 @@ const vuetify = createVuetify({
     // بـ !important فتمسح ظل كل نافذة حوار وقائمة تحتوي VCard، فتبدو
     // الحوارات ملتصقة بالخلفية. flat يعطي المظهر نفسه بلا هذا الأثر، ومن
     // يمرّر elevation صراحةً يحصل عليه كما كان.
-    VBtn: { variant: "flat", density: "comfortable", rounded: "lg" },
+    VBtn: { variant: "flat", density: "comfortable", rounded: true },
     VCard: { variant: "flat", rounded: "lg" },
     // VDialog وVMenu لا يملكان خاصية rounded فكانت تُتجاهل بصمت: الحوار
     // يأخذ استدارته من VCard، والقوائم من vuetify-overrides.css.
 
-    VChip: { rounded: "lg" },
+    VChip: { rounded: true },
     VAlert: { rounded: "lg" },
     VSnackbar: { rounded: "lg" },
-    VTabs: { height: 44 },
+    VTabs: { height: 40 },
     // تشمل قوائم VSelect وVAutocomplete المنسدلة: 40px للعنصر بدل 48
     VList: { density: "compact" },
     // تأخير كبرامج سطح المكتب، وفوق العنصر بدل جانبه (الافتراضي end)
@@ -121,52 +124,14 @@ const vuetify = createVuetify({
     themes: configuredThemes(),
   },
 });
-// const vuetify = createVuetify({
-//   locale: {
-//     locale: "ar",
-//     fallback: "ar",
-//     messages: { ar },
-//     rtl: { ar: true },
-//   },
-//   // كثافة سطح المكتب: حقول محدّدة بإطار ومضغوطة، وأزرار أقصر — لغة برامج
-//   // Windows لا لغة الويب. compact يقارب ارتفاع 40px للحقول.
-//   defaults: {
-//     VTextField: { variant: "outlined", density: "compact", rounded: "lg" },
-//     VSelect: { variant: "outlined", density: "compact", rounded: "lg" },
-//     VAutocomplete: {
-//       variant: "outlined",
-//       density: "compact",
-//       rounded: "lg",
-//     },
-//     VCombobox: { variant: "outlined", density: "compact", rounded: "lg" },
-//     VTextarea: { variant: "outlined", density: "compact", rounded: "lg" },
-//     VFileInput: {
-//       variant: "outlined",
-//       density: "compact",
-//       rounded: "lg",
-//     },
-//     VBtn: { density: "comfortable", rounded: "lg", elevation: 0 },
-//     VCard: { rounded: "lg", elevation: 0 },
-//     VDialog: { rounded: "lg" },
-//     VMenu: { rounded: "lg" },
-//     VChip: { rounded: "lg" },
-//     VTabs: { height: 44 },
-//     VDataTable: { density: "compact" },
-//   },
-//   theme: {
-//     defaultTheme:
-//       localStorage.getItem("dalaly.theme") === "dalalyDark"
-//         ? "dalalyDark"
-//         : "dalalyLight",
-//     themes: configuredThemes(),
-//   },
-// });
-
 // عند انتهاء الجلسة (401) في أي طلب: امسح الحالة وانتقل لتسجيل الدخول.
 setUnauthorizedHandler(() => {
+  const current = router.currentRoute.value;
+  // تعديلات نموذج مفتوح تُحفظ مسودةً، ويعود المستخدم إلى الصفحة نفسها بعد الدخول.
+  stashOpenDrafts();
   useAuth().clearAuthState();
-  if (router.currentRoute.value.path !== "/login") {
-    void router.push({ path: "/login" });
+  if (current.path !== "/login") {
+    void router.push({ path: "/login", query: { redirect: current.fullPath } });
   }
 });
 

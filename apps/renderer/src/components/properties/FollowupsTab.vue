@@ -21,6 +21,9 @@ const { openConfirm } = useConfirm();
 
 const followups = ref<FollowupRecord[]>([]);
 const loading = ref(false);
+// فشل التحميل يُعرض مكانه مع إعادة، لا «لا توجد متابعات».
+const loadError = ref<string | null>(null);
+const saving = ref(false);
 const dialog = ref(false);
 const editingId = ref<number | null>(null);
 const form = ref<{ type: FollowupType; notes: string; scheduled_at: string }>({
@@ -41,10 +44,11 @@ function toLocalInput(iso: string | null) {
 
 async function load() {
   loading.value = true;
+  loadError.value = null;
   try {
     followups.value = await followupsService.listFollowups(props.propertyId);
   } catch (error) {
-    notifyError(getErrorMessage(error));
+    loadError.value = getErrorMessage(error);
   } finally {
     loading.value = false;
   }
@@ -61,6 +65,8 @@ function openDialog(followup?: FollowupRecord) {
 }
 
 async function save() {
+  if (saving.value) return;
+  saving.value = true;
   try {
     const payload = {
       type: form.value.type,
@@ -83,6 +89,8 @@ async function save() {
     notifySuccess("تم حفظ المتابعة.");
   } catch (error) {
     notifyError(getErrorMessage(error));
+  } finally {
+    saving.value = false;
   }
 }
 
@@ -102,12 +110,15 @@ function askDelete(followup: FollowupRecord) {
 
 watch(() => props.propertyId, load);
 onMounted(load);
+
+/** للصفحة: بعد «تسجيل متابعة» من شريط الأوامر. */
+defineExpose({ reload: load });
 </script>
 
 <template>
   <div>
     <div class="d-flex align-center mb-2">
-      <span class="text-subtitle-2">سجل المتابعات</span>
+      <h2 class="followups__title">سجل المتابعات</h2>
       <v-spacer />
       <v-btn
         v-if="can('followups.create')"
@@ -125,10 +136,22 @@ onMounted(load);
       color="primary"
       class="mb-2"
     />
+    <v-alert
+      v-else-if="loadError"
+      type="error"
+      variant="tonal"
+      density="compact"
+    >
+      تعذر تحميل المتابعات: {{ loadError }}
+      <template #append>
+        <v-btn variant="text" size="small" @click="load">إعادة المحاولة</v-btn>
+      </template>
+    </v-alert>
     <v-empty-state
       v-else-if="!followups.length"
       icon="mdi-clipboard-text-clock-outline"
       title="لا توجد متابعات"
+      text="سجّل اتصالاً أو معاينة أو موعداً ليظهر هنا."
     />
     <v-timeline v-else density="compact" side="end" align="start">
       <v-timeline-item
@@ -149,24 +172,35 @@ onMounted(load);
             <div class="text-caption text-medium-emphasis">
               {{ item.user_name || "—" }} · {{ fmt(item.created_at) }}
               <span v-if="item.scheduled_at">
-                · ⏰ موعد: {{ fmt(item.scheduled_at) }}
+                ·
+                <v-icon
+                  icon="mdi-calendar-clock"
+                  size="14"
+                  aria-hidden="true"
+                />
+                موعد: {{ fmt(item.scheduled_at) }}
               </span>
             </div>
           </div>
           <div>
             <v-btn
               v-if="can('followups.update')"
-              icon="mdi-pencil"
-              size="x-small"
+              icon="mdi-pencil-outline"
+              size="small"
               variant="text"
+              title="تعديل"
+              :aria-label="`تعديل متابعة ${followupTypeLabel(item.type)}`"
               @click="openDialog(item)"
             />
             <v-btn
               v-if="can('followups.delete')"
               icon="mdi-delete-outline"
-              size="x-small"
+              size="small"
               variant="text"
               color="error"
+              class="ms-2"
+              title="حذف"
+              :aria-label="`حذف متابعة ${followupTypeLabel(item.type)}`"
               @click="askDelete(item)"
             />
           </div>
@@ -174,8 +208,13 @@ onMounted(load);
       </v-timeline-item>
     </v-timeline>
 
-    <v-dialog v-model="dialog" width="520">
-      <v-card>
+    <v-dialog
+      v-model="dialog"
+      width="520"
+      :persistent="saving"
+      :aria-label="editingId ? 'تعديل متابعة' : 'إضافة متابعة'"
+    >
+      <v-card tag="form" @submit.prevent="save">
         <v-card-title>{{
           editingId ? "تعديل متابعة" : "إضافة متابعة"
         }}</v-card-title>
@@ -190,10 +229,22 @@ onMounted(load);
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="dialog = false">إلغاء</v-btn>
-          <v-btn color="primary" variant="flat" @click="save">حفظ</v-btn>
+          <v-btn variant="text" :disabled="saving" @click="dialog = false"
+            >إلغاء</v-btn
+          >
+          <v-btn color="primary" variant="flat" type="submit" :loading="saving"
+            >حفظ</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
   </div>
 </template>
+
+<style scoped>
+.followups__title {
+  margin: 0;
+  font-size: calc(14px * var(--dal-font-scale));
+  font-weight: 700;
+}
+</style>

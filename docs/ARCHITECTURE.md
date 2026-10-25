@@ -55,6 +55,19 @@ Electron main (apps/desktop/src)
 The per-launch `INTERNAL_TOKEN` (environment of the API child) authenticates
 main-process calls such as setup proxying and the scheduled backup run.
 
+### Closing and quitting
+
+- A form with unsaved changes (`useDirtyForm`) cancels `beforeunload`, and
+  `main.js` answers `will-prevent-unload` with a native "تعديلات غير محفوظة"
+  box whose default is to stay. The renderer cancels only when
+  `platform.guardsUnsavedClose` is true. The browser always asks; on the
+  desktop the preload's `confirmsUnsavedClose` flag says the main process
+  will ask, so an older build is never left with a window that will not close.
+- That box can cancel a quit that has already started, such as File → Exit
+  from the default menu. So the API child and the backup scheduler stop on
+  `will-quit`, which Electron emits only after every window has closed, and
+  `before-quit` only closes the splash.
+
 ## Electron main (`apps/desktop/src`)
 
 | File                                | Responsibility                                                                             |

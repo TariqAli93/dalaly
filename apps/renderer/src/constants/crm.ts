@@ -2,6 +2,7 @@ import type {
   DocumentSortKey,
   FollowupType,
   ListSortOption,
+  PersonRecord,
   PersonSortKey,
   PurchaseRequestSortKey,
 } from "../types";
@@ -40,6 +41,21 @@ export function personStatusLabel(value: string) {
     )[value] ?? value
   );
 }
+
+/**
+ * تصفية جدول الزبائن بالحالة. "current" لا يُرسل حالةً، فيعيد الخادم غير
+ * المؤرشفين؛ لا طريق إلى المؤرشف إلا بطلبه صراحة.
+ */
+export type PersonStatusFilter = PersonRecord["status"] | "current";
+export const PERSON_STATUS_FILTERS: Array<{
+  title: string;
+  value: PersonStatusFilter;
+}> = [
+  { title: "الحاليون", value: "current" },
+  { title: "نشط", value: "active" },
+  { title: "غير نشط", value: "inactive" },
+  { title: "المؤرشفون", value: "archived" },
+];
 
 /** أنواع المتابعة كما يقبلها الخادم، للعروض والإيجارات معاً. */
 export const FOLLOWUP_TYPES: Array<{

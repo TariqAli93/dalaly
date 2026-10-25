@@ -66,6 +66,8 @@ interface DalalyConfigBridge {
     config: unknown,
   ) => Promise<{ ok: boolean; message?: string }>;
   getScheduledBackup?: () => Promise<Record<string, unknown> | null>;
+  /** العملية الرئيسية تسأل عند إغلاق نافذة بنموذج غير محفوظ. */
+  confirmsUnsavedClose?: boolean;
 }
 
 interface Window {

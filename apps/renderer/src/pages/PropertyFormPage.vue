@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, ref, useTemplateRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import PropertyForm from "../components/properties/PropertyForm.vue";
@@ -10,6 +10,12 @@ import { useSnackbar } from "../composables/useSnackbar";
 import * as requests from "../services/requests.service";
 import { toNumber } from "../utils/format";
 import MatchingResultsDialog from "../components/requests/MatchingResultsDialog.vue";
+import DraftNotice from "../components/shared/DraftNotice.vue";
+import { useDirtyForm } from "../composables/useDirtyForm";
+import { useApiFormErrors } from "../composables/useApiFormErrors";
+import { useSaveShortcut } from "../composables/useSaveShortcut";
+import { useLocations } from "../composables/useLocations";
+import { samePlot } from "../utils/plotIdentity";
 import type {
   MatchResult,
   PropertyForm as PropertyFormType,
@@ -19,6 +25,8 @@ import type {
 const route = useRoute();
 const router = useRouter();
 const { service, startFromFirstPage } = useProperties();
+const { activeGovernorates, districtsByGovernorate, neighborhoodsByDistrict } =
+  useLocations();
 const { notifySuccess, notifyError } = useSnackbar();
 
 function defaultForm(): PropertyFormType {
@@ -73,7 +81,8 @@ function propertyToForm(p: PropertyRecord): PropertyFormType {
     name: p.name ?? "",
     property_type: p.property_type,
     legal_type: p.legal_type,
-    area_value: p.area_value,
+    // عمود numeric يصل بخانتين عشريتين («800.00»)، والأصفار الزائدة ضجيج في الحقل.
+    area_value: String(Number(p.area_value)),
     area_unit: p.area_unit,
     pricing_method: p.pricing_method,
     unit_price: p.unit_price ?? "",
@@ -112,12 +121,21 @@ function propertyToForm(p: PropertyRecord): PropertyFormType {
 const editingId = ref<number | null>(null);
 const form = ref<PropertyFormType>(defaultForm());
 const saving = ref(false);
-const formRef = ref<{ validate: () => Promise<boolean> } | null>(null);
+const formRef = useTemplateRef<{
+  validate: () => Promise<boolean>;
+  focusField: (name: string) => Promise<void>;
+}>("formRef");
 const matchDialog = ref(false);
 const matches = ref<MatchResult[]>([]);
 const pendingRedirect = ref<string | null>(null);
 
 const isEditing = computed(() => editingId.value !== null);
+const changes = useDirtyForm(
+  form,
+  () => `property:${editingId.value ?? "new"}`,
+);
+const apiErrors = useApiFormErrors();
+useSaveShortcut(() => void save());
 
 const computedTotal = computed(() => {
   if (form.value.pricing_method === DIRECT_PRICE) {
@@ -143,12 +161,101 @@ function isPayloadValid() {
   return toNumber(form.value.unit_price) > 0 && computedTotal.value > 0;
 }
 
-async function save() {
-  const valid = await formRef.value?.validate();
-  if (!valid) {
-    notifyError("تحقق من الحقول المطلوبة قبل الحفظ.");
+// ─── تحذير تكرار القطعة قبل الحفظ ──────────────────────────────────────
+// هوية القطعة كما يقارنها الخادم (الموقع بالاسم + رقم القطعة وحرفها). البحث
+// يجلب المرشّحين برقم القطعة، والمقارنة الدقيقة هنا؛ الخادم يبقى الحَكَم (409).
+const duplicate = ref<{ id: number; label: string; owner: string } | null>(
+  null,
+);
+function locationNames() {
+  const f = form.value;
+  const governorate =
+    activeGovernorates.value.find((g) => g.id === f.governorate_id)?.name ??
+    f.governorate_text;
+  const district =
+    districtsByGovernorate(f.governorate_id).find((d) => d.id === f.district_id)
+      ?.name ?? f.district_text;
+  const neighborhood =
+    neighborhoodsByDistrict(f.district_id).find(
+      (n) => n.id === f.neighborhood_id,
+    )?.name ?? f.neighborhood_text;
+  return { governorate, district, neighborhood };
+}
+let duplicateTimer: ReturnType<typeof setTimeout> | undefined;
+let duplicateController: AbortController | null = null;
+async function checkDuplicate() {
+  duplicateController?.abort();
+  const plotNumber = form.value.plot_number?.trim();
+  if (!plotNumber) {
+    duplicate.value = null;
     return;
   }
+  const controller = new AbortController();
+  duplicateController = controller;
+  try {
+    const page = await service.listPropertiesPage(
+      { plot_number: plotNumber },
+      { page: 1, page_size: 50, sort_by: "updated_at", sort_order: "desc" },
+      controller.signal,
+    );
+    if (controller.signal.aborted) return;
+    const current = {
+      ...locationNames(),
+      plotNumber,
+      plotLetter: form.value.plot_letter,
+    };
+    const match = page.items.find(
+      (item) =>
+        item.id !== editingId.value &&
+        samePlot(
+          {
+            governorate: item.governorate,
+            district: item.district,
+            neighborhood: item.neighborhood,
+            plotNumber: item.plot_number,
+            plotLetter: item.plot_letter,
+          },
+          current,
+        ),
+    );
+    duplicate.value = match
+      ? {
+          id: match.id,
+          label: match.name || `عقار ${match.code}`,
+          owner: match.owner_name || "—",
+        }
+      : null;
+  } catch {
+    // التحذير استشاري: فشله لا يمنع الحفظ، والخادم يرفض التكرار نفسه.
+  }
+}
+watch(
+  () => [
+    form.value.plot_number,
+    form.value.plot_letter,
+    form.value.governorate_id,
+    form.value.district_id,
+    form.value.neighborhood_id,
+    form.value.governorate_text,
+    form.value.district_text,
+    form.value.neighborhood_text,
+  ],
+  () => {
+    clearTimeout(duplicateTimer);
+    duplicateTimer = setTimeout(() => void checkDuplicate(), 400);
+  },
+);
+onBeforeUnmount(() => {
+  clearTimeout(duplicateTimer);
+  duplicateController?.abort();
+});
+
+async function save() {
+  // Enter في حقل يرسل النموذج حتى أثناء الحفظ؛ loading يمنع النقر وحده.
+  if (saving.value) return;
+  apiErrors.clear();
+  // التحقق يركّز أول حقل خاطئ ويُظهر رسالته تحته.
+  if (!(await formRef.value?.validate())) return;
   if (!isPayloadValid()) {
     notifyError("تعذر حفظ العرض: أدخل سعراً إجمالياً صحيحاً وبيانات المالك.");
     return;
@@ -169,33 +276,47 @@ async function save() {
     let savedId = editingId.value;
     if (editingId.value !== null) {
       await service.updateProperty(editingId.value, payload);
+      changes.markSaved();
       notifySuccess("تم تحديث العرض.");
     } else {
       const created = await service.createProperty(payload);
       savedId = created.id;
-      notifySuccess("تمت إضافة العرض.");
+      // مسودة «جديد» قبل تغيّر المفتاح إلى معرّف العرض.
+      changes.markSaved();
+      // حفظ ثانٍ والحوار مفتوح يحدّث العرض الجديد ولا يكرّره.
+      editingId.value = savedId;
+      notifySuccess("تمت إضافة العرض. أضف صوره من صفحته.");
     }
-    if (savedId !== null) {
-      try {
-        const result = await requests.purchaseRequestMatches(savedId);
-        matches.value = result.matches;
-        if (result.count) {
-          notifySuccess(`طلبات الشراء المطابقة: ${result.count}.`);
-          pendingRedirect.value = "/properties";
-        }
-      } catch {
-        // Matching is advisory and must not block saving an offer.
+    // بعد الحفظ صفحة العرض نفسه (وفيها الصور)، لا القائمة.
+    const destination = `/properties/${savedId}`;
+    try {
+      const result = await requests.purchaseRequestMatches(savedId!);
+      matches.value = result.matches;
+      if (result.count) {
+        notifySuccess(`طلبات الشراء المطابقة: ${result.count}.`);
+        pendingRedirect.value = destination;
       }
+    } catch {
+      // Matching is advisory and must not block saving an offer.
     }
     // صفحة العروض تحمّل أول صفحة حين تُفتح بعد الحفظ.
     startFromFirstPage();
     if (matches.value.length) matchDialog.value = true;
-    else await router.push("/properties");
+    else await router.push(destination);
   } catch (error) {
-    notifyError(getErrorMessage(error));
+    const general = apiErrors.apply(error);
+    if (general) notifyError(general);
+    const first = apiErrors.fields()[0];
+    if (first) void formRef.value?.focusField(first);
   } finally {
     saving.value = false;
   }
+}
+
+function cancel() {
+  void router.push(
+    editingId.value !== null ? `/properties/${editingId.value}` : "/properties",
+  );
 }
 
 function closeMatches(value: boolean) {
@@ -215,31 +336,58 @@ function openMatch(match: MatchResult) {
   void router.push({ path: "/purchase-requests", query: { open: String(id) } });
 }
 
-onMounted(async () => {
-  const idParam = route.params.id;
-  if (idParam) {
-    const id = Number(idParam);
+// المكوّن نفسه يخدم ‎/properties/new‎ و‎/properties/:id/edit‎ ويُعاد استخدامه
+// عند الانتقال بينهما، فيُحمَّل النموذج كلما تغيّر المعرّف.
+watch(
+  () => Number(route.params.id) || null,
+  async (id) => {
+    if (id !== null && id === editingId.value) return;
+    apiErrors.clear();
+    duplicate.value = null;
+    if (!id) {
+      form.value = defaultForm();
+      editingId.value = null;
+      changes.markLoaded();
+      return;
+    }
     try {
       const property = await service.getProperty(id);
       form.value = propertyToForm(property);
       editingId.value = id;
+      changes.markLoaded();
     } catch (error) {
       notifyError(getErrorMessage(error));
       await router.replace("/properties");
     }
-  }
-});
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
-  <AppPage :title="isEditing ? 'تعديل عرض عقاري' : 'إضافة عرض عقاري'">
+  <AppPage
+    :title="isEditing ? 'تعديل عرض عقاري' : 'إضافة عرض عقاري'"
+    :parent="
+      isEditing
+        ? { to: `/properties/${editingId}`, label: 'العرض' }
+        : { to: '/properties', label: 'عروض البيع' }
+    "
+  >
+    <DraftNotice
+      v-if="changes.draft.value"
+      :saved-at="changes.draft.value.savedAt"
+      @restore="changes.restoreDraft"
+      @discard="changes.discardDraft"
+    />
     <PropertyForm
       ref="formRef"
       v-model="form"
-      :editing="isEditing"
       :saving="saving"
+      :dirty="changes.isDirty.value"
+      :field-errors="apiErrors.errors.value"
+      :duplicate="duplicate"
       @submit="save"
-      @cancel="router.push('/properties')"
+      @cancel="cancel"
     />
     <MatchingResultsDialog
       :model-value="matchDialog"

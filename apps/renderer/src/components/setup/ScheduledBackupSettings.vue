@@ -12,6 +12,10 @@ const { t } = useI18n();
 
 const available = ref(platform.supportsScheduledBackup);
 const saving = ref(false);
+// فشل القراءة يترك القيم الافتراضية في النموذج؛ الحفظ عندها يكتبها فوق
+// الإعداد الحقيقي، فيُمنع حتى تنجح القراءة.
+const loadFailed = ref(false);
+const loading = ref(false);
 const password = ref("");
 // Encrypts the emailed copy; Electron main refuses shorter ones too.
 const MIN_BACKUP_PASSWORD_LENGTH = 8;
@@ -45,11 +49,15 @@ function fmt(value?: string | null) {
 
 async function load() {
   if (!platform.supportsScheduledBackup) return;
+  loading.value = true;
   try {
     const loaded = await platform.getScheduledBackup();
     if (loaded) config.value = { ...config.value, ...loaded };
+    loadFailed.value = false;
   } catch {
-    // تجاهل
+    loadFailed.value = true;
+  } finally {
+    loading.value = false;
   }
 }
 
@@ -71,6 +79,7 @@ async function save() {
     notifyError("الجدولة متاحة فقط داخل تطبيق سطح المكتب.");
     return;
   }
+  if (loadFailed.value) return;
   const problem = backupPasswordProblem();
   if (problem) {
     notifyError(problem);
@@ -114,6 +123,19 @@ onMounted(load);
         :text="t('backup.notAvailable')"
       />
       <template v-else>
+        <v-alert
+          v-if="loadFailed"
+          type="error"
+          variant="tonal"
+          class="mb-4"
+          text="تعذرت قراءة إعدادات النسخ المجدول المحفوظة. الحفظ متوقف كي لا تُستبدل بالقيم الظاهرة هنا."
+        >
+          <template #append>
+            <v-btn variant="text" :loading="loading" @click="load"
+              >إعادة المحاولة</v-btn
+            >
+          </template>
+        </v-alert>
         <v-alert
           type="warning"
           variant="tonal"
@@ -196,6 +218,7 @@ onMounted(load);
             v-if="can('backups.schedule')"
             color="primary"
             :loading="saving"
+            :disabled="loadFailed || loading"
             prepend-icon="mdi-content-save"
             @click="save"
           >

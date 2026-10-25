@@ -68,6 +68,12 @@ export interface PlatformAdapter {
   /** اختيار مجلد على القرص. غير مدعوم في المتصفح. */
   pickFolder(): Promise<PickedFolder>;
 
+  /**
+   * يجوز لنموذج غير محفوظ أن يلغي beforeunload لأن شيئاً سيسأل المستخدم:
+   * المتصفح دائماً، وElectron متى عالجت عمليته الرئيسية will-prevent-unload.
+   */
+  readonly guardsUnsavedClose: boolean;
+
   /** جدولة النسخ الاحتياطي بالبريد — Electron فقط. */
   readonly supportsScheduledBackup: boolean;
   getScheduledBackup(): Promise<ScheduledBackupConfig | null>;

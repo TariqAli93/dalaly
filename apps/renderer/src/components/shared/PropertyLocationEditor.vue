@@ -104,83 +104,79 @@ onBeforeUnmount(cancelResolution);
 </script>
 
 <template>
-  <v-card variant="flat" border rounded="lg" class="mt-4">
-    <v-card-title class="text-subtitle-1">موقع العقار</v-card-title>
-    <v-card-text>
-      <v-row>
-        <v-col cols="12" sm="6">
-          <v-text-field
-            :model-value="latitude"
-            label="خط العرض"
-            dir="ltr"
-            inputmode="decimal"
-            :rules="[(value: unknown) => coordinateRule(value, 90, longitude)]"
-            @update:model-value="manual($event, 'latitude')"
-          />
-        </v-col>
-        <v-col cols="12" sm="6">
-          <v-text-field
-            :model-value="longitude"
-            label="خط الطول"
-            dir="ltr"
-            inputmode="decimal"
-            :rules="[(value: unknown) => coordinateRule(value, 180, latitude)]"
-            @update:model-value="manual($event, 'longitude')"
-          />
-        </v-col>
-        <v-col cols="12">
-          <v-text-field
-            :model-value="link"
-            label="رابط الموقع"
-            dir="ltr"
-            :loading="resolving"
-            maxlength="2048"
-            hint="الصق رابط OpenStreetMap أو Google Maps، أو أدخل الإحداثيات، أو حدد الموقع على الخريطة."
-            persistent-hint
-            :rules="[
-              (value: string | null) =>
-                !value ||
-                !!mapLinkUrl(value) ||
-                'أدخل رابط موقع صالحاً وآمناً.',
-            ]"
-            @update:model-value="inputLink"
-          />
-        </v-col>
-      </v-row>
-      <v-alert
-        v-if="warning"
-        type="warning"
+  <!-- داخل قسم «الموقع على الخريطة» في النموذج: لا بطاقة ولا عنوان ثانٍ. -->
+  <div class="location-editor">
+    <v-row>
+      <v-col cols="12" sm="6">
+        <v-text-field
+          :model-value="latitude"
+          label="خط العرض"
+          dir="ltr"
+          inputmode="decimal"
+          :rules="[(value: unknown) => coordinateRule(value, 90, longitude)]"
+          @update:model-value="manual($event, 'latitude')"
+        />
+      </v-col>
+      <v-col cols="12" sm="6">
+        <v-text-field
+          :model-value="longitude"
+          label="خط الطول"
+          dir="ltr"
+          inputmode="decimal"
+          :rules="[(value: unknown) => coordinateRule(value, 180, latitude)]"
+          @update:model-value="manual($event, 'longitude')"
+        />
+      </v-col>
+      <v-col cols="12">
+        <v-text-field
+          :model-value="link"
+          label="رابط الموقع"
+          dir="ltr"
+          :loading="resolving"
+          maxlength="2048"
+          hint="الصق رابط OpenStreetMap أو Google Maps، أو أدخل الإحداثيات، أو حدد الموقع على الخريطة."
+          persistent-hint
+          :rules="[
+            (value: string | null) =>
+              !value || !!mapLinkUrl(value) || 'أدخل رابط موقع صالحاً وآمناً.',
+          ]"
+          @update:model-value="inputLink"
+        />
+      </v-col>
+    </v-row>
+    <v-alert
+      v-if="warning"
+      type="warning"
+      variant="tonal"
+      class="my-3"
+      aria-live="polite"
+      >{{ warning }}</v-alert
+    >
+    <v-sheet class="d-flex flex-wrap ga-2 my-3">
+      <v-btn
+        color="primary"
         variant="tonal"
-        class="my-3"
-        aria-live="polite"
-        >{{ warning }}</v-alert
+        prepend-icon="mdi-map-marker"
+        @click="showMap = !showMap"
       >
-      <v-sheet class="d-flex flex-wrap ga-2 my-3">
-        <v-btn
-          color="primary"
-          variant="tonal"
-          prepend-icon="mdi-map-marker"
-          @click="showMap = !showMap"
-        >
-          {{ showMap ? "إخفاء الخريطة" : "تحديد الموقع على الخريطة" }}
-        </v-btn>
-        <v-btn
-          variant="text"
-          prepend-icon="mdi-map-marker-remove-outline"
-          @click="clear"
-          >مسح الموقع</v-btn
-        >
-      </v-sheet>
-      <PropertyLocationMap
-        v-if="showMap"
-        v-model:latitude="latitude"
-        v-model:longitude="longitude"
-        @select="select"
-      />
-      <v-sheet v-if="showMap" class="text-caption text-medium-emphasis mt-2">
-        انقر على الخريطة أو اسحب العلامة. مركز بغداد الافتراضي لا يُحفظ حتى
-        تختار موقعاً.
-      </v-sheet>
-    </v-card-text>
-  </v-card>
+        {{ showMap ? "إخفاء الخريطة" : "تحديد الموقع على الخريطة" }}
+      </v-btn>
+      <v-btn
+        variant="text"
+        prepend-icon="mdi-map-marker-remove-outline"
+        @click="clear"
+        >مسح الموقع</v-btn
+      >
+    </v-sheet>
+    <PropertyLocationMap
+      v-if="showMap"
+      v-model:latitude="latitude"
+      v-model:longitude="longitude"
+      @select="select"
+    />
+    <v-sheet v-if="showMap" class="text-caption text-medium-emphasis mt-2">
+      انقر على الخريطة أو اسحب العلامة. مركز بغداد الافتراضي لا يُحفظ حتى تختار
+      موقعاً.
+    </v-sheet>
+  </div>
 </template>

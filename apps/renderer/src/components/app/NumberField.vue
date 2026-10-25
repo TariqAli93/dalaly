@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { normalizeDigits } from "../../utils/digits";
 
 /**
  * حقل رقمي يعرض الأرقام بفواصل آلاف لاتينية (112,345,123) أثناء الكتابة،
@@ -30,7 +31,8 @@ const display = computed(() => {
 });
 
 function onInput(value: string) {
-  let cleaned = (value ?? "").replace(/[^\d.]/g, "");
+  // الأرقام العربية الهندية تُحوَّل قبل التنظيف، وإلا حُذفت كأنها حروف.
+  let cleaned = normalizeDigits(value ?? "").replace(/[^\d.]/g, "");
   if (!props.decimals) {
     cleaned = cleaned.replace(/\./g, "");
   } else {

@@ -23,4 +23,9 @@ contextBridge.exposeInMainWorld("dalalyConfig", {
   saveScheduledBackup: (config) =>
     ipcRenderer.invoke("backup:save-schedule", config),
   getScheduledBackup: () => ipcRenderer.invoke("backup:get-schedule"),
+
+  // العملية الرئيسية تسأل عند إغلاق نافذة فيها نموذج غير محفوظ
+  // (will-prevent-unload). نسخة أقدم بلا هذا العلم تُبقي الإغلاق معلّقاً
+  // بلا سؤال، فلا يمنع العارض الإغلاق إلا بوجوده.
+  confirmsUnsavedClose: true,
 });

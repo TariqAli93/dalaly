@@ -13,10 +13,13 @@ import NumberField from "../app/NumberField.vue";
 import { formatMoney } from "../../utils/format";
 import type { PropertyFilters } from "../../types";
 
+/**
+ * شريط أدوات قائمة العروض داخل لوحها: صف للبحث والفلاتر الأساسية، وصف
+ * للعروض السريعة (#views) والشرائح والترتيب (#end). أي تغيّر يُطبَّق بعد توقّف
+ * قصير؛ Enter فوراً، وEsc يمسح البحث، و↓ ينقل التركيز إلى أول صف.
+ */
 const model = defineModel<PropertyFilters>({ required: true });
-// نفس العقد السابق: apply يُشغّل نفس loadProperties في الصفحة. لم يتغيّر أي
-// منطق بحث أو فلترة — تغيّر تنظيم الواجهة وتوقيت التطبيق فقط.
-const emit = defineEmits<{ apply: [] }>();
+const emit = defineEmits<{ apply: []; cleared: []; down: [] }>();
 
 const extraOpen = ref(false);
 const searchRef = ref<{ $el?: HTMLElement } | null>(null);
@@ -34,8 +37,6 @@ const neighborhoodItems = computed(() =>
   neighborhoodsByDistrict(model.value.district_id),
 );
 
-// بحث/فلترة فورية مع debounce: أي تغيّر في الفلاتر يعيد التحميل بعد توقّف
-// قصير، فيختفي زر "تطبيق". نفس الطلب ونفس القيم المرسلة إلى الـ API.
 let applyTimer: ReturnType<typeof setTimeout> | undefined;
 function scheduleApply(delay = 300) {
   if (applyTimer) clearTimeout(applyTimer);
@@ -43,7 +44,18 @@ function scheduleApply(delay = 300) {
 }
 watch(model, () => scheduleApply(), { deep: true });
 
-// حلّ أسماء المواقع للشرائح (من نفس قوائم الفلاتر الحالية).
+// اختيار المحافظة يصفّر المنطقة والحي، واختيار المنطقة يصفّر الحي: بدونهما
+// يبقى معرّف منطقة من محافظة أخرى فلا تظهر أي نتيجة ويُعرض المعرّف خاماً.
+function selectGovernorate(value: number | null) {
+  model.value.governorate_id = value;
+  model.value.district_id = null;
+  model.value.neighborhood_id = null;
+}
+function selectDistrict(value: number | null) {
+  model.value.district_id = value;
+  model.value.neighborhood_id = null;
+}
+
 function govName(id: number | null) {
   return activeGovernorates.value.find((g) => g.id === id)?.name ?? "";
 }
@@ -90,6 +102,21 @@ const chips = computed<Chip[]>(() => {
   return list;
 });
 
+// فلاتر اللوحة الجانبية وحدها، لعددها على زر «فلاتر إضافية».
+const EXTRA_KEYS = [
+  "legal_type",
+  "area_unit",
+  "pricing_method",
+  "district",
+  "plot_number",
+  "plot_letter",
+  "area",
+  "price",
+];
+const extraCount = computed(
+  () => chips.value.filter((chip) => EXTRA_KEYS.includes(chip.key)).length,
+);
+
 function removeChip(key: string) {
   const m = model.value;
   if (key === "area") {
@@ -98,15 +125,17 @@ function removeChip(key: string) {
   } else if (key === "price") {
     m.price_min = "";
     m.price_max = "";
+  } else if (key === "governorate_id") {
+    selectGovernorate(null);
+  } else if (key === "district_id") {
+    selectDistrict(null);
   } else if (key.endsWith("_id")) {
     (m as unknown as Record<string, number | null>)[key] = null;
   } else {
     (m as unknown as Record<string, string>)[key] = "";
   }
-  // التغيير يلتقطه الـ watch ويُعيد التحميل.
 }
 
-// مسح الكل: نصفّر الحقول محلياً (نفس مفعول clearFilters) ويطبّق الـ watch مرة.
 function clearAll() {
   Object.assign(model.value, {
     property_type: "",
@@ -126,19 +155,22 @@ function clearAll() {
     price_max: "",
     q: "",
   });
+  emit("cleared");
 }
 
-// اختصارات لوحة المفاتيح: Ctrl+F للتركيز على البحث، Escape لمسحه/إلغاء التركيز.
 function focusSearch() {
   const el = searchRef.value?.$el?.querySelector("input");
   el?.focus();
   el?.select();
 }
+// Ctrl+F بـ code لا key: على لوحة المفاتيح العربية key هو «ب». لا يُعترض
+// داخل حوار مفتوح.
 function onGlobalKeydown(event: KeyboardEvent) {
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
-    event.preventDefault();
-    focusSearch();
-  }
+  if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyF") return;
+  if (event.altKey || event.shiftKey) return;
+  if (document.querySelector(".v-overlay--active .v-dialog")) return;
+  event.preventDefault();
+  focusSearch();
 }
 function onSearchKeydown(event: KeyboardEvent) {
   if (event.key === "Escape") {
@@ -147,6 +179,9 @@ function onSearchKeydown(event: KeyboardEvent) {
   } else if (event.key === "Enter") {
     if (applyTimer) clearTimeout(applyTimer);
     emit("apply");
+  } else if (event.key === "ArrowDown") {
+    event.preventDefault();
+    emit("down");
   }
 }
 
@@ -158,46 +193,47 @@ onBeforeUnmount(() => {
   window.removeEventListener("keydown", onGlobalKeydown);
   if (applyTimer) clearTimeout(applyTimer);
 });
+
+defineExpose({ focusSearch });
 </script>
 
 <template>
-  <div class="dal-filters">
-    <!-- شريط البحث + الفلاتر الأساسية (≤6، فورية) -->
-    <div class="dal-filters__primary">
+  <div class="dal-toolbar">
+    <div class="dal-toolbar__row">
       <v-text-field
         ref="searchRef"
         v-model="model.q"
-        class="dal-search"
-        density="compact"
+        class="dal-toolbar__search"
         hide-details
         clearable
         prepend-inner-icon="mdi-magnify"
-        placeholder="ابحث باسم المالك، الهاتف، رقم القطعة، المنطقة أو أي وصف"
-        aria-label="بحث في العروض"
+        placeholder="بحث بالمالك أو الهاتف أو رقم القطعة أو الرمز (Ctrl+F)"
+        aria-label="بحث في عروض البيع"
+        aria-keyshortcuts="Control+F"
         @keydown="onSearchKeydown"
       />
       <v-select
-        v-model="model.governorate_id"
+        :model-value="model.governorate_id"
         :items="activeGovernorates"
         item-title="name"
         item-value="id"
         label="المحافظة"
-        density="compact"
         hide-details
         clearable
-        class="dal-filter-sel"
+        class="dal-toolbar__filter"
+        @update:model-value="selectGovernorate"
       />
       <v-select
-        v-model="model.district_id"
+        :model-value="model.district_id"
         :items="districtItems"
         item-title="name"
         item-value="id"
         label="المنطقة"
         :disabled="!model.governorate_id"
-        density="compact"
         hide-details
         clearable
-        class="dal-filter-sel"
+        class="dal-toolbar__filter"
+        @update:model-value="selectDistrict"
       />
       <v-select
         v-model="model.neighborhood_id"
@@ -206,62 +242,64 @@ onBeforeUnmount(() => {
         item-value="id"
         label="الحي"
         :disabled="!model.district_id"
-        density="compact"
         hide-details
         clearable
-        class="dal-filter-sel"
+        class="dal-toolbar__filter"
       />
+      <!-- الفلتر الفارغ "" لا null: Vuetify يعدّه قيمة فيرفع الوسم فوق حقل فارغ. -->
       <v-select
-        v-model="model.property_type"
+        :model-value="model.property_type || null"
         :items="PROPERTY_TYPES"
         label="النوع"
-        density="compact"
         hide-details
         clearable
-        class="dal-filter-sel"
+        class="dal-toolbar__filter"
+        @update:model-value="model.property_type = $event ?? ''"
       />
       <v-select
-        v-model="model.status"
+        :model-value="model.status || null"
         :items="STATUSES"
         label="الحالة"
-        density="compact"
         hide-details
         clearable
-        class="dal-filter-sel"
+        class="dal-toolbar__filter"
+        @update:model-value="model.status = $event ?? ''"
       />
+    </div>
+
+    <div class="dal-toolbar__row dal-toolbar__row--sub">
+      <slot name="views" />
+      <div v-if="chips.length" class="dal-toolbar__chips">
+        <v-chip
+          v-for="c in chips"
+          :key="c.key"
+          size="small"
+          variant="tonal"
+          label
+          closable
+          :close-label="`إزالة ${c.label}`"
+          @click:close="removeChip(c.key)"
+        >
+          {{ c.label }}
+        </v-chip>
+        <v-btn size="small" variant="text" @click="clearAll">مسح الكل</v-btn>
+      </div>
+      <v-spacer />
       <v-btn
         variant="text"
+        size="small"
         prepend-icon="mdi-tune-variant"
+        :aria-label="
+          extraCount ? `فلاتر إضافية، مفعّل منها ${extraCount}` : 'فلاتر إضافية'
+        "
         @click="extraOpen = true"
       >
         فلاتر إضافية
+        <span v-if="extraCount" class="dal-count ms-1">{{ extraCount }}</span>
       </v-btn>
+      <slot name="end" />
     </div>
 
-    <!-- ملخّص الفلاتر المطبّقة: شرائح صغيرة قابلة للإزالة فردياً -->
-    <div v-if="chips.length" class="dal-filters__chips">
-      <v-chip
-        v-for="c in chips"
-        :key="c.key"
-        size="small"
-        variant="tonal"
-        label
-        closable
-        @click:close="removeChip(c.key)"
-      >
-        {{ c.label }}
-      </v-chip>
-      <v-btn
-        v-if="chips.length > 1"
-        size="small"
-        variant="text"
-        @click="clearAll"
-      >
-        مسح الكل
-      </v-btn>
-    </div>
-
-    <!-- فلاتر إضافية داخل Panel جانبي (لا صفحة كاملة) -->
     <v-navigation-drawer
       v-model="extraOpen"
       temporary
@@ -276,42 +314,41 @@ onBeforeUnmount(() => {
           icon="mdi-close"
           size="small"
           variant="text"
-          aria-label="إغلاق"
+          aria-label="إغلاق الفلاتر الإضافية"
           @click="extraOpen = false"
         />
       </div>
       <v-divider />
       <div class="dal-extra__body">
         <v-select
-          v-model="model.legal_type"
+          :model-value="model.legal_type || null"
           :items="LEGAL_TYPES"
           label="الصفة القانونية"
-          density="compact"
           hide-details
           clearable
+          @update:model-value="model.legal_type = $event ?? ''"
         />
         <v-select
-          v-model="model.pricing_method"
+          :model-value="model.pricing_method || null"
           :items="PRICING_METHODS"
           label="طريقة التسعير"
-          density="compact"
           hide-details
           clearable
+          @update:model-value="model.pricing_method = $event ?? ''"
         />
         <v-select
-          v-model="model.area_unit"
+          :model-value="model.area_unit || null"
           :items="AREA_UNITS"
           label="وحدة المساحة"
-          density="compact"
           hide-details
           clearable
+          @update:model-value="model.area_unit = $event ?? ''"
         />
         <div class="dal-extra__pair">
           <NumberField
             v-model="model.price_min"
             :decimals="false"
             label="السعر من"
-            density="compact"
             hide-details
             clearable
           />
@@ -319,7 +356,6 @@ onBeforeUnmount(() => {
             v-model="model.price_max"
             :decimals="false"
             label="السعر إلى"
-            density="compact"
             hide-details
             clearable
           />
@@ -328,14 +364,12 @@ onBeforeUnmount(() => {
           <NumberField
             v-model="model.area_min"
             label="المساحة من"
-            density="compact"
             hide-details
             clearable
           />
           <NumberField
             v-model="model.area_max"
             label="المساحة إلى"
-            density="compact"
             hide-details
             clearable
           />
@@ -344,14 +378,12 @@ onBeforeUnmount(() => {
           <v-text-field
             v-model="model.plot_number"
             label="رقم القطعة"
-            density="compact"
             hide-details
             clearable
           />
           <v-text-field
             v-model="model.plot_letter"
             label="حرف القطعة"
-            density="compact"
             hide-details
             clearable
           />
@@ -359,7 +391,6 @@ onBeforeUnmount(() => {
         <v-text-field
           v-model="model.district"
           label="المنطقة (نص حر)"
-          density="compact"
           hide-details
           clearable
         />
@@ -369,40 +400,44 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.dal-filters {
-  margin-bottom: 8px;
+.dal-toolbar {
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--dal-stroke);
 }
-.dal-filters__primary {
+.dal-toolbar__row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: var(--dal-surface);
-  border: 1px solid var(--dal-stroke);
+  gap: 8px;
+  padding: 8px 12px 4px;
 }
-.dal-search {
-  flex: 2 1 300px;
-  min-width: 240px;
+.dal-toolbar__row--sub {
+  min-height: 36px;
+  padding-block: 0 4px;
 }
-.dal-filter-sel {
-  flex: 1 1 150px;
-  min-width: 132px;
-  max-width: 200px;
+/* الالتفاف يُقرَّر بالأساس لا بالعرض النهائي: أساس صغير يُبقي الصف واحداً حتى
+   لوح بعرض 760px تقريباً (1366px بتكبير 125%)، ثم تكبر الحقول لتملأه. */
+.dal-toolbar__search {
+  flex: 2 1 180px;
+  min-width: 180px;
 }
-.dal-filters__chips {
+.dal-toolbar__filter {
+  flex: 1 1 100px;
+  min-width: 100px;
+  max-width: 180px;
+}
+.dal-toolbar__chips {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  margin-top: 8px;
 }
 .dal-extra__header {
   display: flex;
   align-items: center;
   gap: 4px;
   padding: 8px 16px;
-  min-height: 52px;
+  min-height: 48px;
 }
 .dal-extra__body {
   display: flex;

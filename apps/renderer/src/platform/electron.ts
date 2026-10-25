@@ -17,6 +17,7 @@ function bridge() {
 export const electronPlatform: PlatformAdapter = {
   name: "electron",
   isDesktop: true,
+  guardsUnsavedClose: Boolean(bridge()?.confirmsUnsavedClose),
   supportsScheduledBackup: Boolean(bridge()?.getScheduledBackup),
   async exportPdf({ html, suggestedName }): Promise<SaveResult> {
     const api = bridge();

@@ -1,97 +1,79 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { computed } from "vue";
 import { useRouter } from "vue-router";
-import { useProperties } from "../../composables/useProperties";
 import { useAuth } from "../../composables/useAuth";
+import { usePageTitle } from "../../composables/usePageTitle";
+import { formatNumber } from "../../utils/format";
 import ThemeToggle from "./ThemeToggle.vue";
+import GlobalSearch from "./GlobalSearch.vue";
 
-// title للعرض فقط (يمرّره AppLayout من عنوان الصفحة الحالية)، وcanRefresh:
-// هل سجّلت الصفحة الحالية ما يعيد تحميلها.
-defineProps<{ title?: string; canRefresh?: boolean }>();
+// شريط الأوامر: عنوان الصفحة (h1) وسياقها وأوامرها على الحافة الأمامية، ثم
+// الأدوات العامة. الصفحة تكتب العنوان والسياق عبر AppPage، وترسل أوامرها
+// وحالتها إلى #dal-page-actions و#dal-page-status.
+defineProps<{ canRefresh?: boolean }>();
 const emit = defineEmits<{ refresh: []; "toggle-drawer": [] }>();
 
 const router = useRouter();
-const { filters, loadProperties, startFromFirstPage } = useProperties();
 const { currentUser, logout } = useAuth();
+const { pageTitle, pageParent, pageCount } = usePageTitle();
 
-// على صفحة العروض يحمّل الآن؛ من صفحة أخرى يفتحها على أول صفحة وتحمّلها هي.
-function runSearch() {
-  if (router.currentRoute.value.name === "properties") {
-    void loadProperties();
-    return;
-  }
-  startFromFirstPage();
-  void router.push("/properties");
-}
+const userName = computed(() => currentUser.value?.username ?? "مستخدم");
+const displayName = computed(
+  () => currentUser.value?.display_name || userName.value,
+);
 
 async function onLogout() {
   await logout();
   void router.push("/login");
 }
-
-// Ctrl+K يضع المؤشر في البحث من أي مكان. KeyK رمز المفتاح لا الحرف، فيعمل
-// مع لوحة المفاتيح العربية أيضاً؛ ولا يُعترض داخل حوار مفتوح.
-const search = ref<{ focus: () => void } | null>(null);
-function onShortcut(event: KeyboardEvent) {
-  if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyK") return;
-  if (event.altKey || event.shiftKey) return;
-  if (
-    document.querySelector(
-      ".v-overlay--active .v-dialog, .v-overlay--active.v-dialog",
-    )
-  )
-    return;
-  event.preventDefault();
-  search.value?.focus();
-}
-onMounted(() => window.addEventListener("keydown", onShortcut));
-onBeforeUnmount(() => window.removeEventListener("keydown", onShortcut));
 </script>
 
 <template>
-  <!-- Compact command bar with one aligned row of controls. -->
-  <v-app-bar color="background" class="top-navbar" height="60" flat>
+  <v-app-bar
+    color="background"
+    class="dal-commandbar"
+    height="48"
+    flat
+    role="banner"
+  >
     <v-app-bar-nav-icon
       aria-label="طيّ أو فتح قائمة التنقل"
       @click="emit('toggle-drawer')"
     />
 
-    <!-- عنوان القسم الحالي على الحافة الأمامية (يمين في RTL). -->
-    <div class="dal-command-title">
-      <v-icon icon="mdi-home-outline" size="16" class="text-medium-emphasis" />
-      <v-icon icon="mdi-chevron-left" size="14" class="text-medium-emphasis" />
-      <span class="dal-command-title__text">{{ title ?? "دلالي" }}</span>
+    <div class="dal-commandbar__title">
+      <template v-if="pageParent">
+        <router-link :to="pageParent.to" class="dal-commandbar__parent">{{
+          pageParent.label
+        }}</router-link>
+        <v-icon
+          icon="mdi-chevron-left"
+          size="16"
+          class="text-medium-emphasis"
+          aria-hidden="true"
+        />
+      </template>
+      <h1 id="dal-page-title" tabindex="-1">{{ pageTitle ?? "دلالي" }}</h1>
+      <span
+        v-if="pageCount !== null"
+        class="dal-count"
+        :aria-label="`عدد النتائج: ${pageCount}`"
+        >{{ formatNumber(pageCount, 0) }}</span
+      >
+      <div id="dal-page-status" class="dal-commandbar__status" />
     </div>
+
+    <div id="dal-page-actions" class="dal-commandbar__actions" />
 
     <v-spacer />
 
-    <!-- إجراءات الصفحة الأساسية (تُمرَّر من الصفحة عبر AppLayout). -->
-    <div class="dal-command-actions">
-      <slot name="actions" />
-    </div>
-
-    <v-text-field
-      ref="search"
-      v-model="filters.q"
-      class="global-search"
-      variant="solo-filled"
-      flat
-      density="compact"
-      hide-details
-      clearable
-      prepend-inner-icon="mdi-magnify"
-      placeholder="بحث في عروض البيع… (Ctrl+K)"
-      aria-label="بحث في عروض البيع"
-      aria-keyshortcuts="Control+K"
-      @keyup.enter="runSearch"
-    />
-
+    <GlobalSearch />
     <ThemeToggle />
     <v-btn
       icon="mdi-refresh"
       variant="text"
-      title="تحديث"
       aria-label="تحديث البيانات"
+      title="تحديث البيانات"
       :disabled="!canRefresh"
       @click="emit('refresh')"
     />
@@ -102,21 +84,18 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onShortcut));
           v-bind="props"
           class="dal-profile-button"
           variant="text"
-          aria-label="قائمة المستخدم"
-          title="حساب المستخدم"
+          :aria-label="`حساب المستخدم: ${displayName}`"
         >
-          <v-avatar color="primary" variant="tonal" size="30">
-            <span>{{ (currentUser?.username ?? "م").slice(0, 1) }}</span>
+          <v-avatar color="primary" variant="tonal" size="26">
+            <span>{{ userName.slice(0, 1) }}</span>
           </v-avatar>
-          <span class="dal-profile-name">{{
-            currentUser?.username ?? "مستخدم"
-          }}</span>
+          <span class="dal-profile-name">{{ userName }}</span>
         </v-btn>
       </template>
-      <v-list min-width="200" density="compact">
+      <v-list min-width="220" density="compact">
         <v-list-item
-          :title="currentUser?.username ?? 'مستخدم'"
-          subtitle="جلسة محلية"
+          :title="displayName"
+          :subtitle="userName"
           prepend-icon="mdi-account-circle-outline"
         />
         <v-divider />
@@ -125,6 +104,12 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onShortcut));
           prepend-icon="mdi-cog-outline"
           @click="router.push('/settings')"
         />
+        <v-list-item
+          title="المساعدة واختصارات لوحة المفاتيح"
+          prepend-icon="mdi-help-circle-outline"
+          @click="router.push('/help')"
+        />
+        <v-divider />
         <v-list-item
           title="تسجيل الخروج"
           prepend-icon="mdi-logout"
@@ -138,7 +123,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onShortcut));
 
 <style scoped>
 .dal-profile-button {
-  padding-inline: 8px;
+  padding-inline: 6px;
 }
 .dal-profile-button :deep(.v-btn__content) {
   gap: 8px;
@@ -149,11 +134,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onShortcut));
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.global-search :deep(.v-field) {
-  background: var(--dal-canvas);
-}
-@media (max-width: 760px) {
-  .dal-command-title,
+@media (max-width: 1100px) {
   .dal-profile-name {
     display: none;
   }

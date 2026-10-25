@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import * as peopleService from "../../services/people.service";
 import { getErrorMessage } from "../../services/api.service";
 import { useSnackbar } from "../../composables/useSnackbar";
@@ -29,6 +29,11 @@ const form = ref({
   status: "active" as PersonRecord["status"],
   notes: "",
 });
+// بعد أي تعديل لا يُغلق الحوار بـ Esc أو بالنقر خارجه؛ «إلغاء» يبقى متاحاً.
+const openedWith = ref("");
+const dirty = computed(
+  () => open.value && JSON.stringify(form.value) !== openedWith.value,
+);
 watch(
   () => [open.value, props.person] as const,
   ([isOpen, person]) => {
@@ -53,6 +58,7 @@ watch(
       status: person?.status ?? "active",
       notes: person?.notes ?? "",
     };
+    openedWith.value = JSON.stringify(form.value);
   },
   { immediate: true },
 );
@@ -71,19 +77,21 @@ async function save() {
     notifySuccess("تم حفظ بيانات الشخص.");
     emit("saved", person);
   } catch (cause) {
+    // الخادم يرسل { field, message } (ApiErrorBody)؛ path احتياط لشكل قديم.
     const issues = (
       cause as {
         issues?: Array<{
           message: string;
+          field?: string;
           path?: string | (string | number)[];
         }>;
       }
     )?.issues;
     if (issues?.length) {
       for (const issue of issues) {
-        const key = Array.isArray(issue.path)
-          ? issue.path.join(".")
-          : issue.path;
+        const key =
+          issue.field ??
+          (Array.isArray(issue.path) ? issue.path.join(".") : issue.path);
         if (key) (fieldErrors.value[key] ??= []).push(issue.message);
         else error.value = issue.message;
       }
@@ -94,7 +102,12 @@ async function save() {
 }
 </script>
 <template>
-  <v-dialog v-model="open" max-width="760" class="person-editor"
+  <v-dialog
+    v-model="open"
+    max-width="760"
+    class="person-editor"
+    scrollable
+    :persistent="dirty || saving"
     ><v-card
       ><v-card-title>{{ person ? "تعديل شخص" : "إضافة شخص" }}</v-card-title
       ><v-card-text

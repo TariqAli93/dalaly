@@ -74,7 +74,7 @@ export const RENT_PERIOD_LABELS: Record<string, string> = Object.fromEntries(
 
 /** أحجام الصفحة في جداول العروض والإيجارات (الخادم يقبل حتى 100). */
 export const LIST_PAGE_SIZES = [10, 25, 50, 100];
-export const DEFAULT_LIST_PAGE_SIZE = 10;
+export const DEFAULT_LIST_PAGE_SIZE = 25;
 
 // خيارات "ترتيب" في شريط النتائج؛ كل خيار مفتاح ترتيب واتجاه في الخادم.
 // أول خيار هو الترتيب الافتراضي (الأحدث أولاً).
@@ -271,16 +271,22 @@ export function statusLabel(status: string) {
  * لون الحالة وفق نظام التصميم: التيل للمتاح (نشِط)، الأوكر لما ينتظر قراراً
  * بشرياً (محجوز / قيد التفاوض)، السيج لما استقرّ (مباع / مؤجر)، ومحايد
  * للمؤرشف. اللافتة النصية هي التي تفرّق بين حالتي كل عائلة.
+ *
+ * أدوار الثيم لا الألوان الخام: secondary لون سطح (1.15:1 على الأبيض) وaccent
+ * للتعبئة فقط (2.96:1)، فلا يصلحان لنص الشارة. warning هو الأوكر المقروء
+ * وinfo هو السيج.
  */
 export function statusColor(status: string) {
   return (
     {
       available: "primary",
-      reserved: "accent",
+      reserved: "warning",
       negotiating: "warning",
-      sold: "secondary",
-      rented: "secondary",
+      sold: "info",
+      rented: "info",
+      matched: "success",
       archived: undefined,
+      closed: undefined,
     } as Record<string, string | undefined>
   )[status];
 }
