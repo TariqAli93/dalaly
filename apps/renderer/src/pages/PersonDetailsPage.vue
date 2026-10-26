@@ -1,125 +1,176 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import PersonEditor from "../components/people/PersonEditor.vue";
 import RecordNotes from "../components/shared/RecordNotes.vue";
-import EmptyState from "../components/shared/EmptyState.vue";
+import RecordFacts from "../components/shared/RecordFacts.vue";
+import DetailList from "../components/shared/DetailList.vue";
+import DataGrid from "../components/shared/DataGrid.vue";
+import PhoneLink from "../components/shared/PhoneLink.vue";
 import StatusChip from "../components/shared/StatusChip.vue";
+import type { DetailSection, RecordFact } from "../components/shared/record";
+import type { GridHeader } from "../components/shared/grid";
 import * as peopleService from "../services/people.service";
 import * as propertiesService from "../services/properties.service";
+import * as rentalsService from "../services/rentals.service";
+import * as requestsService from "../services/requests.service";
+import * as documentsService from "../services/documents.service";
 import { getErrorMessage } from "../services/api.service";
 import { usePermissions } from "../composables/usePermissions";
 import { useRefresh } from "../composables/useRefresh";
+import { useSnackbar } from "../composables/useSnackbar";
+import { useConfirm } from "../composables/useConfirm";
 import { createPagedList } from "../composables/usePagedList";
-import type { PersonRecord, PropertyRecord, PropertySortKey } from "../types";
-import { personStatusLabel } from "../constants/crm";
-import { LIST_PAGE_SIZES, PROPERTY_SORT_OPTIONS } from "../constants/domain";
-import { formatDateTime } from "../utils/format";
+import {
+  DOCUMENTS_DEFAULT_SORT,
+  REQUESTS_DEFAULT_SORT,
+  documentStatusColor,
+  documentStatusLabel,
+  personStatusColor,
+  personStatusLabel,
+  personTypeLabel,
+  requestStatusColor,
+  requestStatusLabel,
+} from "../constants/crm";
+import {
+  PROPERTY_SORT_OPTIONS,
+  RENT_PERIOD_LABELS,
+  RENTAL_PROPERTY_LABELS,
+  RENTAL_SORT_OPTIONS,
+} from "../constants/domain";
+import { formatDate, formatDateTime, formatMoney } from "../utils/format";
+import {
+  requestPath,
+  requestPropertyTypeLabel,
+  type RequestMode,
+  type RequestRecord,
+} from "../utils/requestForm";
+import type {
+  DocumentRecord,
+  DocumentSortKey,
+  ListSortOption,
+  PageQuery,
+  PagedResult,
+  PersonRecord,
+  PropertyRecord,
+  PropertySortKey,
+  PurchaseRequestSortKey,
+  RentalRecord,
+  RentalRequestSortKey,
+  RentalSortKey,
+} from "../types";
+
+/**
+ * ملف الزبون مركزاً لعمله مع المكتب: هاتفه بأزرار الاتصال في الأعلى، ثم
+ * طلباته (شراء وإيجار) وما يملكه من عروض ومستمسكاته وملاحظاته وبياناته.
+ * «طلب جديد» يفتح نموذج الطلب والزبون مختار فيه. كل القوائم من مرشّحات
+ * person_id وowner_person_id القائمة في الخادم.
+ */
 const route = useRoute();
+const router = useRouter();
 const { can } = usePermissions();
 const { setRefreshHandler } = useRefresh();
+const { notifyError, notifySuccess } = useSnackbar();
+const { openConfirm } = useConfirm();
+
 const person = ref<PersonRecord | null>(null);
 const loading = ref(false);
 const error = ref("");
-const propertyError = ref("");
-const ownerId = ref<number | null>(null);
-const search = ref<string | null>("");
-// عقارات الشخص صفحةً صفحة من الخادم (بما فيها المؤرشفة)، بدل تنزيل كل العروض
-// وتصفيتها هنا. البحث والترتيب (المساحة بالمتر المربع) هناك أيضاً.
-const propertyList = createPagedList<PropertyRecord, PropertySortKey>(
-  (page, signal) =>
+const editOpen = ref(false);
+const personId = ref<number | null>(null);
+const tab = ref("requests");
+let requestId = 0;
+
+// ─── قوائم الملف: صفحة من الخادم لكل قسم، بمرشّح الزبون ─────────────────
+const BIG_PAGE = 100;
+function personList<T, K extends string>(
+  fetch: (
+    id: number,
+    page: PageQuery<K>,
+    signal: AbortSignal,
+  ) => Promise<PagedResult<T>>,
+  sort: ListSortOption<K>,
+) {
+  const list = createPagedList<T, K>(
+    (page, signal) => fetch(personId.value!, page, signal),
+    sort,
+    { onError: () => undefined },
+  );
+  list.pageSize.value = BIG_PAGE;
+  return list;
+}
+const purchaseList = personList<RequestRecord, PurchaseRequestSortKey>(
+  (id, page, signal) =>
+    requestsService.listPurchaseRequestsPage({ person_id: id }, page, signal),
+  REQUESTS_DEFAULT_SORT,
+);
+const rentalRequestList = personList<RequestRecord, RentalRequestSortKey>(
+  (id, page, signal) =>
+    requestsService.listRentalRequestsPage({ person_id: id }, page, signal),
+  REQUESTS_DEFAULT_SORT,
+);
+const saleList = personList<PropertyRecord, PropertySortKey>(
+  (id, page, signal) =>
     propertiesService.listPropertiesPage(
-      {
-        owner_person_id: ownerId.value,
-        include_archived: "true",
-        q: search.value ?? "",
-      },
+      { owner_person_id: id, include_archived: "true" },
       page,
       signal,
     ),
-  PROPERTY_SORT_OPTIONS[0],
-  { onError: (message) => (propertyError.value = message) },
+  PROPERTY_SORT_OPTIONS[0]!,
 );
-const {
-  items: properties,
-  total: propertyTotal,
-  loading: propertiesLoading,
-  page,
-  pageSize,
-  sortBy,
-  onTableOptions,
-} = propertyList;
-let searchTimer: ReturnType<typeof setTimeout> | undefined;
-watch(search, () => {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => void propertyList.loadFirstPage(), 300);
-});
-const tab = ref("basic");
-const editOpen = ref(false);
-let requestId = 0;
-const personType = computed(() =>
-  person.value?.person_type === "company"
-    ? "شركة"
-    : person.value?.person_type === "individual"
-      ? "فرد"
-      : "أخرى",
+const rentalList = personList<RentalRecord, RentalSortKey>(
+  (id, page, signal) =>
+    rentalsService.listRentalsPage(
+      { owner_person_id: id, include_archived: "true" },
+      page,
+      signal,
+    ),
+  RENTAL_SORT_OPTIONS[0]!,
 );
-const info = computed(() =>
-  person.value
-    ? [
-        {
-          title: "بيانات الاتصال",
-          fields: [
-            ["الهاتف الأساسي", person.value.phone_primary],
-            ["هاتف إضافي", person.value.phone_secondary],
-            ["البريد الإلكتروني", person.value.email],
-            ["العنوان", person.value.address],
-          ],
-        },
-        {
-          title: "بيانات الشخص",
-          fields: [
-            ["الاسم الكامل", person.value.full_name],
-            ["الرمز", person.value.code],
-            ["نوع الشخص", personType.value],
-            ["رقم الهوية", person.value.national_id],
-            ["تاريخ الإضافة", formatDateTime(person.value.created_at)],
-            ["آخر تحديث", formatDateTime(person.value.updated_at)],
-          ],
-        },
-      ]
-    : [],
+const documentList = personList<DocumentRecord, DocumentSortKey>(
+  (id, page, signal) =>
+    documentsService.listDocumentsPage({ person_id: id }, page, signal),
+  DOCUMENTS_DEFAULT_SORT,
 );
-// مفاتيح الأعمدة القابلة للترتيب هي مفاتيح الترتيب في الخادم.
-const headers = [
-  { title: "العقار", key: "name" },
-  { title: "النوع", key: "property_type" },
-  { title: "الموقع", key: "location", sortable: false },
-  { title: "المساحة", key: "area" },
-  { title: "الحالة", key: "status" },
+const allLists = [
+  purchaseList,
+  rentalRequestList,
+  saleList,
+  rentalList,
+  documentList,
 ];
+
+function loadLists() {
+  if (can("requests.read")) {
+    void purchaseList.loadFirstPage();
+    void rentalRequestList.loadFirstPage();
+  }
+  if (can("properties.read")) void saleList.loadFirstPage();
+  if (can("rentals.read")) void rentalList.loadFirstPage();
+  if (can("documents.read")) void documentList.loadFirstPage();
+}
+
 async function load() {
   const current = ++requestId;
   loading.value = true;
   error.value = "";
-  propertyError.value = "";
-  person.value = null;
-  propertyList.cancel();
-  properties.value = [];
-  propertyTotal.value = 0;
+  for (const list of allLists) list.cancel();
   try {
     const id = Number(route.params.id);
     if (!Number.isSafeInteger(id) || id <= 0)
-      throw new Error("رقم العميل غير صالح.");
-    ownerId.value = id;
-    // الصفحة الأولى من عقاراته مع بياناته، لا بعدها.
-    if (can("properties.read")) void propertyList.loadFirstPage();
+      throw new Error("رقم الزبون غير صالح.");
+    personId.value = id;
+    // القوائم مع بيانات الزبون، لا بعدها.
+    loadLists();
     const record = await peopleService.getPerson(id);
     if (current !== requestId) return;
     person.value = record;
   } catch (cause) {
-    if (current === requestId) error.value = getErrorMessage(cause);
+    if (current === requestId) {
+      person.value = null;
+      error.value = getErrorMessage(cause);
+    }
   } finally {
     if (current === requestId) loading.value = false;
   }
@@ -127,169 +178,576 @@ async function load() {
 watch(
   () => route.params.id,
   () => {
-    tab.value = "basic";
+    person.value = null;
+    tab.value = "requests";
     void load();
   },
   { immediate: true },
 );
 onMounted(() => setRefreshHandler(load));
 onBeforeUnmount(() => {
-  clearTimeout(searchTimer);
-  propertyList.cancel();
+  for (const list of allLists) list.cancel();
 });
+
+// ─── الهوية ─────────────────────────────────────────────────────────────
+const residence = computed(() => {
+  const p = person.value;
+  if (!p) return "";
+  return [p.governorate, p.district, p.neighborhood]
+    .filter(Boolean)
+    .join(" · ");
+});
+const facts = computed<RecordFact[]>(() => {
+  const p = person.value;
+  if (!p) return [];
+  return [
+    { key: "phone", label: "الهاتف", value: p.phone_primary },
+    { key: "phone2", label: "هاتف إضافي", value: p.phone_secondary },
+    {
+      key: "residence",
+      label: "السكن",
+      value: residence.value || p.address,
+      hint: residence.value ? p.address : null,
+    },
+    {
+      key: "type",
+      label: "النوع",
+      value: personTypeLabel(p.person_type),
+      hint: p.email,
+    },
+  ];
+});
+const sections = computed<DetailSection[]>(() => {
+  const p = person.value;
+  if (!p) return [];
+  return [
+    {
+      title: "الاتصال",
+      items: [
+        { label: "الهاتف الأساسي", value: p.phone_primary, ltr: true },
+        { label: "هاتف إضافي", value: p.phone_secondary, ltr: true },
+        { label: "البريد الإلكتروني", value: p.email, ltr: true },
+      ],
+    },
+    {
+      title: "الهوية",
+      items: [
+        { label: "الاسم الكامل", value: p.full_name },
+        { label: "الرمز", value: p.code, ltr: true },
+        { label: "النوع", value: personTypeLabel(p.person_type) },
+        { label: "رقم البطاقة الوطنية", value: p.national_id, ltr: true },
+        { label: "رقم بطاقة السكن", value: p.residence_card_number, ltr: true },
+      ],
+    },
+    {
+      title: "السكن",
+      items: [
+        { label: "المحافظة", value: p.governorate },
+        { label: "القضاء أو الناحية", value: p.district },
+        { label: "المنطقة أو المحلة", value: p.neighborhood },
+        { label: "الزقاق", value: p.alley },
+        { label: "الدار", value: p.house_number },
+        { label: "العنوان", value: p.address },
+      ],
+    },
+    {
+      title: "التواريخ",
+      items: [
+        { label: "تاريخ الإضافة", value: formatDateTime(p.created_at) },
+        { label: "آخر تحديث", value: formatDateTime(p.updated_at) },
+      ],
+    },
+  ];
+});
+
+// ─── الأوامر ─────────────────────────────────────────────────────────────
+function newRequest(kind: RequestMode) {
+  void router.push({
+    path: kind === "purchase" ? "/purchase-requests" : "/rental-requests",
+    query: { new: "1", person: String(personId.value) },
+  });
+}
+async function restore() {
+  const p = person.value;
+  if (!p) return;
+  try {
+    person.value = await peopleService.restorePerson(p.id);
+    notifySuccess(`أُعيد ${p.full_name} إلى الزبائن الحاليين.`);
+  } catch (cause) {
+    notifyError(getErrorMessage(cause));
+  }
+}
+function askArchive() {
+  const p = person.value;
+  if (!p) return;
+  openConfirm({
+    title: `أرشفة ${p.full_name}`,
+    body: "سيبقى الزبون وسجلّه محفوظين، لكنه لن يظهر في القائمة الافتراضية. تجده تحت «المؤرشفون» في تصفية الحالة.",
+    confirmText: "أرشفة",
+    color: "warning",
+    onConfirm: async () => {
+      person.value = await peopleService.archivePerson(p.id);
+      notifySuccess(`أُرشف ${p.full_name}.`, { label: "تراجع", run: restore });
+    },
+  });
+}
+function onSaved(saved: PersonRecord) {
+  person.value = saved;
+}
+
+// ─── أعمدة القوائم ───────────────────────────────────────────────────────
+const requestHeaders = (mode: RequestMode): GridHeader[] => [
+  { key: "code", title: "الطلب" },
+  { key: "property_type", title: "النوع" },
+  ...(mode === "rental"
+    ? [{ key: "rent_period", title: "نوع الإيجار" } as GridHeader]
+    : []),
+  { key: "district", title: "الموقع", priority: 2 },
+  { key: "budget_max", title: "الميزانية حتى (د.ع)", align: "end" },
+  { key: "status", title: "الحالة" },
+];
+const saleHeaders: GridHeader[] = [
+  { key: "name", title: "العرض" },
+  { key: "property_type", title: "النوع" },
+  { key: "district", title: "الموقع", priority: 2 },
+  { key: "total_price", title: "السعر (د.ع)", align: "end" },
+  { key: "status", title: "الحالة" },
+];
+const rentalHeaders: GridHeader[] = [
+  { key: "name", title: "العرض" },
+  { key: "property_type", title: "النوع" },
+  { key: "district", title: "الموقع", priority: 2 },
+  { key: "rent_price", title: "الإيجار (د.ع)", align: "end" },
+  { key: "status", title: "الحالة" },
+];
+const documentHeaders: GridHeader[] = [
+  { key: "document_name", title: "المستمسك" },
+  { key: "document_type_name", title: "النوع" },
+  { key: "document_number", title: "الرقم" },
+  { key: "expires_at", title: "ينتهي في" },
+  { key: "computed_status", title: "الحالة" },
+  { key: "actions", title: "", align: "end", width: 56 },
+];
+const place = (...parts: (string | null | undefined)[]) =>
+  parts.filter(Boolean).join(" · ") || "—";
+
+const requestsCount = computed(
+  () => purchaseList.total.value + rentalRequestList.total.value,
+);
+const listingsCount = computed(
+  () => saleList.total.value + rentalList.total.value,
+);
+function openDocument(item: DocumentRecord) {
+  window.open(documentsService.fileUrl(item.id), "_blank");
+}
+const listLabel = (count: number, label: string) =>
+  count ? `${label} (${count})` : label;
 </script>
+
 <template>
   <AppPage
-    :title="person?.full_name ?? 'تفاصيل العميل'"
-    :subtitle="person ? `ملف العميل · ${person.code}` : undefined"
+    :title="person?.full_name ?? 'ملف الزبون'"
+    :parent="{ to: '/people', label: 'الزبائن' }"
   >
-    <template #header-actions
-      ><v-btn to="/people" variant="text" prepend-icon="mdi-arrow-right"
-        >العودة للعملاء</v-btn
-      ><v-btn
-        v-if="person && can('people.update')"
+    <template v-if="person" #status>
+      <bdi class="text-medium-emphasis">{{ person.code }}</bdi>
+      <StatusChip
+        :status="person.status"
+        :label="personStatusLabel(person.status)"
+        :color="personStatusColor(person.status)"
+      />
+    </template>
+    <template v-if="person" #header-actions>
+      <v-btn
+        v-if="can('people.update')"
         color="primary"
         prepend-icon="mdi-pencil-outline"
         @click="editOpen = true"
-        >تعديل العميل</v-btn
-      ></template
-    >
-    <v-breadcrumbs
-      :items="[
-        { title: 'لوحة التحكم', to: '/' },
-        { title: 'العملاء والأشخاص', to: '/people' },
-        { title: 'تفاصيل العميل', disabled: true },
-      ]"
-      class="record-breadcrumbs"
-    />
-    <v-skeleton-loader v-if="loading && !person" type="article, table" />
+        >تعديل</v-btn
+      >
+      <v-menu
+        v-if="can('requests.create') && person.status !== 'archived'"
+        location="bottom end"
+      >
+        <template #activator="{ props: menu }">
+          <v-btn
+            v-bind="menu"
+            variant="text"
+            prepend-icon="mdi-plus"
+            append-icon="mdi-chevron-down"
+            >طلب جديد</v-btn
+          >
+        </template>
+        <v-list density="compact" min-width="180">
+          <v-list-item
+            prepend-icon="mdi-home-search-outline"
+            title="طلب شراء"
+            @click="newRequest('purchase')"
+          />
+          <v-list-item
+            prepend-icon="mdi-text-box-search-outline"
+            title="طلب إيجار"
+            @click="newRequest('rental')"
+          />
+        </v-list>
+      </v-menu>
+      <v-menu v-if="can('people.update')" location="bottom end">
+        <template #activator="{ props: menu }">
+          <v-btn
+            v-bind="menu"
+            icon="mdi-dots-horizontal"
+            variant="text"
+            aria-label="أوامر أخرى للزبون"
+            title="أوامر أخرى"
+          />
+        </template>
+        <v-list density="compact" min-width="200">
+          <v-list-item
+            v-if="person.status === 'archived'"
+            prepend-icon="mdi-archive-arrow-up-outline"
+            title="إرجاع من الأرشيف"
+            @click="restore"
+          />
+          <v-list-item
+            v-else
+            prepend-icon="mdi-archive-arrow-down-outline"
+            title="أرشفة"
+            @click="askArchive"
+          />
+        </v-list>
+      </v-menu>
+    </template>
+
+    <v-skeleton-loader v-if="loading && !person" type="table-heading, table" />
     <v-alert v-else-if="error" type="error" variant="tonal"
       >{{ error
       }}<template #append
-        ><v-btn @click="load" variant="text">إعادة المحاولة</v-btn></template
+        ><v-btn variant="text" @click="load">إعادة المحاولة</v-btn></template
       ></v-alert
     >
     <template v-else-if="person">
-      <v-card variant="flat" border class="mb-4"
-        ><v-card-text class="d-flex align-center flex-wrap ga-4"
-          ><v-avatar color="primary" variant="tonal" size="64">{{
-            person.full_name.slice(0, 2)
-          }}</v-avatar>
-          <div>
-            <h2 class="text-h6">{{ person.full_name }}</h2>
-            <p class="text-medium-emphasis">
-              <bdi>{{ person.phone_primary || "لم يُسجل هاتف" }}</bdi>
-            </p>
-          </div>
-          <v-spacer /><v-chip variant="tonal">{{ personType }}</v-chip
-          ><StatusChip
-            :status="person.status"
-            :label="personStatusLabel(person.status)" /></v-card-text
-      ></v-card>
-      <v-card variant="flat" border class="mb-4"
-        ><v-tabs v-model="tab" color="primary" show-arrows
-          ><v-tab value="basic">المعلومات الأساسية</v-tab
-          ><v-tab value="properties">العقارات المرتبطة</v-tab
-          ><v-tab value="notes">الملاحظات</v-tab></v-tabs
-        ></v-card
-      >
-      <v-window v-model="tab">
-        <v-window-item value="basic"
-          ><v-row
-            ><v-col
-              v-for="section in info"
-              :key="section.title"
-              cols="12"
-              md="6"
-              ><v-card variant="flat" border height="100%"
-                ><v-card-title>{{ section.title }}</v-card-title
-                ><v-card-text
-                  ><dl class="record-info">
-                    <div
-                      v-for="[label, value] in section.fields"
-                      :key="label ?? ''"
-                    >
-                      <dt>{{ label }}</dt>
-                      <dd>
-                        <bdi>{{ value || "—" }}</bdi>
-                      </dd>
-                    </div>
-                  </dl></v-card-text
-                ></v-card
-              ></v-col
-            ></v-row
-          ></v-window-item
-        >
-        <v-window-item value="properties"
-          ><v-card variant="flat" border
-            ><EmptyState
-              v-if="!can('properties.read')"
-              icon="mdi-lock-outline"
-              title="عرض العقارات غير متاح"
-              text="تحتاج إلى صلاحية عرض العقارات." /><v-alert
-              v-else-if="propertyError"
-              type="error"
-              variant="tonal"
-              class="ma-4"
-              >{{ propertyError
-              }}<template #append
-                ><v-btn variant="text" @click="load"
-                  >إعادة المحاولة</v-btn
-                ></template
-              ></v-alert
-            ><template v-else
-              ><v-card-text
-                ><v-text-field
-                  v-model="search"
-                  label="البحث في العقارات المرتبطة"
-                  prepend-inner-icon="mdi-magnify"
-                  clearable
-                  hide-details /></v-card-text
-              ><v-data-table-server
-                v-model:page="page"
-                v-model:items-per-page="pageSize"
-                v-model:sort-by="sortBy"
-                :headers="headers"
-                :items="properties"
-                :items-length="propertyTotal"
-                :items-per-page-options="LIST_PAGE_SIZES"
-                :loading="propertiesLoading"
-                item-value="id"
-                @update:options="onTableOptions"
-                ><template #item.name="{ item }"
-                  ><router-link
-                    :to="`/properties/${item.id}`"
+      <RecordFacts :facts="facts" label="بيانات الاتصال بالزبون">
+        <template #phone>
+          <PhoneLink :phone="person.phone_primary" :name="person.full_name" />
+        </template>
+        <template #phone2>
+          <PhoneLink
+            v-if="person.phone_secondary"
+            :phone="person.phone_secondary"
+            :name="person.full_name"
+          />
+          <span v-else>—</span>
+        </template>
+      </RecordFacts>
+
+      <section class="dal-panel person-hub" aria-label="عمل الزبون مع المكتب">
+        <v-tabs v-model="tab" color="primary" show-arrows>
+          <v-tab v-if="can('requests.read')" value="requests">{{
+            listLabel(requestsCount, "الطلبات")
+          }}</v-tab>
+          <v-tab
+            v-if="can('properties.read') || can('rentals.read')"
+            value="listings"
+            >{{ listLabel(listingsCount, "العروض المملوكة") }}</v-tab
+          >
+          <v-tab v-if="can('documents.read')" value="documents">{{
+            listLabel(documentList.total.value, "المستمسكات")
+          }}</v-tab>
+          <v-tab value="notes">الملاحظات</v-tab>
+          <v-tab value="data">البيانات</v-tab>
+        </v-tabs>
+        <v-divider />
+        <v-window v-model="tab" class="person-hub__body">
+          <v-window-item v-if="can('requests.read')" value="requests">
+            <div
+              v-for="section in [
+                {
+                  mode: 'purchase' as RequestMode,
+                  title: 'طلبات الشراء',
+                  list: purchaseList,
+                },
+                {
+                  mode: 'rental' as RequestMode,
+                  title: 'طلبات الإيجار',
+                  list: rentalRequestList,
+                },
+              ]"
+              :key="section.mode"
+              class="person-hub__section"
+            >
+              <div class="person-hub__head">
+                <h2 class="dal-section-title">{{ section.title }}</h2>
+                <v-spacer />
+                <v-btn
+                  v-if="can('requests.create') && person.status !== 'archived'"
+                  size="small"
+                  variant="text"
+                  prepend-icon="mdi-plus"
+                  @click="newRequest(section.mode)"
+                  >{{
+                    section.mode === "purchase" ? "طلب شراء" : "طلب إيجار"
+                  }}</v-btn
+                >
+              </div>
+              <DataGrid
+                :grid-key="`person:${section.mode}`"
+                :table-label="`${section.title} للزبون`"
+                :items="section.list.items.value"
+                :headers="requestHeaders(section.mode)"
+                :loading="section.list.loading.value"
+                :error="section.list.error.value"
+                compact
+                :row-label="(item) => item.code"
+                :empty="{
+                  icon: 'mdi-home-search-outline',
+                  title: `لا توجد ${section.title} لهذا الزبون`,
+                }"
+                @open="router.push(requestPath(section.mode, $event.id))"
+                @retry="section.list.reload"
+              >
+                <template #item.code="{ item }">
+                  <router-link
+                    :to="requestPath(section.mode, item.id)"
                     class="record-link"
-                    >{{ item.name || item.code }}</router-link
+                    tabindex="-1"
+                    ><bdi>{{ item.code }}</bdi></router-link
                   >
-                  <p class="text-caption text-medium-emphasis">
-                    <bdi>{{ item.code }}</bdi>
-                  </p></template
-                ><template #item.location="{ item }">{{
-                  [item.governorate, item.district, item.neighborhood]
-                    .filter(Boolean)
-                    .join(" · ") || "—"
-                }}</template
-                ><template #item.area="{ item }"
-                  ><bdi>{{ item.area_value }}</bdi>
-                  {{ item.area_unit }}</template
-                ><template #item.status="{ item }"
-                  ><StatusChip :status="item.status" /></template
-                ><template #no-data
-                  ><EmptyState
-                    icon="mdi-home-search-outline"
-                    title="لا توجد عقارات مطابقة"
-                    text="تظهر العقارات المرتبطة بالشخص بصفة المالك المسجّل." /></template></v-data-table-server></template></v-card
-        ></v-window-item>
-        <v-window-item value="notes"
-          ><RecordNotes
-            :notes="[{ label: 'ملاحظات العميل', text: person.notes }]"
-            :updated-at="person.updated_at"
-            :can-edit="can('people.update')"
-            @edit="editOpen = true"
-        /></v-window-item>
-      </v-window>
-      <PersonEditor v-model="editOpen" :person="person" @saved="load" />
+                </template>
+                <template #item.property_type="{ item }">{{
+                  requestPropertyTypeLabel(section.mode, item.property_type)
+                }}</template>
+                <template #item.rent_period="{ item }">{{
+                  "rent_period" in item
+                    ? (RENT_PERIOD_LABELS[item.rent_period ?? ""] ?? "—")
+                    : "—"
+                }}</template>
+                <template #item.district="{ item }">{{
+                  place(item.governorate, item.district, item.neighborhood)
+                }}</template>
+                <template #item.budget_max="{ item }">
+                  <span v-if="item.budget_max" class="money">{{
+                    formatMoney(item.budget_max)
+                  }}</span>
+                  <span v-else class="text-medium-emphasis">بلا حد</span>
+                </template>
+                <template #item.status="{ item }">
+                  <v-chip
+                    size="small"
+                    variant="tonal"
+                    label
+                    :color="requestStatusColor(item.status)"
+                    >{{ requestStatusLabel(item.status) }}</v-chip
+                  >
+                </template>
+              </DataGrid>
+            </div>
+          </v-window-item>
+
+          <v-window-item
+            v-if="can('properties.read') || can('rentals.read')"
+            value="listings"
+          >
+            <div v-if="can('properties.read')" class="person-hub__section">
+              <div class="person-hub__head">
+                <h2 class="dal-section-title">عروض البيع</h2>
+              </div>
+              <DataGrid
+                grid-key="person:sale"
+                table-label="عروض البيع التي يملكها الزبون"
+                :items="saleList.items.value"
+                :headers="saleHeaders"
+                :loading="saleList.loading.value"
+                :error="saleList.error.value"
+                compact
+                :row-label="(item) => item.name || `عقار ${item.code}`"
+                :empty="{
+                  icon: 'mdi-home-outline',
+                  title: 'لا يملك عروض بيع مسجّلة',
+                  text: 'تظهر هنا العروض المربوطة بالزبون مالكاً.',
+                }"
+                @open="router.push(`/properties/${$event.id}`)"
+                @retry="saleList.reload"
+              >
+                <template #item.name="{ item }">
+                  <div class="dal-cell-name">
+                    <router-link
+                      :to="`/properties/${item.id}`"
+                      class="record-link"
+                      tabindex="-1"
+                      >{{ item.name || `عقار ${item.code}` }}</router-link
+                    >
+                    <bdi v-if="item.name">{{ item.code }}</bdi>
+                  </div>
+                </template>
+                <template #item.district="{ item }">{{
+                  place(item.district, item.neighborhood)
+                }}</template>
+                <template #item.total_price="{ item }">
+                  <span class="money">{{ formatMoney(item.total_price) }}</span>
+                </template>
+                <template #item.status="{ item }">
+                  <StatusChip :status="item.status" />
+                </template>
+              </DataGrid>
+            </div>
+            <div v-if="can('rentals.read')" class="person-hub__section">
+              <div class="person-hub__head">
+                <h2 class="dal-section-title">عروض الإيجار</h2>
+              </div>
+              <DataGrid
+                grid-key="person:rental"
+                table-label="عروض الإيجار التي يملكها الزبون"
+                :items="rentalList.items.value"
+                :headers="rentalHeaders"
+                :loading="rentalList.loading.value"
+                :error="rentalList.error.value"
+                compact
+                :row-label="(item) => item.name || `إيجار ${item.code}`"
+                :empty="{
+                  icon: 'mdi-key-outline',
+                  title: 'لا يملك عروض إيجار مسجّلة',
+                }"
+                @open="router.push(`/rentals/${$event.id}`)"
+                @retry="rentalList.reload"
+              >
+                <template #item.name="{ item }">
+                  <div class="dal-cell-name">
+                    <router-link
+                      :to="`/rentals/${item.id}`"
+                      class="record-link"
+                      tabindex="-1"
+                      >{{ item.name || `إيجار ${item.code}` }}</router-link
+                    >
+                    <bdi v-if="item.name">{{ item.code }}</bdi>
+                  </div>
+                </template>
+                <template #item.property_type="{ item }">{{
+                  RENTAL_PROPERTY_LABELS[item.property_type] ??
+                  item.property_type
+                }}</template>
+                <template #item.district="{ item }">{{
+                  place(item.district, item.neighborhood)
+                }}</template>
+                <template #item.rent_price="{ item }">
+                  <span class="money">{{ formatMoney(item.rent_price) }}</span>
+                  <small class="text-medium-emphasis">
+                    {{ RENT_PERIOD_LABELS[item.rent_period] ?? "" }}</small
+                  >
+                </template>
+                <template #item.status="{ item }">
+                  <StatusChip :status="item.status" />
+                </template>
+              </DataGrid>
+            </div>
+          </v-window-item>
+
+          <v-window-item v-if="can('documents.read')" value="documents">
+            <div class="person-hub__section">
+              <div class="person-hub__head">
+                <h2 class="dal-section-title">المستمسكات</h2>
+                <v-spacer />
+                <v-btn
+                  v-if="can('documents.manage')"
+                  size="small"
+                  variant="text"
+                  prepend-icon="mdi-file-upload-outline"
+                  :to="{
+                    path: '/documents',
+                    query: { person: String(person.id), new: '1' },
+                  }"
+                  >إضافة مستمسك</v-btn
+                >
+              </div>
+              <DataGrid
+                grid-key="person:documents"
+                table-label="مستمسكات الزبون"
+                :items="documentList.items.value"
+                :headers="documentHeaders"
+                :loading="documentList.loading.value"
+                :error="documentList.error.value"
+                compact
+                :row-label="(item) => item.document_name"
+                :actions="
+                  (item) => [
+                    {
+                      key: 'file',
+                      label: 'فتح الملف',
+                      icon: 'mdi-file-eye-outline',
+                      inline: true,
+                      run: () => openDocument(item),
+                    },
+                  ]
+                "
+                :empty="{
+                  icon: 'mdi-file-document-outline',
+                  title: 'لا توجد مستمسكات لهذا الزبون',
+                }"
+                @open="openDocument"
+                @retry="documentList.reload"
+              >
+                <template #item.document_type_name="{ item }">{{
+                  item.document_type_name || "—"
+                }}</template>
+                <template #item.document_number="{ item }">
+                  <bdi>{{ item.document_number || "—" }}</bdi>
+                </template>
+                <template #item.expires_at="{ item }">
+                  <bdi>{{
+                    item.expires_at ? formatDate(item.expires_at) : "—"
+                  }}</bdi>
+                </template>
+                <template #item.computed_status="{ item }">
+                  <v-chip
+                    size="small"
+                    variant="tonal"
+                    label
+                    :color="documentStatusColor(item.computed_status)"
+                    >{{ documentStatusLabel(item.computed_status) }}</v-chip
+                  >
+                </template>
+              </DataGrid>
+            </div>
+          </v-window-item>
+
+          <v-window-item value="notes">
+            <RecordNotes
+              :notes="[{ label: 'ملاحظات الزبون', text: person.notes }]"
+              :updated-at="person.updated_at"
+              :can-edit="can('people.update')"
+              @edit="editOpen = true"
+            />
+          </v-window-item>
+          <v-window-item value="data">
+            <DetailList :sections="sections" />
+          </v-window-item>
+        </v-window>
+      </section>
+      <PersonEditor v-model="editOpen" :person="person" @saved="onSaved" />
     </template>
   </AppPage>
 </template>
+
+<style scoped>
+.person-hub {
+  margin-top: var(--dal-gutter);
+}
+.person-hub__body {
+  padding: 8px 16px 16px;
+}
+.person-hub__section + .person-hub__section {
+  margin-top: 16px;
+}
+.person-hub__head {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+}
+.person-hub__head h2 {
+  margin: 0;
+}
+.person-hub__section :deep(.dal-grid) {
+  border: 1px solid var(--dal-stroke);
+  border-radius: var(--dal-radius-card);
+  overflow: hidden;
+}
+</style>

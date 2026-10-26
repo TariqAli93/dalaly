@@ -11,9 +11,12 @@ import type { PersonRecord } from "../../types";
  * اختيار شخص بالبحث في الخادم (/people/paged) بدل تنزيل كل الأشخاص: أول
  * PERSON_PICKER_SIZE بالاسم عند فتح القائمة، ثم نتائج البحث بعد توقّف الكتابة.
  * الشخص المختار يُجلب بمعرّفه إن لم يكن في النتائج، فيظهر اسمه في نموذج
- * التعديل. بقية الخصائص (label، clearable…) تمر إلى v-autocomplete.
+ * التعديل. كل نتيجة تحمل رمز الشخص وهاتفه تحت اسمه، فيُميَّز الاسمان
+ * المتشابهان. picked يحمل الشخص المختار ليملأ النموذج اسمه وهاتفه.
+ * بقية الخصائص (label، clearable…) تمر إلى v-autocomplete.
  */
 const model = defineModel<number | null>({ default: null });
+const emit = defineEmits<{ picked: [PersonRecord | null] }>();
 
 const { can } = usePermissions();
 const results = ref<PersonRecord[]>([]);
@@ -74,6 +77,14 @@ function onMenu(open: boolean) {
   if (open && loadedQuery === null) void search("");
 }
 
+// اختيار المستخدم نفسه (لا تحميل شخص محفوظ): يُبلَّغ الأب بالشخص كاملاً.
+function onPick(id: number | null) {
+  model.value = id;
+  emit("picked", results.value.find((person) => person.id === id) ?? null);
+}
+const detailOf = (person: PersonRecord) =>
+  [person.code, person.phone_primary].filter(Boolean).join(" · ");
+
 watch(
   model,
   async (id) => {
@@ -106,13 +117,19 @@ onBeforeUnmount(() => {
 
 <template>
   <v-autocomplete
-    v-model="model"
+    :model-value="model"
     :items="items"
     :loading="loading"
     item-title="full_name"
     item-value="id"
     no-filter
+    no-data-text="لا يوجد زبون بهذا الاسم أو الهاتف"
+    @update:model-value="onPick"
     @update:search="onSearch"
     @update:menu="onMenu"
-  />
+  >
+    <template #item="{ props: itemProps, item }">
+      <v-list-item v-bind="itemProps" :subtitle="detailOf(item.raw)" />
+    </template>
+  </v-autocomplete>
 </template>

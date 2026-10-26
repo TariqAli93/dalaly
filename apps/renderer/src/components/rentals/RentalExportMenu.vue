@@ -4,7 +4,11 @@ import { useSnackbar } from "../../composables/useSnackbar";
 import { exportRentalFolder } from "../../utils/listingExport";
 import type { RentalRecord } from "../../types";
 
-const props = defineProps<{ rental: RentalRecord }>();
+const props = defineProps<{
+  rental: RentalRecord;
+  /** في شريط الأوامر زر نصي، وفي اللوحة الجانبية tonal. */
+  variant?: "tonal" | "text";
+}>();
 const { notifySuccess, notifyError } = useSnackbar();
 const loading = ref(false);
 
@@ -30,8 +34,8 @@ async function exportFolder() {
 
 <template>
   <v-btn
-    variant="tonal"
-    prepend-icon="mdi-folder-multiple-outline"
+    :variant="variant ?? 'tonal'"
+    prepend-icon="mdi-folder-download-outline"
     :loading="loading"
     @click="exportFolder"
   >

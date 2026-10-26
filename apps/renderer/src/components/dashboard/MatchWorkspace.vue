@@ -185,10 +185,13 @@ const filters = computed(() => {
           @followup="emit('followup', $event)"
         />
       </div>
-      <footer v-if="data.total" class="workspace__footer">
-        <span>طلبات لها مطابقة: {{ formatNumber(data.total, 0) }}</span>
+      <!-- العدد في شريط الملخّص؛ هنا الصفحات وحدها حين تزيد على صفحة. -->
+      <footer v-if="pages > 1" class="workspace__footer">
+        <span
+          >الصفحة {{ formatNumber(page, 0) }} من
+          {{ formatNumber(pages, 0) }}</span
+        >
         <v-pagination
-          v-if="pages > 1"
           v-model="page"
           :length="pages"
           :total-visible="5"
@@ -212,12 +215,12 @@ const filters = computed(() => {
   gap: 8px 12px;
 }
 .workspace__heading {
-  flex: 1 1 260px;
+  flex: 1 1 220px;
   min-width: 0;
 }
 .workspace__heading p {
   margin: 2px 0 0;
-  font-size: calc(11.5px * var(--dal-font-scale));
+  font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
 }
 .workspace__count {
@@ -226,8 +229,8 @@ const filters = computed(() => {
   opacity: 0.75;
 }
 .workspace__search {
-  flex: 0 1 260px;
-  min-width: 200px;
+  flex: 0 1 200px;
+  min-width: 160px;
 }
 .workspace__state {
   padding: 8px;

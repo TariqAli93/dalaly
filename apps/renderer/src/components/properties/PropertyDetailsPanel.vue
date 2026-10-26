@@ -11,8 +11,8 @@ import {
 import { neighborhoodOf } from "../../utils/exportProperty";
 import type { AuditLogRecord, PropertyRecord } from "../../types";
 import AuditLogList from "./AuditLogList.vue";
-import PropertyImages from "./PropertyImages.vue";
-import FollowupsTab from "./FollowupsTab.vue";
+import ListingImages from "../shared/ListingImages.vue";
+import ListingFollowups from "../shared/ListingFollowups.vue";
 import RecordNotes from "../shared/RecordNotes.vue";
 import DetailList from "../shared/DetailList.vue";
 import PropertyLocationView from "../shared/PropertyLocationView.vue";
@@ -170,8 +170,8 @@ defineExpose({ followupSaved });
 </script>
 
 <template>
-  <div class="property-record">
-    <section class="dal-panel property-record__main" aria-label="بيانات العرض">
+  <div class="listing-record">
+    <section class="dal-panel" aria-label="بيانات العرض">
       <v-tabs v-model="tab" color="primary" show-arrows>
         <v-tab value="details">التفاصيل</v-tab>
         <v-tab value="map">الموقع</v-tab>
@@ -180,7 +180,7 @@ defineExpose({ followupSaved });
         <v-tab v-if="can('audit.read')" value="audit">السجل</v-tab>
       </v-tabs>
       <v-divider />
-      <v-window v-model="tab" class="property-record__body">
+      <v-window v-model="tab" class="listing-record__body">
         <v-window-item value="details">
           <DetailList :sections="sections" />
         </v-window-item>
@@ -199,7 +199,11 @@ defineExpose({ followupSaved });
           />
         </v-window-item>
         <v-window-item v-if="can('followups.read')" value="followups">
-          <FollowupsTab ref="followups" :property-id="property.id" />
+          <ListingFollowups
+            ref="followups"
+            kind="sale"
+            :listing-id="property.id"
+          />
         </v-window-item>
         <v-window-item value="notes">
           <RecordNotes
@@ -226,40 +230,17 @@ defineExpose({ followupSaved });
       </v-window>
     </section>
 
-    <aside
-      class="dal-panel property-record__media"
-      aria-labelledby="media-title"
-    >
+    <aside class="dal-panel" aria-labelledby="media-title">
       <div class="dal-panel__header">
         <h2 id="media-title" class="dal-section-title">الصور</h2>
       </div>
-      <div class="property-record__media-body">
-        <PropertyImages
-          :property-id="property.id"
+      <div class="listing-record__media">
+        <ListingImages
+          kind="sale"
+          :listing-id="property.id"
           :can-manage="can('properties.images.manage')"
         />
       </div>
     </aside>
   </div>
 </template>
-
-<style scoped>
-.property-record {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
-  gap: var(--dal-gutter);
-  align-items: start;
-  margin-top: var(--dal-gutter);
-}
-.property-record__body {
-  padding: 12px 16px 16px;
-}
-.property-record__media-body {
-  padding: 12px;
-}
-@media (max-width: 1100px) {
-  .property-record {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-</style>

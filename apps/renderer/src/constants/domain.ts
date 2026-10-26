@@ -68,6 +68,15 @@ export const RENT_PERIODS = [
   { title: "سنوي", value: "annual" },
 ];
 
+/** حالات العرض الإيجاري (RENTAL_STATUSES في الخادم): لا «مباع» ولا «مغلق». */
+export const RENTAL_STATUSES = [
+  { title: "متاح", value: "available" },
+  { title: "محجوز", value: "reserved" },
+  { title: "قيد التفاوض", value: "negotiating" },
+  { title: "مؤجر", value: "rented" },
+  { title: "مؤرشف", value: "archived" },
+];
+
 export const RENT_PERIOD_LABELS: Record<string, string> = Object.fromEntries(
   RENT_PERIODS.map((p) => [p.value, p.title]),
 );
@@ -211,13 +220,9 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: "mdi-text-box-search-outline",
         permission: "requests.read",
       },
-    ],
-  },
-  {
-    title: "المستندات",
-    items: [
+      // المستمسكات مستمسكات الزبائن، فمكانها معهم لا قسم بعنصر واحد.
       {
-        title: "المستندات",
+        title: "المستمسكات",
         to: "/documents",
         icon: "mdi-file-document-multiple-outline",
         permission: "documents.read",

@@ -7,12 +7,18 @@
  */
 import { statusColor, statusLabel } from "../../constants/domain";
 
-defineProps<{ status: string; size?: string; label?: string }>();
+// color لحالات غير حالات العرض (الزبون مثلاً)؛ بدونه لون حالة العرض.
+defineProps<{
+  status: string;
+  size?: string;
+  label?: string;
+  color?: string;
+}>();
 </script>
 
 <template>
   <v-chip
-    :color="statusColor(status)"
+    :color="color ?? statusColor(status)"
     :size="size ?? 'small'"
     variant="tonal"
     label

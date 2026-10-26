@@ -85,7 +85,7 @@ defineProps<{ subtitle?: string }>();
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-size: calc(11px * var(--dal-font-scale));
+  font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
 }
 .auth-photo {
@@ -129,7 +129,7 @@ defineProps<{ subtitle?: string }>();
 .auth-photo__footer {
   display: flex;
   justify-content: space-between;
-  font-size: calc(11px * var(--dal-font-scale));
+  font-size: calc(12px * var(--dal-font-scale));
   color: #d6eeee;
 }
 @media (max-width: 800px) {

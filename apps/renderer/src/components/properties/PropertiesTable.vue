@@ -213,20 +213,20 @@ defineExpose({
       <RowThumbnail :src="rowImageUrl(item)" @load="onRowImageLoad(item)" />
     </template>
     <template #item.name="{ item }">
-      <div class="pt-name">
+      <div class="dal-cell-name">
         <router-link
           :to="`/properties/${item.id}`"
-          class="record-link pt-name__title"
+          class="record-link"
           tabindex="-1"
           :title="titleOf(item)"
           @click="grid?.remember(item.id)"
           >{{ titleOf(item) }}</router-link
         >
-        <bdi v-if="showCode(item)" class="pt-name__code">{{ item.code }}</bdi>
+        <bdi v-if="showCode(item)">{{ item.code }}</bdi>
       </div>
     </template>
     <template #item.district="{ item }">
-      <span class="pt-clip" :title="locationOf(item)">{{
+      <span class="dal-clip" :title="locationOf(item)">{{
         locationOf(item) || "—"
       }}</span>
     </template>
@@ -241,7 +241,7 @@ defineExpose({
       {{ item.area_unit }}
     </template>
     <template #item.owner_name="{ item }">
-      <span class="pt-clip" :title="item.owner_name">{{
+      <span class="dal-clip" :title="item.owner_name">{{
         item.owner_name || "—"
       }}</span>
     </template>
@@ -264,29 +264,6 @@ defineExpose({
 </template>
 
 <style scoped>
-.pt-name {
-  display: flex;
-  flex-direction: column;
-  max-width: 240px;
-  line-height: 1.3;
-}
-.pt-name__title {
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.pt-name__code {
-  font-size: calc(12px * var(--dal-font-scale));
-  color: var(--dal-muted);
-  align-self: flex-start;
-}
-.pt-clip {
-  display: inline-block;
-  max-width: 190px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  vertical-align: middle;
-}
 .pt-price {
   font-weight: 700;
 }

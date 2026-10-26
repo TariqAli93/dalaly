@@ -71,6 +71,23 @@ const dbForm = ref<DatabaseSetupInput>({
 
 const adminForm = ref({ username: "admin", pin: "" });
 
+// كل خطوة تُكمَل قبل التالية، فلا يظهر نقص في خطوة سابقة عند الإعداد نفسه.
+const dbStepValid = computed(() => {
+  const f = dbForm.value;
+  return (
+    Boolean(f.host.trim()) &&
+    /^\d+$/.test(String(f.port).trim()) &&
+    Boolean(f.adminUsername.trim()) &&
+    Boolean(f.databaseName.trim())
+  );
+});
+const adminStepValid = computed(
+  () =>
+    Boolean(adminForm.value.username.trim()) &&
+    adminForm.value.pin.length >= 4 &&
+    adminForm.value.pin.length <= 12,
+);
+
 const testing = ref(false);
 const testMessage = ref<{ type: "success" | "error"; text: string } | null>(
   null,
@@ -80,7 +97,7 @@ const initializing = ref(false);
 const stages = ref([
   { key: "test", label: "اختبار الاتصال", done: false },
   { key: "database", label: "إنشاء قاعدة البيانات", done: false },
-  { key: "migrations", label: "تشغيل migrations", done: false },
+  { key: "migrations", label: "تحديث بنية قاعدة البيانات", done: false },
   { key: "admin", label: "إنشاء المستخدم الأول", done: false },
   { key: "finish", label: "إنهاء الإعداد", done: false },
 ]);
@@ -253,9 +270,13 @@ async function goToLogin() {
           />
           <div class="d-flex justify-space-between mt-4">
             <v-btn variant="text" @click="step = 1">السابق</v-btn>
+            <span v-if="!dbStepValid" class="wizard-hint"
+              >أكمل الخادم والمنفذ واسم المستخدم واسم قاعدة البيانات.</span
+            >
             <v-btn
               color="primary"
               append-icon="mdi-arrow-left"
+              :disabled="!dbStepValid"
               @click="step = 3"
             >
               التالي
@@ -273,9 +294,13 @@ async function goToLogin() {
               السابق
             </v-btn>
             <v-spacer v-else />
+            <span v-if="!adminStepValid" class="wizard-hint"
+              >أدخل اسم المستخدم ورمزاً سرياً من 4 إلى 12 خانة.</span
+            >
             <v-btn
               color="primary"
               append-icon="mdi-arrow-left"
+              :disabled="!adminStepValid"
               @click="step = 4"
             >
               التالي
@@ -334,3 +359,11 @@ async function goToLogin() {
     />
   </FirstRunLayout>
 </template>
+
+<style scoped>
+.wizard-hint {
+  align-self: center;
+  color: var(--dal-muted);
+  font-size: calc(12px * var(--dal-font-scale));
+}
+</style>

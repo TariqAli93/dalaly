@@ -9,6 +9,12 @@ import {
   type AppearanceMode,
 } from "../../composables/useAppearance";
 import type { AppearanceColors } from "../../plugins/theme";
+import SettingsSection from "./SettingsSection.vue";
+
+/**
+ * المظهر على هذا الجهاز: الوضع ولوحات الألوان الجاهزة أولاً، ثم الخط وعرض
+ * المحتوى، والألوان المخصّصة تحت «متقدم» مع معاينتها. التغييرات فورية.
+ */
 const { isDark, toggle } = useThemeMode();
 const { appearance, resetColors, resetAll } = useAppearance();
 const editMode = ref<AppearanceMode>(
@@ -18,6 +24,9 @@ watch(isDark, (value) => {
   editMode.value = value ? "dalalyDark" : "dalalyLight";
 });
 const colors = computed(() => appearance.colors[editMode.value]);
+const modeLabel = computed(() =>
+  editMode.value === "dalalyDark" ? "الداكن" : "الفاتح",
+);
 const presets = [
   { label: "دلالي", key: "default", color: "#116466" },
   { label: "أزرق هادئ", key: "blue", color: "#315F9A" },
@@ -52,254 +61,315 @@ function setColor(key: keyof AppearanceColors, value: unknown) {
 
 <template>
   <div class="appearance-settings">
-    <v-card variant="flat" border>
-      <v-card-title>المظهر العام</v-card-title>
-      <v-card-text>
-        <p class="text-medium-emphasis mb-4">
-          تُطبّق التغييرات فوراً وتُحفظ على هذا الجهاز.
-        </p>
+    <SettingsSection
+      title="الوضع والألوان"
+      description="تُطبّق التغييرات فوراً وتُحفظ على هذا الجهاز وحده."
+    >
+      <div class="appearance-row">
+        <span class="appearance-label">الوضع</span>
         <v-btn-toggle
           :model-value="isDark ? 'dark' : 'light'"
           color="primary"
           mandatory
           divided
-          variant="text"
+          density="comfortable"
+          variant="outlined"
           aria-label="وضع المظهر"
           @update:model-value="($event === 'dark') !== isDark && toggle()"
         >
-          <v-btn
-            value="light"
-            class="rounded-tl-0"
-            prepend-icon="mdi-white-balance-sunny"
+          <v-btn value="light" prepend-icon="mdi-white-balance-sunny"
             >فاتح</v-btn
           >
-          <v-btn
-            value="dark"
-            class="rounded-tr-0"
-            prepend-icon="mdi-weather-night"
-            >داكن</v-btn
-          >
+          <v-btn value="dark" prepend-icon="mdi-weather-night">داكن</v-btn>
         </v-btn-toggle>
-      </v-card-text>
-    </v-card>
-    <v-card variant="flat" border>
-      <v-card-title class="d-flex flex-wrap align-center ga-2"
-        >ألوان المظهر<v-spacer /><v-btn
-          variant="text"
-          size="small"
-          prepend-icon="mdi-restore"
-          @click="resetColors(editMode)"
-          >استعادة الألوان</v-btn
-        ></v-card-title
-      >
-      <v-card-text>
-        <v-select
-          v-model="editMode"
-          label="لوحة الألوان المراد تخصيصها"
-          :items="[
-            { title: 'المظهر الفاتح', value: 'dalalyLight' },
-            { title: 'المظهر الداكن', value: 'dalalyDark' },
-          ]"
-          hide-details
-          class="mb-4"
-        />
-        <div class="d-flex flex-wrap ga-2 mb-5">
+      </div>
+      <div class="appearance-row">
+        <span class="appearance-label">لوحة الألوان</span>
+        <div class="appearance-presets" role="group" aria-label="لوحات الألوان">
           <v-btn
             v-for="preset in presets"
             :key="preset.key"
             variant="tonal"
             @click="applyPreset(preset.key)"
-            ><v-icon
-              icon="mdi-circle"
-              :color="preset.color"
-              size="16"
-              class="me-2"
+            ><span
+              class="appearance-dot"
+              :style="{ backgroundColor: preset.color }"
+              aria-hidden="true"
             />{{ preset.label }}</v-btn
           >
         </div>
-        <div class="color-grid">
-          <v-menu
-            v-for="field in colorFields"
-            :key="field.key"
-            :close-on-content-click="false"
-            location="bottom"
-          >
-            <template #activator="{ props }"
-              ><v-btn
-                v-bind="props"
-                class="color-field"
-                variant="outlined"
-                :aria-label="field.label + ' ' + colors[field.key]"
-                ><span
-                  class="color-swatch"
-                  :style="{ backgroundColor: colors[field.key] }"
-                  aria-hidden="true" /><span
-                  >{{ field.label }}<bdi>{{ colors[field.key] }}</bdi></span
-                ><v-spacer /><v-icon icon="mdi-chevron-down" size="18" /></v-btn
-            ></template>
-            <v-card border
-              ><v-card-title class="text-subtitle-2">{{
-                field.label
-              }}</v-card-title
-              ><v-color-picker
-                :model-value="colors[field.key]"
-                mode="hex"
-                :modes="['hex']"
-                hide-mode-switch
-                @update:model-value="setColor(field.key, $event)"
-            /></v-card>
-          </v-menu>
-        </div>
-      </v-card-text>
-    </v-card>
-    <v-row>
-      <v-col cols="12" md="6"
-        ><v-card variant="flat" border height="100%"
-          ><v-card-title>الخط وحجم النص</v-card-title
-          ><v-card-text
-            ><v-select
-              v-model="appearance.font"
-              label="نوع الخط"
-              :items="fontOptions"
-            /><v-select
-              v-model="appearance.fontSize"
-              label="حجم النص"
-              :items="fontSizes"
-              hide-details
-            />
-            <p class="text-caption text-medium-emphasis mt-3">
-              الخطوط العربية مضمّنة للعمل دون اتصال. خطوط النظام تعتمد على
-              تثبيتها في الجهاز.
-            </p></v-card-text
-          ></v-card
-        ></v-col
-      >
-      <v-col cols="12" md="6"
-        ><v-card variant="flat" border height="100%"
-          ><v-card-title>عرض المحتوى</v-card-title
-          ><v-card-text
-            ><v-switch
-              v-model="appearance.fluid"
-              label="عرض المحتوى بكامل الشاشة (Fluid Container)"
-              color="primary"
-              hide-details
-            /><template v-if="!appearance.fluid"
-              ><div class="d-flex justify-space-between mt-3">
-                <span>الحد الأقصى للعرض</span
-                ><bdi>{{ appearance.maxWidth }} px</bdi>
-              </div>
-              <v-slider
-                v-model="appearance.maxWidth"
-                aria-label="الحد الأقصى لعرض المحتوى"
-                :min="960"
-                :max="1920"
-                :step="80"
-                color="primary"
-                thumb-label
-                hide-details
-            /></template>
-            <p class="text-caption text-medium-emphasis mt-3">
-              يظل المحتوى متجاوباً عند تصغير نافذة التطبيق.
-            </p></v-card-text
-          ></v-card
-        ></v-col
-      >
-    </v-row>
-    <v-card variant="flat" border
-      ><v-card-title>معاينة مباشرة</v-card-title
-      ><v-card-text>
-        <v-theme-provider :theme="editMode" with-background
-          ><v-sheet class="appearance-preview" color="background" rounded="lg"
-            ><v-sheet color="sidebar" class="preview-nav" rounded="lg"
-              ><v-icon icon="mdi-home-city-outline" size="26" /><strong
-                >دلالي</strong
-              ><v-btn color="primary" size="small" variant="flat"
-                >لوحة التحكم</v-btn
-              ></v-sheet
-            ><v-card border class="preview-content"
-              ><v-card-title>مساحة عملك</v-card-title
-              ><v-card-text
-                ><p class="mb-4">ألوان واضحة ونص مقروء لتنظيم عروض المكتب.</p>
-                <div class="d-flex flex-wrap ga-2">
-                  <v-btn color="primary" variant="flat">إجراء أساسي</v-btn
-                  ><v-btn color="secondary" variant="flat">إجراء ثانوي</v-btn
-                  ><v-chip color="accent" variant="tonal">تمييز</v-chip>
-                </div></v-card-text
-              ></v-card
-            ></v-sheet
-          ></v-theme-provider
-        > </v-card-text
-      ><v-divider /><v-card-actions
-        ><v-spacer /><v-btn
-          class="appearance-reset"
-          prepend-icon="mdi-restore"
-          variant="text"
-          @click="resetAll"
-          >استعادة إعدادات المظهر الافتراضية</v-btn
-        ></v-card-actions
-      ></v-card
+        <span class="appearance-hint">تُطبَّق على المظهر {{ modeLabel }}.</span>
+      </div>
+    </SettingsSection>
+
+    <SettingsSection title="الخط وحجم النص">
+      <div class="appearance-pair">
+        <v-select
+          v-model="appearance.font"
+          label="نوع الخط"
+          :items="fontOptions"
+          hide-details
+        />
+        <v-select
+          v-model="appearance.fontSize"
+          label="حجم النص"
+          :items="fontSizes"
+          hide-details
+        />
+      </div>
+      <p class="appearance-hint mt-2">
+        الخطوط العربية مضمّنة وتعمل دون اتصال. ومن خطوط النظام نفسه:
+        <bdi>Segoe UI</bdi>، <bdi>Tahoma</bdi>.
+      </p>
+    </SettingsSection>
+
+    <SettingsSection
+      title="عرض المحتوى"
+      description="على الشاشات العريضة يمكن حصر المحتوى في عرض أقصى أسهل للقراءة."
     >
+      <v-switch
+        v-model="appearance.fluid"
+        label="عرض المحتوى بكامل عرض النافذة"
+        color="primary"
+        hide-details
+      />
+      <div v-if="!appearance.fluid" class="appearance-width">
+        <div class="appearance-width__label">
+          <span>الحد الأقصى للعرض</span>
+          <bdi>{{ appearance.maxWidth }} px</bdi>
+        </div>
+        <v-slider
+          v-model="appearance.maxWidth"
+          aria-label="الحد الأقصى لعرض المحتوى"
+          :min="960"
+          :max="1920"
+          :step="80"
+          color="primary"
+          thumb-label
+          hide-details
+        />
+      </div>
+    </SettingsSection>
+
+    <SettingsSection title="متقدم">
+      <v-expansion-panels variant="accordion" flat class="appearance-advanced">
+        <v-expansion-panel>
+          <v-expansion-panel-title>ألوان مخصّصة</v-expansion-panel-title>
+          <v-expansion-panel-text>
+            <div class="appearance-row">
+              <v-select
+                v-model="editMode"
+                label="المظهر المراد تخصيصه"
+                :items="[
+                  { title: 'المظهر الفاتح', value: 'dalalyLight' },
+                  { title: 'المظهر الداكن', value: 'dalalyDark' },
+                ]"
+                hide-details
+                class="appearance-mode-select"
+              />
+              <v-btn
+                variant="text"
+                prepend-icon="mdi-restore"
+                @click="resetColors(editMode)"
+                >استعادة ألوان المظهر {{ modeLabel }}</v-btn
+              >
+            </div>
+            <div class="color-grid">
+              <v-menu
+                v-for="field in colorFields"
+                :key="field.key"
+                :close-on-content-click="false"
+                location="bottom"
+              >
+                <template #activator="{ props }"
+                  ><v-btn
+                    v-bind="props"
+                    class="color-field"
+                    variant="outlined"
+                    :aria-label="`${field.label}: ${colors[field.key]}`"
+                    ><span
+                      class="color-swatch"
+                      :style="{ backgroundColor: colors[field.key] }"
+                      aria-hidden="true" /><span class="color-field__text"
+                      >{{ field.label }}<bdi>{{ colors[field.key] }}</bdi></span
+                    ><v-spacer /><v-icon
+                      icon="mdi-chevron-down"
+                      size="18"
+                      aria-hidden="true" /></v-btn
+                ></template>
+                <v-sheet border rounded="lg" class="color-picker">
+                  <div class="dal-section-title color-picker__title">
+                    {{ field.label }}
+                  </div>
+                  <v-color-picker
+                    :model-value="colors[field.key]"
+                    mode="hex"
+                    :modes="['hex']"
+                    hide-mode-switch
+                    flat
+                    @update:model-value="setColor(field.key, $event)"
+                  />
+                </v-sheet>
+              </v-menu>
+            </div>
+            <div class="appearance-label mt-4 mb-2">معاينة</div>
+            <v-theme-provider :theme="editMode" with-background>
+              <v-sheet
+                class="appearance-preview"
+                color="background"
+                rounded="lg"
+              >
+                <v-sheet color="sidebar" class="preview-nav" rounded="lg">
+                  <v-icon icon="mdi-home-city-outline" size="24" />
+                  <strong>دلالي</strong>
+                </v-sheet>
+                <v-sheet class="preview-content" border rounded="lg">
+                  <strong>مساحة عملك</strong>
+                  <p>ألوان واضحة ونص مقروء لتنظيم عروض المكتب.</p>
+                  <div class="d-flex flex-wrap ga-2">
+                    <v-btn color="primary" variant="flat" size="small"
+                      >إجراء أساسي</v-btn
+                    >
+                    <v-btn color="secondary" variant="flat" size="small"
+                      >إجراء ثانوي</v-btn
+                    >
+                    <v-chip color="accent" variant="tonal" size="small" label
+                      >تمييز</v-chip
+                    >
+                  </div>
+                </v-sheet>
+              </v-sheet>
+            </v-theme-provider>
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+      </v-expansion-panels>
+      <div class="mt-3">
+        <v-btn variant="text" prepend-icon="mdi-restore" @click="resetAll"
+          >استعادة إعدادات المظهر الافتراضية كلها</v-btn
+        >
+      </div>
+    </SettingsSection>
   </div>
 </template>
 
 <style scoped>
-.appearance-settings {
+.appearance-advanced {
+  border: 1px solid var(--dal-stroke);
+  border-radius: var(--dal-radius-card);
+  overflow: hidden;
+}
+.appearance-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+.appearance-row:last-child {
+  margin-bottom: 0;
+}
+.appearance-label {
+  min-width: 88px;
+  font-size: calc(13px * var(--dal-font-scale));
+  font-weight: 600;
+}
+.appearance-hint {
+  margin: 0;
+  color: var(--dal-muted);
+  font-size: calc(12px * var(--dal-font-scale));
+}
+.appearance-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.appearance-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-inline-end: 8px;
+  border-radius: 50%;
+}
+.appearance-pair {
   display: grid;
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 320px));
+  gap: 12px 16px;
 }
-.appearance-reset {
-  max-width: 100%;
-  height: auto;
-  min-height: 44px;
-  padding-block: 8px;
+.appearance-width {
+  max-width: 480px;
+  margin-top: 8px;
 }
-.appearance-reset :deep(.v-btn__content) {
-  white-space: normal;
+.appearance-width__label {
+  display: flex;
+  justify-content: space-between;
+  font-size: calc(13px * var(--dal-font-scale));
+}
+.appearance-mode-select {
+  flex: 0 1 260px;
 }
 .color-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
 }
 .color-field {
   justify-content: flex-start;
   height: auto;
-  min-height: 66px;
-  padding: 12px;
+  min-height: 52px;
+  padding: 8px 12px;
   text-align: start;
-  border-color: var(--dal-stroke);
 }
 .color-field :deep(.v-btn__content) {
   width: 100%;
   gap: 12px;
 }
+.color-field__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font-weight: 600;
+}
 .color-swatch {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border: 1px solid var(--dal-stroke);
-  border-radius: 8px;
+  border-radius: var(--dal-radius-control);
   flex: 0 0 auto;
 }
 .color-field bdi {
-  display: block;
   color: var(--dal-muted);
-  font-size: 0.75rem;
+  font-size: calc(12px * var(--dal-font-scale));
+  font-weight: 400;
+}
+.color-picker {
+  padding: 8px;
+}
+.color-picker__title {
+  padding: 4px 8px 8px;
 }
 .appearance-preview {
   display: grid;
-  grid-template-columns: 160px minmax(0, 1fr);
-  gap: 16px;
-  padding: 16px;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--dal-stroke);
 }
 .preview-nav {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 20px 12px;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 8px;
 }
 .preview-content {
-  align-self: center;
+  display: grid;
+  gap: 8px;
+  padding: 12px 16px;
+}
+.preview-content p {
+  margin: 0;
+  font-size: calc(13px * var(--dal-font-scale));
 }
 @media (max-width: 900px) {
   .color-grid {
@@ -307,15 +377,10 @@ function setColor(key: keyof AppearanceColors, value: unknown) {
   }
 }
 @media (max-width: 540px) {
-  .color-grid {
-    grid-template-columns: 1fr;
-  }
+  .color-grid,
+  .appearance-pair,
   .appearance-preview {
     grid-template-columns: 1fr;
-  }
-  .preview-nav {
-    flex-direction: row;
-    flex-wrap: wrap;
   }
 }
 </style>

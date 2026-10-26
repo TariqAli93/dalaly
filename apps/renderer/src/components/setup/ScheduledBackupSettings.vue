@@ -5,6 +5,9 @@ import { platform } from "../../platform";
 import { usePermissions } from "../../composables/usePermissions";
 import { useSnackbar } from "../../composables/useSnackbar";
 import type { ScheduledBackupConfig } from "../../types";
+import SettingsSection from "../settings/SettingsSection.vue";
+import FormSection from "../shared/FormSection.vue";
+import { formatDateTime } from "../../utils/format";
 
 const { can } = usePermissions();
 const { notifySuccess, notifyError } = useSnackbar();
@@ -42,9 +45,7 @@ const FREQ = [
 ];
 
 function fmt(value?: string | null) {
-  return value
-    ? new Date(value).toLocaleString("ar-IQ", { numberingSystem: "latn" })
-    : "—";
+  return value ? formatDateTime(value) : "—";
 }
 
 async function load() {
@@ -113,78 +114,104 @@ onMounted(load);
 </script>
 
 <template>
-  <v-card variant="flat" border>
-    <v-card-title>{{ t("backup.scheduled") }}</v-card-title>
-    <v-card-text>
+  <SettingsSection
+    :title="t('backup.scheduled')"
+    description="نسخة مشفّرة من قاعدة البيانات تُرسل بالبريد في الموعد المحدد."
+  >
+    <v-alert
+      v-if="!available"
+      type="info"
+      variant="tonal"
+      density="compact"
+      :text="t('backup.notAvailable')"
+    />
+    <template v-else>
       <v-alert
-        v-if="!available"
-        type="info"
+        v-if="loadFailed"
+        type="error"
         variant="tonal"
-        :text="t('backup.notAvailable')"
+        density="compact"
+        class="mb-3"
+        text="تعذرت قراءة إعدادات النسخ المجدول المحفوظة. الحفظ متوقف كي لا تُستبدل بالقيم الظاهرة هنا."
+      >
+        <template #append>
+          <v-btn variant="text" size="small" :loading="loading" @click="load"
+            >إعادة المحاولة</v-btn
+          >
+        </template>
+      </v-alert>
+      <v-alert
+        type="warning"
+        variant="tonal"
+        density="compact"
+        class="mb-3"
+        :text="t('backup.warning')"
       />
-      <template v-else>
-        <v-alert
-          v-if="loadFailed"
-          type="error"
-          variant="tonal"
-          class="mb-4"
-          text="تعذرت قراءة إعدادات النسخ المجدول المحفوظة. الحفظ متوقف كي لا تُستبدل بالقيم الظاهرة هنا."
-        >
-          <template #append>
-            <v-btn variant="text" :loading="loading" @click="load"
-              >إعادة المحاولة</v-btn
-            >
-          </template>
-        </v-alert>
-        <v-alert
-          type="warning"
-          variant="tonal"
-          class="mb-4"
-          :text="t('backup.warning')"
-        />
-        <v-switch
-          v-model="config.enabled"
-          :label="t('backup.enableScheduled')"
-          color="primary"
-          hide-details
-          class="mb-3"
-        />
-        <div class="dialog-grid">
+      <v-switch
+        v-model="config.enabled"
+        :label="t('backup.enableScheduled')"
+        color="primary"
+        hide-details
+        class="mb-2"
+      />
+      <v-form @submit.prevent="save">
+        <FormSection title="المستلم والموعد">
           <v-text-field
             v-model="config.recipient"
             label="البريد المستقبل"
             type="email"
+            hide-details="auto"
           />
-          <v-select v-model="config.frequency" :items="FREQ" label="التكرار" />
-          <v-text-field v-model="config.time" label="وقت التنفيذ" type="time" />
+          <v-select
+            v-model="config.frequency"
+            :items="FREQ"
+            label="التكرار"
+            hide-details="auto"
+          />
+          <v-text-field
+            v-model="config.time"
+            label="وقت التنفيذ"
+            type="time"
+            hide-details="auto"
+          />
+        </FormSection>
+        <FormSection title="خادم البريد">
           <v-text-field
             v-model="config.smtpHost"
             :label="t('backup.smtpHost')"
+            hide-details="auto"
           />
           <v-text-field
             v-model="config.smtpPort"
             :label="t('backup.smtpPort')"
+            inputmode="numeric"
+            hide-details="auto"
           />
           <v-text-field
             v-model="config.smtpUser"
             :label="t('backup.smtpUser')"
+            hide-details="auto"
           />
           <v-text-field
             v-model="password"
-            class="span-2"
+            class="form-section__wide"
             :label="
               config.hasPassword
                 ? t('backup.savedPassword')
                 : t('backup.smtpPassword')
             "
             type="password"
+            autocomplete="off"
             :hint="t('backup.secureHint')"
             persistent-hint
           />
+        </FormSection>
+        <FormSection title="تشفير النسخة المرسلة" :columns="2">
           <v-alert
             type="warning"
             variant="tonal"
-            class="span-2"
+            density="compact"
+            class="form-section__wide"
             :text="t('backup.encryptionWarning')"
           />
           <v-text-field
@@ -204,28 +231,42 @@ onMounted(load);
             :label="t('backup.confirmEncryptionPassword')"
             type="password"
             autocomplete="new-password"
+            hide-details="auto"
           />
-        </div>
-        <div class="d-flex align-center mt-3">
-          <div class="text-caption text-medium-emphasis">
-            {{ t("backup.lastRun") }}: {{ fmt(config.lastRunAt) }}
-            <span v-if="config.lastError" class="text-error">
-              · خطأ: {{ config.lastError }}</span
-            >
-          </div>
-          <v-spacer />
+        </FormSection>
+        <div class="scheduled-footer">
           <v-btn
             v-if="can('backups.schedule')"
             color="primary"
+            variant="flat"
+            type="submit"
             :loading="saving"
             :disabled="loadFailed || loading"
-            prepend-icon="mdi-content-save"
-            @click="save"
+            prepend-icon="mdi-content-save-outline"
+            >حفظ الجدولة</v-btn
           >
-            حفظ
-          </v-btn>
+          <span class="scheduled-footer__status">
+            {{ t("backup.lastRun") }}: <bdi>{{ fmt(config.lastRunAt) }}</bdi>
+            <span v-if="config.lastError" class="text-error">
+              · خطأ: {{ config.lastError }}</span
+            >
+          </span>
         </div>
-      </template>
-    </v-card-text>
-  </v-card>
+      </v-form>
+    </template>
+  </SettingsSection>
 </template>
+
+<style scoped>
+.scheduled-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding-top: 12px;
+}
+.scheduled-footer__status {
+  color: var(--dal-muted);
+  font-size: calc(12px * var(--dal-font-scale));
+}
+</style>

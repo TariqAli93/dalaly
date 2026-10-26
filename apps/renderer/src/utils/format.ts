@@ -18,6 +18,18 @@ export function formatDateTime(value: string | number | Date) {
   return Number.isNaN(date.getTime()) ? "—" : DATE_TIME.format(date);
 }
 
+const DATE = new Intl.DateTimeFormat("ar-IQ", {
+  numberingSystem: "latn",
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+});
+/** تاريخ بلا وقت (انتهاء مستمسك مثلاً) بأرقام لاتينية. */
+export function formatDate(value: string | number | Date) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : DATE.format(date);
+}
+
 export function toNumber(value: unknown) {
   // نتحمّل القيم المنسّقة بفواصل الآلاف (مثل "112,345,123") القادمة من حقول الإدخال.
   const raw = typeof value === "string" ? value.replace(/,/g, "") : value;

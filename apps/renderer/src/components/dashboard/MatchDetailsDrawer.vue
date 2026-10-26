@@ -209,7 +209,7 @@ const listing = computed(() => {
   margin: 0;
 }
 .details-grid dt {
-  font-size: calc(11px * var(--dal-font-scale));
+  font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
 }
 .details-grid dd {
@@ -219,7 +219,7 @@ const listing = computed(() => {
 }
 .details-muted {
   margin: 6px 0 0;
-  font-size: calc(11px * var(--dal-font-scale));
+  font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
 }
 .details-reasons {

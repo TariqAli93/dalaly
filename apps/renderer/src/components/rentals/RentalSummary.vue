@@ -1,16 +1,21 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import {
   RENT_PERIOD_LABELS,
   RENTAL_PROPERTY_LABELS,
 } from "../../constants/domain";
-import { computed } from "vue";
-import { formatMoney } from "../../utils/format";
+import { formatMoney, formatNumber } from "../../utils/format";
 import { usePermissions } from "../../composables/usePermissions";
 import StatusChip from "../shared/StatusChip.vue";
+import PhoneLink from "../shared/PhoneLink.vue";
 import type { RentalRecord } from "../../types";
 import { amenitiesText } from "../../utils/amenities";
 import RentalExportMenu from "./RentalExportMenu.vue";
 
+/**
+ * ملخّص العرض الإيجاري المحدد في اللوحة الجانبية، من بيانات الصف نفسه بلا
+ * طلب. الأوامر تُصدَّر للأب ليعيد استخدام معالجاته.
+ */
 const props = defineProps<{ rental: RentalRecord; favorite?: boolean }>();
 const emit = defineEmits<{
   open: [];
@@ -19,57 +24,76 @@ const emit = defineEmits<{
   restore: [];
   delete: [];
   favorite: [];
+  followup: [];
   close: [];
 }>();
 const { can } = usePermissions();
 
-const typeLabel = RENTAL_PROPERTY_LABELS;
-const periodLabel = RENT_PERIOD_LABELS;
-const phoneDigits = computed(() => props.rental.owner_phone.replace(/\D/g, ""));
 const location = computed(() =>
   [props.rental.governorate, props.rental.district, props.rental.neighborhood]
     .filter(Boolean)
     .join(" · "),
 );
+const rows = computed(() => {
+  const r = props.rental;
+  return [
+    {
+      label: "المساحة",
+      value: `${formatNumber(r.area_value)} ${r.area_unit ?? ""}`.trim(),
+    },
+    { label: "الغرف", value: r.rooms_count ?? "—" },
+    { label: "الحمامات", value: r.bathrooms_count ?? "—" },
+    { label: "الطوابق", value: r.floors_count ?? "—" },
+    { label: "المميزات", value: amenitiesText(r.amenities) || "—", wide: true },
+  ];
+});
 </script>
 
 <template>
-  <div class="ps">
-    <div class="ps__head">
-      <div class="min-w-0">
-        <div class="ps__code">
+  <div class="dal-pane">
+    <div class="dal-pane__head">
+      <div class="dal-pane__title">
+        <div class="dal-pane__name">
           {{ rental.name || `إيجار ${rental.code}` }}
         </div>
-        <div class="ps__type money">
-          {{ rental.code }} ·
-          {{ typeLabel[rental.property_type] ?? rental.property_type }}
+        <div class="dal-pane__sub">
+          <bdi>{{ rental.code }}</bdi> ·
+          {{
+            RENTAL_PROPERTY_LABELS[rental.property_type] ?? rental.property_type
+          }}
         </div>
       </div>
-      <StatusChip :status="rental.status" />
-      <v-btn
-        :icon="favorite ? 'mdi-heart' : 'mdi-heart-outline'"
-        :color="favorite ? 'error' : undefined"
-        variant="text"
-        title="المفضلة"
-        @click="emit('favorite')"
-      />
-      <v-btn
-        icon="mdi-close"
-        size="x-small"
-        variant="text"
-        aria-label="إغلاق التفاصيل"
-        @click="emit('close')"
-      />
+      <div class="dal-pane__tools">
+        <StatusChip :status="rental.status" />
+        <v-btn
+          :icon="favorite ? 'mdi-heart' : 'mdi-heart-outline'"
+          :color="favorite ? 'error' : undefined"
+          size="small"
+          variant="text"
+          :aria-pressed="favorite"
+          :aria-label="favorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'"
+          :title="favorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'"
+          @click="emit('favorite')"
+        />
+        <v-btn
+          icon="mdi-close"
+          size="small"
+          variant="text"
+          aria-label="إغلاق الملخّص (Esc)"
+          @click="emit('close')"
+        />
+      </div>
     </div>
 
-    <v-divider />
-
-    <div class="ps__price">
-      <div class="ps__price-label">سعر الإيجار</div>
-      <div class="ps__price-value">
-        <span class="money">{{ formatMoney(rental.rent_price) }}</span> دينار
-        <span class="ps__period"
-          >/ {{ periodLabel[rental.rent_period] ?? rental.rent_period }}</span
+    <div class="dal-pane__price">
+      <div class="dal-pane__label">الإيجار</div>
+      <div class="dal-pane__price-value">
+        <span class="money">{{ formatMoney(rental.rent_price) }}</span> د.ع
+        <span class="dal-pane__period"
+          >/
+          {{
+            RENT_PERIOD_LABELS[rental.rent_period] ?? rental.rent_period
+          }}</span
         >
         <v-chip
           v-if="rental.is_negotiable"
@@ -82,82 +106,61 @@ const location = computed(() =>
       </div>
     </div>
 
-    <div class="ps__section">
-      <div class="ps__label">المالك</div>
-      <div class="ps__owner">{{ rental.owner_name }}</div>
-      <div class="ps__phone">
-        <span class="money">{{ rental.owner_phone }}</span>
-        <a
-          v-if="phoneDigits"
-          :href="`tel:${phoneDigits}`"
-          class="ps__call"
-          title="اتصال"
-        >
-          <v-icon icon="mdi-phone" size="16" />
-        </a>
-        <a
-          v-if="phoneDigits"
-          :href="`https://wa.me/${phoneDigits}`"
-          target="_blank"
-          rel="noopener"
-          class="ps__call"
-          title="واتساب"
-        >
-          <v-icon icon="mdi-whatsapp" size="16" />
-        </a>
-      </div>
+    <div class="dal-pane__section">
+      <div class="dal-pane__label">المالك</div>
+      <router-link
+        v-if="rental.owner_person_id && can('people.read')"
+        :to="`/clients/${rental.owner_person_id}`"
+        class="record-link dal-pane__strong"
+        >{{ rental.owner_name }}</router-link
+      >
+      <div v-else class="dal-pane__strong">{{ rental.owner_name }}</div>
+      <PhoneLink :phone="rental.owner_phone" :name="rental.owner_name" />
     </div>
 
-    <div v-if="location" class="ps__section">
-      <div class="ps__label">الموقع</div>
+    <div v-if="location" class="dal-pane__section">
+      <div class="dal-pane__label">الموقع</div>
       <div>{{ location }}</div>
-      <div v-if="rental.address_details" class="ps__muted">
+      <div v-if="rental.address_details" class="dal-pane__muted">
         {{ rental.address_details }}
       </div>
     </div>
 
-    <div class="ps__grid">
-      <div class="ps__cell">
-        <div class="ps__label">المساحة</div>
-        <div>{{ rental.area_value }} {{ rental.area_unit }}</div>
+    <dl class="dal-pane__grid">
+      <div
+        v-for="row in rows"
+        :key="row.label"
+        :class="{ 'dal-pane__wide': row.wide }"
+      >
+        <dt class="dal-pane__label">{{ row.label }}</dt>
+        <dd>{{ row.value }}</dd>
       </div>
-      <div class="ps__cell">
-        <div class="ps__label">الغرف</div>
-        <div>{{ rental.rooms_count ?? "—" }}</div>
-      </div>
-      <div class="ps__cell">
-        <div class="ps__label">الحمامات</div>
-        <div>{{ rental.bathrooms_count ?? "—" }}</div>
-      </div>
-      <div class="ps__cell">
-        <div class="ps__label">الطوابق</div>
-        <div>{{ rental.floors_count ?? "—" }}</div>
-      </div>
-      <div class="ps__cell">
-        <div class="ps__label">المميزات</div>
-        <div>{{ amenitiesText(rental.amenities) || "—" }}</div>
-      </div>
-    </div>
+    </dl>
 
-    <v-divider />
-
-    <div class="ps__actions">
+    <div class="dal-pane__actions">
       <v-btn color="primary" block @click="emit('open')"
         >فتح التفاصيل الكاملة</v-btn
       >
+      <v-btn
+        v-if="can('rentals.followups.create')"
+        variant="tonal"
+        block
+        prepend-icon="mdi-phone-plus-outline"
+        @click="emit('followup')"
+        >تسجيل متابعة</v-btn
+      >
       <RentalExportMenu v-if="can('rentals.export')" :rental="rental" />
-      <div class="ps__actions-row">
+      <div class="dal-pane__row">
         <v-btn
           v-if="can('rentals.update')"
           variant="tonal"
-          prepend-icon="mdi-pencil"
+          prepend-icon="mdi-pencil-outline"
           @click="emit('edit')"
           >تعديل</v-btn
         >
         <v-btn
           v-if="rental.status === 'archived' && can('rentals.restore')"
           variant="text"
-          color="success"
           prepend-icon="mdi-archive-arrow-up-outline"
           @click="emit('restore')"
           >إرجاع</v-btn
@@ -175,7 +178,7 @@ const location = computed(() =>
           variant="text"
           color="error"
           icon="mdi-delete-outline"
-          aria-label="حذف"
+          aria-label="حذف العرض الإيجاري"
           title="حذف"
           @click="emit('delete')"
         />
@@ -183,87 +186,3 @@ const location = computed(() =>
     </div>
   </div>
 </template>
-
-<style scoped>
-.ps {
-  padding: 10px 12px 16px;
-}
-.ps__head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding-bottom: 8px;
-}
-.ps__code {
-  font-size: calc(15px * var(--dal-font-scale));
-  font-weight: 700;
-}
-.ps__type {
-  font-size: calc(12px * var(--dal-font-scale));
-  color: rgba(var(--v-theme-on-surface), 0.6);
-}
-.ps__price {
-  padding: 10px 2px;
-}
-.ps__price-label,
-.ps__label {
-  font-size: calc(11.5px * var(--dal-font-scale));
-  color: rgba(var(--v-theme-on-surface), 0.6);
-  margin-bottom: 2px;
-}
-.ps__price-value {
-  font-size: calc(17px * var(--dal-font-scale));
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.ps__period {
-  font-size: calc(13px * var(--dal-font-scale));
-  font-weight: 500;
-  color: rgba(var(--v-theme-on-surface), 0.65);
-}
-.ps__section {
-  padding: 8px 2px;
-  border-top: 1px solid var(--dal-stroke);
-}
-.ps__owner {
-  font-weight: 600;
-}
-.ps__phone {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.ps__call {
-  display: inline-flex;
-  color: rgb(var(--v-theme-primary-text));
-  text-decoration: none;
-}
-.ps__muted {
-  font-size: calc(12px * var(--dal-font-scale));
-  color: rgba(var(--v-theme-on-surface), 0.6);
-}
-.ps__grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 12px;
-  padding: 10px 2px;
-  border-top: 1px solid var(--dal-stroke);
-}
-.ps__cell {
-  min-width: 0;
-}
-.ps__actions {
-  padding-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.ps__actions-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-</style>

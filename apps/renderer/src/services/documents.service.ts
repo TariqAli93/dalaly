@@ -26,7 +26,7 @@ export function listDocuments(
 }
 /** صفحة واحدة مع العدد الكلي، لجدول المستمسكات. */
 export function listDocumentsPage(
-  filters: { person_id?: number; status?: string },
+  filters: { person_id?: number; document_type_id?: number; status?: string },
   page: PageQuery<DocumentSortKey>,
   signal?: AbortSignal,
 ) {

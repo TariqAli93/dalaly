@@ -42,6 +42,22 @@ export function personStatusLabel(value: string) {
   );
 }
 
+/** لون شريحة حالة الزبون: النشط وحده ملوّن، والبقية محايدة. */
+export function personStatusColor(value: string) {
+  return value === "active" ? "success" : undefined;
+}
+
+export function personTypeLabel(value: string) {
+  return (
+    (
+      { individual: "فرد", company: "شركة", other: "أخرى" } as Record<
+        string,
+        string
+      >
+    )[value] ?? value
+  );
+}
+
 /**
  * تصفية جدول الزبائن بالحالة. "current" لا يُرسل حالةً، فيعيد الخادم غير
  * المؤرشفين؛ لا طريق إلى المؤرشف إلا بطلبه صراحة.
@@ -78,6 +94,25 @@ export function followupTypeIcon(value: string) {
     FOLLOWUP_TYPES.find((item) => item.value === value)?.icon ??
     "mdi-note-text-outline"
   );
+}
+
+/** حالة المستمسك المحسوبة: active نشط غير منتهٍ، expired نشط انتهى تاريخه. */
+export function documentStatusLabel(value: string) {
+  return (
+    (
+      { active: "ساري", expired: "منتهي", archived: "مؤرشف" } as Record<
+        string,
+        string
+      >
+    )[value] ?? value
+  );
+}
+export function documentStatusColor(value: string) {
+  return value === "expired"
+    ? "error"
+    : value === "active"
+      ? "success"
+      : undefined;
 }
 
 /** حالات طلبات الشراء والإيجار (الخادم: open / matched / closed / archived). */

@@ -1,6 +1,7 @@
 import {
   createRouter,
   createWebHashHistory,
+  type RouteLocationNormalized,
   type RouteRecordRaw,
 } from "vue-router";
 import { useSetup } from "../composables/useSetup";
@@ -13,6 +14,23 @@ declare module "vue-router" {
     permission?: string;
     titleKey?: string;
   }
+}
+
+/**
+ * روابط ?open=<id> القديمة (لوحة التحكم، البحث، المطابقة) كانت تفتح حواراً
+ * فوق القائمة؛ للعرض الإيجاري وللطلب الآن صفحة سجل، فيُحوَّل الرابط إليها.
+ * في الحارس العام لا beforeEnter: هذا لا يعمل حين يتغيّر الاستعلام وحده
+ * والقائمة مفتوحة.
+ */
+const RECORD_LISTS = new Set([
+  "/rentals",
+  "/rental-requests",
+  "/purchase-requests",
+]);
+function openRecord(to: RouteLocationNormalized) {
+  if (!RECORD_LISTS.has(to.path)) return null;
+  const id = Number(to.query.open);
+  return Number.isSafeInteger(id) && id > 0 ? `${to.path}/${id}` : null;
 }
 
 // صفحات ما بعد تسجيل الدخول: أبناء AppLayout، فيبقى الإطار (القائمة والشريط
@@ -86,6 +104,16 @@ const appPages: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/rentals/:id(\\d+)",
+    name: "rental-details",
+    component: () => import("../pages/RentalDetailsPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "rentals.read",
+      titleKey: "routes.rentals",
+    },
+  },
+  {
     path: "/rentals/new",
     name: "rental-new",
     component: () => import("../pages/RentalFormPage.vue"),
@@ -137,9 +165,31 @@ const appPages: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/rental-requests/:id(\\d+)",
+    name: "rental-request-details",
+    component: () => import("../pages/RequestDetailsPage.vue"),
+    props: { mode: "rental" },
+    meta: {
+      requiresAuth: true,
+      permission: "requests.read",
+      titleKey: "routes.rentalRequests",
+    },
+  },
+  {
     path: "/purchase-requests",
     name: "purchase-requests",
     component: () => import("../pages/PurchaseRequestsPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "requests.read",
+      titleKey: "routes.purchaseRequests",
+    },
+  },
+  {
+    path: "/purchase-requests/:id(\\d+)",
+    name: "purchase-request-details",
+    component: () => import("../pages/RequestDetailsPage.vue"),
+    props: { mode: "purchase" },
     meta: {
       requiresAuth: true,
       permission: "requests.read",
@@ -294,5 +344,5 @@ router.beforeEach(async (to) => {
     return { path: "/" };
   }
 
-  return true;
+  return openRecord(to) ?? true;
 });

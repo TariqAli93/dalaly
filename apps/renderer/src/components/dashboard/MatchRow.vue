@@ -104,7 +104,7 @@ const others = computed(() => request.value.match_count - 1);
       </button>
       <div class="match__line">
         {{ propertyTypeText(offer.kind, offer.property_type) }} ·
-        <strong class="money">{{
+        <strong>{{
           priceText(offer.kind, offer.price, offer.rent_period)
         }}</strong>
         <template v-if="offer.is_negotiable"> · قابل للتفاوض</template>
@@ -195,7 +195,7 @@ const others = computed(() => request.value.match_count - 1);
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: calc(11px * var(--dal-font-scale));
+  font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
 }
 .match__title {
@@ -226,7 +226,7 @@ const others = computed(() => request.value.match_count - 1);
   align-content: center;
   gap: 2px;
   color: rgb(var(--v-theme-primary));
-  font-size: calc(11px * var(--dal-font-scale));
+  font-size: calc(12px * var(--dal-font-scale));
   font-variant-numeric: tabular-nums;
 }
 .match__link::before {
@@ -273,7 +273,7 @@ const others = computed(() => request.value.match_count - 1);
   gap: 2px;
   padding: 0 6px;
   border-radius: 4px;
-  font-size: calc(11px * var(--dal-font-scale));
+  font-size: calc(12px * var(--dal-font-scale));
   line-height: 20px;
   border: 1px solid var(--dal-stroke);
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ListingImage from "../shared/ListingImage.vue";
+import ListingImage from "./ListingImage.vue";
 import {
   computed,
   nextTick,
@@ -10,24 +10,68 @@ import {
   watch,
 } from "vue";
 import * as imagesService from "../../services/images.service";
+import * as rentalsService from "../../services/rentals.service";
 import { getErrorMessage } from "../../services/api.service";
 import { useSnackbar } from "../../composables/useSnackbar";
 import { useConfirm } from "../../composables/useConfirm";
-import type { PropertyImage } from "../../types";
+import type { PropertyImage, RentalImage } from "../../types";
 import { readFileAsDataUrl } from "../../utils/files";
 import { makeThumbnail } from "../../utils/thumbnails";
 import { useThumbnailBackfill } from "../../composables/useThumbnailBackfill";
 
+/**
+ * معرض صور العرض، واحد لعروض البيع والإيجار: الصورة المختارة كبيرة وتحتها
+ * شريط مصغّرات (المصغّرة لا الأصل)، ومعاينة قبل الرفع بروابط object، ورفع
+ * صورة بصورة، وإعادة الترتيب بالسحب أو Ctrl+→/←. kind يختار خدمة الصور.
+ */
 const props = defineProps<{
-  propertyId: number;
+  kind: "sale" | "rental";
+  listingId: number;
   canManage?: boolean;
 }>();
+
+type ListingImageRecord = PropertyImage | RentalImage;
+type Upload = {
+  data: string;
+  original_name?: string;
+  thumbnail?: string | null;
+};
+const SALE = {
+  list: imagesService.listImages,
+  upload: imagesService.uploadImages,
+  setPrimary: imagesService.setPrimaryImage,
+  reorder: imagesService.reorderImages,
+  remove: imagesService.deleteImage,
+  fileUrl: imagesService.imageFileUrl,
+  thumbUrl: imagesService.thumbnailUrl,
+  saveThumb: imagesService.saveThumbnail,
+};
+const RENTAL = {
+  list: rentalsService.listRentalImages,
+  upload: rentalsService.uploadRentalImages,
+  setPrimary: rentalsService.setPrimaryRentalImage,
+  reorder: rentalsService.reorderRentalImages,
+  remove: rentalsService.deleteRentalImage,
+  fileUrl: rentalsService.rentalImageUrl,
+  thumbUrl: rentalsService.rentalThumbnailUrl,
+  saveThumb: rentalsService.saveRentalThumbnail,
+};
+const api = computed<{
+  list: (id: number) => Promise<ListingImageRecord[]>;
+  upload: (id: number, images: Upload[]) => Promise<unknown>;
+  setPrimary: (id: number, imageId: number) => Promise<ListingImageRecord[]>;
+  reorder: (id: number, ids: number[]) => Promise<ListingImageRecord[]>;
+  remove: (id: number, imageId: number) => Promise<unknown>;
+  fileUrl: (id: number, imageId: number) => string;
+  thumbUrl: (id: number, imageId: number) => string;
+  saveThumb: (id: number, imageId: number, data: string) => Promise<unknown>;
+}>(() => (props.kind === "sale" ? SALE : RENTAL));
 
 const { notifySuccess, notifyError } = useSnackbar();
 const { openConfirm } = useConfirm();
 const { queueThumbnail } = useThumbnailBackfill();
 
-const images = ref<PropertyImage[]>([]);
+const images = ref<ListingImageRecord[]>([]);
 const loading = ref(false);
 const loadError = ref<string | null>(null);
 const uploading = ref(false);
@@ -52,32 +96,31 @@ const activeImage = computed(
     primaryImage.value,
 );
 
-function imageUrl(image: PropertyImage) {
-  return imagesService.imageFileUrl(props.propertyId, image.id);
+function imageUrl(image: ListingImageRecord) {
+  return api.value.fileUrl(props.listingId, image.id);
 }
 // شريط المصغّرات يطلب المصغّرة لا الأصل (3–5MB تُفكّ لكل صورة صغيرة).
 // صورة بلا مصغّرة يُعرض أصلها، ثم يصنع من يدير الصور مصغّرتها وقت الفراغ كما
 // يفعل جدول العروض، فتكون الزيارة التالية خفيفة.
-function onThumbLoad(image: PropertyImage) {
+function onThumbLoad(image: ListingImageRecord) {
   if (!missingThumbs.has(image.id) || !props.canManage) return;
   queueThumbnail({
-    key: `property:${image.id}`,
+    key: `${props.kind === "sale" ? "property" : "rental"}:${image.id}`,
     source: imageUrl(image),
-    save: (data) =>
-      imagesService.saveThumbnail(props.propertyId, image.id, data),
+    save: (data) => api.value.saveThumb(props.listingId, image.id, data),
   });
 }
-function thumbUrl(image: PropertyImage) {
+function thumbUrl(image: ListingImageRecord) {
   return missingThumbs.has(image.id)
     ? imageUrl(image)
-    : imagesService.thumbnailUrl(props.propertyId, image.id);
+    : api.value.thumbUrl(props.listingId, image.id);
 }
 
 async function load() {
   loading.value = true;
   loadError.value = null;
   try {
-    images.value = await imagesService.listImages(props.propertyId);
+    images.value = await api.value.list(props.listingId);
   } catch (error) {
     loadError.value = getErrorMessage(error);
   } finally {
@@ -140,7 +183,7 @@ async function uploadPending() {
     // العروض. ما رُفع يخرج من القائمة فوراً، فإعادة المحاولة بعد فشل لا تكرّره.
     while (pending.value.length) {
       const item = pending.value[0]!;
-      await imagesService.uploadImages(props.propertyId, [
+      await api.value.upload(props.listingId, [
         {
           data: await readFileAsDataUrl(item.file),
           original_name: item.name,
@@ -164,26 +207,23 @@ async function uploadPending() {
   }
 }
 
-async function setPrimary(image: PropertyImage) {
+async function setPrimary(image: ListingImageRecord) {
   try {
-    images.value = await imagesService.setPrimaryImage(
-      props.propertyId,
-      image.id,
-    );
+    images.value = await api.value.setPrimary(props.listingId, image.id);
     notifySuccess("تم تعيين الصورة الرئيسية.");
   } catch (error) {
     notifyError(getErrorMessage(error));
   }
 }
 
-function askDelete(image: PropertyImage) {
+function askDelete(image: ListingImageRecord) {
   openConfirm({
     title: "حذف الصورة",
     body: "سيتم حذف الصورة نهائياً من القرص وقاعدة البيانات.",
     confirmText: "حذف",
     color: "error",
     onConfirm: async () => {
-      await imagesService.deleteImage(props.propertyId, image.id);
+      await api.value.remove(props.listingId, image.id);
       await load();
       notifySuccess("تم حذف الصورة.");
     },
@@ -197,8 +237,8 @@ async function moveImage(from: number, to: number) {
   next.splice(to, 0, moved!);
   images.value = next;
   try {
-    images.value = await imagesService.reorderImages(
-      props.propertyId,
+    images.value = await api.value.reorder(
+      props.listingId,
       next.map((i) => i.id),
     );
   } catch (error) {
@@ -233,7 +273,7 @@ async function onThumbKeydown(event: KeyboardEvent, index: number) {
 }
 
 watch(
-  () => props.propertyId,
+  () => props.listingId,
   () => {
     missingThumbs.clear();
     void load();
@@ -274,9 +314,9 @@ onBeforeUnmount(() => {
       <ListingImage
         :src="imageUrl(activeImage!)"
         class="gallery-primary"
-        alt="صورة العقار"
+        alt="صورة العرض"
       />
-      <ol ref="strip" class="thumbs" aria-label="صور العقار">
+      <ol ref="strip" class="thumbs" aria-label="صور العرض">
         <li
           v-for="(image, index) in images"
           :key="image.id"
@@ -344,7 +384,7 @@ onBeforeUnmount(() => {
       </ol>
     </div>
     <p v-else-if="!loading && !loadError" class="gallery-empty">
-      لا توجد صور لهذا العقار.
+      لا توجد صور لهذا العرض.
     </p>
 
     <template v-if="canManage">

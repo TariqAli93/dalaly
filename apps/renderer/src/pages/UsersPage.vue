@@ -1,7 +1,15 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import AppPage from "../components/app/AppPage.vue";
+import DataGrid from "../components/shared/DataGrid.vue";
+import FilterBar from "../components/shared/FilterBar.vue";
+import UserDialog from "../components/admin/UserDialog.vue";
+import type {
+  FilterChip,
+  GridHeader,
+  RowAction,
+} from "../components/shared/grid";
 import { getErrorMessage } from "../services/api.service";
 import * as usersService from "../services/users.service";
 import * as rolesService from "../services/roles.service";
@@ -9,31 +17,38 @@ import { usePermissions } from "../composables/usePermissions";
 import { useConfirm } from "../composables/useConfirm";
 import { useSnackbar } from "../composables/useSnackbar";
 import { useRefresh } from "../composables/useRefresh";
+import { useAuth } from "../composables/useAuth";
+import { roleLabel } from "../constants/permissions";
 import type { ManagedUserRecord, RoleRecord } from "../types";
 
+/**
+ * مستخدمو البرنامج في قائمة بنمط القوائم الأخرى: بحث بالاسم، وEnter يفتح
+ * التعديل، والتفعيل والحذف من أوامر الصف (الحذف آخرها بعد تأكيد).
+ */
 const { can } = usePermissions();
 const { openConfirm } = useConfirm();
 const { notifySuccess, notifyError } = useSnackbar();
 const { setRefreshHandler } = useRefresh();
+const { currentUser } = useAuth();
 const { t } = useI18n();
 
 const users = ref<ManagedUserRecord[]>([]);
 const roles = ref<RoleRecord[]>([]);
+const loading = ref(false);
+const error = ref<string | null>(null);
+const search = ref("");
 const dialog = ref(false);
-const editingId = ref<number | null>(null);
-const form = ref({
-  username: "",
-  display_name: "",
-  pin: "",
-  is_active: true,
-  role_ids: [] as number[],
-});
+const editing = ref<ManagedUserRecord | null>(null);
 
 async function loadUsers() {
+  loading.value = true;
+  error.value = null;
   try {
     users.value = await usersService.listUsers();
-  } catch (error) {
-    notifyError(getErrorMessage(error));
+  } catch (cause) {
+    error.value = getErrorMessage(cause);
+  } finally {
+    loading.value = false;
   }
 }
 
@@ -41,61 +56,55 @@ async function loadRoles() {
   try {
     roles.value = await rolesService.listRoles();
   } catch {
-    // الأدوار اختيارية في هذه الشاشة
+    // الأدوار اختيارية في هذه الشاشة: تبقى قائمة الاختيار فارغة.
   }
 }
+
+// القائمة قصيرة وكلها في الذاكرة: البحث هنا لا في الخادم.
+const visible = computed(() => {
+  const q = search.value.trim().toLowerCase();
+  if (!q) return users.value;
+  return users.value.filter((user) =>
+    [user.username, user.display_name]
+      .filter(Boolean)
+      .some((text) => text.toLowerCase().includes(q)),
+  );
+});
+const chips = computed<FilterChip[]>(() =>
+  search.value ? [{ key: "q", label: `بحث: ${search.value}` }] : [],
+);
+
+const headers: GridHeader[] = [
+  { key: "display_name", title: "المستخدم", sortable: true },
+  { key: "roles", title: t("users.roles") },
+  { key: "is_active", title: t("users.status"), sortable: true },
+  { key: "actions", title: "", align: "end", width: 96 },
+];
+const nameOf = (user: ManagedUserRecord) => user.display_name || user.username;
+const isSelf = (user: ManagedUserRecord) => user.id === currentUser.value?.id;
 
 function openDialog(user?: ManagedUserRecord) {
-  editingId.value = user?.id ?? null;
-  form.value = {
-    username: user?.username ?? "",
-    display_name: user?.display_name ?? "",
-    pin: "",
-    is_active: user?.is_active ?? true,
-    role_ids: user?.role_ids ? [...user.role_ids] : [],
-  };
+  editing.value = user ?? null;
   dialog.value = true;
-}
-
-async function save() {
-  try {
-    if (editingId.value !== null) {
-      await usersService.updateUser(editingId.value, {
-        ...form.value,
-        pin: form.value.pin || undefined,
-      });
-      notifySuccess(t("users.updated"));
-    } else {
-      await usersService.createUser(form.value);
-      notifySuccess(t("users.created"));
-    }
-    dialog.value = false;
-    await loadUsers();
-  } catch (error) {
-    notifyError(getErrorMessage(error));
-  }
 }
 
 async function toggleActive(user: ManagedUserRecord) {
   try {
-    if (user.is_active) {
-      await usersService.deactivateUser(user.id);
-    } else {
-      await usersService.activateUser(user.id);
-    }
+    if (user.is_active) await usersService.deactivateUser(user.id);
+    else await usersService.activateUser(user.id);
     await loadUsers();
     notifySuccess(
       user.is_active ? t("users.deactivated") : t("users.activated"),
     );
-  } catch (error) {
-    notifyError(getErrorMessage(error));
+  } catch (cause) {
+    notifyError(getErrorMessage(cause));
   }
 }
 
 function askDelete(user: ManagedUserRecord) {
   openConfirm({
-    title: `حذف ${user.username}`,
-    body: t("users.deleteQuestion"),
+    title: `حذف ${nameOf(user)}`,
+    body: `${t("users.deleteQuestion")} لن يستطيع الدخول بعدها، ويبقى ما سجّله في السجلات. لتمنعه مؤقتاً عطّل حسابه بدل حذفه.`,
     confirmText: t("common.delete"),
     color: "error",
     onConfirm: async () => {
@@ -106,140 +115,174 @@ function askDelete(user: ManagedUserRecord) {
   });
 }
 
+function actionsOf(user: ManagedUserRecord): RowAction[] {
+  const actions: RowAction[] = [];
+  if (can("users.update"))
+    actions.push(
+      {
+        key: "edit",
+        label: "تعديل",
+        icon: "mdi-pencil-outline",
+        inline: true,
+        run: () => openDialog(user),
+      },
+      user.is_active
+        ? {
+            key: "deactivate",
+            label: "تعطيل الحساب",
+            icon: "mdi-account-off-outline",
+            run: () => void toggleActive(user),
+          }
+        : {
+            key: "activate",
+            label: "تفعيل الحساب",
+            icon: "mdi-account-check-outline",
+            run: () => void toggleActive(user),
+          },
+    );
+  if (can("users.delete") && !isSelf(user))
+    actions.push({
+      key: "delete",
+      label: "حذف",
+      icon: "mdi-delete-outline",
+      danger: true,
+      run: () => askDelete(user),
+    });
+  return actions;
+}
+
+function onShortcut(event: KeyboardEvent) {
+  if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyN") return;
+  if (event.altKey || event.shiftKey || !can("users.create")) return;
+  if (document.querySelector(".v-overlay--active .v-dialog")) return;
+  event.preventDefault();
+  openDialog();
+}
+
 onMounted(() => {
   setRefreshHandler(loadUsers);
   void loadUsers();
   void loadRoles();
+  window.addEventListener("keydown", onShortcut);
 });
+onBeforeUnmount(() => window.removeEventListener("keydown", onShortcut));
 </script>
 
 <template>
-  <AppPage :title="t('users.title')">
-    <v-card variant="flat" border>
-      <v-card-title class="d-flex align-center">
-        <span>{{ t("users.manage") }}</span>
-        <v-spacer />
-        <v-btn
-          v-if="can('users.create')"
-          color="primary"
-          prepend-icon="mdi-account-plus"
-          @click="openDialog()"
-        >
-          {{ t("users.add") }}
-        </v-btn>
-      </v-card-title>
-      <v-card-text>
-        <v-empty-state
-          v-if="!users.length"
-          icon="mdi-account-group-outline"
-          :title="t('users.empty')"
-        />
-        <v-table v-else density="comfortable">
-          <thead>
-            <tr>
-              <th>{{ t("common.username") }}</th>
-              <th>الاسم</th>
-              <th>{{ t("users.roles") }}</th>
-              <th>{{ t("users.status") }}</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="user in users" :key="user.id">
-              <td>{{ user.username }}</td>
-              <td>{{ user.display_name }}</td>
-              <td>
-                <v-chip
-                  v-for="role in user.roles"
-                  :key="role.id"
-                  class="ma-1"
-                  variant="tonal"
-                >
-                  {{ role.name }}
-                </v-chip>
-              </td>
-              <td>
-                <v-chip
-                  :color="user.is_active ? 'success' : undefined"
-                  variant="tonal"
-                >
-                  {{
-                    user.is_active ? t("common.active") : t("common.inactive")
-                  }}
-                </v-chip>
-              </td>
-              <td class="text-end">
-                <v-btn
-                  v-if="can('users.update')"
-                  icon="mdi-pencil"
-                  variant="text"
-                  @click="openDialog(user)"
-                />
-                <v-btn
-                  v-if="can('users.update')"
-                  :icon="
-                    user.is_active
-                      ? 'mdi-account-off-outline'
-                      : 'mdi-account-check-outline'
-                  "
-                  variant="text"
-                  @click="toggleActive(user)"
-                />
-                <v-btn
-                  v-if="can('users.delete')"
-                  icon="mdi-delete-outline"
-                  color="error"
-                  variant="text"
-                  @click="askDelete(user)"
-                />
-              </td>
-            </tr>
-          </tbody>
-        </v-table>
-      </v-card-text>
-    </v-card>
+  <AppPage
+    :title="t('users.title')"
+    :count="loading && !users.length ? null : users.length"
+  >
+    <template #header-actions>
+      <v-btn
+        v-if="can('users.create')"
+        color="primary"
+        prepend-icon="mdi-account-plus-outline"
+        :title="`${t('users.add')} (Ctrl+N)`"
+        aria-keyshortcuts="Control+N"
+        @click="openDialog()"
+        >{{ t("users.add") }}</v-btn
+      >
+    </template>
 
-    <v-dialog v-model="dialog" width="620">
-      <v-card>
-        <v-card-title>
-          {{ editingId ? t("common.edit") : t("users.add") }}
-        </v-card-title>
-        <v-card-text>
-          <div class="dialog-grid">
-            <v-text-field
-              v-model="form.username"
-              :label="t('common.username')"
-            />
-            <v-text-field v-model="form.display_name" label="الاسم الظاهر" />
-            <v-text-field
-              v-model="form.pin"
-              :label="editingId ? t('users.optionalNewPin') : t('common.pin')"
-              type="password"
-            />
-            <v-switch
-              v-model="form.is_active"
-              :label="t('common.active')"
-              color="primary"
-              hide-details
-            />
-            <v-select
-              v-model="form.role_ids"
-              :items="roles"
-              item-title="name"
-              item-value="id"
-              label="الأدوار"
-              multiple
-              chips
-              class="span-2"
-            />
+    <section
+      class="dal-panel dal-listpanel dal-fill"
+      :aria-label="t('users.title')"
+    >
+      <FilterBar
+        v-model:search="search"
+        search-label="بحث في المستخدمين"
+        placeholder="بحث باسم الدخول أو الاسم الظاهر"
+        :chips="chips"
+        @remove="search = ''"
+        @clear="search = ''"
+      />
+      <DataGrid
+        grid-key="users"
+        :table-label="`جدول ${t('users.title')}`"
+        :items="visible"
+        :headers="headers"
+        :loading="loading"
+        :error="error"
+        :has-filters="Boolean(search)"
+        :actions="actionsOf"
+        :row-label="nameOf"
+        :empty="{
+          icon: 'mdi-account-group-outline',
+          title: t('users.empty'),
+          text: 'أضف حساباً لكل موظف، وامنحه الأدوار التي يحتاجها عمله.',
+        }"
+        :no-match="{ title: 'لا يوجد مستخدم بهذا الاسم' }"
+        compact
+        @open="can('users.update') && openDialog($event)"
+        @retry="loadUsers"
+        @clear-filters="search = ''"
+      >
+        <template #item.display_name="{ item }">
+          <div class="dal-cell-name">
+            <strong
+              >{{ nameOf(item) }}
+              <span v-if="isSelf(item)" class="users__self">(أنت)</span></strong
+            >
+            <bdi v-if="item.display_name">{{ item.username }}</bdi>
           </div>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="dialog = false">إلغاء</v-btn>
-          <v-btn color="primary" variant="flat" @click="save">حفظ</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+        </template>
+        <template #item.roles="{ item }">
+          <div class="users__roles">
+            <v-chip
+              v-for="role in item.roles"
+              :key="role.id"
+              size="small"
+              variant="tonal"
+              label
+              >{{ roleLabel(role.name) }}</v-chip
+            >
+            <span v-if="!item.roles.length" class="text-medium-emphasis"
+              >بلا دور</span
+            >
+          </div>
+        </template>
+        <template #item.is_active="{ item }">
+          <v-chip
+            size="small"
+            variant="tonal"
+            label
+            :color="item.is_active ? 'success' : undefined"
+            >{{
+              item.is_active ? t("common.active") : t("common.inactive")
+            }}</v-chip
+          >
+        </template>
+        <template #empty-actions>
+          <v-btn
+            v-if="can('users.create')"
+            color="primary"
+            prepend-icon="mdi-account-plus-outline"
+            @click="openDialog()"
+            >{{ t("users.add") }}</v-btn
+          >
+        </template>
+      </DataGrid>
+    </section>
+
+    <UserDialog
+      v-model="dialog"
+      :user="editing"
+      :roles="roles"
+      @saved="loadUsers"
+    />
   </AppPage>
 </template>
+
+<style scoped>
+.users__roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.users__self {
+  font-weight: 400;
+  color: var(--dal-muted);
+  font-size: calc(12px * var(--dal-font-scale));
+}
+</style>

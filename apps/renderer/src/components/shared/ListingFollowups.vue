@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
-import * as followupsService from "../../services/followups.service";
+import { computed, onMounted, ref, watch } from "vue";
+import * as saleFollowups from "../../services/followups.service";
+import * as rentalFollowups from "../../services/rental-followups.service";
 import { getErrorMessage } from "../../services/api.service";
 import { usePermissions } from "../../composables/usePermissions";
 import { useSnackbar } from "../../composables/useSnackbar";
 import { useConfirm } from "../../composables/useConfirm";
-import type { FollowupRecord, FollowupType } from "../../types";
+import type {
+  FollowupRecord,
+  FollowupType,
+  RentalFollowupRecord,
+} from "../../types";
 import { formatDateTime } from "../../utils/format";
 import {
   FOLLOWUP_TYPES,
@@ -13,13 +18,50 @@ import {
   followupTypeLabel,
 } from "../../constants/crm";
 
-const props = defineProps<{ propertyId: number }>();
+/**
+ * سجل متابعات العرض، واحد لعروض البيع والإيجار: خط زمني بالأحدث أولاً، وإضافة
+ * وتعديل في حوار نموذج حقيقي (Enter يحفظ)، وحذف بعد تأكيد. kind يختار الخدمة
+ * والصلاحيات (followups.* أو rentals.followups.*).
+ */
+const props = defineProps<{ kind: "sale" | "rental"; listingId: number }>();
+
+type Item = FollowupRecord | RentalFollowupRecord;
+type Payload = {
+  type: FollowupType;
+  notes: string | null;
+  scheduled_at: string | null;
+};
+const api = computed(() =>
+  props.kind === "sale"
+    ? {
+        list: (id: number) => saleFollowups.listFollowups(id),
+        create: (id: number, p: Payload) => saleFollowups.createFollowup(id, p),
+        update: (id: number, f: number, p: Payload) =>
+          saleFollowups.updateFollowup(id, f, p),
+        remove: (id: number, f: number) => saleFollowups.deleteFollowup(id, f),
+      }
+    : {
+        list: (id: number) => rentalFollowups.listRentalFollowups(id),
+        create: (id: number, p: Payload) =>
+          rentalFollowups.createRentalFollowup(id, p),
+        update: (id: number, f: number, p: Payload) =>
+          rentalFollowups.updateRentalFollowup(id, f, p),
+        remove: (id: number, f: number) =>
+          rentalFollowups.deleteRentalFollowup(id, f),
+      },
+);
+const perm = (action: "create" | "update" | "delete") =>
+  can(
+    props.kind === "sale"
+      ? `followups.${action}`
+      : `rentals.followups.${action}`,
+  );
 
 const { can } = usePermissions();
 const { notifySuccess, notifyError } = useSnackbar();
 const { openConfirm } = useConfirm();
 
-const followups = ref<FollowupRecord[]>([]);
+const followups = ref<Item[]>([]);
 const loading = ref(false);
 // فشل التحميل يُعرض مكانه مع إعادة، لا «لا توجد متابعات».
 const loadError = ref<string | null>(null);
@@ -46,7 +88,7 @@ async function load() {
   loading.value = true;
   loadError.value = null;
   try {
-    followups.value = await followupsService.listFollowups(props.propertyId);
+    followups.value = await api.value.list(props.listingId);
   } catch (error) {
     loadError.value = getErrorMessage(error);
   } finally {
@@ -54,7 +96,7 @@ async function load() {
   }
 }
 
-function openDialog(followup?: FollowupRecord) {
+function openDialog(followup?: Item) {
   editingId.value = followup?.id ?? null;
   form.value = {
     type: (followup?.type as FollowupType) ?? "phone_call",
@@ -68,7 +110,7 @@ async function save() {
   if (saving.value) return;
   saving.value = true;
   try {
-    const payload = {
+    const payload: Payload = {
       type: form.value.type,
       notes: form.value.notes || null,
       scheduled_at: form.value.scheduled_at
@@ -76,13 +118,9 @@ async function save() {
         : null,
     };
     if (editingId.value !== null) {
-      await followupsService.updateFollowup(
-        props.propertyId,
-        editingId.value,
-        payload,
-      );
+      await api.value.update(props.listingId, editingId.value, payload);
     } else {
-      await followupsService.createFollowup(props.propertyId, payload);
+      await api.value.create(props.listingId, payload);
     }
     dialog.value = false;
     await load();
@@ -94,21 +132,21 @@ async function save() {
   }
 }
 
-function askDelete(followup: FollowupRecord) {
+function askDelete(followup: Item) {
   openConfirm({
     title: "حذف المتابعة",
     body: "هل تريد حذف هذه المتابعة؟",
     confirmText: "حذف",
     color: "error",
     onConfirm: async () => {
-      await followupsService.deleteFollowup(props.propertyId, followup.id);
+      await api.value.remove(props.listingId, followup.id);
       await load();
       notifySuccess("تم حذف المتابعة.");
     },
   });
 }
 
-watch(() => props.propertyId, load);
+watch(() => props.listingId, load);
 onMounted(load);
 
 /** للصفحة: بعد «تسجيل متابعة» من شريط الأوامر. */
@@ -121,7 +159,7 @@ defineExpose({ reload: load });
       <h2 class="followups__title">سجل المتابعات</h2>
       <v-spacer />
       <v-btn
-        v-if="can('followups.create')"
+        v-if="perm('create')"
         color="primary"
         prepend-icon="mdi-plus"
         @click="openDialog()"
@@ -184,7 +222,7 @@ defineExpose({ reload: load });
           </div>
           <div>
             <v-btn
-              v-if="can('followups.update')"
+              v-if="perm('update')"
               icon="mdi-pencil-outline"
               size="small"
               variant="text"
@@ -193,7 +231,7 @@ defineExpose({ reload: load });
               @click="openDialog(item)"
             />
             <v-btn
-              v-if="can('followups.delete')"
+              v-if="perm('delete')"
               icon="mdi-delete-outline"
               size="small"
               variant="text"

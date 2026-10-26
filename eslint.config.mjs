@@ -32,6 +32,8 @@ export default defineConfig(
       "server/data/**",
       "perf-results/**",
       "tools/**",
+      // Vendored, minified skill scripts (Impeccable); not project code.
+      ".github/skills/**",
       ".claude/**",
       ".claude-flow/**",
       ".swarm/**",

@@ -55,35 +55,6 @@ body {
 .record-link:hover {
   text-decoration: underline;
 }
-.record-breadcrumbs {
-  padding: 0 0 16px;
-  font-size: 0.8125rem;
-}
-.record-info {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-.record-info > div {
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--dal-stroke);
-}
-.record-info dt {
-  color: var(--dal-muted);
-  font-size: 0.75rem;
-  margin-bottom: 4px;
-}
-.record-info dd {
-  margin: 0;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-@media (max-width: 540px) {
-  .record-info {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* Vuetify تفرض Roboto على أصناف text-* وهي لا تحتوي حروفاً عربية،
    فتسقط العربية على خط احتياطي غير محدد. نعيدها إلى عائلة النظام. */
 :is(.v-application, .v-overlay),
@@ -387,6 +358,10 @@ body {
   padding-inline-end: 8px;
 }
 .dal-commandbar__title h1 {
+  /* لا ينطوي العنوان إلى لا شيء حين تكثر أوامر الصفحة: عرضه عرض نصه حتى
+     حدّ، وما زاد يُقصّ بنقاط. */
+  flex: 0 0 auto;
+  max-width: min(24em, 30vw);
   margin: 0;
   font-size: calc(16px * var(--dal-font-scale));
   font-weight: 700;
@@ -479,72 +454,239 @@ body {
   color: rgb(var(--v-theme-on-surface));
 }
 
-/* شريط ملخّص KPI: صفّ واحد، عناصر مفصولة بفواصل رأسية، بلا بطاقات. */
-.dal-summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  border: 1px solid var(--dal-stroke);
-  background: rgb(var(--v-theme-surface));
-  padding: 2px 0;
-  margin-bottom: 12px;
+/* ===== ملخّص السجل المحدد في اللوحة الجانبية (MasterDetailLayout) ===== */
+.dal-pane {
+  padding: 10px 12px 16px;
 }
-.dal-summary__item {
+.dal-pane__head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-inline-start: 1px solid var(--dal-stroke);
-  flex: 1 1 auto;
-  min-width: 120px;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--dal-stroke);
 }
-.dal-summary__item:first-child {
-  border-inline-start: none;
+.dal-pane__title {
+  min-width: 0;
 }
-.dal-summary__label {
-  font-size: calc(11.5px * var(--dal-font-scale));
+.dal-pane__tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.dal-pane__name {
+  font-size: calc(15px * var(--dal-font-scale));
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.dal-pane__sub,
+.dal-pane__muted,
+.dal-pane__label {
+  font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
-  line-height: 1.2;
 }
-.dal-summary__value {
+.dal-pane__label {
+  margin-bottom: 2px;
+}
+.dal-pane__price {
+  padding: 10px 2px;
+}
+.dal-pane__price-value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   font-size: calc(17px * var(--dal-font-scale));
   font-weight: 700;
-  line-height: 1.15;
 }
-.dal-summary__icon {
-  color: rgba(var(--v-theme-on-surface), 0.45);
+.dal-pane__period {
+  font-size: calc(13px * var(--dal-font-scale));
+  font-weight: 500;
+  color: var(--dal-muted);
+}
+.dal-pane__section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 8px 2px;
+  border-top: 1px solid var(--dal-stroke);
+}
+.dal-pane__strong {
+  font-weight: 600;
+}
+.dal-pane__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  margin: 0;
+  padding: 10px 2px;
+  border-top: 1px solid var(--dal-stroke);
+}
+.dal-pane__grid > div {
+  min-width: 0;
+}
+.dal-pane__grid dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.dal-pane__wide {
+  grid-column: 1 / -1;
+}
+.dal-pane__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--dal-stroke);
+}
+.dal-pane__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-/* حالة فارغة مكتبية: صغيرة، داخل منطقة البيانات، بلا فراغ عمودي كبير. */
-.dal-empty .v-empty-state__media {
-  margin-bottom: 4px;
+/* صفحة سجل عرض (بيع أو إيجار): التبويبات في لوح، والصور في عمود ظاهر دائماً. */
+.listing-record {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+  gap: var(--dal-gutter);
+  align-items: start;
+  margin-top: var(--dal-gutter);
 }
-.dal-empty .v-empty-state {
+.listing-record__body {
+  padding: 12px 16px 16px;
+}
+.listing-record__media {
+  padding: 12px;
+}
+@media (max-width: 1100px) {
+  .listing-record {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* لوح قائمة يملأ مساحة العمل: شريط الأدوات ثم الجدول يتمرّر وحده. */
+.dal-listpanel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* لوح يملأ ارتفاع مساحة العمل وحده (قائمة بلا لوحة جانبية). */
+.dal-fill {
+  height: calc(100dvh - var(--dal-bar-height) - 2 * var(--dal-gutter));
+  min-height: 360px;
+}
+
+/* ===== شريط أدوات القائمة (FilterBar) داخل لوحها ===== */
+.dal-toolbar {
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--dal-stroke);
+}
+.dal-toolbar__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 4px;
+}
+/* شريط بلا صف ثانٍ (لا شرائح ولا عروض سريعة): حشو متساوٍ. */
+.dal-toolbar__row--single {
+  padding-block: 8px;
+}
+.dal-toolbar__row--sub {
+  min-height: 36px;
+  padding-block: 0 4px;
+}
+/* الالتفاف يُقرَّر بالأساس لا بالعرض النهائي: أساس صغير يُبقي الصف واحداً حتى
+   لوح بعرض 760px تقريباً (1366px بتكبير 125%)، ثم تكبر الحقول لتملأه. */
+.dal-toolbar__search {
+  flex: 2 1 180px;
+  min-width: 180px;
+}
+.dal-toolbar__filter {
+  flex: 1 1 100px;
+  min-width: 100px;
+  max-width: 180px;
+}
+.dal-toolbar__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+/* عروض سريعة (المتاحة، المفضلة، المفتوحة…): أزرار تبديل بـ aria-pressed. */
+.dal-views {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.dal-extra__header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  min-height: 48px;
+}
+.dal-extra__header h2 {
+  margin: 0;
+}
+.dal-extra__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   padding: 16px;
 }
-
-.form-grid {
+.dal-extra__pair {
   display: grid;
-  grid-template-columns: repeat(3, minmax(220px, 1fr));
-  gap: 16px;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
-.form-grid .span-3 {
-  grid-column: span 3;
+/* اسم السجل في الصف: الاسم رابطاً وتحته الرمز صغيراً. */
+.dal-cell-name {
+  display: flex;
+  flex-direction: column;
+  max-width: 240px;
+  line-height: 1.3;
+}
+.dal-cell-name > a,
+.dal-cell-name > strong {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dal-cell-name > small,
+.dal-cell-name > bdi {
+  font-size: calc(12px * var(--dal-font-scale));
+  color: var(--dal-muted);
+  align-self: flex-start;
+}
+/* نص طويل في خلية: يُقصّ بنقاط، والنص الكامل في title. */
+.dal-clip {
+  display: inline-block;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
 }
 
-.settings-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(220px, 2fr));
-  gap: 16px;
+/* ===== نموذج صفحة (عرض بيع، عرض إيجار): لوح بأقسام FormSection وشريط حفظ ===== */
+.dal-form.dal-panel {
+  /* شريط الحفظ sticky داخل اللوح: لا قصّ للمحتوى. */
+  overflow: visible;
 }
-
-.settings-grid > :first-child {
-  grid-column: span 3;
+.dal-form__body {
+  padding: 4px 16px 0;
 }
-
-.settings-grid > :last-child {
-  grid-column: span 3;
+.dal-form__hint {
+  margin: 8px 0 0;
+  color: var(--dal-muted);
+  font-size: calc(12px * var(--dal-font-scale));
+}
+.dal-form__label {
+  color: var(--dal-muted);
+  font-size: calc(12px * var(--dal-font-scale));
 }
 
 .dialog-grid {
@@ -741,14 +883,8 @@ body {
   max-height: calc(100dvh - 48px);
   box-shadow: var(--dal-shadow-pop);
 }
-.dal-summary {
-  border-radius: var(--dal-radius-card);
-}
 .dal-panel.v-card {
   box-shadow: none;
-}
-.grid-span {
-  grid-column: 1 / -1;
 }
 .dal-content > .d-flex:has(> .v-text-field) {
   border: 1px solid var(--dal-stroke);
@@ -779,33 +915,23 @@ body {
 }
 
 @media (max-width: 1100px) {
-  .form-grid,
-  .settings-grid,
   .dialog-grid,
   .detail-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .form-grid .span-3,
-  .dialog-grid .span-2,
-  .settings-grid > :first-child,
-  .settings-grid > :last-child {
+  .dialog-grid .span-2 {
     grid-column: span 2;
   }
 }
 
 @media (max-width: 760px) {
-  .form-grid,
-  .settings-grid,
   .dialog-grid,
   .detail-grid {
     grid-template-columns: 1fr;
   }
 
-  .form-grid .span-3,
-  .dialog-grid .span-2,
-  .settings-grid > :first-child,
-  .settings-grid > :last-child {
+  .dialog-grid .span-2 {
     grid-column: span 1;
   }
 }

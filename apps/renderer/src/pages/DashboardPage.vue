@@ -9,11 +9,10 @@ import {
 } from "vue";
 import { useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
-import DashboardKpis from "../components/dashboard/DashboardKpis.vue";
+import SummaryStrip from "../components/dashboard/SummaryStrip.vue";
 import PriorityStrip from "../components/dashboard/PriorityStrip.vue";
 import MatchWorkspace from "../components/dashboard/MatchWorkspace.vue";
 import DecisionsPanel from "../components/dashboard/DecisionsPanel.vue";
-import RentalOperations from "../components/dashboard/RentalOperations.vue";
 import RiskPanel from "../components/dashboard/RiskPanel.vue";
 import PerformanceSummary from "../components/dashboard/PerformanceSummary.vue";
 import MatchDetailsDrawer from "../components/dashboard/MatchDetailsDrawer.vue";
@@ -23,6 +22,8 @@ import { createBackup } from "../services/backup.service";
 import { getErrorMessage } from "../services/api.service";
 import { usePermissions } from "../composables/usePermissions";
 import { useProperties } from "../composables/useProperties";
+import { useRentals } from "../composables/useRentals";
+import { emptyRequestFilters, useRequests } from "../composables/useRequests";
 import { useSnackbar } from "../composables/useSnackbar";
 import { useRefresh } from "../composables/useRefresh";
 import {
@@ -48,7 +49,8 @@ const router = useRouter();
 const { can } = usePermissions();
 const { notifySuccess, notifyError } = useSnackbar();
 const { setRefreshHandler } = useRefresh();
-const { showOnly } = useProperties();
+const { showOnly, list: propertyList } = useProperties();
+const { showOnly: showRentalsOnly, list: rentalList } = useRentals();
 const dashboard = useOperationsDashboard();
 const {
   overview,
@@ -99,66 +101,63 @@ onBeforeUnmount(() => {
   dashboard.cancel();
 });
 
-const subtitle = computed(() => {
-  if (!loadedAt.value) return "ما يحتاج عملاً اليوم، من سجلات المكتب.";
-  return `ما يحتاج عملاً اليوم، من سجلات المكتب · آخر تحديث ${formatTime(loadedAt.value)}`;
-});
-
 // ─── المؤشرات والأولوية ──────────────────────────────────────────────────
+// كل عدد يظهر في شريط الملخّص مرة واحدة؛ الأقسام تحته تعرض السجلات نفسها.
 const kpis = computed<KpiItem[]>(() => {
   const items: KpiItem[] = [];
   const counts = matching.value?.counts;
   const sum = (key: "with_matches" | "without_matches" | "open_requests") =>
     (counts?.sale?.[key] ?? 0) + (counts?.rental?.[key] ?? 0);
-  if (canMatch.value)
-    items.push({
-      key: "matched",
-      label: "طلبات لها عروض مطابقة",
-      value: matching.value ? sum("with_matches") : null,
-      note: matching.value
-        ? [
-            counts?.sale
-              ? `بيع ${formatNumber(counts.sale.with_matches, 0)}`
-              : null,
-            counts?.rental
-              ? `إيجار ${formatNumber(counts.rental.with_matches, 0)}`
-              : null,
-          ]
-            .filter(Boolean)
-            .join(" · ")
-        : undefined,
-      icon: "mdi-handshake-outline",
-      tone: "primary",
-      target: "matches",
-    });
   if (canSeeAppointments.value)
     items.push({
       key: "appointments",
-      label: "مواعيد المتابعة اليوم",
+      label: "مواعيد اليوم",
       value: overview.value ? (overview.value.appointments?.today ?? 0) : null,
       note: overview.value?.appointments
         ? `خلال ${overview.value.appointments.days} أيام: ${formatNumber(overview.value.appointments.next_days, 0)}`
         : undefined,
       icon: "mdi-calendar-clock-outline",
-      tone: overview.value?.appointments?.today ? "error" : "primary",
+      tone: "error",
       target: "appointments",
     });
   if (canMatch.value)
-    items.push({
-      key: "unmatched",
-      label: "طلبات بلا عرض مطابق",
-      value: matching.value ? sum("without_matches") : null,
-      note: matching.value
-        ? `من الطلبات المفتوحة: ${formatNumber(sum("open_requests"), 0)}`
-        : undefined,
-      icon: "mdi-home-search-outline",
-      tone: "warning",
-      target: "risks",
-    });
+    items.push(
+      {
+        key: "matched",
+        label: "طلبات لها مطابقة",
+        value: matching.value ? sum("with_matches") : null,
+        note: matching.value
+          ? [
+              counts?.sale
+                ? `شراء ${formatNumber(counts.sale.with_matches, 0)}`
+                : null,
+              counts?.rental
+                ? `إيجار ${formatNumber(counts.rental.with_matches, 0)}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")
+          : undefined,
+        icon: "mdi-handshake-outline",
+        tone: "primary",
+        target: "matches",
+      },
+      {
+        key: "unmatched",
+        label: "طلبات بلا مطابقة",
+        value: matching.value ? sum("without_matches") : null,
+        note: matching.value
+          ? `من ${formatNumber(sum("open_requests"), 0)} طلباً مفتوحاً`
+          : undefined,
+        icon: "mdi-home-search-outline",
+        tone: "warning",
+        target: "risks",
+      },
+    );
   if (canSeeAppointments.value)
     items.push({
       key: "viewings",
-      label: "معاينات بلا متابعة لاحقة",
+      label: "معاينات بلا نتيجة",
       value: overview.value
         ? (overview.value.viewings_without_outcome?.total ?? 0)
         : null,
@@ -168,6 +167,21 @@ const kpis = computed<KpiItem[]>(() => {
       icon: "mdi-eye-check-outline",
       tone: "warning",
       target: "viewings",
+    });
+  if (can("properties.read") || can("rentals.read"))
+    items.push({
+      key: "stale",
+      label: "عروض راكدة",
+      value: overview.value
+        ? (overview.value.stale_listings.sale?.total ?? 0) +
+          (overview.value.stale_listings.rental?.total ?? 0)
+        : null,
+      note: overview.value
+        ? `بلا نشاط منذ ${overview.value.stale_days} يوماً`
+        : undefined,
+      icon: "mdi-timer-sand",
+      tone: "warning",
+      target: "stale",
     });
   return items;
 });
@@ -218,17 +232,11 @@ async function openSection(section: DashboardSection) {
   });
   element.focus({ preventScroll: true });
 }
-function showMatches(kindOf: OperationsKind) {
-  kind.value = kindOf;
-  void openSection("matches");
-}
-
 // ─── الانتقال إلى السجلات ─────────────────────────────────────────────────
 function openListing(target: { kind: OperationsKind; id: number }) {
   closeDrawers();
   if (target.kind === "sale") void router.push(`/properties/${target.id}`);
-  else
-    void router.push({ path: "/rentals", query: { open: String(target.id) } });
+  else void router.push(`/rentals/${target.id}`);
 }
 function openPerson(personId: number) {
   closeDrawers();
@@ -236,10 +244,9 @@ function openPerson(personId: number) {
 }
 function openRequest(target: { kind: OperationsKind; id: number }) {
   closeDrawers();
-  void router.push({
-    path: target.kind === "sale" ? "/purchase-requests" : "/rental-requests",
-    query: { open: String(target.id) },
-  });
+  void router.push(
+    `${target.kind === "sale" ? "/purchase-requests" : "/rental-requests"}/${target.id}`,
+  );
 }
 function openListingsByStatus(target: {
   kind: OperationsKind;
@@ -250,6 +257,34 @@ function openListingsByStatus(target: {
     void router.push("/properties");
   } else
     void router.push({ path: "/rentals", query: { status: target.status } });
+}
+// «عرض الكل» في الفرص المعرّضة للضياع: القائمة التي تحوي الفئة كاملة.
+function openAll(target: {
+  section: "unmatched" | "stale";
+  kind: OperationsKind;
+}) {
+  if (target.section === "unmatched") {
+    const mode = target.kind === "sale" ? "purchase" : "rental";
+    useRequests(mode).filters.value = {
+      ...emptyRequestFilters(),
+      status: "open",
+    };
+    void router.push(
+      mode === "purchase" ? "/purchase-requests" : "/rental-requests",
+    );
+    return;
+  }
+  // لا فلتر «راكد» في الخادم: المتاحة بأقدم تعديل أقرب تقريب، والرابط يقول ذلك.
+  const oldest = [{ key: "updated_at", order: "asc" as const }];
+  if (target.kind === "sale") {
+    showOnly({ status: "available" });
+    propertyList.sortBy.value = oldest;
+    void router.push("/properties");
+  } else {
+    showRentalsOnly({ status: "available" });
+    rentalList.sortBy.value = oldest;
+    void router.push("/rentals");
+  }
 }
 
 // ─── الألواح الجانبية والمتابعة ───────────────────────────────────────────
@@ -378,7 +413,10 @@ async function runBackup() {
 </script>
 
 <template>
-  <AppPage title="لوحة التحكم" :subtitle="subtitle">
+  <AppPage title="لوحة التحكم">
+    <template v-if="loadedAt" #status>
+      <span class="ops__updated">آخر تحديث {{ formatTime(loadedAt) }}</span>
+    </template>
     <template #header-actions>
       <v-menu v-if="createItems.length" location="bottom end">
         <template #activator="{ props: menu }">
@@ -411,7 +449,7 @@ async function runBackup() {
     </template>
 
     <div class="ops">
-      <DashboardKpis v-if="kpis.length" :items="kpis" @select="openSection" />
+      <SummaryStrip v-if="kpis.length" :items="kpis" @select="openSection" />
       <v-alert
         v-if="overviewError && !overview"
         type="warning"
@@ -419,7 +457,7 @@ async function runBackup() {
         density="compact"
         role="status"
       >
-        تعذّر تحميل المواعيد والمؤشرات: {{ overviewError }}
+        تعذّر تحميل المواعيد وحالة العروض: {{ overviewError }}
         <template #append>
           <v-btn size="small" variant="text" @click="dashboard.loadOverview()"
             >إعادة المحاولة</v-btn
@@ -432,60 +470,62 @@ async function runBackup() {
         @select="openSection"
       />
 
-      <div class="ops__main" :class="{ ops__single: !canMatch }">
-        <div id="dash-matches" tabindex="-1" class="ops__anchor">
-          <MatchWorkspace
+      <!-- عمودان: المطابقات (عمل اليوم) ثم حالة العروض، وبجانبهما الزبائن
+           والمواعيد ثم الفرص المعرّضة للضياع. -->
+      <div class="ops__columns">
+        <div class="ops__column">
+          <div
             v-if="canMatch"
-            v-model:kind="kind"
-            v-model:q="q"
-            v-model:page="page"
-            :data="matching"
-            :loading="matchingLoading"
-            :error="matchingError"
-            :can-followup="canFollowup"
-            @retry="dashboard.loadMatching()"
-            @details="showMatch"
-            @customer="showCustomerById"
-            @listing="openListing"
-            @followup="recordFollowup"
+            id="dash-matches"
+            tabindex="-1"
+            class="ops__anchor"
+          >
+            <MatchWorkspace
+              v-model:kind="kind"
+              v-model:q="q"
+              v-model:page="page"
+              :data="matching"
+              :loading="matchingLoading"
+              :error="matchingError"
+              :can-followup="canFollowup"
+              @retry="dashboard.loadMatching()"
+              @details="showMatch"
+              @customer="showCustomerById"
+              @listing="openListing"
+              @followup="recordFollowup"
+            />
+          </div>
+          <PerformanceSummary
+            :overview="overview"
+            @open="openListingsByStatus"
           />
         </div>
-        <div id="dash-decisions" tabindex="-1" class="ops__anchor">
-          <DecisionsPanel
+        <div class="ops__column">
+          <div
             v-if="canMatch || canSeeAppointments"
-            v-model:tab="decisionsTab"
+            id="dash-decisions"
+            tabindex="-1"
+            class="ops__anchor"
+          >
+            <DecisionsPanel
+              v-model:tab="decisionsTab"
+              :matching="canMatch ? matching : null"
+              :overview="overview"
+              @customer="showCustomer"
+              @appointment="openAppointment"
+            />
+          </div>
+          <RiskPanel
+            v-model:stale-days="staleDays"
             :matching="canMatch ? matching : null"
             :overview="overview"
-            @customer="showCustomer"
-            @appointment="openAppointment"
+            :stale-options="STALE_DAY_OPTIONS"
+            @request="showUnmatched"
+            @listing="openListing"
+            @all="openAll"
           />
         </div>
       </div>
-
-      <div class="ops__lower" :class="{ ops__single: !can('rentals.read') }">
-        <RentalOperations
-          v-if="can('rentals.read')"
-          :overview="overview"
-          :matching="matching"
-          @status="openListingsByStatus({ kind: 'rental', status: $event })"
-          @requests="showMatches('rental')"
-        />
-        <RiskPanel
-          v-model:stale-days="staleDays"
-          :matching="canMatch ? matching : null"
-          :overview="overview"
-          :stale-options="STALE_DAY_OPTIONS"
-          @request="showUnmatched"
-          @listing="openListing"
-        />
-      </div>
-
-      <PerformanceSummary
-        :overview="overview"
-        :matching="matching"
-        @open="openListingsByStatus"
-        @matches="showMatches"
-      />
     </div>
 
     <MatchDetailsDrawer
@@ -519,33 +559,32 @@ async function runBackup() {
 <style scoped>
 .ops {
   display: grid;
-  gap: 16px;
+  gap: var(--dal-gutter);
   container-type: inline-size;
   container-name: ops;
 }
-.ops__main {
+.ops__columns {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
-  gap: 16px;
+  gap: var(--dal-gutter);
   align-items: start;
 }
-.ops__lower {
+.ops__column {
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-  gap: 16px;
-  align-items: start;
+  gap: var(--dal-gutter);
+  min-width: 0;
 }
 .ops__anchor {
   min-width: 0;
   scroll-margin-top: 72px;
   outline: none;
 }
-.ops__single {
-  grid-template-columns: minmax(0, 1fr);
+.ops__updated {
+  color: var(--dal-muted);
+  font-size: calc(12px * var(--dal-font-scale));
 }
 @container ops (max-width: 980px) {
-  .ops__main,
-  .ops__lower {
+  .ops__columns {
     grid-template-columns: minmax(0, 1fr);
   }
 }

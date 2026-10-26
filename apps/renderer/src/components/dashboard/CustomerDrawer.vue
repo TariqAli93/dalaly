@@ -201,7 +201,7 @@ watch(
 }
 .customer-grid dt,
 .customer-label {
-  font-size: calc(11px * var(--dal-font-scale));
+  font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
 }
 .customer-grid dd {
@@ -218,7 +218,7 @@ watch(
 }
 .customer-muted {
   margin: 8px 0 0;
-  font-size: calc(11px * var(--dal-font-scale));
+  font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
 }
 .customer-request + .customer-request {

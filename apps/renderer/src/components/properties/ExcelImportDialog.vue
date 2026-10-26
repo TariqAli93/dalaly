@@ -78,6 +78,9 @@ function close() {
   open.value = false;
   setTimeout(reset, 300);
 }
+// الخادم يرقّم صفوف البيانات من 1، وأول سطر في الملف رؤوس الأعمدة: الصف
+// 1 هو السطر 2 الذي يراه المستخدم في إكسل.
+const fileLine = (row: number) => row + 1;
 </script>
 
 <template>
@@ -159,7 +162,7 @@ function close() {
               :key="e.row"
               class="text-caption"
             >
-              صف {{ e.row }}: {{ e.message }}
+              السطر {{ fileLine(e.row) }}: {{ e.message }}
             </div>
           </v-alert>
           <v-alert
@@ -173,7 +176,7 @@ function close() {
               :key="d.row"
               class="text-caption"
             >
-              صف {{ d.row }}: {{ d.reason }}
+              السطر {{ fileLine(d.row) }}: {{ d.reason }}
             </div>
           </v-alert>
         </div>
@@ -192,18 +195,27 @@ function close() {
           >السابق</v-btn
         >
         <v-spacer />
-        <v-btn v-if="step === 2" color="primary" @click="runValidate"
+        <v-btn
+          v-if="step === 2"
+          color="primary"
+          variant="flat"
+          @click="runValidate"
           >تحقق</v-btn
         >
         <v-btn
           v-else-if="step === 3 && validation && validation.valid_count > 0"
           color="primary"
+          variant="flat"
           :loading="committing"
           @click="runCommit"
         >
           استيراد {{ validation.valid_count }} عرض
         </v-btn>
-        <v-btn v-else-if="step === 4" color="primary" @click="close"
+        <v-btn
+          v-else-if="step === 4"
+          color="primary"
+          variant="flat"
+          @click="close"
           >إغلاق</v-btn
         >
       </v-card-actions>

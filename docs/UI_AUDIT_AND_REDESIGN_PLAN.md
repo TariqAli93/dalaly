@@ -1,11 +1,12 @@
 # UI/UX audit and desktop redesign plan (October 2026)
 
-Status: **phases 0–2 implemented (2026-10-25); phases 3–7 planned.** It
-covers the renderer (`apps/renderer`), plus the Electron window-close handling
-that phase 2 needed (section 13). No API, schema or migration change is
-proposed here. Items that would need one are listed separately in section 9
-and wait for owner approval. The owner's decisions are in section 10, and the
-phase records in sections 11–13.
+Status: **phases 0–2 implemented (2026-10-25); phases 3–7 implemented
+(2026-10-26), with the open items in section 14.** It covers the renderer
+(`apps/renderer`), plus the Electron window-close handling that phase 2
+needed (section 13). No API, schema or migration change is proposed here.
+Items that would need one are listed separately in section 9 and wait for
+owner approval. The owner's decisions are in section 10, and the phase
+records in sections 11–14.
 
 ## How this was produced
 
@@ -1154,3 +1155,92 @@ and stubbed the dialog's answer. The running app was not restarted, because a
   gallery moves onto it in phase 3.
 - **Rental form:** its areas still show ".00", and its sections, save bar and
   shortcuts arrive with phase 3.
+
+## 14. Phases 3–7 record (2026-10-26)
+
+### What changed
+
+- **Phase 3, rentals.**
+  - The list is rebuilt on `DataGrid` and the new shared `FilterBar`, with
+    the sale list's columns, quick views, sort menu and summary pane.
+  - Every filter has a chip (rooms, bathrooms, floors and amenities were
+    hidden before). The amenities filter is now a chip group sent as the JSON
+    object the API compares; the old free-text field filtered nothing.
+  - New record page `/rentals/:id` replaces the 1,120px dialog. It shows all
+    three notes fields; `owner_notes` showed nowhere before.
+  - The form uses the phase 2 parts: sections, a sticky save bar, Ctrl+S,
+    field errors and first-error focus. Save opens the record.
+  - `ListingImages` and `ListingFollowups` now serve sale and rental
+    (`PropertyImages`, both follow-up tabs and `RentalImages` are gone). The
+    rental gallery now uses thumbnails, and rental follow-ups gained edit, a
+    load error state and a delete confirmation.
+  - Favourites pages use the list tables, actions and empty texts (D5 still
+    open: the nav entries stay).
+- **Phase 4, customers and requests.**
+  - The customer list is on `DataGrid`/`FilterBar` with live search and a
+    status filter. Archiving offers "تراجع".
+  - The customer hub (`/clients/:id`) shows phones with call/WhatsApp,
+    requests of both types, owned sale and rental listings, documents, notes
+    and every stored field. "طلب جديد" opens the request form with the
+    customer chosen.
+  - The request lists have status, type and location filters and an
+    "المفتوحة" view. New record pages `/purchase-requests/:id` and
+    `/rental-requests/:id` show the customer's phone, the request and its
+    matches, with status changes in the "⋯" menu.
+  - The request form is a sectioned dialog with "زبون جديد" beside the
+    picker. The picker shows code and phone under each name.
+- **Phase 5, dashboard.** `SummaryStrip` replaces the striped KPI tiles and
+  the banner, each count appears once, and `حالة العروض` merges the
+  performance table with the rental panel that repeated its counts. See
+  `docs/OPERATIONS_DASHBOARD.md`, "Renderer".
+- **Phase 6, system pages.**
+  - Documents (now "المستمسكات" everywhere, under the customers group):
+    filters by customer, type and status, plus a separate add/edit dialog.
+  - Users, roles and locations are on `DataGrid` with named controls. Roles
+    show Arabic module names, and "Super Admin" shows as "مدير النظام"
+    (stored value unchanged).
+  - Settings uses one panel. Remote access asks before starting. Backup
+    history is in Arabic. A restore result stays on the page with a
+    copy-path button, and a failed office-info load blocks Save.
+  - Help is rewritten, with a shortcuts table.
+  - Login no longer pre-fills "admin" (it remembers the last user on this
+    device), shows its error once, and the PIN toggle is named. The wizard
+    validates each step. The splash recovery text is 13px.
+  - Vuetify's untranslated accessible names ("Clear {0}", "appended
+    action", pagination) are Arabic in `main.ts`.
+- **Phase 7.**
+  - `apps/renderer/DESIGN.md` and its sidecar are regenerated from the code.
+  - Dead global CSS is removed, along with the stripe on the active search
+    result.
+  - Dialog footers put the primary action first.
+  - Excel import errors name the file line.
+  - `.github/skills/**` (vendored, minified) is ignored by ESLint, so
+    `pnpm lint` runs its typechecks again.
+
+### Results
+
+| Check                                       | Result                                                                                                                       |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm lint` (ESLint + all three typechecks) | pass                                                                                                                         |
+| `pnpm test`                                 | 43/43                                                                                                                        |
+| `test:contract`                             | 67/67                                                                                                                        |
+| `pnpm build` (+ asset check)                | pass                                                                                                                         |
+| Detector (`impeccable detect`)              | 0 findings                                                                                                                   |
+| 18 routes × light, dark, 1093×550           | no horizontal scroll; 0 unnamed controls                                                                                     |
+| Keyboard script                             | 20/20 (Ctrl+F → ↓ → Enter → Alt+← same row and filters; Shift+F10; Ctrl+N; Esc and focus return; Ctrl+S; `?open=` redirects) |
+| Dashboard height at 1366×688                | 924px (1.34 screens, from 1,415); counts and the top three actions above the fold                                            |
+
+### Not done or needs approval
+
+- **Server-side Arabic for import validation.** The Excel import still shows
+  the server's raw zod messages (`area_value: Invalid input…`); fixing it is
+  a server change (section 9).
+- **Customer phone in request lists** and **"آخر متابعة" on dashboard match
+  rows** need fields the list endpoints don't return.
+- **D5 (favourites)** is still open; both pages and nav entries remain.
+- **Tailwind removal** and **`pnpm perf` against a packaged build** were not
+  done in this pass. There is no measured performance comparison for phases
+  3–7.
+- **Not exercised against the demo:** settings saves, restore,
+  remote-access start, and creating users, roles or locations (the shared
+  demo database was left as it was).

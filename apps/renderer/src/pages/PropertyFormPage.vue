@@ -333,7 +333,7 @@ function openMatch(match: MatchResult) {
   if (!id) return;
   matchDialog.value = false;
   pendingRedirect.value = null;
-  void router.push({ path: "/purchase-requests", query: { open: String(id) } });
+  void router.push(`/purchase-requests/${id}`);
 }
 
 // المكوّن نفسه يخدم ‎/properties/new‎ و‎/properties/:id/edit‎ ويُعاد استخدامه

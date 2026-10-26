@@ -10,8 +10,15 @@ import type {
 } from "../types";
 import { API_BASE, getToken, request } from "./api.service";
 
+/** إيجارات مالك مسجَّل (ملف الزبون)، ومعها المؤرشفة عند الطلب. */
+type OwnerFilters = {
+  owner_person_id?: number | null;
+  include_archived?: "true" | "false";
+};
+
 function query(
-  filters: Partial<RentalFilters> | Partial<PageQuery<RentalSortKey>>,
+  filters:
+    (Partial<RentalFilters> & OwnerFilters) | Partial<PageQuery<RentalSortKey>>,
 ) {
   const params = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
@@ -27,7 +34,7 @@ export function listRentals(filters: Partial<RentalFilters> = {}) {
 }
 /** صفحة واحدة مع العدد الكلي، لجدول الإيجارات. */
 export function listRentalsPage(
-  filters: Partial<RentalFilters>,
+  filters: Partial<RentalFilters> & OwnerFilters,
   page: PageQuery<RentalSortKey>,
   signal?: AbortSignal,
 ) {

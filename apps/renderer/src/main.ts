@@ -39,6 +39,44 @@ function initialTheme() {
     : "dalalyLight";
 }
 
+// ─── نصوص Vuetify ────────────────────────────────────────────────────
+// ملف ar في Vuetify يترك هذه بالإنجليزية، وأكثرها أسماء لقارئ الشاشة: «Clear
+// {0}» على زر مسح كل حقل، و«appended action» على زر إظهار الرمز السري.
+const arMessages = {
+  ...ar,
+  open: "فتح",
+  dismiss: "إغلاق",
+  loading: "جارٍ التحميل…",
+  confirmEdit: { ...ar.confirmEdit, cancel: "إلغاء" },
+  calendar: { ...ar.calendar, today: "اليوم" },
+  input: {
+    ...ar.input,
+    clear: "مسح {0}",
+    prependAction: "{0}: إجراء",
+    appendAction: "{0}: إجراء",
+    otp: "أدخل الخانة {0} من الرمز",
+  },
+  fileUpload: {
+    ...ar.fileUpload,
+    title: "اسحب الملفات وأفلتها هنا",
+    browse: "اختيار ملفات",
+  },
+  pagination: {
+    ...ar.pagination,
+    ariaLabel: {
+      ...ar.pagination.ariaLabel,
+      first: "الصفحة الأولى",
+      last: "الصفحة الأخيرة",
+    },
+  },
+  stepper: { ...ar.stepper, next: "التالي", prev: "السابق" },
+  infiniteScroll: {
+    ...ar.infiniteScroll,
+    loadMore: "تحميل المزيد",
+    empty: "لا مزيد",
+  },
+};
+
 // ─── إعدادات مشتركة ──────────────────────────────────────────────────
 // كثافة سطح المكتب: حقول بإطار ومضغوطة (40px) — لغة برامج Windows لا
 // لغة الويب. hideDetails:"auto" يحذف شريط الرسائل (22px) المحجوز تحت كل
@@ -67,7 +105,7 @@ const vuetify = createVuetify({
     // Vuetify يضمّن الإنجليزية دائماً، فنجعلها الاحتياط: أي مفتاح ناقص
     // في ar يظهر بالإنجليزية بدل اسم المفتاح الخام وخطأ في console.
     fallback: "en",
-    messages: { ar },
+    messages: { ar: arMessages },
     // فاصل عشري ثابت لـ VNumberInput: "ar" تُنسَّق بأرقام هندية و"٫"
     // في محركات ICU القديمة وبأرقام لاتينية و"." في الحديثة — نوحّدها.
     decimalSeparator: ".",

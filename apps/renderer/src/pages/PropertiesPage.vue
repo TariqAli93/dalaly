@@ -317,17 +317,3 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onShortcut));
     <RecordFollowupDialog v-model="followupOpen" :target="followupTarget" />
   </AppPage>
 </template>
-
-<style scoped>
-.dal-listpanel {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
-}
-.dal-views {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-</style>
