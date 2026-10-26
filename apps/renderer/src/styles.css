@@ -590,6 +590,10 @@ body {
   gap: 8px;
   padding: 8px 12px 4px;
 }
+/* شريط بلا صف ثانٍ (لا شرائح ولا عروض سريعة): حشو متساوٍ. */
+.dal-toolbar__row--single {
+  padding-block: 8px;
+}
 .dal-toolbar__row--sub {
   min-height: 36px;
   padding-block: 0 4px;

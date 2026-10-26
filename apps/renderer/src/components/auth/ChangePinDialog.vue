@@ -62,7 +62,6 @@ async function submit() {
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn variant="text" @click="open = false">إلغاء</v-btn>
         <v-btn
           color="primary"
           variant="flat"
@@ -71,6 +70,9 @@ async function submit() {
         >
           حفظ
         </v-btn>
+        <v-btn variant="text" :disabled="loading" @click="open = false"
+          >إلغاء</v-btn
+        >
       </v-card-actions>
     </v-card>
   </v-dialog>

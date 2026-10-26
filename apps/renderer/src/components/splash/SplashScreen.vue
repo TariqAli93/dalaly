@@ -106,14 +106,14 @@ onBeforeUnmount(() => unsubscribe?.());
           <p>{{ message }}</p>
           <div class="recovery-actions">
             <v-btn
-              size="x-small"
+              size="small"
               variant="tonal"
               prepend-icon="mdi-refresh"
               @click="retry"
               >إعادة المحاولة</v-btn
-            ><v-btn size="x-small" variant="text" @click="api?.openLogs()"
+            ><v-btn size="small" variant="text" @click="api?.openLogs()"
               >فتح السجلات</v-btn
-            ><v-btn size="x-small" variant="text" @click="api?.quit()"
+            ><v-btn size="small" variant="text" @click="api?.quit()"
               >خروج</v-btn
             >
           </div>
@@ -216,7 +216,7 @@ onBeforeUnmount(() => unsubscribe?.());
   box-shadow: 0 2px 7px rgba(25, 54, 56, 0.12) !important;
 }
 .feature span {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
 }
 .loading-status {
@@ -226,9 +226,10 @@ onBeforeUnmount(() => unsubscribe?.());
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  font-size: 8px;
+  /* مرحلة التشغيل تحمل معنى: أصغر حجم مقروء في نافذة 465×300. */
+  font-size: 11px;
   line-height: 1.25;
-  color: #496367;
+  color: #3d575b;
 }
 .startup-progress {
   position: absolute;
@@ -257,7 +258,7 @@ onBeforeUnmount(() => unsubscribe?.());
   gap: 7px;
 }
 .benefit span {
-  font-size: 8px;
+  font-size: 10px;
   line-height: 1.55;
   white-space: nowrap;
 }
@@ -265,9 +266,10 @@ onBeforeUnmount(() => unsubscribe?.());
   padding: 6px 10px;
   text-align: center;
 }
+/* شاشة الاسترداد تُقرأ تحت ضغط: نص 13px وأزرار بحجمها. */
 .startup-error p {
-  margin: 0 0 4px;
-  font-size: 9px;
+  margin: 0 0 6px;
+  font-size: 13px;
   line-height: 1.6;
 }
 .recovery-actions {
@@ -277,7 +279,7 @@ onBeforeUnmount(() => unsubscribe?.());
 }
 .recovery-actions .v-btn {
   font: inherit;
-  font-size: 9px;
+  font-size: 13px;
   letter-spacing: 0;
 }
 @media (prefers-reduced-motion: reduce) {

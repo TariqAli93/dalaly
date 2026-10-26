@@ -2,6 +2,15 @@
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import AppPage from "../components/app/AppPage.vue";
+import DataGrid from "../components/shared/DataGrid.vue";
+import FilterBar from "../components/shared/FilterBar.vue";
+import RoleDialog from "../components/admin/RoleDialog.vue";
+import PermissionDialog from "../components/admin/PermissionDialog.vue";
+import type {
+  FilterChip,
+  GridHeader,
+  RowAction,
+} from "../components/shared/grid";
 import { getErrorMessage } from "../services/api.service";
 import * as rolesService from "../services/roles.service";
 import * as permissionsService from "../services/permissions.service";
@@ -9,40 +18,37 @@ import { usePermissions } from "../composables/usePermissions";
 import { useConfirm } from "../composables/useConfirm";
 import { useSnackbar } from "../composables/useSnackbar";
 import { useRefresh } from "../composables/useRefresh";
+import {
+  permissionModuleLabel,
+  permissionModuleOrder,
+  roleLabel,
+} from "../constants/permissions";
 import type { PermissionRecord, RoleRecord } from "../types";
 
+/**
+ * الأدوار وصلاحياتها في لوحين متجاورين: الأدوار (Enter يفتح التعديل)
+ * والصلاحيات مصفّاة بالبحث والوحدة، بأسماء الوحدات العربية. دور النظام
+ * لا يُحذف ولا يُعاد تسميته.
+ */
 const { can } = usePermissions();
 const { openConfirm } = useConfirm();
-const { notifySuccess, notifyError } = useSnackbar();
+const { notifySuccess } = useSnackbar();
 const { setRefreshHandler } = useRefresh();
 const { t } = useI18n();
 
 const roles = ref<RoleRecord[]>([]);
 const permissions = ref<PermissionRecord[]>([]);
+const loading = ref(false);
+const error = ref<string | null>(null);
 
 const roleDialog = ref(false);
-const editingRoleId = ref<number | null>(null);
-const roleForm = ref({
-  name: "",
-  description: "",
-  permission_ids: [] as number[],
-});
-
+const editingRole = ref<RoleRecord | null>(null);
 const permissionDialog = ref(false);
-const editingPermissionId = ref<number | null>(null);
-const permissionForm = ref({ key: "", name: "", description: "", module: "" });
-
-const permissionsByModule = computed(() => {
-  const groups = new Map<string, PermissionRecord[]>();
-  for (const permission of permissions.value) {
-    const group = groups.get(permission.module) ?? [];
-    group.push(permission);
-    groups.set(permission.module, group);
-  }
-  return [...groups.entries()].map(([module, items]) => ({ module, items }));
-});
+const editingPermission = ref<PermissionRecord | null>(null);
 
 async function loadAll() {
+  loading.value = true;
+  error.value = null;
   try {
     const [roleRows, permissionRows] = await Promise.all([
       rolesService.listRoles(),
@@ -50,47 +56,27 @@ async function loadAll() {
     ]);
     roles.value = roleRows;
     permissions.value = permissionRows;
-  } catch (error) {
-    notifyError(getErrorMessage(error));
+  } catch (cause) {
+    error.value = getErrorMessage(cause);
+  } finally {
+    loading.value = false;
   }
 }
 
-function openRoleDialog(role?: RoleRecord) {
-  editingRoleId.value = role?.id ?? null;
-  roleForm.value = {
-    name: role?.name ?? "",
-    description: role?.description ?? "",
-    permission_ids: role?.permission_ids ? [...role.permission_ids] : [],
-  };
+// ─── الأدوار ─────────────────────────────────────────────────────────────
+const roleHeaders: GridHeader[] = [
+  { key: "name", title: t("roles.role"), sortable: true },
+  { key: "permissions", title: "الصلاحيات", align: "end" },
+  { key: "actions", title: "", align: "end", width: 96 },
+];
+function openRole(role?: RoleRecord) {
+  editingRole.value = role ?? null;
   roleDialog.value = true;
 }
-
-async function saveRole() {
-  try {
-    const payload = {
-      name: roleForm.value.name,
-      description: roleForm.value.description,
-    };
-    const role =
-      editingRoleId.value !== null
-        ? await rolesService.updateRole(editingRoleId.value, payload)
-        : await rolesService.createRole(payload);
-    await rolesService.updateRolePermissions(
-      role.id,
-      roleForm.value.permission_ids,
-    );
-    roleDialog.value = false;
-    await loadAll();
-    notifySuccess("تم حفظ الدور والصلاحيات.");
-  } catch (error) {
-    notifyError(getErrorMessage(error));
-  }
-}
-
 function askDeleteRole(role: RoleRecord) {
   openConfirm({
-    title: `حذف ${role.name}`,
-    body: t("roles.deleteRoleQuestion"),
+    title: `حذف ${roleLabel(role.name)}`,
+    body: `${t("roles.deleteRoleQuestion")} لا يُحذف دور مرتبط بمستخدمين؛ انقلهم إلى دور آخر أولاً.`,
     confirmText: t("common.delete"),
     color: "error",
     onConfirm: async () => {
@@ -100,40 +86,81 @@ function askDeleteRole(role: RoleRecord) {
     },
   });
 }
+function roleActions(role: RoleRecord): RowAction[] {
+  const actions: RowAction[] = [];
+  if (can("roles.update"))
+    actions.push({
+      key: "edit",
+      label: "تعديل الدور وصلاحياته",
+      icon: "mdi-pencil-outline",
+      inline: true,
+      run: () => openRole(role),
+    });
+  if (can("roles.delete") && !role.is_system)
+    actions.push({
+      key: "delete",
+      label: "حذف",
+      icon: "mdi-delete-outline",
+      danger: true,
+      run: () => askDeleteRole(role),
+    });
+  return actions;
+}
 
-function openPermissionDialog(permission?: PermissionRecord) {
-  editingPermissionId.value = permission?.id ?? null;
-  permissionForm.value = {
-    key: permission?.key ?? "",
-    name: permission?.name ?? "",
-    description: permission?.description ?? "",
-    module: permission?.module ?? "",
-  };
+// ─── الصلاحيات ───────────────────────────────────────────────────────────
+const search = ref("");
+const moduleFilter = ref<string | null>(null);
+// الوحدات الموجودة فعلاً، بأسمائها العربية وترتيب العمل.
+const moduleItems = computed(() => {
+  const labels = new Map<string, number>();
+  for (const permission of permissions.value)
+    labels.set(
+      permissionModuleLabel(permission.module),
+      permissionModuleOrder(permission.module),
+    );
+  return [...labels.entries()]
+    .sort((a, b) => a[1] - b[1])
+    .map(([title]) => title);
+});
+const visiblePermissions = computed(() => {
+  const q = search.value.trim();
+  return permissions.value
+    .filter(
+      (permission) =>
+        (!moduleFilter.value ||
+          permissionModuleLabel(permission.module) === moduleFilter.value) &&
+        (!q || permission.name.includes(q) || permission.key.includes(q)),
+    )
+    .sort(
+      (a, b) =>
+        permissionModuleOrder(a.module) - permissionModuleOrder(b.module),
+    );
+});
+const permissionChips = computed<FilterChip[]>(() => [
+  ...(search.value ? [{ key: "q", label: `بحث: ${search.value}` }] : []),
+  ...(moduleFilter.value ? [{ key: "module", label: moduleFilter.value }] : []),
+]);
+function removePermissionChip(key: string) {
+  if (key === "q") search.value = "";
+  else moduleFilter.value = null;
+}
+function clearPermissionFilters() {
+  search.value = "";
+  moduleFilter.value = null;
+}
+const permissionHeaders: GridHeader[] = [
+  { key: "name", title: "الصلاحية", sortable: true },
+  { key: "module", title: t("roles.module") },
+  { key: "actions", title: "", align: "end", width: 96 },
+];
+function openPermission(permission?: PermissionRecord) {
+  editingPermission.value = permission ?? null;
   permissionDialog.value = true;
 }
-
-async function savePermission() {
-  try {
-    if (editingPermissionId.value !== null) {
-      await permissionsService.updatePermission(
-        editingPermissionId.value,
-        permissionForm.value,
-      );
-    } else {
-      await permissionsService.createPermission(permissionForm.value);
-    }
-    permissionDialog.value = false;
-    await loadAll();
-    notifySuccess("تم حفظ الصلاحية.");
-  } catch (error) {
-    notifyError(getErrorMessage(error));
-  }
-}
-
 function askDeletePermission(permission: PermissionRecord) {
   openConfirm({
-    title: `حذف ${permission.key}`,
-    body: t("roles.deletePermissionQuestion"),
+    title: `حذف صلاحية «${permission.name}»`,
+    body: `${t("roles.deletePermissionQuestion")} تُنزع من كل الأدوار التي تحملها.`,
     confirmText: t("common.delete"),
     color: "error",
     onConfirm: async () => {
@@ -143,6 +170,26 @@ function askDeletePermission(permission: PermissionRecord) {
     },
   });
 }
+function permissionActions(permission: PermissionRecord): RowAction[] {
+  const actions: RowAction[] = [];
+  if (can("roles.update"))
+    actions.push({
+      key: "edit",
+      label: "تعديل",
+      icon: "mdi-pencil-outline",
+      inline: true,
+      run: () => openPermission(permission),
+    });
+  if (can("roles.delete"))
+    actions.push({
+      key: "delete",
+      label: "حذف",
+      icon: "mdi-delete-outline",
+      danger: true,
+      run: () => askDeletePermission(permission),
+    });
+  return actions;
+}
 
 onMounted(() => {
   setRefreshHandler(loadAll);
@@ -151,175 +198,171 @@ onMounted(() => {
 </script>
 
 <template>
-  <AppPage :title="t('roles.title')">
-    <div class="flex flex-col gap-4">
-      <v-card variant="flat" border>
-        <v-card-title class="d-flex align-center">
-          <span>الأدوار</span>
-          <v-spacer />
-          <v-btn
-            v-if="can('roles.create')"
-            color="primary"
-            prepend-icon="mdi-shield-plus-outline"
-            @click="openRoleDialog()"
-          >
-            {{ t("roles.addRole") }}
-          </v-btn>
-        </v-card-title>
-        <v-card-text>
-          <v-list lines="two">
-            <v-list-item
-              v-for="role in roles"
-              :key="role.id"
-              :title="role.name"
-              :subtitle="role.description || t('common.withoutDescription')"
-            >
-              <template #append>
-                <v-chip v-if="role.is_system" class="me-2" variant="tonal">
-                  {{ t("roles.system") }}
-                </v-chip>
-                <v-btn
-                  v-if="can('roles.update')"
-                  icon="mdi-pencil"
-                  variant="text"
-                  @click="openRoleDialog(role)"
-                />
-                <v-btn
-                  v-if="can('roles.delete') && !role.is_system"
-                  icon="mdi-delete-outline"
-                  color="error"
-                  variant="text"
-                  @click="askDeleteRole(role)"
-                />
-              </template>
-            </v-list-item>
-          </v-list>
-        </v-card-text>
-      </v-card>
+  <AppPage
+    :title="t('roles.title')"
+    :count="loading && !roles.length ? null : roles.length"
+  >
+    <template #header-actions>
+      <v-btn
+        v-if="can('roles.create')"
+        color="primary"
+        prepend-icon="mdi-shield-plus-outline"
+        @click="openRole()"
+        >{{ t("roles.addRole") }}</v-btn
+      >
+    </template>
 
-      <v-card variant="flat" border>
-        <v-card-title class="d-flex align-center">
-          <span>الصلاحيات</span>
+    <div class="roles-layout dal-fill">
+      <section
+        class="dal-panel dal-listpanel"
+        aria-labelledby="roles-panel-title"
+      >
+        <div class="dal-panel__header">
+          <h2 id="roles-panel-title" class="dal-section-title">الأدوار</h2>
+        </div>
+        <DataGrid
+          grid-key="roles"
+          table-label="جدول الأدوار"
+          :items="roles"
+          :headers="roleHeaders"
+          :loading="loading"
+          :error="error"
+          :actions="roleActions"
+          :row-label="(role) => roleLabel(role.name)"
+          :empty="{
+            icon: 'mdi-shield-account-outline',
+            title: 'لا توجد أدوار',
+          }"
+          compact
+          @open="can('roles.update') && openRole($event)"
+          @retry="loadAll"
+        >
+          <template #item.name="{ item }">
+            <div class="dal-cell-name">
+              <strong
+                >{{ roleLabel(item.name) }}
+                <v-chip
+                  v-if="item.is_system"
+                  size="x-small"
+                  variant="tonal"
+                  label
+                  class="ms-1"
+                  >{{ t("roles.system") }}</v-chip
+                ></strong
+              >
+              <small>{{
+                item.description || t("common.withoutDescription")
+              }}</small>
+            </div>
+          </template>
+          <template #item.permissions="{ item }">
+            <span class="money">{{ item.permission_ids.length }}</span>
+          </template>
+        </DataGrid>
+      </section>
+
+      <section
+        class="dal-panel dal-listpanel"
+        aria-labelledby="permissions-panel-title"
+      >
+        <div class="dal-panel__header">
+          <h2 id="permissions-panel-title" class="dal-section-title">
+            الصلاحيات
+          </h2>
+          <span class="dal-count">{{ permissions.length }}</span>
           <v-spacer />
           <v-btn
             v-if="can('roles.create')"
+            size="small"
             variant="tonal"
             prepend-icon="mdi-key-plus"
-            @click="openPermissionDialog()"
+            @click="openPermission()"
+            >{{ t("roles.addPermission") }}</v-btn
           >
-            إضافة صلاحية
-          </v-btn>
-        </v-card-title>
-        <v-card-text>
-          <v-expansion-panels variant="accordion">
-            <v-expansion-panel
-              v-for="group in permissionsByModule"
-              :key="group.module"
-            >
-              <v-expansion-panel-title>{{
-                group.module
-              }}</v-expansion-panel-title>
-              <v-expansion-panel-text>
-                <v-list density="compact">
-                  <v-list-item
-                    v-for="permission in group.items"
-                    :key="permission.id"
-                    :title="permission.name"
-                    :subtitle="permission.key"
-                  >
-                    <template #append>
-                      <v-btn
-                        v-if="can('roles.update')"
-                        icon="mdi-pencil"
-                        variant="text"
-                        @click="openPermissionDialog(permission)"
-                      />
-                      <v-btn
-                        v-if="can('roles.delete')"
-                        icon="mdi-delete-outline"
-                        color="error"
-                        variant="text"
-                        @click="askDeletePermission(permission)"
-                      />
-                    </template>
-                  </v-list-item>
-                </v-list>
-              </v-expansion-panel-text>
-            </v-expansion-panel>
-          </v-expansion-panels>
-        </v-card-text>
-      </v-card>
+        </div>
+        <FilterBar
+          v-model:search="search"
+          :filters="moduleFilter"
+          search-label="بحث في الصلاحيات"
+          placeholder="بحث باسم الصلاحية أو مفتاحها"
+          :chips="permissionChips"
+          @remove="removePermissionChip"
+          @clear="clearPermissionFilters"
+        >
+          <template #filters>
+            <v-select
+              v-model="moduleFilter"
+              :items="moduleItems"
+              :label="t('roles.module')"
+              hide-details
+              clearable
+              class="dal-toolbar__filter roles-layout__module"
+            />
+          </template>
+        </FilterBar>
+        <DataGrid
+          grid-key="permissions"
+          table-label="جدول الصلاحيات"
+          :items="visiblePermissions"
+          :headers="permissionHeaders"
+          :loading="loading"
+          :error="error"
+          :has-filters="permissionChips.length > 0"
+          :actions="permissionActions"
+          :row-label="(permission) => permission.name"
+          :empty="{ icon: 'mdi-key-outline', title: 'لا توجد صلاحيات' }"
+          :no-match="{ title: 'لا توجد صلاحية مطابقة' }"
+          compact
+          @open="can('roles.update') && openPermission($event)"
+          @retry="loadAll"
+          @clear-filters="clearPermissionFilters"
+        >
+          <template #item.name="{ item }">
+            <div class="dal-cell-name">
+              <strong>{{ item.name }}</strong>
+              <bdi>{{ item.key }}</bdi>
+            </div>
+          </template>
+          <template #item.module="{ item }">{{
+            permissionModuleLabel(item.module)
+          }}</template>
+        </DataGrid>
+      </section>
     </div>
 
-    <v-dialog v-model="roleDialog" width="760">
-      <v-card>
-        <v-card-title>{{
-          editingRoleId ? t("roles.editRole") : t("roles.addRole")
-        }}</v-card-title>
-        <v-card-text>
-          <div class="dialog-grid">
-            <v-text-field v-model="roleForm.name" label="اسم الدور" />
-            <v-text-field v-model="roleForm.description" label="الوصف" />
-          </div>
-          <v-divider class="my-4" />
-          <div class="text-subtitle-2 mb-2">الصلاحيات</div>
-          <v-expansion-panels variant="accordion">
-            <v-expansion-panel
-              v-for="group in permissionsByModule"
-              :key="group.module"
-            >
-              <v-expansion-panel-title>{{
-                group.module
-              }}</v-expansion-panel-title>
-              <v-expansion-panel-text>
-                <v-checkbox
-                  v-for="permission in group.items"
-                  :key="permission.id"
-                  v-model="roleForm.permission_ids"
-                  :value="permission.id"
-                  :label="`${permission.name} (${permission.key})`"
-                  density="compact"
-                  hide-details
-                />
-              </v-expansion-panel-text>
-            </v-expansion-panel>
-          </v-expansion-panels>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="roleDialog = false">إلغاء</v-btn>
-          <v-btn color="primary" variant="flat" @click="saveRole">حفظ</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <v-dialog v-model="permissionDialog" width="620">
-      <v-card>
-        <v-card-title>
-          {{ editingPermissionId ? "تعديل صلاحية" : "إضافة صلاحية" }}
-        </v-card-title>
-        <v-card-text>
-          <div class="dialog-grid">
-            <v-text-field
-              v-model="permissionForm.key"
-              :label="t('roles.permissionKey')"
-            />
-            <v-text-field v-model="permissionForm.name" label="الاسم" />
-            <v-text-field
-              v-model="permissionForm.module"
-              :label="t('roles.module')"
-            />
-            <v-text-field v-model="permissionForm.description" label="الوصف" />
-          </div>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="permissionDialog = false">إلغاء</v-btn>
-          <v-btn color="primary" variant="flat" @click="savePermission"
-            >حفظ</v-btn
-          >
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <RoleDialog
+      v-model="roleDialog"
+      :role="editingRole"
+      :permissions="permissions"
+      @saved="loadAll"
+    />
+    <PermissionDialog
+      v-model="permissionDialog"
+      :permission="editingPermission"
+      @saved="loadAll"
+    />
   </AppPage>
 </template>
+
+<style scoped>
+.roles-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 2fr) minmax(0, 3fr);
+  gap: var(--dal-gutter);
+}
+.roles-layout > .dal-panel {
+  min-height: 0;
+}
+.roles-layout__module {
+  max-width: 220px;
+}
+@media (max-width: 1100px) {
+  .roles-layout {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+  .roles-layout > .dal-panel {
+    max-height: 70dvh;
+  }
+}
+</style>

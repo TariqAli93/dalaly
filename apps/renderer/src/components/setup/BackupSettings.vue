@@ -8,8 +8,14 @@ import { useSnackbar } from "../../composables/useSnackbar";
 import { useConfirm } from "../../composables/useConfirm";
 import { useRefresh } from "../../composables/useRefresh";
 import type { BackupHistory } from "../../types";
-import { formatDateTime } from "../../utils/format";
+import { formatDateTime, formatNumber } from "../../utils/format";
+import SettingsSection from "../settings/SettingsSection.vue";
 
+/**
+ * النسخ الاحتياطي اليدوي والاسترجاع: آخر نسخة ومجلدها، وسجل النسخ بأسماء
+ * عربية، ونتيجة آخر استرجاع ظاهرة في الصفحة (مع مسار نسخة الأمان ونسخه) بدل
+ * إشعار يختفي.
+ */
 const { can } = usePermissions();
 const { notifySuccess, notifyError } = useSnackbar();
 const { openConfirm } = useConfirm();
@@ -65,7 +71,24 @@ function selectFile(name: string) {
 function fmt(value: string | null) {
   return value ? formatDateTime(value) : "—";
 }
-// "pruned": an old scheduled or pre-restore copy deleted by retention.
+
+// أنواع backup_jobs.type وحالاتها كما يكتبها الخادم (backup.service.ts).
+const JOB_TYPES: Record<string, string> = {
+  manual: "يدوية",
+  manual_export: "تصدير يدوي",
+  scheduled: "مجدولة",
+  email: "بالبريد",
+  pre_restore: "قبل الاسترجاع",
+  restore: "استرجاع",
+};
+// "pruned": نسخة مجدولة أو سابقة للاسترجاع حذفها حدّ الاحتفاظ.
+const JOB_STATUSES: Record<string, string> = {
+  success: "ناجحة",
+  failure: "فشلت",
+  pruned: "حُذفت (حدّ الاحتفاظ)",
+};
+const jobType = (type: string) => JOB_TYPES[type] ?? type;
+const jobStatus = (status: string) => JOB_STATUSES[status] ?? status;
 function statusColor(status: string) {
   if (status === "success") return "success";
   return status === "pruned" ? undefined : "error";
@@ -73,7 +96,20 @@ function statusColor(status: string) {
 function fmtSize(bytes: number | null) {
   if (!bytes) return "—";
   const mb = bytes / (1024 * 1024);
-  return mb >= 1 ? `${mb.toFixed(2)} MB` : `${(bytes / 1024).toFixed(0)} KB`;
+  return mb >= 1
+    ? `${formatNumber(mb, 2)} ميغابايت`
+    : `${formatNumber(bytes / 1024, 0)} كيلوبايت`;
+}
+
+// نتيجة آخر استرجاع في هذه الجلسة: تبقى حتى تُغلق، ومعها مسار نسخة الأمان.
+const lastRestore = ref<{ message: string; path: string | null } | null>(null);
+async function copyPath(path: string) {
+  try {
+    await navigator.clipboard.writeText(path);
+    notifySuccess("نُسخ المسار.");
+  } catch {
+    notifyError("تعذر النسخ. حدّد المسار وانسخه يدوياً.");
+  }
 }
 
 async function load() {
@@ -188,13 +224,13 @@ async function runRestore() {
     });
     restoreOpen.value = false;
     const restored = result.database_only
-      ? "تم استرجاع قاعدة البيانات من النسخة المشفّرة، وبقيت الصور والمستندات على هذا الجهاز كما هي"
-      : "تم استرجاع النسخة الاحتياطية";
-    notifySuccess(
-      result.safety_backup_path
-        ? `${restored}، وحُفظت البيانات السابقة في: ${result.safety_backup_path}. قد تحتاج إلى إعادة تسجيل الدخول.`
-        : `${restored}. قد تحتاج إلى إعادة تسجيل الدخول.`,
-    );
+      ? "تم استرجاع قاعدة البيانات من النسخة المشفّرة، وبقيت الصور والمستندات على هذا الجهاز كما هي."
+      : "تم استرجاع النسخة الاحتياطية.";
+    lastRestore.value = {
+      message: `${restored} قد تحتاج إلى إعادة تسجيل الدخول.`,
+      path: result.safety_backup_path ?? null,
+    };
+    notifySuccess(restored);
     await load();
   } catch (error) {
     if (error instanceof ApiError && error.code === "BACKUP_PASSWORD_REQUIRED")
@@ -212,125 +248,161 @@ onMounted(() => {
 </script>
 
 <template>
-  <v-card variant="flat" border>
-    <v-card-title class="d-flex align-center">
-      <span>النسخ الاحتياطي</span>
-      <v-spacer />
+  <SettingsSection
+    title="النسخ الاحتياطي"
+    description="نسخة كاملة من البيانات والصور والمستندات في مجلد النسخ على هذا الجهاز."
+  >
+    <template #actions>
       <v-btn
         v-if="can('backups.create')"
         color="primary"
+        variant="flat"
         prepend-icon="mdi-database-export"
         :loading="creating"
         @click="create"
+        >إنشاء نسخة</v-btn
       >
-        إنشاء نسخة
-      </v-btn>
       <v-btn
         v-if="can('backups.create') && canExport"
-        class="ms-2"
-        color="primary"
         variant="tonal"
         prepend-icon="mdi-content-save-move-outline"
         :loading="exporting"
         @click="exportManualBackup"
+        >تصدير نسخة إلى مكان آخر</v-btn
       >
-        تصدير نسخة احتياطية
-      </v-btn>
       <v-btn
         v-if="can('backups.restore')"
-        class="ms-2"
         variant="tonal"
         prepend-icon="mdi-database-import"
         @click="openRestore"
+        >استرجاع</v-btn
       >
-        استرجاع
-      </v-btn>
-    </v-card-title>
-    <v-card-text>
-      <div class="d-flex flex-wrap ga-4 mb-3">
-        <div>
-          <div class="text-body-2 text-medium-emphasis">آخر نسخة احتياطية</div>
-          <div class="font-weight-bold">
-            {{ fmt(history?.last_backup_at ?? null) }}
-          </div>
-        </div>
-        <div>
-          <div class="text-body-2 text-medium-emphasis">مجلد النسخ</div>
-          <div class="font-weight-bold" style="word-break: break-all">
-            {{ history?.backup_dir || "—" }}
-            <v-btn
-              v-if="canPickFolder && can('backups.create')"
-              size="x-small"
-              variant="text"
-              prepend-icon="mdi-folder-edit-outline"
-              @click="changeFolder"
-            >
-              تغيير
-            </v-btn>
-          </div>
-        </div>
-      </div>
+    </template>
 
-      <div class="text-subtitle-2 mb-1">سجل النسخ</div>
-      <v-empty-state
-        v-if="!history?.jobs?.length"
-        icon="mdi-history"
-        title="لا يوجد سجل"
-      />
-      <v-table v-else density="compact">
+    <v-alert
+      v-if="lastRestore"
+      type="success"
+      variant="tonal"
+      closable
+      close-label="إغلاق نتيجة الاسترجاع"
+      class="mb-3"
+      role="status"
+      @click:close="lastRestore = null"
+    >
+      <div>{{ lastRestore.message }}</div>
+      <div v-if="lastRestore.path" class="backup-path">
+        <span>حُفظت البيانات السابقة في:</span>
+        <bdi class="backup-path__value">{{ lastRestore.path }}</bdi>
+        <v-btn
+          size="small"
+          variant="text"
+          prepend-icon="mdi-content-copy"
+          @click="copyPath(lastRestore.path)"
+          >نسخ المسار</v-btn
+        >
+      </div>
+    </v-alert>
+
+    <dl class="backup-facts">
+      <div>
+        <dt>آخر نسخة احتياطية</dt>
+        <dd>
+          <bdi>{{ fmt(history?.last_backup_at ?? null) }}</bdi>
+        </dd>
+      </div>
+      <div>
+        <dt>مجلد النسخ</dt>
+        <dd class="backup-path">
+          <bdi class="backup-path__value">{{ history?.backup_dir || "—" }}</bdi>
+          <v-btn
+            v-if="canPickFolder && can('backups.create')"
+            size="small"
+            variant="text"
+            prepend-icon="mdi-folder-edit-outline"
+            @click="changeFolder"
+            >تغيير المجلد</v-btn
+          >
+        </dd>
+      </div>
+    </dl>
+
+    <h3 class="backup-subtitle">سجل النسخ</h3>
+    <p v-if="!history?.jobs?.length" class="backup-empty">
+      لا توجد نسخ مسجّلة بعد.
+    </p>
+    <div v-else class="backup-history">
+      <v-table density="compact">
+        <caption class="d-sr-only">
+          سجل النسخ الاحتياطية والاسترجاع
+        </caption>
         <thead>
           <tr>
-            <th>النوع</th>
-            <th>الحالة</th>
-            <th>الحجم</th>
-            <th>التاريخ</th>
+            <th scope="col">النوع</th>
+            <th scope="col">الحالة</th>
+            <th scope="col" class="text-end">الحجم</th>
+            <th scope="col">التاريخ</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="job in history.jobs" :key="job.id">
-            <td>{{ job.type }}</td>
+          <tr
+            v-for="job in history.jobs"
+            :key="job.id"
+            :title="job.error || job.file_path || undefined"
+          >
+            <td>{{ jobType(job.type) }}</td>
             <td>
               <v-chip
-                size="x-small"
+                size="small"
+                label
                 :color="statusColor(job.status)"
                 variant="tonal"
+                >{{ jobStatus(job.status) }}</v-chip
               >
-                {{ job.status }}
-              </v-chip>
             </td>
-            <td>{{ fmtSize(job.file_size) }}</td>
-            <td>{{ fmt(job.created_at) }}</td>
+            <td class="text-end">{{ fmtSize(job.file_size) }}</td>
+            <td>
+              <bdi>{{ fmt(job.created_at) }}</bdi>
+            </td>
           </tr>
         </tbody>
       </v-table>
-    </v-card-text>
+    </div>
 
-    <v-dialog v-model="restoreOpen" width="520">
+    <v-dialog
+      v-model="restoreOpen"
+      width="520"
+      :persistent="restoring"
+      aria-labelledby="restore-title"
+    >
       <v-card>
-        <v-card-title>استرجاع نسخة احتياطية</v-card-title>
+        <v-card-title id="restore-title">استرجاع نسخة احتياطية</v-card-title>
+        <v-divider />
         <v-card-text>
           <v-alert
             type="warning"
             variant="tonal"
             class="mb-3"
-            text="الاسترجاع يستبدل البيانات الحالية. تأكد من اختيار النطاق الصحيح."
+            text="الاسترجاع يستبدل البيانات الحالية. تُحفظ نسخة منها في مجلد النسخ قبل الاستبدال."
           />
           <v-select
             v-model="restoreScope"
             :items="scopes"
             label="نطاق الاسترجاع"
-            class="mb-2"
+            hide-details
+            class="mb-3"
           />
-          <v-btn
-            variant="tonal"
-            prepend-icon="mdi-file-upload-outline"
-            @click="pickFile"
-          >
-            اختيار ملف النسخة
-          </v-btn>
-          <span v-if="restoreFileName" class="ms-2 text-caption">{{
-            restoreFileName
-          }}</span>
+          <div class="backup-file">
+            <v-btn
+              variant="tonal"
+              prepend-icon="mdi-file-upload-outline"
+              @click="pickFile"
+              >اختيار ملف النسخة</v-btn
+            >
+            <bdi v-if="restoreFileName" class="backup-path__value">{{
+              restoreFileName
+            }}</bdi>
+            <span v-else class="backup-empty">لم يُختر ملف بعد.</span>
+          </div>
           <input
             ref="fileInput"
             type="file"
@@ -354,9 +426,9 @@ onMounted(() => {
             />
           </template>
         </v-card-text>
+        <v-divider />
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="restoreOpen = false">إلغاء</v-btn>
           <v-btn
             color="error"
             variant="flat"
@@ -366,11 +438,75 @@ onMounted(() => {
               (encrypted && !restorePassword)
             "
             @click="confirmRestore"
+            >استرجاع</v-btn
           >
-            استرجاع
-          </v-btn>
+          <v-btn
+            variant="text"
+            :disabled="restoring"
+            @click="restoreOpen = false"
+            >إلغاء</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
-  </v-card>
+  </SettingsSection>
 </template>
+
+<style scoped>
+.backup-facts {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+  gap: 0 24px;
+  margin: 0 0 12px;
+}
+.backup-facts > div {
+  min-width: 0;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--dal-stroke);
+}
+.backup-facts dt {
+  color: var(--dal-muted);
+  font-size: calc(12px * var(--dal-font-scale));
+}
+.backup-facts dd {
+  margin: 0;
+  font-weight: 600;
+}
+.backup-path {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.backup-path__value {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+.backup-subtitle {
+  margin: 8px 0 6px;
+  font-size: calc(13px * var(--dal-font-scale));
+  font-weight: 700;
+}
+.backup-empty {
+  margin: 0;
+  color: var(--dal-muted);
+  font-size: calc(13px * var(--dal-font-scale));
+}
+.backup-history {
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--dal-stroke);
+  border-radius: var(--dal-radius-card);
+}
+.backup-file {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 760px) {
+  .backup-facts {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

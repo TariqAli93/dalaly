@@ -220,13 +220,9 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: "mdi-text-box-search-outline",
         permission: "requests.read",
       },
-    ],
-  },
-  {
-    title: "المستندات",
-    items: [
+      // المستمسكات مستمسكات الزبائن، فمكانها معهم لا قسم بعنصر واحد.
       {
-        title: "المستندات",
+        title: "المستمسكات",
         to: "/documents",
         icon: "mdi-file-document-multiple-outline",
         permission: "documents.read",

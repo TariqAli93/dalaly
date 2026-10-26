@@ -9,10 +9,19 @@ import { useSnackbar } from "../../composables/useSnackbar";
 const route = useRoute();
 const router = useRouter();
 const { loginWithCredentials } = useAuth();
-const { notifySuccess, notifyError } = useSnackbar();
+const { notifySuccess } = useSnackbar();
 const { t } = useI18n();
 
-const form = ref({ username: "admin", pin: "" });
+// لا مستخدم افتراضي («admin» لا وجود له): آخر اسم دخل من هذا الجهاز، وإلا فارغ.
+const LAST_USER_KEY = "dalaly.login.lastUser";
+function lastUser() {
+  try {
+    return localStorage.getItem(LAST_USER_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+const form = ref({ username: lastUser(), pin: "" });
 const loading = ref(false);
 const showPin = ref(false);
 const loginError = ref("");
@@ -20,16 +29,23 @@ const loginError = ref("");
 const required = (value: unknown) => Boolean(value) || t("common.required");
 
 async function submit() {
+  // Enter يرسل النموذج حتى أثناء الطلب؛ loading يمنع النقر وحده.
+  if (loading.value) return;
   loading.value = true;
   loginError.value = "";
   try {
     await loginWithCredentials({ ...form.value });
+    try {
+      localStorage.setItem(LAST_USER_KEY, form.value.username);
+    } catch {
+      // التذكّر راحة لا أكثر.
+    }
     notifySuccess("تم تسجيل الدخول.");
     const redirect = (route.query.redirect as string) || "/";
     await router.replace(redirect);
   } catch (error) {
+    // الخطأ تحت الحقول وحده، لا مرتين (تنبيه وإشعار).
     loginError.value = getErrorMessage(error);
-    notifyError(getErrorMessage(error));
   } finally {
     loading.value = false;
   }
@@ -46,7 +62,7 @@ async function submit() {
       v-model="form.username"
       :label="t('common.username')"
       :rules="[required]"
-      autofocus
+      :autofocus="!form.username"
       prepend-inner-icon="mdi-account-outline"
       autocomplete="username"
     />
@@ -56,11 +72,21 @@ async function submit() {
       :type="showPin ? 'text' : 'password'"
       :rules="[required]"
       prepend-inner-icon="mdi-lock-outline"
-      :append-inner-icon="showPin ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
       :aria-label="t('common.pin')"
+      :autofocus="Boolean(form.username)"
       autocomplete="current-password"
-      @click:append-inner="showPin = !showPin"
-    />
+    >
+      <template #append-inner>
+        <v-btn
+          :icon="showPin ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
+          variant="text"
+          size="small"
+          :aria-label="showPin ? 'إخفاء الرمز السري' : 'إظهار الرمز السري'"
+          :aria-pressed="showPin"
+          @click="showPin = !showPin"
+        />
+      </template>
+    </v-text-field>
     <v-alert
       v-if="loginError"
       type="error"
