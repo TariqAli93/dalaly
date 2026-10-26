@@ -1,56 +1,91 @@
 ---
 name: Dalaly
-description: Arabic-first native desktop workspace for Iraqi brokerage offices — a Fluent (Windows 11) records workbench.
+description: Arabic-first Windows desktop workbench for an Iraqi real-estate office; records on a quiet canvas, dark-teal navigation, one command bar.
 colors:
   registry-teal: "#116466"
-  registry-teal-light: "#4db6ac"
-  sage-ink: "#5b6f62"
-  sage-ink-light: "#9db5a7"
-  seal-ochre: "#c27c3a"
-  seal-ochre-light: "#d8a15f"
-  canvas: "#f3f3f3"
-  surface: "#ffffff"
-  nav: "#ebebeb"
-  night-canvas: "#1c1c1c"
-  night-surface: "#272727"
-  error-red: "#b3261e"
-  error-red-light: "#ffb4ab"
-  warning: "#8a5a1f"
-  success: "#2f6d4f"
+  registry-teal-night: "#74C8C0"
+  seal-ochre: "#C27C3A"
+  seal-ochre-night: "#E7AE77"
+  waiting-ochre: "#8A5A1F"
+  waiting-ochre-night: "#D8A15F"
+  settled-sage: "#5B6F62"
+  settled-sage-night: "#9DB5A7"
+  matched-green: "#2F6D4F"
+  matched-green-night: "#7FC9A3"
+  error-red: "#B3261E"
+  error-red-night: "#FFB4AB"
+  nav-teal: "#193638"
+  on-nav: "#FFFFFF"
+  canvas: "#F3F5F6"
+  surface: "#FFFFFF"
+  surface-variant: "#E6ECEE"
+  secondary-tint: "#E8EEF0"
+  hairline: "#D9E2E5"
+  ink: "#1B2B30"
+  ink-muted: "#546064"
+  night-canvas: "#1D3034"
+  night-surface: "#192C30"
+  night-surface-variant: "#213B40"
+  night-hairline: "#355057"
+  night-ink: "#EDF5F5"
+  night-ink-muted: "#B8C3C4"
 typography:
-  headline:
-    fontFamily: "Tahoma, 'Segoe UI', Arial, sans-serif"
-    fontSize: "1.5rem"
-    fontWeight: 700
-    lineHeight: 2rem
-    letterSpacing: "normal"
   title:
-    fontFamily: "Tahoma, 'Segoe UI', Arial, sans-serif"
-    fontSize: "1.25rem"
-    fontWeight: 500
-    lineHeight: 1.75rem
-    letterSpacing: "normal"
-  body:
-    fontFamily: "Tahoma, 'Segoe UI', Arial, sans-serif"
-    fontSize: "0.875rem"
-    fontWeight: 400
-    lineHeight: 1.425rem
-    letterSpacing: "normal"
-  label:
-    fontFamily: "Tahoma, 'Segoe UI', Arial, sans-serif"
-    fontSize: "0.82rem"
-    fontWeight: 400
-    lineHeight: 1.25rem
-    letterSpacing: "normal"
-  data:
-    fontFamily: "Tahoma, 'Segoe UI', Arial, sans-serif"
-    fontSize: "0.875rem"
+    fontFamily: "Cairo, 'Segoe UI', Tahoma, sans-serif"
+    fontSize: "16px"
     fontWeight: 700
-    lineHeight: 1.425rem
+    lineHeight: 1.4
     letterSpacing: "normal"
+  headline:
+    fontFamily: "Cairo, 'Segoe UI', Tahoma, sans-serif"
+    fontSize: "17px"
+    fontWeight: 600
+    lineHeight: 1.65
+    letterSpacing: "normal"
+  kpi:
+    fontFamily: "Cairo, 'Segoe UI', Tahoma, sans-serif"
+    fontSize: "20px"
+    fontWeight: 700
+    lineHeight: 1.2
+    fontFeature: "tnum"
+  section:
+    fontFamily: "Cairo, 'Segoe UI', Tahoma, sans-serif"
+    fontSize: "14px"
+    fontWeight: 700
+    lineHeight: 1.4
+  body:
+    fontFamily: "Cairo, 'Segoe UI', Tahoma, sans-serif"
+    fontSize: "14px"
+    fontWeight: 400
+    lineHeight: 1.5
+  body-tajawal:
+    fontFamily: "Tajawal, 'Segoe UI', Tahoma, sans-serif"
+    fontSize: "14px"
+    fontWeight: 400
+    lineHeight: 1.5
+  body-almarai:
+    fontFamily: "Almarai, 'Segoe UI', Tahoma, sans-serif"
+    fontSize: "14px"
+    fontWeight: 400
+    lineHeight: 1.5
+  body-plex-arabic:
+    fontFamily: "'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif"
+    fontSize: "14px"
+    fontWeight: 400
+    lineHeight: 1.5
+  control:
+    fontFamily: "Cairo, 'Segoe UI', Tahoma, sans-serif"
+    fontSize: "13px"
+    fontWeight: 400
+    lineHeight: 1.5
+  label:
+    fontFamily: "Cairo, 'Segoe UI', Tahoma, sans-serif"
+    fontSize: "12px"
+    fontWeight: 400
+    lineHeight: 1.5
 rounded:
   control: "4px"
-  card: "8px"
+  panel: "8px"
   pill: "9999px"
 spacing:
   s1: "4px"
@@ -59,235 +94,312 @@ spacing:
   s4: "16px"
   s5: "20px"
   s6: "24px"
+  gutter: "12px"
+  gutter-wide: "16px"
+  cell-x: "8px"
+  bar: "48px"
+  row: "40px"
+  head: "36px"
 components:
   button-primary:
     backgroundColor: "{colors.registry-teal}"
     textColor: "{colors.surface}"
-    rounded: "{rounded.control}"
-    padding: "0 16px"
-    height: "40px"
-  button-tonal:
-    backgroundColor: "{colors.registry-teal}"
-    textColor: "{colors.registry-teal}"
-    rounded: "{rounded.control}"
-    padding: "0 16px"
-    height: "40px"
-  card-surface:
-    backgroundColor: "{colors.surface}"
-    rounded: "{rounded.card}"
-    padding: "16px"
-  nav-item-active:
-    backgroundColor: "{colors.registry-teal}"
-    textColor: "{colors.registry-teal}"
-    rounded: "6px"
-    height: "40px"
-  input-outlined:
-    backgroundColor: "{colors.surface}"
-    textColor: "{colors.night-surface}"
+    typography: "{typography.control}"
     rounded: "{rounded.control}"
     padding: "0 12px"
+    height: "32px"
+  button-text:
+    textColor: "{colors.ink}"
+    typography: "{typography.control}"
+    rounded: "{rounded.control}"
+    height: "32px"
+  input-outlined:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    typography: "{typography.control}"
+    rounded: "{rounded.control}"
     height: "40px"
+  panel:
+    backgroundColor: "{colors.surface}"
+    rounded: "{rounded.panel}"
+  panel-header:
+    typography: "{typography.section}"
+    padding: "8px 12px"
+    height: "40px"
+  command-bar:
+    backgroundColor: "{colors.canvas}"
+    typography: "{typography.title}"
+    padding: "0 12px 0 4px"
+    height: "48px"
+  nav-pane:
+    backgroundColor: "{colors.nav-teal}"
+    textColor: "{colors.on-nav}"
+    width: "232px"
+  nav-item-active:
+    backgroundColor: "{colors.registry-teal}"
+    textColor: "{colors.on-nav}"
+    rounded: "{rounded.control}"
+    height: "36px"
+  grid-row:
+    typography: "{typography.control}"
+    padding: "0 8px"
+    height: "40px"
+  grid-header:
+    backgroundColor: "{colors.surface-variant}"
+    textColor: "{colors.ink-muted}"
+    typography: "{typography.label}"
+    height: "36px"
+  row-thumbnail:
+    backgroundColor: "{colors.surface-variant}"
+    rounded: "{rounded.control}"
+    width: "36px"
+    height: "28px"
+  status-chip:
+    typography: "{typography.label}"
+    rounded: "{rounded.control}"
+  count-badge:
+    backgroundColor: "{colors.surface-variant}"
+    textColor: "{colors.ink-muted}"
+    typography: "{typography.label}"
+    rounded: "{rounded.pill}"
+    padding: "1px 8px"
 ---
 
 # Design System: Dalaly
 
-> **Redesign in progress (2026-07):** moving from the original flat "Land Registry Ledger" world to a native **Fluent 2 / Windows 11** desktop world. The token layer and application shell are implemented; pages adopt the shared components incrementally. Where this document and the code disagree, the code (`main.ts` themes, `styles.css` `--dal-*` tokens, `components/shared/*`) is the source of truth.
+Recorded from the shipped renderer (2026-10-26, branch `feat/desktop-redesign-phases-3-7`). Sources: `src/styles.css`, `src/plugins/theme.ts`, `src/composables/useAppearance.ts`, `src/main.ts`, `src/assets/fonts/fonts.css`, `src/constants/domain.ts`, `src/components/shared/`, `src/components/app/`, `src/layouts/AppLayout.vue`. Where this file and the code disagree, the code wins and this file is regenerated.
 
 ## Overview
 
 **Creative North Star: "The Dalaly Desk"**
 
-Dalaly is a program a broker opens on a Windows machine and works inside all day. It should feel like a native Windows 11 application — a quiet Fluent workbench — not a website rendered inside Electron. The heritage is still the land registry: the record (plot identity, owner, price, status) is the product, and everything on screen serves finding it, reading it correctly, or changing it safely. What changed is the material: instead of a flat paper ledger, records now sit on **layered neutral surfaces with just enough depth to feel physical** — a grey canvas, white panels lifted a hair above it, flyouts that float.
+Dalaly is a Windows program a broker works inside all day, not a website in Electron. The record (plot identity, owner, price, status) is the product; everything on screen serves finding it, reading it correctly, or changing it safely. The shell is one connected workspace: a dark-teal navigation pane on the right, one 48px command bar across the top, and white panels standing directly on a pale grey-teal canvas.
 
-The system stays disciplined and calm: one Arabic sans, a scarce teal accent for action and location, neutral everything else, and motion only where it reports a state change. It is Arabic-native, not mirrored — RTL is the ground truth, the navigation pane sits on the right, and the only Latin on screen is data (codes, phone numbers, prices) held in explicit bidi isolation.
+The world is quiet and dense. One Arabic sans (Cairo by default), teal for action, selection and location, ochre for "waiting on a human", neutrals for everything else. Depth comes from 1px hairlines and the canvas, never from shadows on resting content. RTL is the ground truth, and the only Latin on screen is data (codes, phones, prices) in Latin digits with bidi isolation.
+
+These are owner decisions and are binding: dark-teal navigation pane, white surfaces, teal and ochre, Cairo as default font, the appearance settings, one command bar, expanded navigation with a remembered rail, 28px thumbnails in 40px rows, panels on the canvas, two radii, colour for state only, Latin digits, four data states, and the keyboard map.
 
 **Key Characteristics:**
 
-- One connected workspace: 44px command bar + 240px navigation pane + borderless content — not a page of cards
-- Desktop density: compact rows, small titles, tight spacing; more data visible without scrolling
-- Depth from hairline borders and the neutral canvas, not from card shadows
-- One type family; hierarchy by weight and size, never a second font
-- Scarce teal identity — action, selection, and location only
-- Latin numerals everywhere, bidi-isolated, without exception
-- Two fully-supported themes (light for lit offices, dark for laptops in poor light)
+- One 48px command bar holds the page title, record context, count, status and page actions; there is no in-content page header.
+- Navigation pane expanded with labels (232px) by default; the 56px icon rail is a remembered per-machine choice.
+- Desktop density: 40px rows, 36px table header, 40px fields, 32px command-bar buttons, 12px canvas gutter.
+- Panels (white, 1px hairline, 8px radius, no shadow) sit directly on the canvas; nothing white sits on white.
+- Two radii: 4px controls, 8px containers. Pills only for numeric counts.
+- Colour carries state, not decoration.
+- Every size scales with the user's text-size setting (`--dal-font-scale`).
 
 ## Colors
 
-Neutral, layered, sober. A grey canvas carries white content surfaces; the teal identity and the semantic colors are the only saturation on screen. All theme colors live in `main.ts` (`dalalyLight` / `dalalyDark`); the layered-neutral texture (nav, strokes, hover/active fills, elevation) lives in `styles.css` as `--dal-*` variables scoped per theme.
+A pale, cool neutral field with one saturated identity (teal) and one waiting colour (ochre); all other hue is semantic state. Colours are Vuetify theme roles (`dalalyLight` / `dalalyDark` in `plugins/theme.ts`), exposed to CSS as `--dal-*` aliases in `styles.css`.
 
 ### Primary
 
-- **Registry Teal** `#116466` (light) / `#4db6ac` (dark): the identity. Primary buttons, active nav item, selection, focus, brand mark. AA on both surfaces (≥6.4:1 light).
+- **Registry Teal** (light `{colors.registry-teal}`, dark `{colors.registry-teal-night}`): primary buttons, links (`primary-text`), the active nav item, selected rows (teal at 12% fill), the focus ring, available status, KPI values.
 
-### Secondary / Tertiary
+### Secondary
 
-- **Sage Ink** `#5b6f62`: settled states (مباع / مؤجر), lower-priority chips, `info`.
-- **Seal Ochre** `#c27c3a` → mapped to `warning` `#8a5a1f` (light) for legibility: states awaiting a human decision (محجوز / قيد التفاوض). Ochre on white is 3.4:1 — fills and large text only.
-- **Success** `#2f6d4f`: confirmations only.
+- **Seal Ochre** (`accent`; `{colors.seal-ochre}` / `{colors.seal-ochre-night}`): fills and large text only. On screen ochre is normally carried by **Waiting Ochre** (`warning`; `{colors.waiting-ochre}` / `{colors.waiting-ochre-night}`), which passes 4.5:1: reserved, negotiating, the unsaved-changes dot.
 
-### Neutral (the layers)
+### Tertiary (state)
 
-- **Canvas** `#f3f3f3` (light) / `#1c1c1c` (dark): the app background — the "desk".
-- **Surface** `#ffffff` (light) / `#272727` (dark): cards, panels, dialogs, inputs — lifted off the canvas by a hairline stroke plus a very subtle shadow.
-- **Nav** `#ebebeb` (light) / `#1c1c1c` (dark): the navigation pane, distinct from content.
-- **`--dal-stroke` / `--dal-hover` / `--dal-active`**: hairline borders, neutral hover fills, and the teal selection fill — the interaction texture.
+- **Settled Sage** (`info`): sold, rented.
+- **Matched Green** (`success`): matched, confirmations.
+- **Error Red** (`error`): destructive actions, errors, overdue KPI values above zero.
+
+### Neutral
+
+- **Nav Teal** (`sidebar`, same in both modes) with white `on-sidebar`: the navigation pane.
+- **Canvas** (`background`): behind panels and under the command bar.
+- **Surface**: panels, dialogs, menus, fields, the sticky save bar.
+- **Surface Variant**: table header, hover fill, count badges, empty thumbnails.
+- **Hairline** (`border`): panel, divider, toolbar and cell strokes.
+- **Ink** / **Ink Muted**: text and secondary text. `muted` and `primary-text` are derived, not set: `muted` is on-surface at the medium-emphasis opacity, `primary-text` is primary nudged toward ink until it reaches 4.5:1 on every reading surface.
+- Dark mode: `night-canvas` is the canvas and `night-surface` the panels (the canvas is the lighter of the two in dark).
+- Field outlines are on-surface at 50% (light) / 40% (dark) opacity, 100% when focused, for 3:1 against the surface.
+
+### Appearance settings (owner decision)
+
+Settings > Appearance lets the user set primary, secondary, accent, background, surface and sidebar per mode, pick a preset (دلالي teal, أزرق هادئ, زيتوني), choose the font and text size, and choose fluid width or a max width (960 to 1920px, default fluid). `createTheme()` derives every other role from the six choices: ink from the surface (tinted ink when it reaches 7:1, else pure black or white), muted opacity raised until 4.5:1 on every reading surface, the hairline as ink at 15% on the surface, and on-colours for every fill. Theme defaults to the Windows light/dark preference until the user picks one.
 
 ### Named Rules
 
-**The Scarce Ink Rule.** Teal covers ≤10% of a screen: what you can act on, what is selected, where you are. A teal surface doing none of those is decoration and gets removed.
+**The State-Not-Decoration Rule.** Teal means action, selection or location; ochre means a human still has to decide; sage means settled; red means destructive or error. A coloured surface doing none of these is removed.
 
-**The Ochre Means Waiting Rule.** Ochre/`warning` never means "highlight." It means a human still has to decide — reserved, negotiating, scheduled.
+**The Status Map Rule.** Record status colour comes from `statusColor()` in `constants/domain.ts` and nowhere else: available = primary, reserved and negotiating = warning, sold and rented = info, matched = success, archived and closed = neutral.
 
-**The Layered Neutral Rule.** Depth comes from three neutral planes (canvas → surface → flyout), not from color. Never place a surface panel directly on another surface panel; separate them with the canvas, a divider, or a tile.
+**The Derived Contrast Rule.** Never hard-code text colours over theme roles; use `muted`, `primary-text` and the `on-*` roles so custom themes stay legible.
 
 ## Typography
 
-**Single family:** Tahoma, `"Segoe UI"`, Arial. No display font, by design. This is a legibility compromise for offline Windows and the most likely future upgrade (a bundled Arabic UI face — IBM Plex Sans Arabic, Cairo, Noto Sans Arabic). Vuetify's `text-*` classes are force-overridden to this family in `styles.css` because their Roboto default carries no Arabic glyphs.
+**Body Font:** Cairo (bundled variable font, weights 200 to 1000), with `"Segoe UI", Tahoma, sans-serif` fallback.
+**Selectable in Settings:** Tajawal, Almarai, IBM Plex Sans Arabic (bundled, regular and bold; the `body-tajawal`, `body-almarai`, `body-plex-arabic` variants), Segoe UI, Tahoma (system). The choice replaces the first family in `--dalaly-font` for every role; sizes and weights do not change.
+
+**Character:** one Arabic UI sans for everything; hierarchy from size and weight (400 / 600 / 700) only. Vuetify's Roboto `text-*` classes are forced back to `--dalaly-font`, and Latin letter-spacing and uppercase are removed from buttons and titles.
 
 ### Hierarchy
 
-- **Headline** (700, 1.5rem / `text-h5`): page titles, KPI numbers.
-- **Title** (500, 1.25rem / `text-h6`): card and dialog titles.
-- **Body** (400, 0.875rem): the default — prose, list items, table cells.
-- **Label** (400, 0.82rem): field/detail labels, timestamps, breadcrumbs. The size floor for meaning.
-- **Data** (700, 0.875rem): record values — prices, plot numbers. Bold at body size distinguishes value from label without a second font.
+Every size is `calc(Npx * var(--dal-font-scale))`; scale 0.9 / 1 / 1.125 / 1.25 from the text-size setting.
+
+- **Title** (700, 16px, 1.4): the page title `h1` in the command bar.
+- **Headline** (600, 17px, 1.65): dialog titles. The brand name in the nav header is 17px / 700.
+- **KPI** (700, 20px, 1.2, tabular): summary-strip values and the emphasised fact (price) in record facts.
+- **Section** (700, 14px): panel headers, form-section legends, detail-list titles.
+- **Body** (400, 14px): application base, detail values (600), side-pane values.
+- **Control** (13px): table cells, fields, field labels, buttons (600), tabs, nav items, list items.
+- **Label** (12px): table headers (600, muted), detail labels, hints, chips (600), counts, timestamps.
 
 ### Named Rules
 
-**The One Family Rule.** No second typeface. Hierarchy from weight (400 / 500 / 700) and size.
+**The One Family Rule.** One family at a time, the user's choice. No display face, no second family for numbers.
 
-**The Latin Numerals Rule.** Every number renders in Latin digits (`Intl.NumberFormat("en-US")`, `numberingSystem: "latn"`). Enforced in `utils/format.ts` (`formatMoney`, `formatNumber`, `pluralizeDays`).
-
-**The Bidi Isolation Rule.** Latin data inside Arabic prose (prices, phones, codes, timestamps) is wrapped `direction: ltr; unicode-bidi: isolate` — the `.money` class. Any new numeric/code display gets it or it will flip.
+**The Latin Digits Rule.** Every number renders in Latin digits through `utils/format.ts` (`numberingSystem: "latn"`, `en-US` grouping). Latin data (money, phones, codes, dates) is isolated with `direction: ltr; unicode-bidi: isolate` (`.money`, `<bdi>`, tel/email/date inputs) and uses tabular figures.
 
 ## Layout
 
-**Native desktop shell** (`AppLayout` + `AppSidebar` + `AppTopbar`):
-
-- **Navigation pane** (right, RTL): 264px NavigationView with visual groups (main / الإدارة / النظام), a teal selection pill on the leading edge, collapse to a 64px icon rail with tooltips, brand header, and a user footer. Permission-filtered; items the user lacks are removed, not disabled.
-- **Command bar** (top): compact 56px — nav toggle, rounded global search, theme toggle, refresh, user menu. Sits on the surface with a hairline bottom stroke.
-- **Content**: fluid container at 24px padding, breadcrumbs above the page header (title + subtitle + actions slot), then the page. Named CSS grid regions in `styles.css` (`.kpi-grid`, `.form-grid`, `.detail-grid`, …) are reused by class, responsive at 1100px and 760px.
-
-Responsive behavior is structural (rail collapse, grid reflow), never fluid typography — fixed-distance desktop.
+- **Shell** (`AppLayout`): skip link first ("تخطَّ إلى المحتوى"), then the nav pane (right), the command bar, and `main#dal-main` directly on the canvas. On route change focus moves to the page `h1`.
+- **Navigation pane:** 232px expanded, 56px rail, permanent at md and up, temporary drawer below. Expanded is the default; the rail state is stored in `dalaly.sidebar.rail.v1`. The brand header matches the 48px bar height. Sections carry 12px headers; the list is one tab stop with arrow keys and Home/End.
+- **Command bar:** 48px, canvas-coloured, hairline below. Leading edge: nav toggle, parent-list link with chevron (record pages), the `h1` (truncates at min(24em, 30vw)), the count badge, the status slot, then page actions after a hairline separator. Trailing edge: global search (260px field, an icon button under 1280px), theme toggle, refresh, user menu (name hidden under 1100px). Pages fill it through `AppPage` (`title`, `parent`, `count`, `#status`, `#header-actions`).
+- **Content:** gutter 12px, 16px at 1440px and up; max width 1920px, or the user's max width when fluid is off.
+- **List pages:** a panel that fills the viewport height (`100dvh - bar - 2 gutters`), toolbar on top, table body scrolling alone with a sticky header and visible footer.
+- **Master-detail:** list plus a 340px sticky summary pane separated by the gutter; at 1100px and below the pane becomes a 360px overlay from the far edge with a scrim, Esc closes.
+- **Record pages:** facts strip, then tabs in a panel beside an always-visible media column (`minmax(280px, 380px)`), stacking at 1100px.
+- **Forms:** sections in a 3 / 2 / 1-column grid (12px row, 16px column gap), reflowing at 1100px and 760px.
+- Responsive change is structural (column priority, pane overlay, reflow), never fluid type.
 
 ### Named Rules
 
-**The Named Region Rule.** Layout grids are declared once in `styles.css` and referenced by class; a new page reuses a region or adds one there.
+**The Command Bar Owns the Page Rule.** Title, context, count, status and page actions go in the 48px bar. No in-content page header, subtitle block or breadcrumbs.
+
+**The Data First Rule.** Table columns carry a priority: priority 2 hides under 70rem of grid width, priority 3 under 54rem, so a narrow pane drops columns before it scrolls sideways.
 
 ## Elevation & Depth
 
-**Depth comes from borders, not shadows.** (Native Desktop Correction, 2026-07: the brief screenshots read as "cards floating on a canvas" — a web tell — so the rest shadow on content surfaces was removed.) Two planes only carry shadow:
+Flat at rest. Depth comes from three planes: canvas, hairline-bordered surface, and floating overlays. Only things that float carry a shadow.
 
-- **Content** (panels, the data grid, inputs, the summary strip): flat, on the canvas, separated by a **1px `--dal-stroke` hairline** — no shadow, no elevation. Panels are bordered regions (`.dal-panel`), not cards.
-- **Flyout** (menus, dialogs, tooltips): the only shadow in the system — `--dal-shadow-pop` — because these genuinely float and will disappear.
+### Shadow Vocabulary
+
+- **Pop** (`--dal-shadow-pop`; light `0 8px 24px rgba(0,0,0,0.16)`, dark `0 10px 28px rgba(0,0,0,0.55)`): menus, dialogs, the search palette, the overlay summary pane.
+- **Rest** (`--dal-shadow-rest`) is defined but resting content does not use it; flat bordered cards have their shadow removed.
 
 ### Named Rules
 
-**The Borders-Not-Shadows Rule.** Content is separated by hairline strokes and the neutral canvas, never by drop shadows. A shadow on a resting content surface is a web tell — remove it.
+**The Borders-Not-Shadows Rule.** Resting content is separated by 1px hairlines and the canvas. A shadow on a resting panel is a defect.
 
-**The No-Card-By-Default Rule.** If content can be shown without a card, it is. Reach for a `.dal-panel` (bordered region with a small section header) or a plain bordered container. A `v-card` is only for a genuinely independent, liftable object — and even then it wears no shadow. Never stack surfaces (no card-in-card).
-
-## Native Desktop
-
-Dalaly must read as a Windows 11 desktop program (Explorer / Outlook / VS Code / Access density), not a responsive admin site inside Electron. Adding Fluent colors or Windows corners does not make it native — **layout, density, and the absence of card chrome** do.
-
-### Desktop density (implemented)
-
-| Element                       | Metric                                                                |
-| ----------------------------- | --------------------------------------------------------------------- |
-| Command bar (topbar)          | 44px, flat, hairline bottom stroke, page title + actions inline       |
-| Sidebar                       | 240px, rail 56px; nav item ≈ 40px, 4px radius, thin leading indicator |
-| Data-grid rows                | ≈ 36px, compact                                                       |
-| Fields (search/filters/forms) | Vuetify `density="compact"` globally (≈ 40px)                         |
-| Section headers               | 13px bold; page title 15px in the command bar (no hero titles)        |
-| Content padding               | 12–16px (no large gutters)                                            |
-
-### Signature desktop patterns
-
-- **Command bar** — `AppTopbar`: page title on the leading edge, one primary action + subtle/icon actions (forwarded from the page's `#header-actions`), spacer, compact search, tools, user menu.
-- **Summary strip** — `.dal-summary`: KPIs in one bordered row separated by vertical strokes (label + value + tiny icon). Replaces KPI cards. No card, no shadow, minimal color.
-- **Panel** — `.dal-panel`: hairline-bordered region with a 36px `.dal-panel__header` (`.dal-section-title`) and a compact body. The workspace unit instead of a card.
-- **Data grid** — the table fills the width inside a `.dal-grid` panel, compact rows, header, inline pagination, small icon actions per row — no wrapping card.
-
-### Native heuristics checklist (run per page)
-
-A page is **not** native until every answer is right:
-
-- Does it look like a website? → must be **no**.
-- Any unnecessary card / independent background per element? → **no**.
-- Title larger than a desktop app's? → **no**.
-- Spacing larger than a desktop app's? → **no**.
-- Enough data visible without scrolling? → **yes**.
-- Actions near the data they affect / in the command bar? → **yes**.
-- More than one primary action per area? → **no**.
-- Toolbar reads as a command bar (not a navbar)? → **yes**.
-- Grid occupies the workspace? → **yes**.
-- Fast with mouse + keyboard? → **yes**.
-- Works at 1366×768 and at 100% / 125% Windows scaling? → **yes**.
-- RTL is real (icon side, arrows, order), not just flipped? → **yes**.
+**The No Surface-on-Surface Rule.** Panels sit on the canvas. Inside a panel, divide with hairlines (toolbar, form sections, facts, detail rows), never with a nested card. `v-card` is for dialogs.
 
 ## Shapes
 
-Two radii: **8px** (``/`--dal-radius-card`) for containers — cards, panels, dialogs, tiles; **4px** (`--dal-radius-control`) for controls — buttons, inputs, chips. Nav items use 6px. Borders are always 1px hairlines, never colored accent stripes. Rectangular, calm, no clipping.
+Two radii: 4px (`--dal-radius-control`) for buttons, icon buttons, fields, chips, nav items, thumbnails, keycaps; 8px (`--dal-radius-card`, Vuetify `rounded="lg"`) for panels, dialogs, menus, the summary pane, alerts and snackbars. The 9999px pill is only for numeric count badges. The overlay summary pane is square-edged against the window edge. Borders are 1px hairlines. Scrollbars are thin (12px track, 8px-radius thumb inset 3px).
 
 ### Named Rules
 
-**The Two Radii Rule.** 8px containers, 4px controls (6px nav items). A stray third radius is a bug.
+**The Two Radii Rule.** 4px controls, 8px containers. Any other radius is a bug.
 
 ## Components
 
-Shared presentational components live in `components/shared/` — no business logic, adopted where the pattern is identical.
-
-### Application shell
-
-- **AppSidebar** — NavigationView: grouped, permission-filtered, teal selection pill, rail + tooltips, brand + user footer.
-- **AppTopbar** — command bar: search (`runSearch`), theme toggle, refresh, user menu.
-- **AppLayout** — breadcrumbs + page header + content; owns drawer/rail state.
-
-### Shared primitives (`components/shared/`)
-
-- **StatusChip** `:status` → tonal, squared (`label`) chip via `statusColor`/`statusLabel`. One source for record status everywhere.
-- **EmptyState** `:icon :title :text` + `#actions` slot — compact (`.dal-empty`), inside the data area, teaches the next step.
-- _(Removed: StatCard — KPI cards replaced by the `.dal-summary` strip. Growing per page: FormSection, DetailItem, PageToolbar land with their page redesigns.)_
-
 ### Buttons
 
-4px, 40px height. **Primary**: solid teal, one per view. **Tonal**: the workhorse. **Text**: icon/low-weight actions. Destructive: `base-color="error"`, never a solid red primary. Real `:focus-visible` ring (global, teal) — never suppressed.
-
-### Inputs / Fields
-
-Outlined by default (`createVuetify({ defaults })` → `variant: "outlined"` on all field types), hairline stroke matching surfaces. `compact` in tables/filters/dialogs, `comfortable` in the property form. Error: `error` stroke + plain-Arabic message beneath.
-
-### Cards / Containers
-
-8px, surface on canvas, hairline stroke + subtle rest shadow, 16px padding. Never nested.
+- **Shape:** 4px, flat, no ripple, no uppercase or letter-spacing; 13px / 600.
+- **Primary:** solid teal with white text, one per area (the form save button, the page's main command). Light-mode hover darkens it slightly.
+- **Secondary / tertiary:** tonal for recovery actions (retry, clear filters), text for everything else. Destructive actions use the error colour as text inside menus, last, after a divider.
+- **Command bar:** 32px buttons and 32px icon buttons.
+- **Focus:** 2px primary outline, 2px offset, on every focusable element; `on-sidebar` colour inside the nav pane.
 
 ### Chips
 
-Tonal, 4px, status color from `statusColor`. Reserved/negotiating = ochre, sold/rented = sage, available = teal, archived = neutral.
+- **Status chip:** tonal, squared (`label`), small, colour from the status map.
+- **Filter chips:** tonal, squared, closable, with "مسح الكل" after them.
+- **Count badge:** pill on the surface-variant fill, muted 12px / 600.
+
+### Panels / Containers
+
+- **Panel** (`.dal-panel`): surface, 1px hairline, 8px, no shadow, clips its content. Header 40px min, 8px 12px padding, section-weight title.
+- **Summary strip:** one panel of equal cells divided by vertical hairlines; label 13px / 600 and note 12px muted at the start, KPI value at the end in `primary-text` (muted at zero, error for alert values). Each cell is a button that opens its filtered list.
+- **Record facts:** the same strip form for a record's identity, price, status and owner.
+- **Detail list:** `dl` grid of auto-fill 180px columns, 12px muted label over a 14px / 600 value, hairline under each row.
+
+### Inputs / Fields
+
+- **Style:** outlined, compact (40px), 4px, surface fill, 13px text and label, placeholder at 72% opacity.
+- **Focus:** outline reaches full opacity.
+- **Error:** the field's error state with a plain-Arabic message under it.
+- File inputs keep their icon inside the field.
+
+### Navigation
+
+- **Pane:** nav-teal with white text, items 36px with 4px radius and 18px icons, 13px labels. Hover is white at 8%. Active is a teal fill with white text at 600 plus a 3px leading indicator. In the rail, items centre their icon and show tooltips.
+
+### Data Grid (signature)
+
+`DataGrid` wraps `v-data-table(-server)`: 36px header on surface-variant with muted 12px / 600 titles, 40px rows, 8px cell padding, hover fill, nowrap cells, hairline row borders. Rows are the keyboard unit (roving tabindex). Selection is a teal fill at 12% with `aria-selected`, not a stripe. Listing rows lead with a 36 x 28px thumbnail (4px radius, 6px vertical margin) inside the 40px row; a missing image shows a teal-tinted placeholder icon. Name cells stack a 600 link over a 12px muted code; long text truncates with the full text in `title`. Footer: page sizes 10 / 25 / 50 / 100 with 32px controls.
+
+**Row actions:** up to two inline icon buttons (out of tab order, native `title`), the rest in one shared "⋯" menu with text labels; Shift+F10 or the Menu key opens every action.
+
+**Four data states:** a skeleton of 8 rows on first load (a progress bar while rows are present); empty with an icon, a title and the next step; no-match with "مسح الفلاتر"; error with "إعادة المحاولة" (inline alert when stale rows remain). All are compact and sit inside the data area.
+
+### Filter Bar
+
+Inside the list panel above the grid, hairline below: search field (Ctrl+F, ↓ to the first row), inline primary filters, then a sub-row of quick views (`aria-pressed` toggles), active-filter chips, and "فلاتر إضافية" with a count opening a 340px end drawer.
+
+### Forms
+
+Page forms are one panel (`.dal-form`) of `FormSection` fieldsets (14px / 700 legend, hairline between sections) ending in a sticky `FormActionsBar`: unsaved-changes dot in waiting ochre, then Save (primary, Ctrl+S) and Cancel (text).
+
+### Global Search
+
+Ctrl+K or a click opens a command palette 680px wide: 8px panel with pop shadow, results grouped by type with muted 12px / 700 group labels, active option on the selection fill, ↑ / ↓ / Enter to open.
+
+### Phone
+
+`PhoneLink` shows the isolated number plus call and WhatsApp icon links (16px icons, 4px hover fill, `primary-text`).
+
+### Keyboard Map (owner decision)
+
+Shortcuts match `event.code`, so they work on the Arabic layout; none fire while a dialog is open. The Help page (F1) lists them.
+
+| Keys              | Action                                             | Scope                                  |
+| ----------------- | -------------------------------------------------- | -------------------------------------- |
+| Ctrl+K            | Global search across listings, customers, requests | Everywhere                             |
+| Ctrl+F            | Focus the page search                              | Lists                                  |
+| Ctrl+N            | New record of the page's type                      | Sale, rentals, people, requests, users |
+| Ctrl+S            | Save                                               | Forms and form dialogs                 |
+| Esc               | Close dialog or pane, or clear search              | Everywhere                             |
+| ↑ / ↓, Home / End | Previous / next, first / last row                  | Tables                                 |
+| PgUp / PgDn       | Previous / next page                               | Tables                                 |
+| Enter             | Open the focused row                               | Tables                                 |
+| Space             | Select the row and open its summary                | Tables                                 |
+| Shift+F10 / Menu  | All row actions                                    | Tables                                 |
+| ↓                 | From the search field to the first row             | List search                            |
+| Alt+←             | Back, with the same row focused                    | Everywhere                             |
+| F1                | Help and shortcuts                                 | Everywhere                             |
+| Ctrl+→ / Ctrl+←   | Move an image in the order                         | Listing images                         |
+
+### Motion
+
+Colour and background transitions only, 150 to 180ms ease (nav items, buttons, summary cells). No ripple. Under `prefers-reduced-motion`, skeleton shimmer and progress animation stop, dialogs and expansions fade (120ms) without movement, and the nav drawer stops sliding.
 
 ## Do's and Don'ts
 
 ### Do:
 
-- **Do** build content as a `.dal-panel` (bordered region + small section header), not a `v-card`. Reserve cards for genuinely independent objects.
-- **Do** put page actions in the command bar (`#header-actions`), one primary + subtle/icon rest.
-- **Do** keep desktop density — compact fields, ~36px rows, small titles, tight spacing.
-- **Do** use the shared components (`StatusChip`, `EmptyState`) instead of re-inlining the pattern.
-- **Do** route every number through `formatMoney`/`formatNumber`/`pluralizeDays` and wrap Latin data in `.money`.
-- **Do** reuse a named grid region from `styles.css`, or add the new one there.
-- **Do** give every control a real `:focus-visible` state — full keyboard operation is required.
-- **Do** verify both themes before shipping; dark is a supported mode.
-- **Do** test components visually in RTL (icon side, arrow direction, dialog button order, nav position).
+- **Do** put the page title, record context, count, status and actions in the command bar through `AppPage`.
+- **Do** build content as `.dal-panel` regions on the canvas, divided inside by hairlines.
+- **Do** use `DataGrid`, `RowActions`, `FilterBar`, `StatusChip`, `RecordFacts`, `DetailList`, `FormSection`, `FormActionsBar`, `PhoneLink` and `ListingImages` instead of rebuilding them.
+- **Do** give every data surface its four states: loading, empty, no-match, error with retry.
+- **Do** keep 40px rows with 28px-high thumbnails, a 36px header and 8px cell padding.
+- **Do** size type as `calc(Npx * var(--dal-font-scale))` so the text-size setting works.
+- **Do** route numbers through `utils/format.ts` and isolate Latin data.
+- **Do** use theme roles (`primary-text`, `muted`, `on-*`, `--dal-stroke`) so custom themes and dark mode stay legible; check both modes.
+- **Do** keep the 2px focus outline visible on everything focusable, and show each shortcut in its control's tooltip and on the Help page.
 
 ### Don't:
 
-- **Don't** wrap a page or section in a big card, or give each element its own background. One workspace, borders between regions.
-- **Don't** add a shadow to a resting content surface; shadow is for flyouts (menus/dialogs) only.
-- **Don't** use hero page titles or web-sized spacing — this is a desktop program.
-- **Don't** stack surfaces — no card inside a card. Use the canvas, a divider, or a tile.
-- **Don't** introduce a second typeface or a display font in labels/buttons/data.
-- **Don't** use ochre/`warning` for body text or small labels on light surfaces (3.4:1 — fails AA).
-- **Don't** use `clamp()` for type — fixed-distance desktop.
-- **Don't** reach for Material defaults (`color="warning"/"info"/"amber"`) assuming a hue — the theme defines these; verify the resolved color.
-- **Don't** add motion that doesn't report a state change; 150–250ms, with a `prefers-reduced-motion` alternative.
+- **Don't** add an in-content page header, subtitle block or breadcrumbs.
+- **Don't** put a card or white surface on a panel, or a shadow on resting content.
+- **Don't** use a radius other than 4px or 8px (pills only for counts).
+- **Don't** use colour for decoration: no coloured stripes on content, no gradients, no decorative badges. Grid and list selection is a fill, not an edge stripe.
+- **Don't** use waiting ochre or seal ochre for small text on light surfaces unless it is the `warning` role.
+- **Don't** add a second typeface, display face, fluid `clamp()` type, uppercase or letter-spacing.
+- **Don't** add motion that moves layout or doesn't report a state change.
+- **Don't** render Eastern Arabic digits.

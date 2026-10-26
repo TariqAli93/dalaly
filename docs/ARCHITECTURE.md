@@ -309,20 +309,50 @@ stays mounted while the user moves between pages and keeps its state (an
 expanded sidebar, which is also remembered between launches in
 `localStorage`). The sidebar's groups, order and permissions are
 `NAV_SECTIONS` in `constants/domain.ts`; create pages are not navigation
-items. `Ctrl+K` focuses the top bar's search, which searches sale listings
-only and says so. Rentals have no detail route: `/rentals?open=<id>` opens
-a rental's details dialog and `/rentals?status=<status>` starts the list
-with that status; the request pages take `?open=<id>` and `?new=1`. Each page wraps its content in
-`components/app/AppPage.vue`: the page header (title, subtitle, the
-`header-actions` slot) and the title for the top bar (`usePageTitle`). A
-page that can reload its data registers it with `useRefresh` in
-`onMounted`; the registration ends when the page unmounts, and the top
-bar's refresh button is disabled on pages without one.
+items. `Ctrl+K` opens `GlobalSearch`, which queries sale and rental
+listings, customers and both request types through their paged endpoints.
 
-Server-paged tables (`PropertiesTable`, `RentalTable` when given a `total`,
-the people, requests and documents pages, a person's properties) use
-`v-data-table-server` with their page, size and sort state in
-`createPagedList` (`composables/usePagedList.ts`). It aborts a superseded
+Records have their own routes: `/properties/:id`, `/rentals/:id`,
+`/clients/:id` (the customer hub: requests, owned listings, documents),
+`/purchase-requests/:id` and `/rental-requests/:id` (the request with its
+matches). The global router guard turns the older `?open=<id>` links on
+`/rentals` and the request lists into those routes, including when only the
+query changes. `/rentals?status=<status>` starts the list with that status;
+the request lists take `?new=1&person=<id>` and `/documents` takes
+`?person=<id>&new=1` to open their add dialog with the customer chosen.
+
+Each page wraps its content in `components/app/AppPage.vue`, which writes
+the title, parent link and count into the 48px command bar
+(`usePageTitle`) and teleports the `header-actions` and `status` slots
+there; there is no in-content page header. A page that can reload its data
+registers it with `useRefresh` in `onMounted`; the registration ends when
+the page unmounts, and the top bar's refresh button is disabled on pages
+without one.
+
+Shared building blocks live in `components/shared/` and every list, record
+and form uses them rather than its own copy:
+
+- `FilterBar` (search, inline filters, chips, an extra-filters drawer, 300 ms
+  apply, `Ctrl+F` by `event.code`) inside a `.dal-panel.dal-listpanel`;
+- `DataGrid` (+ `grid.ts`, `RowActions`): roving-tabindex rows, Enter opens,
+  Space selects, `Shift+F10` menu, focus restored after `Alt+←`, and separate
+  loading, empty, no-match and error-with-retry states; `compact` lists all
+  rows without a footer inside a record;
+- record pages: `RecordFacts` under the command bar, `DetailList`,
+  `ListingImages` and `ListingFollowups` (one component per concern for sale
+  and rental, chosen by `kind`);
+- forms: `FormSection`, `FormActionsBar`, `useDirtyForm`, `useApiFormErrors`,
+  `useSaveShortcut`; form dialogs handle `Ctrl+S` themselves (the page
+  shortcut ignores open dialogs), stay open once edited, and return focus to
+  their opener.
+
+Server-paged tables (`PropertiesTable` and `RentalTable` when given a
+`total`, the people, requests and documents pages, the customer hub's
+lists) use `DataGrid` in server mode with their page, size and sort state in
+`createPagedList` (`composables/usePagedList.ts`). The sale, rental,
+customer and request lists keep that state at module level
+(`useProperties`, `useRentals`, `usePeople`, `useRequests`), so filters, page
+and sort survive a visit to a record. It aborts a superseded
 request and only the newest one writes its result; header keys of sortable
 columns are the API's sort keys. A page that renders its table at once
 starts the first load in `setup`, before the table emits its initial
