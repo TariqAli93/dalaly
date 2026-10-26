@@ -134,7 +134,7 @@ async function searchGroup(
         place(item.district, item.neighborhood),
         `${formatMoney(item.rent_price)} د.ع / ${RENT_PERIOD_LABELS[item.rent_period] ?? item.rent_period}`,
       ].filter(Boolean),
-      to: { path: "/rentals", query: { open: String(item.id) } },
+      to: `/rentals/${item.id}`,
     }));
   }
   if (key === "people") {
@@ -171,10 +171,7 @@ async function searchGroup(
       rental ? rentalType(item.property_type) : item.property_type,
       place(item.governorate, item.district, item.neighborhood),
     ].filter(Boolean),
-    to: {
-      path: rental ? "/rental-requests" : "/purchase-requests",
-      query: { open: String(item.id) },
-    },
+    to: `${rental ? "/rental-requests" : "/purchase-requests"}/${item.id}`,
   }));
 }
 
@@ -484,9 +481,9 @@ onBeforeUnmount(() => {
   padding: 6px 16px;
   cursor: pointer;
 }
+/* التحديد خلفية فقط، كصفوف الجداول؛ aria-selected يحمل المعنى. */
 .dal-palette__option--active {
   background: var(--dal-selection);
-  box-shadow: inset 2px 0 0 rgb(var(--v-theme-primary));
 }
 .dal-palette__title {
   font-weight: 600;

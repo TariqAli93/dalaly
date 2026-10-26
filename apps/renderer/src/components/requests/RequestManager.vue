@@ -1,22 +1,20 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import LocationSelects from "../properties/LocationSelects.vue";
-import PersonPicker from "../people/PersonPicker.vue";
-import MatchingResultsDialog from "./MatchingResultsDialog.vue";
-import NumberField from "../app/NumberField.vue";
 import AppPage from "../app/AppPage.vue";
-import {
-  AREA_UNITS,
-  LIST_PAGE_SIZES,
-  PROPERTY_TYPES,
-  RENT_PERIOD_LABELS,
-  RENT_PERIODS,
-  RENTAL_PROPERTY_TYPES,
-} from "../../constants/domain";
+import FilterBar from "../shared/FilterBar.vue";
+import DataGrid from "../shared/DataGrid.vue";
+import type {
+  DataGridApi,
+  FilterChip,
+  GridHeader,
+  RowAction,
+} from "../shared/grid";
+import RequestFormDialog from "./RequestFormDialog.vue";
+import MatchingResultsDialog from "./MatchingResultsDialog.vue";
+import { RENT_PERIOD_LABELS } from "../../constants/domain";
 import {
   REQUEST_STATUSES,
-  REQUESTS_DEFAULT_SORT,
   requestStatusColor,
   requestStatusLabel,
 } from "../../constants/crm";
@@ -24,298 +22,227 @@ import * as requests from "../../services/requests.service";
 import { getErrorMessage } from "../../services/api.service";
 import { usePermissions } from "../../composables/usePermissions";
 import { useSnackbar } from "../../composables/useSnackbar";
-import { createPagedList } from "../../composables/usePagedList";
+import { useRefresh } from "../../composables/useRefresh";
+import { useLocations } from "../../composables/useLocations";
+import { useRequests } from "../../composables/useRequests";
 import { formatMoney } from "../../utils/format";
-import { AMENITY_OPTIONS, splitAmenityKeys } from "../../utils/amenities";
-import type {
-  MatchResult,
-  PageQuery,
-  PurchaseRequestRecord,
-  PurchaseRequestSortKey,
-  RentalRequestRecord,
-  RentalRequestSortKey,
-} from "../../types";
+import {
+  requestLabel,
+  requestPath,
+  requestPropertyTypeLabel,
+  requestPropertyTypes,
+  type RequestMode,
+  type RequestRecord,
+} from "../../utils/requestForm";
+import type { MatchResult } from "../../types";
 
-const props = defineProps<{ mode: "rental" | "purchase" }>();
+/**
+ * قائمة طلبات الشراء أو الإيجار بنمط القوائم الأخرى: لوح فيه شريط الفلاتر
+ * (ومنها الحالة) والجدول. Enter أو النقر المزدوج يفتح صفحة الطلب ومطابقاته،
+ * والتعديل والمطابقات أوامر في الصف. الحفظ والمطابقة خطوتان منفصلتان.
+ */
+const props = defineProps<{ mode: RequestMode }>();
 const route = useRoute();
 const router = useRouter();
 const { can } = usePermissions();
-const { notifyError, notifySuccess } = useSnackbar();
-const dialog = ref(false);
-const matchDialog = ref(false);
-const saving = ref(false);
-const editing = ref<(RentalRequestRecord | PurchaseRequestRecord) | null>(null);
-const matches = ref<Array<MatchResult>>([]);
-const matchTitle = ref("العروض المطابقة");
-const matchingId = ref<number | null>(null);
-const q = ref("");
-const form = ref({
-  person_id: null as number | null,
-  property_type: props.mode === "rental" ? "apartment" : PROPERTY_TYPES[0],
-  rent_period: "monthly",
-  budget_min: null as number | null,
-  budget_max: null as number | null,
-  area_unit: "متر",
-  area_min: null as number | null,
-  area_max: null as number | null,
-  floors_count: null as number | null,
-  rooms_count: null as number | null,
-  bathrooms_count: null as number | null,
-  governorate_id: null as number | null,
-  district_id: null as number | null,
-  neighborhood_id: null as number | null,
-  governorate: "",
-  district: "",
-  neighborhood: "",
-  amenities: {} as Record<string, unknown>,
-  other_requirements: "",
-  status: "open",
-  notes: "",
-});
-// مفاتيح القائمة نفسها التي تحفظها العروض، وإلا لم تتحقق المطابقة أبداً.
-const amenityKeys = ref<string[]>([]);
-// مميزات طلبات قديمة كُتبت نصاً حراً ولا تقابل خياراً؛ تُحفظ كما هي حتى يزيلها المستخدم.
-const otherAmenities = ref<string[]>([]);
+const { notifyError, notifySuccess, notifyInfo } = useSnackbar();
+const { setRefreshHandler } = useRefresh();
+const { activeGovernorates, districtsByGovernorate, loadLocations } =
+  useLocations();
+const { filters, list, apply, clear } = useRequests(props.mode);
+const { items, total, loading, error, page, pageSize, sortBy, onTableOptions } =
+  list;
+
+const grid = useTemplateRef<DataGridApi>("grid");
+const label = computed(() => requestLabel(props.mode));
 const title = computed(() =>
   props.mode === "rental" ? "طلبات الإيجار" : "طلبات الشراء",
 );
-const endpointLabel = computed(() =>
-  props.mode === "rental" ? "طلب إيجار" : "طلب شراء",
-);
-const propertyItems = computed(() =>
-  props.mode === "rental"
-    ? RENTAL_PROPERTY_TYPES
-    : PROPERTY_TYPES.map((value) => ({ title: value, value })),
-);
-const headers = computed(() => [
-  { title: "الرمز", key: "code" },
-  { title: "الشخص", key: "person_name" },
-  { title: "نوع العقار", key: "property_type" },
-  ...(props.mode === "rental"
-    ? [{ title: "نوع الإيجار", key: "rent_period" }]
-    : []),
-  { title: "الميزانية القصوى", key: "budget_max" },
-  { title: "الموقع", key: "district" },
-  { title: "الحالة", key: "status" },
-  { title: "", key: "actions", sortable: false, align: "end" as const },
-]);
 const isRental = computed(() => props.mode === "rental");
-
-// صفحة واحدة من الخادم؛ البحث والترتيب هناك. مفاتيح الأعمدة هي مفاتيح الترتيب
-// (عمود نوع الإيجار لا يظهر في طلبات الشراء، فلا يصل مفتاحه إليها).
-const list = createPagedList<
-  RentalRequestRecord | PurchaseRequestRecord,
-  RentalRequestSortKey
->(
-  (page, signal) =>
-    props.mode === "rental"
-      ? requests.listRentalRequestsPage({ q: q.value }, page, signal)
-      : requests.listPurchaseRequestsPage(
-          { q: q.value },
-          page as PageQuery<PurchaseRequestSortKey>,
-          signal,
-        ),
-  REQUESTS_DEFAULT_SORT,
+const propertyItems = computed(() => requestPropertyTypes(props.mode));
+const statusItems = [
+  ...REQUEST_STATUSES,
+  { title: "مؤرشف", value: "archived" },
+];
+const districtItems = computed(() =>
+  districtsByGovernorate(filters.value.governorate_id),
 );
-const {
-  items: rows,
-  total,
-  loading,
-  page,
-  pageSize,
-  sortBy,
-  onTableOptions,
-} = list;
 
-function requestPropertyTypeLabel(value: string) {
-  if (!isRental.value) return value;
-  return (
-    RENTAL_PROPERTY_TYPES.find((item) => item.value === value)?.title ?? value
-  );
+// ─── الفلاتر ─────────────────────────────────────────────────────────────
+function selectGovernorate(value: number | null) {
+  filters.value.governorate_id = value;
+  filters.value.district_id = null;
 }
-
-function requestRentPeriodLabel(
-  item: RentalRequestRecord | PurchaseRequestRecord,
-) {
-  if (!("rent_period" in item)) return "-";
-  return RENT_PERIOD_LABELS[item.rent_period ?? ""] ?? item.rent_period ?? "-";
+const openOnly = computed(() => filters.value.status === "open");
+function toggleOpen() {
+  filters.value.status = openOnly.value ? "" : "open";
 }
-
-function handleRowClick(
-  _event: Event,
-  context: { item: RentalRequestRecord | PurchaseRequestRecord },
-) {
-  openEdit(context.item);
-}
-function numberOrNull(value: unknown) {
-  if (value === "" || value === null || value === undefined) return null;
-  const parsed = Number(String(value).replace(/,/g, ""));
-  return Number.isFinite(parsed) ? parsed : null;
-}
-/** بحث جديد: من الصفحة الأولى. */
-function load() {
-  clearTimeout(searchTimer);
-  return list.loadFirstPage();
-}
-// البحث يُطبَّق بعد توقّف الكتابة كبقية القوائم، وEnter يطبّقه فوراً.
-let searchTimer: ReturnType<typeof setTimeout> | undefined;
-watch(q, () => {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => void list.loadFirstPage(), 300);
+const chips = computed<FilterChip[]>(() => {
+  const f = filters.value;
+  const result: FilterChip[] = [];
+  if (f.q) result.push({ key: "q", label: `بحث: ${f.q}` });
+  if (f.status)
+    result.push({ key: "status", label: requestStatusLabel(f.status) });
+  if (f.property_type)
+    result.push({
+      key: "property_type",
+      label: requestPropertyTypeLabel(props.mode, f.property_type),
+    });
+  if (f.governorate_id)
+    result.push({
+      key: "governorate_id",
+      label:
+        activeGovernorates.value.find((g) => g.id === f.governorate_id)?.name ??
+        "",
+    });
+  if (f.district_id)
+    result.push({
+      key: "district_id",
+      label:
+        districtItems.value.find((d) => d.id === f.district_id)?.name ?? "",
+    });
+  return result;
 });
+const hasFilters = computed(() => chips.value.length > 0);
+function removeChip(key: string) {
+  const f = filters.value;
+  if (key === "governorate_id") selectGovernorate(null);
+  else if (key === "district_id") f.district_id = null;
+  else (f as unknown as Record<string, string>)[key] = "";
+}
 
-function resetForm() {
-  form.value = {
-    person_id: null,
-    property_type: props.mode === "rental" ? "apartment" : PROPERTY_TYPES[0],
-    rent_period: "monthly",
-    budget_min: null,
-    budget_max: null,
-    area_unit: "متر",
-    area_min: null,
-    area_max: null,
-    floors_count: null,
-    rooms_count: null,
-    bathrooms_count: null,
-    governorate_id: null,
-    district_id: null,
-    neighborhood_id: null,
-    governorate: "",
-    district: "",
-    neighborhood: "",
-    amenities: {},
-    other_requirements: "",
-    status: "open",
-    notes: "",
-  };
-  amenityKeys.value = [];
-  otherAmenities.value = [];
+// ─── الجدول ──────────────────────────────────────────────────────────────
+const headers = computed<GridHeader[]>(() => [
+  { key: "code", title: "الطلب", sortable: true },
+  { key: "person_name", title: "الزبون", sortable: true },
+  { key: "property_type", title: "النوع", sortable: true },
+  ...(isRental.value
+    ? [
+        {
+          key: "rent_period",
+          title: "نوع الإيجار",
+          sortable: true,
+          priority: 3 as const,
+        },
+      ]
+    : []),
+  { key: "district", title: "الموقع", sortable: true, priority: 2 },
+  {
+    key: "budget_max",
+    title: "الميزانية (د.ع)",
+    sortable: true,
+    align: "end",
+  },
+  { key: "status", title: "الحالة", sortable: true },
+  { key: "actions", title: "", align: "end", width: 96 },
+]);
+const locationOf = (item: RequestRecord) =>
+  [item.governorate, item.district, item.neighborhood]
+    .filter(Boolean)
+    .join(" · ");
+const customerOf = (item: RequestRecord) =>
+  item.person_name || item.person_code || "—";
+// الأرقام وحدها معزولة الاتجاه؛ «حتى» و«من» نص عربي يبقى في مكانه.
+const budgetMin = (item: RequestRecord) =>
+  item.budget_min ? formatMoney(item.budget_min) : null;
+const budgetMax = (item: RequestRecord) =>
+  item.budget_max ? formatMoney(item.budget_max) : null;
+const rowLabel = (item: RequestRecord) =>
+  `${label.value} ${item.code} · ${customerOf(item)}`;
+
+function actionsOf(item: RequestRecord): RowAction[] {
+  const actions: RowAction[] = [
+    {
+      key: "matches",
+      label: "المطابقات",
+      icon: "mdi-home-search-outline",
+      inline: true,
+      run: () => void showMatches(item),
+    },
+  ];
+  if (can("requests.update"))
+    actions.push({
+      key: "edit",
+      label: "تعديل",
+      icon: "mdi-pencil-outline",
+      inline: true,
+      run: () => openEdit(item),
+    });
+  actions.push({
+    key: "open",
+    label: "فتح الطلب",
+    icon: "mdi-open-in-app",
+    run: () => openRecord(item),
+  });
+  if (can("people.read"))
+    actions.push({
+      key: "person",
+      label: "فتح ملف الزبون",
+      icon: "mdi-account-outline",
+      run: () => void router.push(`/clients/${item.person_id}`),
+    });
+  return actions;
 }
-// ما فُتح به الحوار: بعد أي تعديل لا يُغلقه Esc ولا النقر خارجه، فلا يضيع
-// طلب كُتب نصفه؛ «إلغاء» يبقى طريق الإغلاق المقصود.
-const openedWith = ref("");
-const formSnapshot = () =>
-  JSON.stringify([form.value, amenityKeys.value, otherAmenities.value]);
-const formDirty = computed(
-  () => dialog.value && formSnapshot() !== openedWith.value,
-);
-function openCreate() {
+
+function openRecord(item: RequestRecord) {
+  grid.value?.remember(item.id);
+  void router.push(requestPath(props.mode, item.id));
+}
+
+// ─── النموذج والمطابقة ───────────────────────────────────────────────────
+const dialog = ref(false);
+const editing = ref<RequestRecord | null>(null);
+const presetPerson = ref<number | null>(null);
+const matchDialog = ref(false);
+const matches = ref<MatchResult[]>([]);
+const matchTitle = ref("العروض المطابقة");
+
+function openCreate(personId: number | null = null) {
   editing.value = null;
-  resetForm();
-  openedWith.value = formSnapshot();
+  presetPerson.value = personId;
   dialog.value = true;
 }
-function openEdit(item: RentalRequestRecord | PurchaseRequestRecord) {
+function openEdit(item: RequestRecord) {
   editing.value = item;
-  form.value = {
-    person_id: item.person_id,
-    property_type: item.property_type,
-    rent_period:
-      "rent_period" in item ? (item.rent_period ?? "monthly") : "monthly",
-    budget_min: numberOrNull(item.budget_min),
-    budget_max: numberOrNull(item.budget_max),
-    area_unit: item.area_unit ?? "متر",
-    area_min: numberOrNull(item.area_min),
-    area_max: numberOrNull(item.area_max),
-    floors_count: item.floors_count,
-    rooms_count: item.rooms_count,
-    bathrooms_count: item.bathrooms_count,
-    governorate_id: item.governorate_id,
-    district_id: item.district_id,
-    neighborhood_id: item.neighborhood_id,
-    governorate: item.governorate ?? "",
-    district: item.district ?? "",
-    neighborhood: item.neighborhood ?? "",
-    amenities: item.amenities,
-    other_requirements: item.other_requirements ?? "",
-    status: item.status,
-    notes: item.notes ?? "",
-  };
-  const { known, other } = splitAmenityKeys(item.amenities);
-  amenityKeys.value = known;
-  otherAmenities.value = other;
-  openedWith.value = formSnapshot();
+  presetPerson.value = null;
   dialog.value = true;
 }
-function removeOtherAmenity(name: string) {
-  otherAmenities.value = otherAmenities.value.filter((item) => item !== name);
-}
-function payload() {
-  const base = {
-    ...form.value,
-    budget_min: numberOrNull(form.value.budget_min),
-    budget_max: numberOrNull(form.value.budget_max),
-    area_min: numberOrNull(form.value.area_min),
-    area_max: numberOrNull(form.value.area_max),
-    amenities: Object.fromEntries(
-      [...otherAmenities.value, ...amenityKeys.value].map((key) => [key, true]),
-    ),
-  };
-  if (props.mode === "rental") return base;
-  const { rent_period: _rentPeriod, ...purchase } = base;
-  return purchase;
-}
-async function save() {
-  if (saving.value) return;
-  if (!form.value.person_id) {
-    notifyError("اختر العميل أولاً.");
-    return;
-  }
-  saving.value = true;
-  let saved: RentalRequestRecord | PurchaseRequestRecord;
-  try {
-    if (props.mode === "rental")
-      saved = editing.value
-        ? await requests.updateRentalRequest(editing.value.id, payload())
-        : await requests.createRentalRequest(payload());
-    else
-      saved = editing.value
-        ? await requests.updatePurchaseRequest(editing.value.id, payload())
-        : await requests.createPurchaseRequest(payload());
-  } catch (error) {
-    notifyError(getErrorMessage(error));
-    saving.value = false;
-    return;
-  }
-  // حُفظ الطلب: يصير الحوار حوار تعديله، فلا يُنشئ تكرار المحاولة طلباً ثانياً.
-  editing.value = saved;
-  dialog.value = false;
+const fetchMatches = (id: number) =>
+  props.mode === "rental"
+    ? requests.rentalOfferMatches(id)
+    : requests.purchaseOfferMatches(id);
+
+async function onSaved(record: RequestRecord) {
   void list.reload();
+  const openAction = {
+    label: "فتح الطلب",
+    run: () => void router.push(requestPath(props.mode, record.id)),
+  };
   try {
     // المطابقة استشارية: فشلها لا يُبطل الحفظ ولا يعيد فتح النموذج.
-    const result =
-      props.mode === "rental"
-        ? await requests.rentalOfferMatches(saved.id)
-        : await requests.purchaseOfferMatches(saved.id);
+    const result = await fetchMatches(record.id);
     matches.value = result.matches;
-    matchTitle.value = "العروض المطابقة";
+    matchTitle.value = `العروض المطابقة للطلب ${record.code}`;
     notifySuccess(
-      `تم حفظ ${endpointLabel.value}. العروض المطابقة: ${result.count}.`,
+      `تم حفظ ${label.value} ${record.code}. العروض المطابقة: ${result.count}.`,
+      openAction,
     );
     if (result.count) matchDialog.value = true;
   } catch {
-    notifySuccess(
-      `تم حفظ ${endpointLabel.value}. تعذر عرض المطابقات الآن؛ افتحها من زر «المطابقات» في الجدول.`,
+    notifyInfo(
+      `تم حفظ ${label.value} ${record.code}. تعذر عرض المطابقات الآن؛ افتحها من صفحة الطلب.`,
+      openAction,
     );
-  } finally {
-    saving.value = false;
   }
 }
-/** العروض المتاحة لطلب من الجدول، دون فتحه وحفظه. */
-async function showMatches(item: RentalRequestRecord | PurchaseRequestRecord) {
-  matchingId.value = item.id;
+async function showMatches(item: RequestRecord) {
   try {
-    const result =
-      props.mode === "rental"
-        ? await requests.rentalOfferMatches(item.id)
-        : await requests.purchaseOfferMatches(item.id);
+    const result = await fetchMatches(item.id);
     matches.value = result.matches;
     matchTitle.value = `العروض المطابقة للطلب ${item.code}`;
     matchDialog.value = true;
-  } catch (error) {
-    notifyError(getErrorMessage(error));
-  } finally {
-    matchingId.value = null;
+  } catch (cause) {
+    notifyError(getErrorMessage(cause));
   }
 }
 function openMatch(match: MatchResult) {
@@ -323,222 +250,215 @@ function openMatch(match: MatchResult) {
   if (!id) return;
   matchDialog.value = false;
   void router.push(
-    props.mode === "rental"
-      ? { path: "/rentals", query: { open: String(id) } }
-      : `/properties/${id}`,
+    props.mode === "rental" ? `/rentals/${id}` : `/properties/${id}`,
   );
 }
+
+function onShortcut(event: KeyboardEvent) {
+  if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyN") return;
+  if (event.altKey || event.shiftKey || !can("requests.create")) return;
+  if (document.querySelector(".v-overlay--active .v-dialog")) return;
+  event.preventDefault();
+  openCreate();
+}
+
 // قبل أن يُظهر الجدول خياراته الأولى، فلا يطلب الصفحة نفسها مرتين.
 void list.reload();
-onMounted(async () => {
-  // ?new=1 من زر "إضافة" في لوحة التحكم.
+onMounted(() => {
+  void loadLocations();
+  setRefreshHandler(list.reload);
+  window.addEventListener("keydown", onShortcut);
+  // ?new=1 (من لوحة التحكم) و&person=<id> (من ملف الزبون).
   if (route.query.new && can("requests.create")) {
-    openCreate();
-    return;
-  }
-  // ?open=<id> من شاشة مطابقة العرض: الطلب قد لا يكون في الصفحة الأولى.
-  const requestedId = Number(route.query.open);
-  if (!requestedId) return;
-  try {
-    openEdit(
-      props.mode === "rental"
-        ? await requests.getRentalRequest(requestedId)
-        : await requests.getPurchaseRequest(requestedId),
-    );
-  } catch (error) {
-    notifyError(getErrorMessage(error));
+    const person = Number(route.query.person);
+    openCreate(Number.isSafeInteger(person) && person > 0 ? person : null);
+    void router.replace({ query: {} });
   }
 });
 onBeforeUnmount(() => {
-  clearTimeout(searchTimer);
+  window.removeEventListener("keydown", onShortcut);
   list.cancel();
 });
 </script>
+
 <template>
-  <AppPage :title="title" subtitle="طلبات العملاء ومطابقتها بالعروض المتاحة.">
-    <template #header-actions
-      ><v-btn
+  <AppPage :title="title" :count="loading && !total ? null : total">
+    <template #header-actions>
+      <v-btn
         v-if="can('requests.create')"
         color="primary"
         prepend-icon="mdi-plus"
-        @click="openCreate"
-        >إضافة {{ endpointLabel }}</v-btn
-      ></template
-    >
-    <div class="d-flex ga-2 mb-3">
-      <v-text-field
-        v-model="q"
-        label="بحث في الطلبات"
-        prepend-inner-icon="mdi-magnify"
-        hide-details
-        @keyup.enter="load"
-      /><v-btn variant="tonal" @click="load">بحث</v-btn>
-    </div>
-    <v-card variant="flat" border
-      ><v-data-table-server
+        :title="`إضافة ${label} (Ctrl+N)`"
+        aria-keyshortcuts="Control+N"
+        @click="openCreate()"
+        >إضافة {{ label }}</v-btn
+      >
+    </template>
+
+    <section class="dal-panel dal-listpanel dal-fill" :aria-label="title">
+      <FilterBar
+        v-model:search="filters.q"
+        :filters="filters"
+        :search-label="`بحث في ${title}`"
+        placeholder="بحث برمز الطلب أو اسم الزبون أو هاتفه"
+        :chips="chips"
+        @apply="apply"
+        @down="grid?.focusFirstRow()"
+        @remove="removeChip"
+        @clear="clear"
+      >
+        <template #filters>
+          <v-select
+            :model-value="filters.status || null"
+            :items="statusItems"
+            label="الحالة"
+            hide-details
+            clearable
+            class="dal-toolbar__filter"
+            @update:model-value="filters.status = $event ?? ''"
+          />
+          <v-select
+            :model-value="filters.property_type || null"
+            :items="propertyItems"
+            label="النوع"
+            hide-details
+            clearable
+            class="dal-toolbar__filter"
+            @update:model-value="filters.property_type = $event ?? ''"
+          />
+          <v-select
+            :model-value="filters.governorate_id"
+            :items="activeGovernorates"
+            item-title="name"
+            item-value="id"
+            label="المحافظة"
+            hide-details
+            clearable
+            class="dal-toolbar__filter"
+            @update:model-value="selectGovernorate"
+          />
+          <v-select
+            v-model="filters.district_id"
+            :items="districtItems"
+            item-title="name"
+            item-value="id"
+            label="المنطقة"
+            :disabled="!filters.governorate_id"
+            hide-details
+            clearable
+            class="dal-toolbar__filter"
+          />
+        </template>
+        <template #views>
+          <div class="dal-views" role="group" aria-label="عرض سريع">
+            <v-btn
+              size="small"
+              :variant="openOnly ? 'tonal' : 'text'"
+              :color="openOnly ? 'primary' : undefined"
+              :aria-pressed="openOnly"
+              @click="toggleOpen"
+              >المفتوحة</v-btn
+            >
+          </div>
+        </template>
+      </FilterBar>
+
+      <DataGrid
+        ref="grid"
         v-model:page="page"
         v-model:items-per-page="pageSize"
         v-model:sort-by="sortBy"
+        :grid-key="`requests:${mode}`"
+        :table-label="`جدول ${title}`"
+        :items="items"
         :headers="headers"
-        :items="rows"
-        :items-length="total"
-        :items-per-page-options="LIST_PAGE_SIZES"
+        :total="total"
         :loading="loading"
-        item-value="id"
-        density="compact"
-        hover
-        @click:row="handleRowClick"
-        @update:options="onTableOptions"
+        :error="error"
+        :has-filters="hasFilters"
+        :actions="actionsOf"
+        :row-label="rowLabel"
+        :empty="{
+          icon: 'mdi-home-search-outline',
+          title: `لا توجد ${title} بعد`,
+          text: 'سجّل ما يطلبه الزبون لتظهر العروض المطابقة له.',
+        }"
+        :no-match="{ title: `لا توجد ${title} مطابقة للبحث والفلاتر الحالية` }"
+        @open="openRecord"
+        @retry="list.reload"
+        @clear-filters="clear"
+        @options="onTableOptions"
       >
-        <template #item.person_name="{ item }">{{
-          item.person_name || item.person_code || "-"
-        }}</template
-        ><template #item.property_type="{ item }">{{
-          requestPropertyTypeLabel(item.property_type)
-        }}</template
-        ><template #item.rent_period="{ item }">{{
-          requestRentPeriodLabel(item)
-        }}</template
-        ><template #item.budget_max="{ item }">{{
-          item.budget_max === null || item.budget_max === undefined
-            ? "بدون حد"
-            : formatMoney(item.budget_max)
-        }}</template
-        ><template #item.district="{ item }">{{
-          [item.governorate, item.district, item.neighborhood]
-            .filter(Boolean)
-            .join(" · ") || "-"
-        }}</template
-        ><template #item.status="{ item }"
-          ><v-chip
+        <template #item.code="{ item }">
+          <router-link
+            :to="requestPath(mode, item.id)"
+            class="record-link"
+            tabindex="-1"
+            @click="grid?.remember(item.id)"
+            ><bdi>{{ item.code }}</bdi></router-link
+          >
+        </template>
+        <template #item.person_name="{ item }">
+          <span class="dal-clip" :title="customerOf(item)">{{
+            customerOf(item)
+          }}</span>
+        </template>
+        <template #item.property_type="{ item }">{{
+          requestPropertyTypeLabel(mode, item.property_type)
+        }}</template>
+        <template #item.rent_period="{ item }">{{
+          "rent_period" in item
+            ? (RENT_PERIOD_LABELS[item.rent_period ?? ""] ??
+              item.rent_period ??
+              "—")
+            : "—"
+        }}</template>
+        <template #item.district="{ item }">
+          <span class="dal-clip" :title="locationOf(item)">{{
+            locationOf(item) || "—"
+          }}</span>
+        </template>
+        <template #item.budget_max="{ item }">
+          <template v-if="budgetMin(item) && budgetMax(item)"
+            ><span class="money">{{ budgetMin(item) }}</span> –
+            <span class="money">{{ budgetMax(item) }}</span></template
+          >
+          <template v-else-if="budgetMax(item)"
+            >حتى <span class="money">{{ budgetMax(item) }}</span></template
+          >
+          <template v-else-if="budgetMin(item)"
+            >من <span class="money">{{ budgetMin(item) }}</span></template
+          >
+          <span v-else class="text-medium-emphasis">بلا حد</span>
+        </template>
+        <template #item.status="{ item }">
+          <v-chip
             size="small"
             variant="tonal"
             label
             :color="requestStatusColor(item.status)"
             >{{ requestStatusLabel(item.status) }}</v-chip
-          ></template
-        ><template #item.actions="{ item }"
-          ><v-btn
-            v-if="item.status === 'open'"
-            size="small"
-            variant="text"
+          >
+        </template>
+        <template #empty-actions>
+          <v-btn
+            v-if="can('requests.create')"
             color="primary"
-            prepend-icon="mdi-home-search-outline"
-            :loading="matchingId === item.id"
-            @click.stop="showMatches(item)"
-            >المطابقات</v-btn
-          ></template
-        >
-      </v-data-table-server></v-card
-    >
-    <v-dialog
+            prepend-icon="mdi-plus"
+            @click="openCreate()"
+            >إضافة {{ label }}</v-btn
+          >
+        </template>
+      </DataGrid>
+    </section>
+
+    <RequestFormDialog
       v-model="dialog"
-      max-width="900"
-      scrollable
-      :persistent="formDirty || saving"
-      ><v-card
-        ><v-card-title
-          >{{ editing ? "تعديل" : "إضافة" }} {{ endpointLabel }}</v-card-title
-        ><v-card-text
-          ><div class="form-grid">
-            <PersonPicker v-model="form.person_id" label="العميل" /><v-select
-              v-model="form.property_type"
-              :items="propertyItems"
-              item-title="title"
-              item-value="value"
-              label="نوع العقار"
-            /><v-select
-              v-if="isRental"
-              v-model="form.rent_period"
-              :items="RENT_PERIODS"
-              label="نوع الإيجار"
-            /><NumberField
-              v-model="form.budget_min"
-              label="الميزانية من"
-              :decimals="false"
-            /><NumberField
-              v-model="form.budget_max"
-              label="الميزانية إلى"
-            /><v-text-field
-              v-model="form.area_min"
-              type="number"
-              label="المساحة من"
-            /><v-text-field
-              v-model="form.area_max"
-              type="number"
-              label="المساحة إلى"
-            /><v-select
-              v-model="form.area_unit"
-              :items="AREA_UNITS"
-              label="وحدة المساحة"
-              clearable
-            /><v-text-field
-              v-model="form.rooms_count"
-              type="number"
-              label="الغرف"
-            /><v-text-field
-              v-model="form.bathrooms_count"
-              type="number"
-              label="الحمامات"
-            /><v-text-field
-              v-model="form.floors_count"
-              type="number"
-              label="الطوابق"
-            /><v-select
-              v-model="form.status"
-              :items="REQUEST_STATUSES"
-              label="الحالة"
-            />
-          </div>
-          <LocationSelects
-            v-model:governorate-id="form.governorate_id"
-            v-model:district-id="form.district_id"
-            v-model:neighborhood-id="form.neighborhood_id"
-            v-model:governorate-text="form.governorate"
-            v-model:district-text="form.district"
-            v-model:neighborhood-text="form.neighborhood" />
-          <fieldset class="request-amenities">
-            <legend class="text-subtitle-2">المميزات المطلوبة</legend>
-            <v-chip-group v-model="amenityKeys" column multiple>
-              <v-chip
-                v-for="item in AMENITY_OPTIONS"
-                :key="item.key"
-                :value="item.key"
-                filter
-                variant="outlined"
-                >{{ item.title }}</v-chip
-              >
-            </v-chip-group>
-            <div v-if="otherAmenities.length" class="request-amenities__other">
-              <span class="text-medium-emphasis"
-                >مكتوبة يدوياً ولا تدخل في المطابقة:</span
-              >
-              <v-chip
-                v-for="name in otherAmenities"
-                :key="name"
-                closable
-                :close-label="`إزالة ${name}`"
-                @click:close="removeOtherAmenity(name)"
-                >{{ name }}</v-chip
-              >
-            </div>
-          </fieldset>
-          <v-textarea
-            v-model="form.other_requirements"
-            label="متطلبات إضافية"
-            rows="2" /><v-textarea
-            v-model="form.notes"
-            label="ملاحظات"
-            rows="2" /></v-card-text
-        ><v-card-actions
-          ><v-spacer /><v-btn variant="text" @click="dialog = false"
-            >إلغاء</v-btn
-          ><v-btn color="primary" :loading="saving" @click="save"
-            >حفظ ومطابقة</v-btn
-          ></v-card-actions
-        ></v-card
-      ></v-dialog
-    >
+      :mode="mode"
+      :request="editing"
+      :person-id="presetPerson"
+      @saved="onSaved"
+    />
     <MatchingResultsDialog
       v-model="matchDialog"
       :matches="matches"
@@ -547,27 +467,3 @@ onBeforeUnmount(() => {
     />
   </AppPage>
 </template>
-<style scoped>
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-@media (max-width: 800px) {
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-}
-.request-amenities {
-  border: 0;
-  margin: 8px 0 12px;
-  padding: 0;
-}
-.request-amenities__other {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-}
-</style>

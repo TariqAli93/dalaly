@@ -8,6 +8,16 @@ import type {
   RentalRequestSortKey,
 } from "../types";
 import { request } from "./api.service";
+
+/** فلاتر قوائم الطلبات (rental/purchaseRequestFiltersSchema في الخادم). */
+export type RequestListFilters = {
+  q?: string;
+  status?: string;
+  person_id?: number;
+  property_type?: string;
+  governorate_id?: number | null;
+  district_id?: number | null;
+};
 function query(filters: Record<string, string | number | null | undefined>) {
   const params = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
@@ -24,7 +34,7 @@ export function listRentalRequests(filters: Record<string, unknown> = {}) {
 }
 /** صفحة واحدة مع العدد الكلي، لجدول طلبات الإيجار. */
 export function listRentalRequestsPage(
-  filters: { q?: string },
+  filters: RequestListFilters,
   page: PageQuery<RentalRequestSortKey>,
   signal?: AbortSignal,
 ) {
@@ -55,7 +65,7 @@ export function listPurchaseRequests(filters: Record<string, unknown> = {}) {
 }
 /** صفحة واحدة مع العدد الكلي، لجدول طلبات الشراء. */
 export function listPurchaseRequestsPage(
-  filters: { q?: string },
+  filters: RequestListFilters,
   page: PageQuery<PurchaseRequestSortKey>,
   signal?: AbortSignal,
 ) {

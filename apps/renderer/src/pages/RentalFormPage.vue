@@ -192,7 +192,7 @@ function openMatch(match: MatchResult) {
   if (!id) return;
   matchDialog.value = false;
   pendingRedirect.value = null;
-  void router.push({ path: "/rental-requests", query: { open: String(id) } });
+  void router.push(`/rental-requests/${id}`);
 }
 
 // المكوّن نفسه يخدم ‎/rentals/new‎ و‎/rentals/:id/edit‎ ويُعاد استخدامه عند

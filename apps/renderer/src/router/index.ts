@@ -18,11 +18,15 @@ declare module "vue-router" {
 
 /**
  * روابط ?open=<id> القديمة (لوحة التحكم، البحث، المطابقة) كانت تفتح حواراً
- * فوق القائمة؛ للعرض الإيجاري الآن صفحة سجل، فيُحوَّل الرابط إليها.
+ * فوق القائمة؛ للعرض الإيجاري وللطلب الآن صفحة سجل، فيُحوَّل الرابط إليها.
  * في الحارس العام لا beforeEnter: هذا لا يعمل حين يتغيّر الاستعلام وحده
  * والقائمة مفتوحة.
  */
-const RECORD_LISTS = new Set(["/rentals"]);
+const RECORD_LISTS = new Set([
+  "/rentals",
+  "/rental-requests",
+  "/purchase-requests",
+]);
 function openRecord(to: RouteLocationNormalized) {
   if (!RECORD_LISTS.has(to.path)) return null;
   const id = Number(to.query.open);
@@ -161,9 +165,31 @@ const appPages: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/rental-requests/:id(\\d+)",
+    name: "rental-request-details",
+    component: () => import("../pages/RequestDetailsPage.vue"),
+    props: { mode: "rental" },
+    meta: {
+      requiresAuth: true,
+      permission: "requests.read",
+      titleKey: "routes.rentalRequests",
+    },
+  },
+  {
     path: "/purchase-requests",
     name: "purchase-requests",
     component: () => import("../pages/PurchaseRequestsPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "requests.read",
+      titleKey: "routes.purchaseRequests",
+    },
+  },
+  {
+    path: "/purchase-requests/:id(\\d+)",
+    name: "purchase-request-details",
+    component: () => import("../pages/RequestDetailsPage.vue"),
+    props: { mode: "purchase" },
     meta: {
       requiresAuth: true,
       permission: "requests.read",

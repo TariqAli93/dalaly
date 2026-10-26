@@ -38,6 +38,8 @@ const props = defineProps<{
   rowLabel: (item: T) => string;
   empty: { icon: string; title: string; text?: string };
   noMatch?: { title: string; text?: string };
+  /** قائمة قصيرة داخل سجل (ملف الزبون): كل الصفوف، بلا تذييل صفحات. */
+  compact?: boolean;
 }>();
 const page = defineModel<number>("page", { default: 1 });
 const itemsPerPage = defineModel<number>("itemsPerPage", { default: 25 });
@@ -88,7 +90,9 @@ const serverBindings = computed(() =>
         "onUpdate:options": () => emit("options"),
         itemsPerPageOptions: LIST_PAGE_SIZES,
       }
-    : { itemsPerPageOptions: LIST_PAGE_SIZES },
+    : props.compact
+      ? { itemsPerPage: -1, hideDefaultFooter: true }
+      : { itemsPerPageOptions: LIST_PAGE_SIZES },
 );
 
 // ─── التركيز المتنقّل ─────────────────────────────────────────────────

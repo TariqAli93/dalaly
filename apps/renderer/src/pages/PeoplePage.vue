@@ -1,56 +1,85 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue";
+import { useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import PersonEditor from "../components/people/PersonEditor.vue";
+import FilterBar from "../components/shared/FilterBar.vue";
+import DataGrid from "../components/shared/DataGrid.vue";
+import StatusChip from "../components/shared/StatusChip.vue";
+import type {
+  DataGridApi,
+  FilterChip,
+  GridHeader,
+  RowAction,
+} from "../components/shared/grid";
 import * as peopleService from "../services/people.service";
 import { getErrorMessage } from "../services/api.service";
 import { usePermissions } from "../composables/usePermissions";
 import { useSnackbar } from "../composables/useSnackbar";
 import { useConfirm } from "../composables/useConfirm";
-import { createPagedList } from "../composables/usePagedList";
+import { useRefresh } from "../composables/useRefresh";
+import { usePeople } from "../composables/usePeople";
 import {
-  PEOPLE_DEFAULT_SORT,
   PERSON_STATUS_FILTERS,
-  type PersonStatusFilter,
+  personStatusLabel,
+  personTypeLabel,
+  personStatusColor,
 } from "../constants/crm";
-import { LIST_PAGE_SIZES } from "../constants/domain";
-import type { PersonRecord, PersonSortKey } from "../types";
+import type { PersonRecord } from "../types";
 
+/**
+ * دليل الزبائن (ومنهم المالكون) بنمط القوائم الأخرى: بحث حيّ بالاسم أو الهاتف
+ * أو الرمز، وتصفية بالحالة (المؤرشفون لا يظهرون إلا بطلبهم)، وEnter يفتح ملف
+ * الزبون. الأرشفة تُؤكَّد ويمكن التراجع عنها من الإشعار.
+ */
+const router = useRouter();
 const { can } = usePermissions();
 const { notifyError, notifySuccess } = useSnackbar();
 const { openConfirm } = useConfirm();
-const search = ref<string | null>("");
-const status = ref<PersonStatusFilter>("current");
-const dialog = ref(false);
+const { setRefreshHandler } = useRefresh();
+const { search, status, list, apply, clear } = usePeople();
+const { items, total, loading, error, page, pageSize, sortBy, onTableOptions } =
+  list;
 
+const grid = useTemplateRef<DataGridApi>("grid");
+const dialog = ref(false);
 const editing = ref<PersonRecord | null>(null);
-// مفاتيح الأعمدة القابلة للترتيب هي مفاتيح الترتيب في الخادم.
-const headers = [
-  { title: "الاسم", key: "full_name" },
-  { title: "الرمز", key: "code" },
-  { title: "الهاتف", key: "phone_primary" },
-  { title: "النوع", key: "person_type" },
-  { title: "الحالة", key: "status" },
-  { title: "", key: "actions", sortable: false },
-];
-// صفحة واحدة من الخادم؛ البحث والترتيب هناك.
-const list = createPagedList<PersonRecord, PersonSortKey>(
-  (page, signal) =>
-    peopleService.listPeoplePage(
-      {
-        q: search.value ?? "",
-        status: status.value === "current" ? undefined : status.value,
-      },
-      page,
-      signal,
-    ),
-  PEOPLE_DEFAULT_SORT,
-);
-const { items, total, loading, page, pageSize, sortBy, onTableOptions } = list;
-/** بحث جديد: من الصفحة الأولى. */
-function load() {
-  return list.loadFirstPage();
+
+const chips = computed<FilterChip[]>(() => {
+  const result: FilterChip[] = [];
+  if (search.value) result.push({ key: "q", label: `بحث: ${search.value}` });
+  if (status.value !== "current")
+    result.push({
+      key: "status",
+      label:
+        PERSON_STATUS_FILTERS.find((item) => item.value === status.value)
+          ?.title ?? status.value,
+    });
+  return result;
+});
+function removeChip(key: string) {
+  if (key === "q") search.value = "";
+  else status.value = "current";
 }
+
+// مفاتيح الأعمدة القابلة للترتيب هي مفاتيح الترتيب في الخادم.
+const headers: GridHeader[] = [
+  { key: "full_name", title: "الزبون", sortable: true },
+  { key: "phone_primary", title: "الهاتف", sortable: true },
+  { key: "person_type", title: "النوع", sortable: true, priority: 3 },
+  { key: "residence", title: "السكن", priority: 2 },
+  { key: "status", title: "الحالة", sortable: true },
+  { key: "actions", title: "", align: "end", width: 96 },
+];
+const residenceOf = (person: PersonRecord) =>
+  [person.governorate, person.district, person.neighborhood]
+    .filter(Boolean)
+    .join(" · ") ||
+  person.address ||
+  "";
+const showCode = (person: PersonRecord) =>
+  !person.full_name.includes(person.code);
+
 function openCreate() {
   editing.value = null;
   dialog.value = true;
@@ -59,7 +88,28 @@ function openEdit(person: PersonRecord) {
   editing.value = person;
   dialog.value = true;
 }
-// الأرشفة تُخفي الزبون من القائمة الافتراضية، فتُؤكَّد ويُقال أين يجده المستخدم.
+function openPerson(person: PersonRecord) {
+  grid.value?.remember(person.id);
+  void router.push(`/clients/${person.id}`);
+}
+function newRequest(person: PersonRecord, kind: "purchase" | "rental") {
+  void router.push({
+    path: kind === "purchase" ? "/purchase-requests" : "/rental-requests",
+    query: { new: "1", person: String(person.id) },
+  });
+}
+
+async function restore(person: PersonRecord) {
+  try {
+    await peopleService.restorePerson(person.id);
+    await list.reload();
+    notifySuccess(`أُعيد ${person.full_name} إلى الزبائن الحاليين.`);
+  } catch (cause) {
+    notifyError(getErrorMessage(cause));
+  }
+}
+// الأرشفة تُخفي الزبون من القائمة الافتراضية: تُؤكَّد، ويُقال أين يجده المستخدم،
+// ويمكن التراجع عنها من الإشعار نفسه.
 function archive(person: PersonRecord) {
   openConfirm({
     title: `أرشفة ${person.full_name}`,
@@ -69,169 +119,190 @@ function archive(person: PersonRecord) {
     onConfirm: async () => {
       await peopleService.archivePerson(person.id);
       await list.reload();
-      notifySuccess(`أُرشف ${person.full_name}. تجده تحت «المؤرشفون».`);
+      notifySuccess(`أُرشف ${person.full_name}.`, {
+        label: "تراجع",
+        run: () => restore(person),
+      });
     },
   });
 }
-async function restore(person: PersonRecord) {
-  try {
-    await peopleService.restorePerson(person.id);
-    await list.reload();
-  } catch (cause) {
-    notifyError(getErrorMessage(cause));
-  }
+
+function actionsOf(person: PersonRecord): RowAction[] {
+  const actions: RowAction[] = [
+    {
+      key: "open",
+      label: "فتح ملف الزبون",
+      icon: "mdi-open-in-app",
+      run: () => openPerson(person),
+    },
+  ];
+  if (can("people.update"))
+    actions.push({
+      key: "edit",
+      label: "تعديل",
+      icon: "mdi-pencil-outline",
+      inline: true,
+      run: () => openEdit(person),
+    });
+  if (can("requests.create") && person.status !== "archived")
+    actions.push(
+      {
+        key: "purchase",
+        label: "طلب شراء جديد",
+        icon: "mdi-home-search-outline",
+        run: () => newRequest(person, "purchase"),
+      },
+      {
+        key: "rental",
+        label: "طلب إيجار جديد",
+        icon: "mdi-text-box-search-outline",
+        run: () => newRequest(person, "rental"),
+      },
+    );
+  if (can("people.update"))
+    actions.push(
+      person.status === "archived"
+        ? {
+            key: "restore",
+            label: "إرجاع من الأرشيف",
+            icon: "mdi-archive-arrow-up-outline",
+            run: () => void restore(person),
+          }
+        : {
+            key: "archive",
+            label: "أرشفة",
+            icon: "mdi-archive-arrow-down-outline",
+            run: () => archive(person),
+          },
+    );
+  return actions;
 }
+
+function onShortcut(event: KeyboardEvent) {
+  if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyN") return;
+  if (event.altKey || event.shiftKey || !can("people.create")) return;
+  if (document.querySelector(".v-overlay--active .v-dialog")) return;
+  event.preventDefault();
+  openCreate();
+}
+
 // قبل أن يُظهر الجدول خياراته الأولى، فلا يطلب الصفحة نفسها مرتين.
 void list.reload();
-onBeforeUnmount(() => list.cancel());
+onMounted(() => {
+  setRefreshHandler(list.reload);
+  window.addEventListener("keydown", onShortcut);
+});
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", onShortcut);
+  list.cancel();
+});
 </script>
+
 <template>
-  <AppPage
-    title="الزبائن"
-    subtitle="دليل الزبائن وجهات الاتصال في المكتب، ومنهم المالكون."
-  >
-    <template #header-actions
-      ><v-btn
+  <AppPage title="الزبائن" :count="loading && !total ? null : total">
+    <template #header-actions>
+      <v-btn
         v-if="can('people.create')"
         color="primary"
         prepend-icon="mdi-account-plus-outline"
+        title="إضافة زبون (Ctrl+N)"
+        aria-keyshortcuts="Control+N"
         @click="openCreate"
-        >إضافة شخص</v-btn
-      ></template
-    >
-    <div class="d-flex ga-2 mb-3">
-      <v-text-field
-        v-model="search"
-        label="بحث بالاسم أو الهاتف أو الرمز"
-        hide-details
-        clearable
-        @keyup.enter="load"
-      /><v-select
-        v-model="status"
-        :items="PERSON_STATUS_FILTERS"
-        label="الحالة"
-        hide-details
-        class="people-status"
-        @update:model-value="load"
-      /><v-btn variant="tonal" @click="load">بحث</v-btn>
-    </div>
-    <v-card variant="flat" border
-      ><v-data-table-server
+        >إضافة زبون</v-btn
+      >
+    </template>
+
+    <section class="dal-panel dal-listpanel dal-fill" aria-label="الزبائن">
+      <FilterBar
+        v-model:search="search"
+        :filters="status"
+        search-label="بحث في الزبائن"
+        placeholder="بحث بالاسم أو الهاتف أو الرمز"
+        :chips="chips"
+        @apply="apply"
+        @down="grid?.focusFirstRow()"
+        @remove="removeChip"
+        @clear="clear"
+      >
+        <template #filters>
+          <v-select
+            v-model="status"
+            :items="PERSON_STATUS_FILTERS"
+            label="الحالة"
+            hide-details
+            class="dal-toolbar__filter"
+          />
+        </template>
+      </FilterBar>
+
+      <DataGrid
+        ref="grid"
         v-model:page="page"
         v-model:items-per-page="pageSize"
         v-model:sort-by="sortBy"
-        :headers="headers"
+        grid-key="people"
+        table-label="جدول الزبائن"
         :items="items"
-        :items-length="total"
-        :items-per-page-options="LIST_PAGE_SIZES"
+        :headers="headers"
+        :total="total"
         :loading="loading"
-        item-value="id"
-        density="compact"
-        @update:options="onTableOptions"
-        ><template #item.full_name="{ item }">
-          <router-link
-            class="person-cell record-link"
-            :to="`/clients/${item.id}`"
-          >
-            <v-avatar color="primary" variant="tonal" size="36">{{
-              item.full_name.slice(0, 2)
-            }}</v-avatar>
-            <span
-              ><strong>{{ item.full_name }}</strong
-              ><small>{{
-                item.email || item.address || "عرض الملف الشخصي"
-              }}</small></span
+        :error="error"
+        :has-filters="chips.length > 0"
+        :actions="actionsOf"
+        :row-label="(person) => person.full_name"
+        :empty="{
+          icon: 'mdi-account-plus-outline',
+          title: 'لا يوجد زبائن بعد',
+          text: 'أضف الزبائن والمالكين لتربطهم بالطلبات والعروض.',
+        }"
+        :no-match="{ title: 'لا يوجد زبون مطابق للبحث والتصفية الحالية' }"
+        @open="openPerson"
+        @retry="list.reload"
+        @clear-filters="clear"
+        @options="onTableOptions"
+      >
+        <template #item.full_name="{ item }">
+          <div class="dal-cell-name">
+            <router-link
+              :to="`/clients/${item.id}`"
+              class="record-link"
+              tabindex="-1"
+              :title="item.full_name"
+              @click="grid?.remember(item.id)"
+              >{{ item.full_name }}</router-link
             >
-          </router-link> </template
-        ><template #item.phone_primary="{ item }"
-          ><bdi>{{ item.phone_primary || "—" }}</bdi></template
-        ><template #item.code="{ item }"
-          ><bdi class="text-medium-emphasis">{{ item.code }}</bdi></template
-        ><template #item.person_type="{ item }">{{
-          item.person_type === "company"
-            ? "شركة"
-            : item.person_type === "individual"
-              ? "فرد"
-              : "أخرى"
-        }}</template
-        ><template #item.status="{ item }"
-          ><v-chip
-            size="small"
-            variant="tonal"
-            :color="item.status === 'active' ? 'success' : undefined"
-            >{{
-              item.status === "archived"
-                ? "مؤرشف"
-                : item.status === "active"
-                  ? "نشط"
-                  : "غير نشط"
-            }}</v-chip
-          ></template
-        ><template #item.actions="{ item }"
-          ><v-btn
-            v-if="can('people.update')"
-            icon="mdi-pencil"
-            aria-label="تعديل بيانات الشخص"
-            variant="text"
-            @click="openEdit(item)" /><v-btn
-            v-if="item.status !== 'archived' && can('people.update')"
-            icon="mdi-archive-arrow-down-outline"
-            aria-label="أرشفة الشخص"
-            variant="text"
-            color="warning"
-            @click="archive(item)" /><v-btn
-            v-if="item.status === 'archived' && can('people.update')"
-            icon="mdi-archive-arrow-up-outline"
-            aria-label="استعادة الشخص"
-            variant="text"
-            color="success"
-            @click="restore(item)" /></template></v-data-table-server
-    ></v-card>
+            <bdi v-if="showCode(item)">{{ item.code }}</bdi>
+          </div>
+        </template>
+        <template #item.phone_primary="{ item }">
+          <bdi>{{ item.phone_primary || "—" }}</bdi>
+        </template>
+        <template #item.person_type="{ item }">{{
+          personTypeLabel(item.person_type)
+        }}</template>
+        <template #item.residence="{ item }">
+          <span class="dal-clip" :title="residenceOf(item)">{{
+            residenceOf(item) || "—"
+          }}</span>
+        </template>
+        <template #item.status="{ item }">
+          <StatusChip
+            :status="item.status"
+            :label="personStatusLabel(item.status)"
+            :color="personStatusColor(item.status)"
+          />
+        </template>
+        <template #empty-actions>
+          <v-btn
+            v-if="can('people.create')"
+            color="primary"
+            prepend-icon="mdi-account-plus-outline"
+            @click="openCreate"
+            >إضافة زبون</v-btn
+          >
+        </template>
+      </DataGrid>
+    </section>
     <PersonEditor v-model="dialog" :person="editing" @saved="list.reload" />
   </AppPage>
 </template>
-<style scoped>
-.people-status {
-  flex: 0 0 180px;
-}
-.person-cell {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding-block: 8px;
-  text-align: start;
-}
-.person-cell strong {
-  display: block;
-  font-size: calc(13px * var(--dal-font-scale));
-  font-weight: 600;
-}
-.person-cell small {
-  display: block;
-  font-size: calc(11px * var(--dal-font-scale));
-  color: var(--dal-muted);
-  max-width: 240px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.profile-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-.profile-notes {
-  padding: 16px;
-  border: 1px solid var(--dal-stroke);
-  border-radius: 8px;
-  margin-top: 16px;
-}
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-.grid-span {
-  grid-column: 1 / -1;
-}
-</style>
