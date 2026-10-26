@@ -35,7 +35,11 @@ const calmText = computed(() => {
 </script>
 
 <template>
-  <section class="priority" aria-label="الأولوية الآن" aria-live="polite">
+  <section
+    class="dal-panel priority"
+    aria-label="الأولوية الآن"
+    aria-live="polite"
+  >
     <v-skeleton-loader v-if="items === null" type="list-item-two-line" />
     <div v-else-if="!first && scope.failed" class="priority__calm">
       <v-icon icon="mdi-alert-outline" color="warning" size="20" />
@@ -49,8 +53,9 @@ const calmText = computed(() => {
       <span>{{ calmText }}</span>
     </div>
     <template v-else>
-      <div class="priority__main" :class="`priority__main--${first.tone}`">
-        <v-chip :color="first.tone" size="small" variant="flat" label>{{
+      <div class="priority__main">
+        <span class="priority__label">ابدأ بـ</span>
+        <v-chip :color="first.tone" size="small" variant="tonal" label>{{
           first.urgency
         }}</v-chip>
         <div class="priority__copy">
@@ -65,7 +70,7 @@ const calmText = computed(() => {
           </span>
         </div>
         <v-btn
-          :color="first.tone"
+          color="primary"
           variant="flat"
           append-icon="mdi-arrow-left"
           @click="emit('select', first.target)"
@@ -73,13 +78,12 @@ const calmText = computed(() => {
         >
       </div>
       <div v-if="others.length" class="priority__next">
-        <span class="priority__next-label">بعدها:</span>
+        <span class="priority__label">بعدها:</span>
         <v-btn
           v-for="item in others"
           :key="item.key"
           size="small"
           variant="text"
-          :color="item.tone"
           @click="emit('select', item.target)"
           >{{ item.title }}</v-btn
         >
@@ -89,35 +93,24 @@ const calmText = computed(() => {
 </template>
 
 <style scoped>
-.priority {
-  border: 1px solid var(--dal-stroke);
-  border-radius: var(--dal-radius-card);
-  background: rgb(var(--v-theme-surface));
-  overflow: hidden;
-}
 .priority__calm {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 16px;
+  padding: 10px 16px;
   font-size: calc(13px * var(--dal-font-scale));
   color: var(--dal-muted);
 }
 .priority__main {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px 16px;
-  border-inline-start: 4px solid var(--priority-tone);
+  gap: 12px;
+  padding: 8px 16px;
 }
-.priority__main--error {
-  --priority-tone: rgb(var(--v-theme-error));
-}
-.priority__main--warning {
-  --priority-tone: rgb(var(--v-theme-warning));
-}
-.priority__main--primary {
-  --priority-tone: rgb(var(--v-theme-primary));
+.priority__label {
+  flex: 0 0 auto;
+  font-size: calc(12px * var(--dal-font-scale));
+  color: var(--dal-muted);
 }
 .priority__copy {
   display: grid;
@@ -126,7 +119,7 @@ const calmText = computed(() => {
   min-width: 0;
 }
 .priority__copy strong {
-  font-size: calc(15px * var(--dal-font-scale));
+  font-size: calc(14px * var(--dal-font-scale));
 }
 .priority__copy span {
   font-size: calc(12px * var(--dal-font-scale));
@@ -137,14 +130,8 @@ const calmText = computed(() => {
   align-items: center;
   flex-wrap: wrap;
   gap: 4px;
-  padding: 4px 12px;
+  padding: 2px 12px;
   border-top: 1px solid var(--dal-stroke);
-  background: var(--dal-canvas);
-}
-.priority__next-label {
-  font-size: calc(12px * var(--dal-font-scale));
-  color: var(--dal-muted);
-  padding-inline: 4px;
 }
 @media (max-width: 760px) {
   .priority__main {

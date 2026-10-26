@@ -4,7 +4,7 @@ import type { DashboardMatching, DashboardOverview } from "../types";
 export type DashboardSection =
   "matches" | "appointments" | "customers" | "risks" | "viewings" | "stale";
 
-/** مؤشر في صف المؤشرات؛ value = null أثناء تحميل قسمه. */
+/** رقم في شريط الملخّص؛ value = null أثناء تحميل قسمه. */
 export type KpiItem = {
   key: string;
   label: string;
@@ -48,8 +48,8 @@ export function priorityItems(
     const first = overview!.appointments!.items[0];
     items.push({
       key: "appointments",
-      title: `مواعيد متابعة اليوم: ${today}`,
-      detail: "مواعيد مسجّلة على العروض والإيجارات لهذا اليوم.",
+      title: "مواعيد متابعة اليوم",
+      detail: "اتصالات ومعاينات مسجّلة على العروض والإيجارات لهذا اليوم.",
       count: today,
       urgency: "اليوم",
       tone: "error",
@@ -62,8 +62,8 @@ export function priorityItems(
   if (viewings?.total) {
     items.push({
       key: "viewings",
-      title: `معاينات بلا متابعة لاحقة: ${viewings.total}`,
-      detail: `مضى موعدها خلال آخر ${viewings.days} يوماً ولم تُسجَّل بعدها أي متابعة على العرض.`,
+      title: "سجّل نتيجة المعاينات",
+      detail: `معاينات مضى موعدها خلال آخر ${viewings.days} يوماً ولم تُسجَّل بعدها أي متابعة على العرض.`,
       count: viewings.total,
       urgency: "متأخرة",
       tone: "warning",
@@ -85,9 +85,8 @@ export function priorityItems(
     if (withMatches)
       items.push({
         key: "matches",
-        title: `طلبات لها عروض مطابقة: ${withMatches}`,
-        detail:
-          "عروض متاحة تحقق النوع والموقع والميزانية المطلوبة. اعرضها على أصحاب الطلبات.",
+        title: "اعرض العروض المطابقة على أصحاب الطلبات",
+        detail: "عروض متاحة تحقق النوع والموقع والميزانية التي طلبها الزبون.",
         count: withMatches,
         urgency: "فرصة",
         tone: "primary",
@@ -98,7 +97,7 @@ export function priorityItems(
     if (without)
       items.push({
         key: "unmatched",
-        title: `طلبات بلا عرض مطابق: ${without}`,
+        title: "ابحث عن عروض للطلبات العالقة",
         detail:
           "لا يوجد عرض متاح يحقق شروطها الأساسية. ابحث عن عرض أو راجع الشروط مع الزبون.",
         count: without,
@@ -115,8 +114,8 @@ export function priorityItems(
   if (stale)
     items.push({
       key: "stale",
-      title: `عروض بلا نشاط: ${stale}`,
-      detail: `عروض متاحة لم تُعدَّل ولم تُسجَّل عليها متابعة منذ ${overview!.stale_days} يوماً.`,
+      title: "حرّك العروض الراكدة",
+      detail: `عروض متاحة لم تُعدَّل ولم تُسجَّل عليها متابعة منذ ${overview!.stale_days} يوماً. حدّث السعر أو تواصل مع المالك.`,
       count: stale,
       urgency: "ركود",
       tone: "warning",

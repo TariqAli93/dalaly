@@ -1,21 +1,18 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type { DashboardMatching, DashboardOverview } from "../../types";
-import { formatNumber } from "../../utils/format";
-import { moneyText } from "../../utils/listingText";
+import type { DashboardOverview } from "../../types";
+import { formatMoney, formatNumber } from "../../utils/format";
 
 /**
- * أداء المكتب من السجلات المحفوظة فقط، والمراحل المفتوحة الآن مفصولة عمّا
- * أُنجز. "التواصل" و"المعاينة" ليستا حالتين يسجّلهما النظام لكل فرصة، ولا
- * عمولات مسجّلة، فلا نسب تحويل ولا مبالغ عمولة هنا.
+ * حالة العروض من السجلات المحفوظة فقط: صف للبيع وصف للإيجار، والمراحل
+ * المفتوحة الآن مفصولة عمّا أُنجز خلال المدة. كل رقم يفتح قائمته مصفّاة.
+ * كان هذا القسم ولوح «عمليات الإيجار» يعدّان حالات الإيجار مرتين؛ القيم
+ * الشهرية للإيجار هنا الآن. لا عمولات ولا عقود إيجار مسجّلة، فلا نسب تحويل
+ * ولا تجديدات.
  */
-const props = defineProps<{
-  overview: DashboardOverview | null;
-  matching: DashboardMatching | null;
-}>();
+const props = defineProps<{ overview: DashboardOverview | null }>();
 const emit = defineEmits<{
   open: [{ kind: "sale" | "rental"; status: string }];
-  matches: ["sale" | "rental"];
 }>();
 
 const rows = computed(() => {
@@ -26,27 +23,29 @@ const rows = computed(() => {
     result.push({
       kind: "sale" as const,
       title: "البيع",
-      matched: props.matching?.counts.sale?.with_matches ?? null,
+      available: overview.sale.counts.available,
+      value: overview.sale.available_value,
+      valueLabel: "قيمتها",
       negotiating: overview.sale.counts.negotiating,
       reserved: overview.sale.counts.reserved,
       closed: overview.sale.closed_recently,
-      closedLabel: "بِيع",
-      closedStatus: "sold",
-      current: overview.sale.counts.sold,
-      currentLabel: "مباع حالياً",
+      doneStatus: "sold",
+      done: overview.sale.counts.sold,
+      doneLabel: "مباع",
     });
   if (overview.rental)
     result.push({
       kind: "rental" as const,
       title: "الإيجار",
-      matched: props.matching?.counts.rental?.with_matches ?? null,
+      available: overview.rental.counts.available,
+      value: overview.rental.available_monthly_value,
+      valueLabel: "شهرياً",
       negotiating: overview.rental.counts.negotiating,
       reserved: overview.rental.counts.reserved,
       closed: overview.rental.closed_recently,
-      closedLabel: "أُجّر",
-      closedStatus: "rented",
-      current: overview.rental.counts.rented,
-      currentLabel: "مؤجر حالياً",
+      doneStatus: "rented",
+      done: overview.rental.counts.rented,
+      doneLabel: "مؤجر",
     });
   return result;
 });
@@ -55,146 +54,145 @@ const rows = computed(() => {
 <template>
   <section class="dal-panel performance" aria-labelledby="performance-title">
     <header class="dal-panel__header">
-      <h2 id="performance-title" class="dal-section-title">أداء المكتب</h2>
-      <v-spacer />
-      <span v-if="overview?.sale" class="performance__value">
-        عروض البيع المتاحة:
-        {{ formatNumber(overview.sale.counts.available, 0) }}
-        · قيمتها
-        <strong class="money">{{
-          moneyText(overview.sale.available_value)
-        }}</strong>
-      </span>
+      <h2 id="performance-title" class="dal-section-title">حالة العروض</h2>
     </header>
-    <div v-if="!overview">
-      <v-skeleton-loader type="table-row" />
-      <v-skeleton-loader type="table-row" />
+    <div v-if="!overview" class="performance__loading">
+      <v-skeleton-loader type="table-row@2" />
     </div>
-    <div v-else-if="!rows.length" class="performance__empty">
+    <p v-else-if="!rows.length" class="performance__note">
       أرقام العروض والإيجارات غير متاحة لحسابك.
-    </div>
-    <div
-      v-else
-      class="performance__table"
-      role="table"
-      aria-label="مراحل الصفقات"
-    >
-      <div class="performance__row performance__row--head" role="row">
-        <span role="columnheader"></span>
-        <span role="columnheader">طلبات لها مطابقة</span>
-        <span role="columnheader">قيد التفاوض</span>
-        <span role="columnheader">محجوز</span>
-        <span role="columnheader" class="performance__done"
-          >مُنجز خلال {{ overview.recent_days }} يوماً</span
-        >
-        <span role="columnheader">الحالة الآن</span>
-      </div>
-      <div
-        v-for="row in rows"
-        :key="row.kind"
-        class="performance__row"
-        role="row"
-      >
-        <strong role="rowheader">{{ row.title }}</strong>
-        <button
-          type="button"
-          role="cell"
-          :disabled="row.matched === null"
-          @click="emit('matches', row.kind)"
-        >
-          {{ row.matched === null ? "—" : formatNumber(row.matched, 0) }}
-        </button>
-        <button
-          type="button"
-          role="cell"
-          @click="emit('open', { kind: row.kind, status: 'negotiating' })"
-        >
-          {{ formatNumber(row.negotiating, 0) }}
-        </button>
-        <button
-          type="button"
-          role="cell"
-          @click="emit('open', { kind: row.kind, status: 'reserved' })"
-        >
-          {{ formatNumber(row.reserved, 0) }}
-        </button>
-        <span role="cell" class="performance__done"
-          >{{ row.closedLabel }} {{ formatNumber(row.closed, 0) }}</span
-        >
-        <button
-          type="button"
-          role="cell"
-          @click="emit('open', { kind: row.kind, status: row.closedStatus })"
-        >
-          {{ row.currentLabel }} {{ formatNumber(row.current, 0) }}
-        </button>
-      </div>
-    </div>
+    </p>
+    <table v-else class="performance__table">
+      <caption class="d-sr-only">
+        عدد العروض في كل حالة، والمُنجز خلال آخر
+        {{
+          overview.recent_days
+        }}
+        يوماً
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col"><span class="d-sr-only">النوع</span></th>
+          <th scope="col">متاحة</th>
+          <th scope="col">قيد التفاوض</th>
+          <th scope="col">محجوزة</th>
+          <th scope="col">مباعة أو مؤجرة الآن</th>
+          <th scope="col">مُنجز خلال {{ overview.recent_days }} يوماً</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="row in rows" :key="row.kind">
+          <th scope="row">{{ row.title }}</th>
+          <td>
+            <button
+              type="button"
+              class="performance__link"
+              @click="emit('open', { kind: row.kind, status: 'available' })"
+            >
+              {{ formatNumber(row.available, 0) }}
+            </button>
+            <small
+              >{{ row.valueLabel }}
+              <span class="money">{{ formatMoney(row.value) }}</span>
+              د.ع</small
+            >
+          </td>
+          <td>
+            <button
+              type="button"
+              class="performance__link"
+              @click="emit('open', { kind: row.kind, status: 'negotiating' })"
+            >
+              {{ formatNumber(row.negotiating, 0) }}
+            </button>
+          </td>
+          <td>
+            <button
+              type="button"
+              class="performance__link"
+              @click="emit('open', { kind: row.kind, status: 'reserved' })"
+            >
+              {{ formatNumber(row.reserved, 0) }}
+            </button>
+          </td>
+          <td>
+            <button
+              type="button"
+              class="performance__link"
+              :aria-label="`${row.doneLabel} الآن: ${row.done}`"
+              @click="emit('open', { kind: row.kind, status: row.doneStatus })"
+            >
+              {{ formatNumber(row.done, 0) }}
+            </button>
+          </td>
+          <td class="performance__done">
+            {{ formatNumber(row.closed, 0) }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
     <p v-if="overview && rows.length" class="performance__note">
-      المراحل المفتوحة حالات مسجّلة الآن. "المُنجز" يعدّ ما حالته الآن مباع أو
-      مؤجر وسُجّل تغييرها إليها خلال المدة. لا يسجّل النظام التواصل والمعاينة
-      مرحلةً لكل فرصة، ولا العمولات، فلا تظهر نسب تحويل أو مبالغ عمولة.
+      «المُنجز» ما حالته الآن مباع أو مؤجر وسُجّل تغييرها إليها خلال المدة.
+      القيمة الشهرية للإيجار: السنوي ÷ 12 ونصف السنوي ÷ 6. لا يسجّل دلالي
+      العمولات ولا عقود الإيجار ودفعاتها، فلا نسب تحويل ولا تجديدات هنا.
     </p>
   </section>
 </template>
 
 <style scoped>
-.performance__value {
-  font-size: calc(12px * var(--dal-font-scale));
-  color: var(--dal-muted);
+.performance {
+  min-width: 0;
 }
-.performance__value strong {
-  color: rgb(var(--v-theme-on-surface));
-}
-.performance__empty {
-  padding: 12px 16px;
-  color: var(--dal-muted);
-  font-size: calc(12px * var(--dal-font-scale));
+.performance__loading {
+  padding: 4px 8px;
 }
 .performance__table {
-  display: grid;
-  overflow-x: auto;
-}
-.performance__row {
-  display: grid;
-  grid-template-columns: 90px repeat(5, minmax(110px, 1fr));
-  align-items: center;
-  gap: 8px;
-  padding: 6px 16px;
-  border-bottom: 1px solid var(--dal-stroke);
+  width: 100%;
+  border-collapse: collapse;
   font-size: calc(13px * var(--dal-font-scale));
   font-variant-numeric: tabular-nums;
 }
-.performance__row--head {
-  font-size: calc(11.5px * var(--dal-font-scale));
-  color: var(--dal-muted);
-  background: var(--dal-canvas);
-}
-.performance__row button {
+.performance__table th,
+.performance__table td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--dal-stroke);
   text-align: start;
-  padding: 2px 6px;
-  margin-inline-start: -6px;
-  border-radius: 4px;
-  color: rgb(var(--v-theme-primary-text));
+  vertical-align: middle;
 }
-.performance__row button:hover:not(:disabled) {
+.performance__table thead th {
+  height: var(--dal-head-height);
+  font-size: calc(12px * var(--dal-font-scale));
+  font-weight: 600;
+  color: var(--dal-muted);
+  background: var(--dal-hover);
+}
+.performance__table tbody th {
+  font-weight: 700;
+}
+.performance__table td small {
+  display: block;
+  color: var(--dal-muted);
+  font-size: calc(12px * var(--dal-font-scale));
+}
+.performance__link {
+  padding: 0 6px;
+  margin-inline-start: -6px;
+  border-radius: var(--dal-radius-control);
+  color: rgb(var(--v-theme-primary-text));
+  font-weight: 700;
+}
+.performance__link:hover {
   background: var(--dal-hover);
   text-decoration: underline;
 }
-.performance__row button:disabled {
-  color: var(--dal-muted);
-}
 .performance__done {
   color: rgb(var(--v-theme-success));
-  font-weight: 600;
-}
-.performance__row--head .performance__done {
-  font-weight: 400;
+  font-weight: 700;
 }
 .performance__note {
   margin: 0;
-  padding: 8px 16px;
-  font-size: calc(11px * var(--dal-font-scale));
+  padding: 8px 12px;
+  font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
 }
 </style>

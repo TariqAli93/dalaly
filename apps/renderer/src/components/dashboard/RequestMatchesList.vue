@@ -167,7 +167,7 @@ function price(match: MatchResult) {
   width: 100%;
   padding: 6px 8px;
   text-align: start;
-  border-radius: 6px;
+  border-radius: var(--dal-radius-control);
 }
 .request-matches__row:hover {
   background: var(--dal-hover);
@@ -179,7 +179,7 @@ function price(match: MatchResult) {
   white-space: nowrap;
 }
 .request-matches__sub {
-  font-size: calc(11.5px * var(--dal-font-scale));
+  font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
 }
 .request-matches__partial {

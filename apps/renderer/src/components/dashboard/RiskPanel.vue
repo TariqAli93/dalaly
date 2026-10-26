@@ -34,6 +34,8 @@ const staleDays = defineModel<number>("staleDays", { required: true });
 const emit = defineEmits<{
   request: [DashboardRequest];
   listing: [{ kind: "sale" | "rental"; id: number }];
+  /** «عرض الكل»: القائمة الكاملة التي تحوي هذه الفئة. */
+  all: [{ section: "unmatched" | "stale"; kind: "sale" | "rental" }];
 }>();
 
 const EXAMPLES = 3;
@@ -122,6 +124,18 @@ function openViewing(item: DashboardAppointment) {
             · مفتوح {{ pluralizeDays(daysSince(request.created_at)) }}
           </span>
         </button>
+        <div v-if="matching.unmatched.total > EXAMPLES" class="risk__all">
+          <span>تظهر {{ EXAMPLES }} من {{ matching.unmatched.total }}.</span>
+          <v-btn
+            v-for="kind in matching.kinds"
+            :key="kind"
+            size="small"
+            variant="text"
+            @click="emit('all', { section: 'unmatched', kind })"
+            >كل طلبات
+            {{ kind === "sale" ? "الشراء" : "الإيجار" }} المفتوحة</v-btn
+          >
+        </div>
       </section>
 
       <section v-if="stale" id="risk-stale" class="risk">
@@ -171,6 +185,26 @@ function openViewing(item: DashboardAppointment) {
             {{ lastActivity(item) }}
           </span>
         </button>
+        <div v-if="stale.total > EXAMPLES" class="risk__all">
+          <span
+            >تظهر {{ EXAMPLES }} من {{ stale.total }}. القائمة الكاملة مرتّبة
+            بأقدم تعديل، وهو تقريب: لا تُحسب فيه المتابعات.</span
+          >
+          <v-btn
+            v-if="overview?.stale_listings.sale?.total"
+            size="small"
+            variant="text"
+            @click="emit('all', { section: 'stale', kind: 'sale' })"
+            >عروض البيع المتاحة</v-btn
+          >
+          <v-btn
+            v-if="overview?.stale_listings.rental?.total"
+            size="small"
+            variant="text"
+            @click="emit('all', { section: 'stale', kind: 'rental' })"
+            >عروض الإيجار المتاحة</v-btn
+          >
+        </div>
       </section>
 
       <section v-if="viewings" id="risk-viewings" class="risk">
@@ -212,6 +246,15 @@ function openViewing(item: DashboardAppointment) {
 <style scoped>
 .risks {
   min-width: 0;
+}
+.risk__all {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 4px 0 0;
+  font-size: calc(12px * var(--dal-font-scale));
+  color: var(--dal-muted);
 }
 .risk {
   padding: 10px 14px;
@@ -259,7 +302,7 @@ function openViewing(item: DashboardAppointment) {
   color: rgb(var(--v-theme-primary-text));
 }
 .risk__text {
-  font-size: calc(11.5px * var(--dal-font-scale));
+  font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
 }
 .risk__row {
@@ -270,7 +313,7 @@ function openViewing(item: DashboardAppointment) {
   margin-inline-start: 40px;
   max-width: calc(100% - 40px);
   text-align: start;
-  border-radius: 6px;
+  border-radius: var(--dal-radius-control);
 }
 .risk__row:hover {
   background: var(--dal-hover);
@@ -282,7 +325,7 @@ function openViewing(item: DashboardAppointment) {
   white-space: nowrap;
 }
 .risk__row-sub {
-  font-size: calc(11px * var(--dal-font-scale));
+  font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
   overflow: hidden;
   text-overflow: ellipsis;

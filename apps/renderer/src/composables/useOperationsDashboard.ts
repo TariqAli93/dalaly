@@ -12,7 +12,8 @@ import type {
 
 /** مدد الركود التي يقبلها الخادم (dashboard.schema.ts). */
 export const STALE_DAY_OPTIONS = [14, 30, 60, 90] as const;
-const MATCH_PAGE_SIZE = 8;
+// قائمة عمل لا تقرير: خمسة طلبات في الصفحة، والصفحات تحتها.
+const MATCH_PAGE_SIZE = 5;
 
 /**
  * حالة لوحة العمليات على مستوى الوحدة: تبقى بين زيارات اللوحة، فتظهر آخر

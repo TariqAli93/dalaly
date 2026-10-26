@@ -261,7 +261,7 @@ function isToday(value: string) {
 }
 .decision__when {
   margin-inline-start: auto;
-  font-size: calc(11.5px * var(--dal-font-scale));
+  font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
   white-space: nowrap;
 }
@@ -281,7 +281,7 @@ function isToday(value: string) {
 .decisions__more {
   padding: 8px 14px;
   border-top: 1px solid var(--dal-stroke);
-  font-size: calc(11.5px * var(--dal-font-scale));
+  font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
 }
 </style>
