@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, ref, useTemplateRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import RentalForm from "../components/rentals/RentalForm.vue";
 import MatchingResultsDialog from "../components/requests/MatchingResultsDialog.vue";
 import DraftNotice from "../components/shared/DraftNotice.vue";
 import { useDirtyForm } from "../composables/useDirtyForm";
+import { useApiFormErrors } from "../composables/useApiFormErrors";
+import { useSaveShortcut } from "../composables/useSaveShortcut";
 import * as rentals from "../services/rentals.service";
 import * as requests from "../services/requests.service";
 import { getErrorMessage } from "../services/api.service";
@@ -64,7 +66,8 @@ function toForm(item: RentalRecord): RentalFormType {
     property_type: item.property_type,
     rent_price: item.rent_price,
     rent_period: item.rent_period,
-    area_value: item.area_value,
+    // عمود numeric يصل بخانتين عشريتين («145.00»)، والأصفار الزائدة ضجيج في الحقل.
+    area_value: String(Number(item.area_value)),
     area_unit: item.area_unit,
     floors_count: item.floors_count,
     rooms_count: item.rooms_count,
@@ -91,20 +94,25 @@ function toForm(item: RentalRecord): RentalFormType {
 const form = ref<RentalFormType>(empty());
 const editingId = ref<number | null>(null);
 const saving = ref(false);
-const formRef = ref<{ validate: () => Promise<boolean> } | null>(null);
+const formRef = useTemplateRef<{
+  validate: () => Promise<boolean>;
+  focusField: (name: string) => Promise<void>;
+}>("formRef");
 const matchDialog = ref(false);
 const matches = ref<MatchResult[]>([]);
 const pendingRedirect = ref<string | null>(null);
 const isEditing = computed(() => editingId.value !== null);
 const changes = useDirtyForm(form, () => `rental:${editingId.value ?? "new"}`);
+// النموذج يسمّي حقول الموقع بأسمائها في الطلب نفسه، فلا أسماء بديلة.
+const apiErrors = useApiFormErrors();
+useSaveShortcut(() => void save());
 
 async function save() {
   // Enter في حقل يرسل النموذج حتى أثناء الحفظ؛ loading يمنع النقر وحده.
   if (saving.value) return;
-  if (!(await formRef.value?.validate())) {
-    notifyError("تحقق من الحقول المطلوبة.");
-    return;
-  }
+  apiErrors.clear();
+  // التحقق يركّز أول حقل خاطئ ويُظهر رسالته تحته.
+  if (!(await formRef.value?.validate())) return;
   saving.value = true;
   matches.value = [];
   pendingRedirect.value = null;
@@ -123,7 +131,6 @@ async function save() {
   };
   try {
     let savedId = editingId.value;
-    const wasEditing = savedId !== null;
     if (savedId !== null) {
       await rentals.updateRental(savedId, payload);
       changes.markSaved();
@@ -137,11 +144,11 @@ async function save() {
       // (بعد إغلاق حوار المطابقات مثلاً) يحدّثه ولا يُنشئ عرضاً مكرّراً.
       editingId.value = savedId;
       await router.replace(`/rentals/${savedId}/edit`);
-      notifySuccess("تمت إضافة العرض الإيجاري.");
+      notifySuccess("تمت إضافة العرض الإيجاري. أضف صوره من صفحته.");
     }
 
-    // بعد الإضافة تبقى الصفحة على العرض الجديد لإضافة صوره.
-    const destination = wasEditing ? "/rentals" : null;
+    // بعد الحفظ صفحة العرض نفسه (وفيها الصور)، لا القائمة.
+    const destination = `/rentals/${savedId}`;
     try {
       const result = await requests.rentalRequestMatches(savedId);
       matches.value = result.matches;
@@ -154,12 +161,21 @@ async function save() {
     }
 
     if (matches.value.length) matchDialog.value = true;
-    else if (destination) await router.push(destination);
+    else await router.push(destination);
   } catch (error) {
-    notifyError(getErrorMessage(error));
+    const general = apiErrors.apply(error);
+    if (general) notifyError(general);
+    const first = apiErrors.fields()[0];
+    if (first) void formRef.value?.focusField(first);
   } finally {
     saving.value = false;
   }
+}
+
+function cancel() {
+  void router.push(
+    editingId.value !== null ? `/rentals/${editingId.value}` : "/rentals",
+  );
 }
 
 function closeMatches(value: boolean) {
@@ -185,6 +201,7 @@ watch(
   () => Number(route.params.id) || null,
   async (id) => {
     if (id !== null && id === editingId.value) return;
+    apiErrors.clear();
     await loadLocations();
     if (!id) {
       form.value = empty();
@@ -209,7 +226,11 @@ watch(
 <template>
   <AppPage
     :title="isEditing ? 'تعديل عرض إيجاري' : 'إضافة عرض إيجاري'"
-    subtitle="بيانات العرض الإيجاري."
+    :parent="
+      isEditing
+        ? { to: `/rentals/${editingId}`, label: 'العرض' }
+        : { to: '/rentals', label: 'عروض الإيجار' }
+    "
   >
     <DraftNotice
       v-if="changes.draft.value"
@@ -220,11 +241,11 @@ watch(
     <RentalForm
       ref="formRef"
       v-model="form"
-      :editing="isEditing"
       :saving="saving"
-      :rental-id="editingId"
+      :dirty="changes.isDirty.value"
+      :field-errors="apiErrors.errors.value"
       @submit="save"
-      @cancel="router.push('/rentals')"
+      @cancel="cancel"
     />
     <MatchingResultsDialog
       :model-value="matchDialog"

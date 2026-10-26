@@ -1,373 +1,276 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import RentalFilters from "../components/rentals/RentalFilters.vue";
 import RentalTable from "../components/rentals/RentalTable.vue";
 import RentalSummary from "../components/rentals/RentalSummary.vue";
-import RentalDetailsDialog from "../components/rentals/RentalDetailsDialog.vue";
 import MasterDetailLayout from "../components/shared/MasterDetailLayout.vue";
-import * as rentals from "../services/rentals.service";
+import RecordFollowupDialog from "../components/shared/RecordFollowupDialog.vue";
 import { getErrorMessage } from "../services/api.service";
 import { usePermissions } from "../composables/usePermissions";
 import { useSnackbar } from "../composables/useSnackbar";
-import { useConfirm } from "../composables/useConfirm";
 import { useRefresh } from "../composables/useRefresh";
-import { createPagedList } from "../composables/usePagedList";
+import { useRentals } from "../composables/useRentals";
+import { useRentalActions } from "../composables/useRentalActions";
 import { exportRentalFolder } from "../utils/listingExport";
 import { RENTAL_SORT_OPTIONS } from "../constants/domain";
-import type {
-  RentalFilters as RentalFiltersType,
-  RentalRecord,
-  RentalSortKey,
-  RentalStatus,
-} from "../types";
+import type { FollowupTarget, RentalRecord, RentalStatus } from "../types";
 
+/**
+ * قائمة العروض الإيجارية بنمط قائمة عروض البيع: لوح واحد فيه شريط الفلاتر
+ * والجدول، ولوحة جانبية للصف المحدد، وصفحة سجل يفتحها Enter أو النقر المزدوج.
+ */
 const router = useRouter();
 const route = useRoute();
 const { can } = usePermissions();
 const { notifyError, notifySuccess } = useSnackbar();
-const { openConfirm } = useConfirm();
 const { setRefreshHandler } = useRefresh();
-
-const defaultFilters = (): RentalFiltersType => ({
-  property_type: "",
-  rent_period: "",
-  rent_price_min: "",
-  rent_price_max: "",
-  area_min: "",
-  area_max: "",
-  rooms_count: "",
-  bathrooms_count: "",
-  floors_count: "",
-  governorate_id: null,
-  district_id: null,
-  neighborhood_id: null,
-  status: "",
-  negotiable: "",
-  amenities: "",
-  q: "",
-});
-
-const filters = ref<RentalFiltersType>(defaultFilters());
-const favoriteIds = ref(new Set<number>());
-const selected = ref<RentalRecord | null>(null);
-const detailsDialog = ref(false);
-const paneOpen = ref(false);
-
-// صفحة واحدة من الخادم؛ الترتيب (والمساحة فيه بالمتر المربع) والمفضلة هناك.
-// الفلاتر كما أُرسلت في آخر طلب.
-let requestedFilters = "";
-const list = createPagedList<RentalRecord, RentalSortKey>((page, signal) => {
-  requestedFilters = JSON.stringify(filters.value);
-  return rentals.listRentalsPage(filters.value, page, signal);
-}, RENTAL_SORT_OPTIONS[0]);
 const {
-  items,
+  rentals,
   total,
   loading,
-  page,
-  pageSize,
-  sortBy,
-  favoritesOnly,
-  onTableOptions,
-} = list;
+  filters,
+  list,
+  favoriteIds,
+  applyFilters,
+  reloadRentals,
+  clearFilters,
+  showOnly,
+  loadFavoriteIds,
+  toggleFavorite,
+} = useRentals();
+const { page, pageSize, sortBy, favoritesOnly, onTableOptions, error } = list;
+
+const table = useTemplateRef<{
+  focusFirstRow: () => void;
+  focusRow: (id: number) => void;
+}>("table");
+const selected = ref<RentalRecord | null>(null);
+const paneOpen = ref(false);
+const followupOpen = ref(false);
+const followupTarget = ref<FollowupTarget | null>(null);
 
 const sortValue = computed(() => list.currentSortValue(RENTAL_SORT_OPTIONS));
+const sortTitle = computed(
+  () =>
+    RENTAL_SORT_OPTIONS.find((option) => option.value === sortValue.value)
+      ?.title ?? "مخصّص",
+);
 function selectSort(value: string | null) {
   const option = RENTAL_SORT_OPTIONS.find((item) => item.value === value);
   if (option) void list.setSort(option);
 }
 
-const resultsLabel = computed(() => `عدد العروض الإيجارية: ${total.value}`);
-const hasActiveFilters = computed(() => {
-  const filter = filters.value;
-  return Boolean(
-    filter.q ||
-    filter.property_type ||
-    filter.rent_period ||
-    filter.status ||
-    filter.governorate_id ||
-    filter.district_id ||
-    filter.neighborhood_id ||
-    filter.rent_price_min ||
-    filter.rent_price_max ||
-    filter.area_min ||
-    filter.area_max ||
-    filter.rooms_count ||
-    filter.bathrooms_count ||
-    filter.floors_count ||
-    filter.negotiable ||
-    filter.amenities ||
-    favoritesOnly.value,
-  );
-});
+const hasActiveFilters = computed(
+  () =>
+    Object.entries(filters.value).some(
+      ([, value]) => value !== "" && value !== null,
+    ) || favoritesOnly.value,
+);
 
-async function loadFavoriteIds() {
-  try {
-    favoriteIds.value = new Set((await rentals.listRentalFavoriteIds()).ids);
-  } catch (error) {
-    notifyError(getErrorMessage(error));
-  }
-}
-/** فلاتر جديدة: من الصفحة الأولى. */
-function load() {
-  return list.loadFirstPage();
-}
-/** تطبيق شريط الفلاتر بعد توقّف الكتابة: لا يعيد طلب فلاتر أرسلها قبله المسح. */
-function applyFilters() {
-  if (JSON.stringify(filters.value) !== requestedFilters) void load();
-}
-/** بعد أرشفة أو حذف أو تحديث: نفس الصفحة. */
-async function reload() {
-  await Promise.all([list.reload(), loadFavoriteIds()]);
-}
-
-function clear() {
-  filters.value = defaultFilters();
-  void load();
+const availableOnly = computed(() => filters.value.status === "available");
+function toggleAvailable() {
+  filters.value.status = availableOnly.value ? "" : "available";
 }
 function resetAll() {
   favoritesOnly.value = false;
-  clear();
+  clearFilters();
 }
-function toggleAvailable() {
-  filters.value.status =
-    filters.value.status === "available" ? "" : "available";
-}
+
 function view(item: RentalRecord) {
-  selected.value = item;
-  detailsDialog.value = true;
+  void router.push(`/rentals/${item.id}`);
 }
+function edit(item: RentalRecord) {
+  void router.push(`/rentals/${item.id}/edit`);
+}
+function createRental() {
+  void router.push("/rentals/new");
+}
+async function favorite(item: RentalRecord) {
+  try {
+    await toggleFavorite(item.id);
+    if (favoritesOnly.value) void reloadRentals();
+  } catch (cause) {
+    notifyError(getErrorMessage(cause));
+  }
+}
+const { askArchive, askRestore, askDelete } = useRentalActions(
+  async (action, rental) => {
+    if (action === "delete" && selected.value?.id === rental.id) {
+      selected.value = null;
+      paneOpen.value = false;
+    }
+    await reloadRentals();
+  },
+);
+async function exportRental(item: RentalRecord) {
+  try {
+    const result = await exportRentalFolder(item);
+    if (result.canceled) return;
+    if (!result.ok) throw new Error(result.message ?? "تعذر تصدير الإيجار.");
+    notifySuccess(
+      `تم تصدير الإيجار مع صوره إلى: ${result.path ?? "المجلد المحدد"}`,
+    );
+  } catch (cause) {
+    notifyError(getErrorMessage(cause));
+  }
+}
+
 function selectRow(item: RentalRecord) {
   selected.value = item;
   paneOpen.value = true;
 }
-function edit(item: RentalRecord) {
-  detailsDialog.value = false;
-  void router.push(`/rentals/${item.id}/edit`);
+function closePane() {
+  paneOpen.value = false;
+  if (selected.value) table.value?.focusRow(selected.value.id);
 }
-function favorite(item: RentalRecord) {
-  const isFavorite = favoriteIds.value.has(item.id);
-  const request = isFavorite
-    ? rentals.removeRentalFavorite(item.id)
-    : rentals.addRentalFavorite(item.id);
-  void request
-    .then(() => {
-      const next = new Set(favoriteIds.value);
-      if (isFavorite) next.delete(item.id);
-      else next.add(item.id);
-      favoriteIds.value = next;
-      if (favoritesOnly.value) void list.reload();
-    })
-    .catch((error) => notifyError(getErrorMessage(error)));
-}
-function archive(item: RentalRecord) {
-  openConfirm({
-    title: `أرشفة ${item.code}`,
-    body: "سيبقى العرض محفوظاً لكنه لن يظهر في القائمة الافتراضية.",
-    confirmText: "أرشفة",
-    color: "warning",
-    onConfirm: async () => {
-      try {
-        await rentals.archiveRental(item.id);
-        detailsDialog.value = false;
-        await reload();
-        notifySuccess("تمت أرشفة العرض الإيجاري.");
-      } catch (error) {
-        notifyError(getErrorMessage(error));
-      }
-    },
-  });
-}
-function restore(item: RentalRecord) {
-  openConfirm({
-    title: `إرجاع ${item.code}`,
-    body: "هل تريد إرجاع هذا الإيجار إلى حالة متاح؟",
-    confirmText: "إرجاع",
-    color: "success",
-    onConfirm: async () => {
-      try {
-        await rentals.restoreRental(item.id);
-        detailsDialog.value = false;
-        await reload();
-        notifySuccess("تم إرجاع العرض الإيجاري.");
-      } catch (error) {
-        notifyError(getErrorMessage(error));
-      }
-    },
-  });
-}
-function remove(item: RentalRecord) {
-  openConfirm({
-    title: `حذف ${item.code}`,
-    body: "سيتم حذف الإيجار وصوره ومتابعاته نهائياً.",
-    confirmText: "حذف",
-    color: "error",
-    onConfirm: async () => {
-      try {
-        await rentals.deleteRental(item.id);
-        detailsDialog.value = false;
-        selected.value = null;
-        await reload();
-        notifySuccess("تم حذف العرض الإيجاري.");
-      } catch (error) {
-        notifyError(getErrorMessage(error));
-      }
-    },
-  });
+function logFollowup() {
+  const rental = selected.value;
+  if (!rental) return;
+  followupTarget.value = {
+    kind: "rental",
+    listingId: rental.id,
+    listingLabel: rental.name || `إيجار ${rental.code}`,
+  };
+  followupOpen.value = true;
 }
 
-async function exportSelected() {
-  try {
-    if (!selected.value) {
-      notifyError("اختر إيجاراً أولاً لتصديره.");
-      return;
-    }
-    const result = await exportRentalFolder(selected.value);
-    if (result.canceled) return;
-    if (!result.ok) throw new Error(result.message ?? "تعذر تصدير الإيجارات.");
-    notifySuccess(
-      `تم تصدير الإيجار مع صوره إلى: ${result.path ?? "المجلد المحدد"}`,
-    );
-  } catch (error) {
-    notifyError(getErrorMessage(error));
-  }
+function onShortcut(event: KeyboardEvent) {
+  if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyN") return;
+  if (event.altKey || event.shiftKey || !can("rentals.create")) return;
+  if (document.querySelector(".v-overlay--active .v-dialog")) return;
+  event.preventDefault();
+  createRental();
 }
 
 // ?status=<حالة> من لوحة التحكم: القائمة تبدأ بها وحدها.
-const LINKED_STATUSES: RentalStatus[] = [
+const LINKED: RentalStatus[] = [
   "available",
   "reserved",
   "negotiating",
   "rented",
   "archived",
 ];
-const linkedStatus = LINKED_STATUSES.find(
-  (status) => status === route.query.status,
-);
-if (linkedStatus) filters.value = { ...defaultFilters(), status: linkedStatus };
-// قبل أن يُظهر الجدول خياراته الأولى، فلا يطلب الصفحة نفسها مرتين. المواقع
-// تطلبها الفلاتر، والجدول لا ينتظرها (أسماء المواقع في صفوفه).
-void reload();
-// ?open=<id> من لوحة التحكم أو المطابقة: لا صفحة تفاصيل للإيجار، فيُفتح
-// حوار تفاصيله، والعرض قد لا يكون في الصفحة الأولى. يُراقَب لأن الموجّه
-// يُبقي الصفحة نفسها حين يتغيّر الاستعلام وحده.
-async function openFromQuery() {
-  const openId = Number(route.query.open);
-  if (!openId) return;
-  try {
-    view(await rentals.getRental(openId));
-  } catch (error) {
-    notifyError(getErrorMessage(error));
-  }
+const linkedStatus = LINKED.find((status) => status === route.query.status);
+if (linkedStatus) {
+  showOnly({ status: linkedStatus });
+  void router.replace({ query: {} });
 }
-watch(() => route.query.open, openFromQuery);
+// قبل أن يُظهر الجدول خياراته الأولى، فلا يطلب الصفحة نفسها مرتين.
+void reloadRentals();
 onMounted(() => {
-  setRefreshHandler(reload);
-  void openFromQuery();
+  setRefreshHandler(() =>
+    Promise.all([reloadRentals(), loadFavoriteIds()]).then(() => undefined),
+  );
+  void loadFavoriteIds();
+  window.addEventListener("keydown", onShortcut);
 });
-onBeforeUnmount(() => list.cancel());
+onBeforeUnmount(() => window.removeEventListener("keydown", onShortcut));
 </script>
 
 <template>
-  <AppPage title="عروض الإيجار" subtitle="إدارة العروض الإيجارية داخل المكتب.">
+  <AppPage title="عروض الإيجار" :count="loading && !total ? null : total">
     <template #header-actions>
-      <div class="d-flex flex-wrap ga-2">
-        <v-btn
-          v-if="can('rentals.read')"
-          variant="tonal"
-          prepend-icon="mdi-folder-multiple-outline"
-          :disabled="!selected"
-          @click="exportSelected"
-        >
-          تصدير ملف نصي والصور
-        </v-btn>
-        <v-btn
-          v-if="can('rentals.read')"
-          variant="tonal"
-          prepend-icon="mdi-heart-outline"
-          @click="router.push('/rental-favorites')"
-        >
-          مفضلة الإيجارات
-        </v-btn>
-        <v-btn
-          v-if="can('rentals.create')"
-          color="primary"
-          prepend-icon="mdi-plus"
-          @click="router.push('/rentals/new')"
-        >
-          إضافة إيجار
-        </v-btn>
-      </div>
+      <v-btn
+        v-if="can('rentals.create')"
+        color="primary"
+        prepend-icon="mdi-plus"
+        title="إضافة عرض إيجار (Ctrl+N)"
+        aria-keyshortcuts="Control+N"
+        @click="createRental"
+        >إضافة عرض إيجار</v-btn
+      >
     </template>
 
-    <RentalFilters v-model="filters" @apply="applyFilters" @clear="clear" />
-
-    <div class="dal-resultsbar bg-surface pa-3 border">
-      <span class="dal-resultsbar__count">{{ resultsLabel }}</span>
-      <div class="dal-quickpicks">
-        <v-btn
-          size="small"
-          :variant="filters.status === 'available' ? 'flat' : 'text'"
-          :color="filters.status === 'available' ? 'primary' : undefined"
-          @click="toggleAvailable"
-          >المتاحة</v-btn
-        >
-        <v-btn
-          size="small"
-          :variant="sortValue === 'newest' ? 'flat' : 'text'"
-          :color="sortValue === 'newest' ? 'primary' : undefined"
-          @click="selectSort('newest')"
-          >المضافة حديثاً</v-btn
-        >
-        <v-btn
-          size="small"
-          :variant="favoritesOnly ? 'flat' : 'text'"
-          :color="favoritesOnly ? 'error' : undefined"
-          prepend-icon="mdi-heart-outline"
-          @click="list.setFavoritesOnly(!favoritesOnly)"
-          >المفضلة</v-btn
-        >
-      </div>
-      <v-spacer />
-      <v-select
-        :model-value="sortValue"
-        :items="RENTAL_SORT_OPTIONS"
-        label="ترتيب"
-        density="compact"
-        hide-details
-        class="dal-sort"
-        @update:model-value="selectSort"
-      />
-    </div>
-
     <MasterDetailLayout
+      fill
       :open="paneOpen && !!selected"
-      @close="paneOpen = false"
+      detail-label="ملخّص العرض الإيجاري المحدد"
+      @close="closePane"
     >
       <template #main>
-        <RentalTable
-          v-model:page="page"
-          v-model:items-per-page="pageSize"
-          v-model:sort-by="sortBy"
-          :rentals="items"
-          :total="total"
-          :favorite-ids="favoriteIds"
-          :loading="loading"
-          :selected-id="selected?.id ?? null"
-          :has-filters="hasActiveFilters"
-          @view="view"
-          @edit="edit"
-          @archive="archive"
-          @restore="restore"
-          @delete="remove"
-          @favorite="favorite"
-          @create="router.push('/rentals/new')"
-          @select="selectRow"
-          @clear-filters="resetAll"
-          @options="onTableOptions"
-        />
+        <section class="dal-panel dal-listpanel" aria-label="عروض الإيجار">
+          <RentalFilters
+            v-model="filters"
+            @apply="applyFilters"
+            @clear="resetAll"
+            @down="table?.focusFirstRow()"
+          >
+            <template #views>
+              <div class="dal-views" role="group" aria-label="عرض سريع">
+                <v-btn
+                  size="small"
+                  :variant="availableOnly ? 'tonal' : 'text'"
+                  :color="availableOnly ? 'primary' : undefined"
+                  :aria-pressed="availableOnly"
+                  @click="toggleAvailable"
+                  >المتاحة</v-btn
+                >
+                <v-btn
+                  size="small"
+                  :variant="favoritesOnly ? 'tonal' : 'text'"
+                  :color="favoritesOnly ? 'primary' : undefined"
+                  :prepend-icon="
+                    favoritesOnly ? 'mdi-heart' : 'mdi-heart-outline'
+                  "
+                  :aria-pressed="favoritesOnly"
+                  @click="list.setFavoritesOnly(!favoritesOnly)"
+                  >المفضلة</v-btn
+                >
+              </div>
+            </template>
+            <template #end>
+              <v-menu location="bottom end">
+                <template #activator="{ props: menu }">
+                  <v-btn
+                    v-bind="menu"
+                    size="small"
+                    variant="text"
+                    append-icon="mdi-chevron-down"
+                    :aria-label="`ترتيب القائمة: ${sortTitle}`"
+                    >ترتيب: {{ sortTitle }}</v-btn
+                  >
+                </template>
+                <v-list density="compact" min-width="190">
+                  <v-list-item
+                    v-for="option in RENTAL_SORT_OPTIONS"
+                    :key="option.value"
+                    :title="option.title"
+                    :active="option.value === sortValue"
+                    @click="selectSort(option.value)"
+                  />
+                </v-list>
+              </v-menu>
+            </template>
+          </RentalFilters>
+
+          <RentalTable
+            ref="table"
+            v-model:page="page"
+            v-model:items-per-page="pageSize"
+            v-model:sort-by="sortBy"
+            :rentals="rentals"
+            :total="total"
+            :favorite-ids="favoriteIds"
+            :loading="loading"
+            :error="error"
+            :selected-id="selected?.id ?? null"
+            :has-filters="hasActiveFilters"
+            @view="view"
+            @edit="edit"
+            @archive="askArchive"
+            @restore="askRestore"
+            @delete="askDelete"
+            @favorite="favorite"
+            @export="exportRental"
+            @create="createRental"
+            @select="selectRow"
+            @clear-filters="resetAll"
+            @retry="reloadRentals"
+            @options="onTableOptions"
+          />
+        </section>
       </template>
       <template #detail>
         <RentalSummary
@@ -376,46 +279,16 @@ onBeforeUnmount(() => list.cancel());
           :favorite="favoriteIds.has(selected.id)"
           @open="view(selected)"
           @edit="edit(selected)"
-          @archive="archive(selected)"
-          @restore="restore(selected)"
-          @delete="remove(selected)"
+          @archive="askArchive(selected)"
+          @restore="askRestore(selected)"
+          @delete="askDelete(selected)"
           @favorite="favorite(selected)"
-          @close="paneOpen = false"
+          @followup="logFollowup"
+          @close="closePane"
         />
       </template>
     </MasterDetailLayout>
 
-    <RentalDetailsDialog
-      v-model="detailsDialog"
-      :rental="selected"
-      @edit="edit"
-      @archive="archive"
-      @restore="restore"
-      @delete="remove"
-    />
+    <RecordFollowupDialog v-model="followupOpen" :target="followupTarget" />
   </AppPage>
 </template>
-
-<style scoped>
-.dal-resultsbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin: 8px 0 10px;
-}
-.dal-resultsbar__count {
-  font-size: calc(13px * var(--dal-font-scale));
-  font-weight: 600;
-  color: rgba(var(--v-theme-on-surface), 0.8);
-}
-.dal-quickpicks {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.dal-sort {
-  max-width: 170px;
-  flex: 0 0 auto;
-}
-</style>

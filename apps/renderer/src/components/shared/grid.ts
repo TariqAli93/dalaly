@@ -27,6 +27,9 @@ export type GridHeader = {
   priority?: 1 | 2 | 3;
 };
 
+/** شريحة فلتر فعّال في FilterBar؛ key ما يُزال عند إغلاقها. */
+export type FilterChip = { key: string; label: string };
+
 /** ما يتيحه DataGrid لأبيه عبر ref. */
 export type DataGridApi = {
   focusFirstRow: () => void;

@@ -68,6 +68,15 @@ export const RENT_PERIODS = [
   { title: "سنوي", value: "annual" },
 ];
 
+/** حالات العرض الإيجاري (RENTAL_STATUSES في الخادم): لا «مباع» ولا «مغلق». */
+export const RENTAL_STATUSES = [
+  { title: "متاح", value: "available" },
+  { title: "محجوز", value: "reserved" },
+  { title: "قيد التفاوض", value: "negotiating" },
+  { title: "مؤجر", value: "rented" },
+  { title: "مؤرشف", value: "archived" },
+];
+
 export const RENT_PERIOD_LABELS: Record<string, string> = Object.fromEntries(
   RENT_PERIODS.map((p) => [p.value, p.title]),
 );

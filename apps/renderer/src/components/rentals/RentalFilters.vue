@@ -1,14 +1,28 @@
 <script setup lang="ts">
-import { RENT_PERIODS, RENTAL_PROPERTY_TYPES } from "../../constants/domain";
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onMounted, useTemplateRef } from "vue";
+import {
+  RENT_PERIODS,
+  RENTAL_PROPERTY_TYPES,
+  RENTAL_STATUSES,
+} from "../../constants/domain";
 import { useLocations } from "../../composables/useLocations";
 import NumberField from "../app/NumberField.vue";
+import FilterBar from "../shared/FilterBar.vue";
+import type { FilterChip } from "../shared/grid";
+import { AMENITY_OPTIONS } from "../../utils/amenities";
+import { formatMoney } from "../../utils/format";
 import type { RentalFilters } from "../../types";
 
+/**
+ * فلاتر العروض الإيجارية على شريط القوائم المشترك. لكل فلتر فعّال شريحة، ومنها
+ * الغرف والحمامات والطوابق والمميزات التي كانت تُخفي عروضاً بلا أثر ظاهر.
+ * المميزات مفاتيح القائمة نفسها في كائن JSON كما يقارنها الخادم (@>)؛ النص
+ * الحر الذي كان هنا لم يكن JSON فلم يُصفِّ شيئاً.
+ */
 const model = defineModel<RentalFilters>({ required: true });
-const emit = defineEmits<{ apply: []; clear: [] }>();
-const extraOpen = ref(false);
-const searchRef = ref<{ $el?: HTMLElement } | null>(null);
+const emit = defineEmits<{ apply: []; clear: []; down: [] }>();
+const bar = useTemplateRef<{ focusSearch: () => void }>("bar");
+
 const {
   activeGovernorates,
   districtsByGovernorate,
@@ -22,169 +36,166 @@ const neighborhoods = computed(() =>
   neighborhoodsByDistrict(model.value.district_id),
 );
 
-const propertyTypes = RENTAL_PROPERTY_TYPES;
-const periods = RENT_PERIODS;
-const statuses = [
-  { title: "متاح", value: "available" },
-  { title: "محجوز", value: "reserved" },
-  { title: "قيد التفاوض", value: "negotiating" },
-  { title: "مؤجر", value: "rented" },
-  { title: "مؤرشف", value: "archived" },
-];
 const negotiableOptions = [
   { title: "قابل للتفاوض", value: "true" },
   { title: "غير قابل للتفاوض", value: "false" },
 ];
 
-let applyTimer: ReturnType<typeof setTimeout> | undefined;
-function scheduleApply(delay = 300) {
-  if (applyTimer) clearTimeout(applyTimer);
-  applyTimer = setTimeout(() => emit("apply"), delay);
+function selectGovernorate(value: number | null) {
+  model.value.governorate_id = value;
+  model.value.district_id = null;
+  model.value.neighborhood_id = null;
 }
-watch(model, () => scheduleApply(), { deep: true });
+function selectDistrict(value: number | null) {
+  model.value.district_id = value;
+  model.value.neighborhood_id = null;
+}
 
-function updateLocation(
-  key: "governorate_id" | "district_id" | "neighborhood_id",
-  value: number | null,
-) {
-  model.value[key] = value;
-  if (key === "governorate_id") {
-    model.value.district_id = null;
-    model.value.neighborhood_id = null;
-  } else if (key === "district_id") {
-    model.value.neighborhood_id = null;
+function parseAmenities(value: string): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value) as Record<string, unknown>;
+    return Object.keys(parsed).filter((key) => parsed[key] === true);
+  } catch {
+    return [];
   }
 }
-function govName(id: number | null) {
-  return activeGovernorates.value.find((item) => item.id === id)?.name ?? "";
-}
-function districtName(id: number | null) {
-  return districts.value.find((item) => item.id === id)?.name ?? "";
-}
-function neighborhoodName(id: number | null) {
-  return neighborhoods.value.find((item) => item.id === id)?.name ?? "";
-}
+const amenityKeys = computed({
+  get: () => parseAmenities(model.value.amenities),
+  set: (keys: string[]) => {
+    model.value.amenities = keys.length
+      ? JSON.stringify(Object.fromEntries(keys.map((key) => [key, true])))
+      : "";
+  },
+});
+const amenityTitle = (key: string) =>
+  AMENITY_OPTIONS.find((item) => item.key === key)?.title ?? key;
 
-const chips = computed(() => {
-  const filter = model.value;
-  const list: Array<{ key: string; label: string }> = [];
-  if (filter.q) list.push({ key: "q", label: `بحث: ${filter.q}` });
-  if (filter.governorate_id)
-    list.push({ key: "governorate_id", label: govName(filter.governorate_id) });
-  if (filter.district_id)
-    list.push({ key: "district_id", label: districtName(filter.district_id) });
-  if (filter.neighborhood_id)
+const titleOf = (items: { title: string; value: string }[], value: string) =>
+  items.find((item) => item.value === value)?.title ?? value;
+
+const chips = computed<FilterChip[]>(() => {
+  const f = model.value;
+  const list: FilterChip[] = [];
+  if (f.q) list.push({ key: "q", label: `بحث: ${f.q}` });
+  if (f.governorate_id)
+    list.push({
+      key: "governorate_id",
+      label:
+        activeGovernorates.value.find((g) => g.id === f.governorate_id)?.name ??
+        "",
+    });
+  if (f.district_id)
+    list.push({
+      key: "district_id",
+      label: districts.value.find((d) => d.id === f.district_id)?.name ?? "",
+    });
+  if (f.neighborhood_id)
     list.push({
       key: "neighborhood_id",
-      label: neighborhoodName(filter.neighborhood_id),
+      label:
+        neighborhoods.value.find((n) => n.id === f.neighborhood_id)?.name ?? "",
     });
-  if (filter.property_type)
+  if (f.property_type)
     list.push({
       key: "property_type",
-      label:
-        propertyTypes.find((item) => item.value === filter.property_type)
-          ?.title ?? filter.property_type,
+      label: titleOf(RENTAL_PROPERTY_TYPES, f.property_type),
     });
-  if (filter.rent_period)
+  if (f.status)
+    list.push({ key: "status", label: titleOf(RENTAL_STATUSES, f.status) });
+  if (f.rent_period)
     list.push({
       key: "rent_period",
-      label:
-        periods.find((item) => item.value === filter.rent_period)?.title ??
-        filter.rent_period,
+      label: titleOf(RENT_PERIODS, f.rent_period),
     });
-  if (filter.status)
-    list.push({
-      key: "status",
-      label:
-        statuses.find((item) => item.value === filter.status)?.title ??
-        filter.status,
-    });
-  if (filter.negotiable)
+  if (f.negotiable)
     list.push({
       key: "negotiable",
-      label: filter.negotiable === "true" ? "قابل للتفاوض" : "غير قابل للتفاوض",
+      label: titleOf(negotiableOptions, f.negotiable),
     });
-  if (filter.area_min || filter.area_max)
-    list.push({
-      key: "area",
-      label: `مساحة ${filter.area_min || "…"}–${filter.area_max || "…"}`,
-    });
-  if (filter.rent_price_min || filter.rent_price_max)
+  if (f.rent_price_min || f.rent_price_max)
     list.push({
       key: "price",
-      label: `سعر ${filter.rent_price_min || "…"}–${filter.rent_price_max || "…"}`,
+      label: `إيجار ${f.rent_price_min ? formatMoney(f.rent_price_min) : "…"}–${f.rent_price_max ? formatMoney(f.rent_price_max) : "…"}`,
     });
+  if (f.area_min || f.area_max)
+    list.push({
+      key: "area",
+      label: `مساحة ${f.area_min || "…"}–${f.area_max || "…"}`,
+    });
+  if (f.rooms_count)
+    list.push({ key: "rooms_count", label: `${f.rooms_count}+ غرف` });
+  if (f.bathrooms_count)
+    list.push({
+      key: "bathrooms_count",
+      label: `${f.bathrooms_count}+ حمامات`,
+    });
+  if (f.floors_count)
+    list.push({ key: "floors_count", label: `${f.floors_count}+ طوابق` });
+  for (const key of amenityKeys.value)
+    list.push({ key: `amenity:${key}`, label: amenityTitle(key) });
   return list;
 });
 
+const INLINE_KEYS = new Set([
+  "q",
+  "governorate_id",
+  "district_id",
+  "neighborhood_id",
+  "property_type",
+  "status",
+]);
+const extraCount = computed(
+  () => chips.value.filter((chip) => !INLINE_KEYS.has(chip.key)).length,
+);
+
 function removeChip(key: string) {
-  if (key === "area") {
-    model.value.area_min = "";
-    model.value.area_max = "";
+  const f = model.value;
+  if (key.startsWith("amenity:")) {
+    const name = key.slice("amenity:".length);
+    amenityKeys.value = amenityKeys.value.filter((item) => item !== name);
   } else if (key === "price") {
-    model.value.rent_price_min = "";
-    model.value.rent_price_max = "";
-  } else if (key.endsWith("_id"))
-    (model.value as unknown as Record<string, number | null>)[key] = null;
-  else (model.value as unknown as Record<string, string>)[key] = "";
+    f.rent_price_min = "";
+    f.rent_price_max = "";
+  } else if (key === "area") {
+    f.area_min = "";
+    f.area_max = "";
+  } else if (key === "governorate_id") selectGovernorate(null);
+  else if (key === "district_id") selectDistrict(null);
+  else if (key === "neighborhood_id") f.neighborhood_id = null;
+  else (f as unknown as Record<string, string>)[key] = "";
 }
-function clearAll() {
-  emit("clear");
-}
-function focusSearch() {
-  searchRef.value?.$el?.querySelector("input")?.focus();
-}
-function onGlobalKeydown(event: KeyboardEvent) {
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
-    event.preventDefault();
-    focusSearch();
-  }
-}
-function onSearchKeydown(event: KeyboardEvent) {
-  if (event.key === "Escape") {
-    if (model.value.q) model.value.q = "";
-    else (event.target as HTMLElement).blur();
-  } else if (event.key === "Enter") {
-    if (applyTimer) clearTimeout(applyTimer);
-    emit("apply");
-  }
-}
-onMounted(() => {
-  void loadLocations();
-  window.addEventListener("keydown", onGlobalKeydown);
-});
-onBeforeUnmount(() => {
-  window.removeEventListener("keydown", onGlobalKeydown);
-  if (applyTimer) clearTimeout(applyTimer);
-});
+
+onMounted(() => void loadLocations());
+
+defineExpose({ focusSearch: () => bar.value?.focusSearch() });
 </script>
 
 <template>
-  <div class="dal-filters">
-    <div class="dal-filters__primary">
-      <v-text-field
-        ref="searchRef"
-        v-model="model.q"
-        class="dal-search"
-        density="compact"
-        hide-details
-        clearable
-        prepend-inner-icon="mdi-magnify"
-        placeholder="ابحث بالكود، المالك، الهاتف، المنطقة أو أي وصف"
-        aria-label="بحث في الإيجارات"
-        @keydown="onSearchKeydown"
-      />
+  <FilterBar
+    ref="bar"
+    v-model:search="model.q"
+    :filters="model"
+    search-label="بحث في عروض الإيجار"
+    placeholder="بحث بالرمز أو المالك أو الهاتف أو المنطقة"
+    :chips="chips"
+    :extra-count="extraCount"
+    @apply="emit('apply')"
+    @down="emit('down')"
+    @remove="removeChip"
+    @clear="emit('clear')"
+  >
+    <template #filters>
       <v-select
         :model-value="model.governorate_id"
         :items="activeGovernorates"
         item-title="name"
         item-value="id"
         label="المحافظة"
-        density="compact"
         hide-details
         clearable
-        class="dal-filter-sel"
-        @update:model-value="updateLocation('governorate_id', $event)"
+        class="dal-toolbar__filter"
+        @update:model-value="selectGovernorate"
       />
       <v-select
         :model-value="model.district_id"
@@ -193,221 +204,140 @@ onBeforeUnmount(() => {
         item-value="id"
         label="المنطقة"
         :disabled="!model.governorate_id"
-        density="compact"
         hide-details
         clearable
-        class="dal-filter-sel"
-        @update:model-value="updateLocation('district_id', $event)"
+        class="dal-toolbar__filter"
+        @update:model-value="selectDistrict"
       />
       <v-select
-        :model-value="model.neighborhood_id"
+        v-model="model.neighborhood_id"
         :items="neighborhoods"
         item-title="name"
         item-value="id"
         label="الحي"
         :disabled="!model.district_id"
-        density="compact"
         hide-details
         clearable
-        class="dal-filter-sel"
-        @update:model-value="updateLocation('neighborhood_id', $event)"
+        class="dal-toolbar__filter"
       />
       <v-select
-        v-model="model.property_type"
-        :items="propertyTypes"
+        :model-value="model.property_type || null"
+        :items="RENTAL_PROPERTY_TYPES"
         label="النوع"
-        density="compact"
         hide-details
         clearable
-        class="dal-filter-sel"
+        class="dal-toolbar__filter"
+        @update:model-value="model.property_type = $event ?? ''"
       />
       <v-select
-        v-model="model.status"
-        :items="statuses"
+        :model-value="model.status || null"
+        :items="RENTAL_STATUSES"
         label="الحالة"
-        density="compact"
         hide-details
         clearable
-        class="dal-filter-sel"
+        class="dal-toolbar__filter"
+        @update:model-value="model.status = $event ?? ''"
       />
-      <v-btn
-        variant="text"
-        prepend-icon="mdi-tune-variant"
-        @click="extraOpen = true"
-        >فلاتر إضافية</v-btn
-      >
-    </div>
-    <div v-if="chips.length" class="dal-filters__chips">
-      <v-chip
-        v-for="chip in chips"
-        :key="chip.key"
-        size="small"
-        variant="tonal"
-        label
-        closable
-        @click:close="removeChip(chip.key)"
-        >{{ chip.label }}</v-chip
-      >
-      <v-btn
-        v-if="chips.length > 1"
-        size="small"
-        variant="text"
-        @click="clearAll"
-        >مسح الكل</v-btn
-      >
-    </div>
-    <v-navigation-drawer
-      v-model="extraOpen"
-      temporary
-      location="end"
-      width="340"
-    >
-      <div class="dal-extra__header">
-        <span class="dal-section-title">فلاتر إضافية</span><v-spacer /><v-btn
-          variant="text"
-          size="small"
-          @click="clearAll"
-          >مسح</v-btn
-        ><v-btn
-          icon="mdi-close"
-          size="small"
-          variant="text"
-          aria-label="إغلاق"
-          @click="extraOpen = false"
-        />
-      </div>
-      <v-divider />
-      <div class="dal-extra__body">
-        <v-select
-          v-model="model.rent_period"
-          :items="periods"
-          label="نوع الإيجار"
-          density="compact"
-          hide-details
-          clearable
-        />
-        <v-select
-          v-model="model.negotiable"
-          :items="negotiableOptions"
-          label="التفاوض"
-          density="compact"
-          hide-details
-          clearable
-        />
-        <v-text-field
-          v-model="model.amenities"
-          label="الملحقات / المميزات"
-          density="compact"
-          hide-details
-          clearable
-        />
-        <div class="dal-extra__pair">
-          <NumberField
-            v-model="model.rent_price_min"
-            :decimals="false"
-            label="السعر من"
-            density="compact"
-            hide-details
-            clearable
-          /><NumberField
-            v-model="model.rent_price_max"
-            :decimals="false"
-            label="السعر إلى"
-            density="compact"
-            hide-details
-            clearable
-          />
-        </div>
-        <div class="dal-extra__pair">
-          <NumberField
-            v-model="model.area_min"
-            label="المساحة من"
-            density="compact"
-            hide-details
-            clearable
-          /><NumberField
-            v-model="model.area_max"
-            label="المساحة إلى"
-            density="compact"
-            hide-details
-            clearable
-          />
-        </div>
-        <div class="dal-extra__pair">
-          <NumberField
-            v-model="model.rooms_count"
-            :decimals="false"
-            label="الغرف فأكثر"
-            density="compact"
-            hide-details
-            clearable
-          /><NumberField
-            v-model="model.bathrooms_count"
-            :decimals="false"
-            label="الحمامات فأكثر"
-            density="compact"
-            hide-details
-            clearable
-          />
-        </div>
+    </template>
+    <template #views><slot name="views" /></template>
+    <template #end><slot name="end" /></template>
+    <template #extra>
+      <v-select
+        :model-value="model.rent_period || null"
+        :items="RENT_PERIODS"
+        label="نوع الإيجار"
+        hide-details
+        clearable
+        @update:model-value="model.rent_period = $event ?? ''"
+      />
+      <v-select
+        :model-value="model.negotiable || null"
+        :items="negotiableOptions"
+        label="التفاوض"
+        hide-details
+        clearable
+        @update:model-value="model.negotiable = $event ?? ''"
+      />
+      <div class="dal-extra__pair">
         <NumberField
-          v-model="model.floors_count"
+          v-model="model.rent_price_min"
           :decimals="false"
-          label="الطوابق فأكثر"
-          density="compact"
+          label="الإيجار من"
+          hide-details
+          clearable
+        />
+        <NumberField
+          v-model="model.rent_price_max"
+          :decimals="false"
+          label="الإيجار إلى"
           hide-details
           clearable
         />
       </div>
-    </v-navigation-drawer>
-  </div>
+      <div class="dal-extra__pair">
+        <NumberField
+          v-model="model.area_min"
+          label="المساحة من"
+          hide-details
+          clearable
+        />
+        <NumberField
+          v-model="model.area_max"
+          label="المساحة إلى"
+          hide-details
+          clearable
+        />
+      </div>
+      <div class="dal-extra__pair">
+        <NumberField
+          v-model="model.rooms_count"
+          :decimals="false"
+          label="الغرف (على الأقل)"
+          hide-details
+          clearable
+        />
+        <NumberField
+          v-model="model.bathrooms_count"
+          :decimals="false"
+          label="الحمامات (على الأقل)"
+          hide-details
+          clearable
+        />
+      </div>
+      <NumberField
+        v-model="model.floors_count"
+        :decimals="false"
+        label="الطوابق (على الأقل)"
+        hide-details
+        clearable
+      />
+      <fieldset class="rental-filters__amenities">
+        <legend>المميزات (كلها مطلوبة)</legend>
+        <v-chip-group v-model="amenityKeys" column multiple>
+          <v-chip
+            v-for="item in AMENITY_OPTIONS"
+            :key="item.key"
+            :value="item.key"
+            filter
+            size="small"
+            variant="outlined"
+            >{{ item.title }}</v-chip
+          >
+        </v-chip-group>
+      </fieldset>
+    </template>
+  </FilterBar>
 </template>
 
 <style scoped>
-.dal-filters {
-  margin-bottom: 8px;
+.rental-filters__amenities {
+  border: 0;
+  margin: 0;
+  padding: 0;
 }
-.dal-filters__primary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: var(--dal-surface);
-  border: 1px solid var(--dal-stroke);
-}
-.dal-search {
-  flex: 2 1 300px;
-  min-width: 240px;
-}
-.dal-filter-sel {
-  flex: 1 1 150px;
-  min-width: 132px;
-  max-width: 200px;
-}
-.dal-filters__chips {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px;
-}
-.dal-extra__header {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 16px;
-  min-height: 52px;
-}
-.dal-extra__body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px;
-}
-.dal-extra__pair {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+.rental-filters__amenities legend {
+  margin-bottom: 4px;
+  color: var(--dal-muted);
+  font-size: calc(12px * var(--dal-font-scale));
 }
 </style>

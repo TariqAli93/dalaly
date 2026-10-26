@@ -1,6 +1,7 @@
 import {
   createRouter,
   createWebHashHistory,
+  type RouteLocationNormalized,
   type RouteRecordRaw,
 } from "vue-router";
 import { useSetup } from "../composables/useSetup";
@@ -13,6 +14,19 @@ declare module "vue-router" {
     permission?: string;
     titleKey?: string;
   }
+}
+
+/**
+ * روابط ?open=<id> القديمة (لوحة التحكم، البحث، المطابقة) كانت تفتح حواراً
+ * فوق القائمة؛ للعرض الإيجاري الآن صفحة سجل، فيُحوَّل الرابط إليها.
+ * في الحارس العام لا beforeEnter: هذا لا يعمل حين يتغيّر الاستعلام وحده
+ * والقائمة مفتوحة.
+ */
+const RECORD_LISTS = new Set(["/rentals"]);
+function openRecord(to: RouteLocationNormalized) {
+  if (!RECORD_LISTS.has(to.path)) return null;
+  const id = Number(to.query.open);
+  return Number.isSafeInteger(id) && id > 0 ? `${to.path}/${id}` : null;
 }
 
 // صفحات ما بعد تسجيل الدخول: أبناء AppLayout، فيبقى الإطار (القائمة والشريط
@@ -79,6 +93,16 @@ const appPages: RouteRecordRaw[] = [
     path: "/rentals",
     name: "rentals",
     component: () => import("../pages/RentalsPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "rentals.read",
+      titleKey: "routes.rentals",
+    },
+  },
+  {
+    path: "/rentals/:id(\\d+)",
+    name: "rental-details",
+    component: () => import("../pages/RentalDetailsPage.vue"),
     meta: {
       requiresAuth: true,
       permission: "rentals.read",
@@ -294,5 +318,5 @@ router.beforeEach(async (to) => {
     return { path: "/" };
   }
 
-  return true;
+  return openRecord(to) ?? true;
 });

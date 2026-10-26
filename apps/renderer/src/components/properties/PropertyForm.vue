@@ -119,14 +119,14 @@ defineExpose({ validate, focusField, computedTotal });
 <template>
   <v-form
     ref="formRef"
-    class="dal-panel property-form"
+    class="dal-panel property-form dal-form"
     @submit.prevent="emit('submit')"
   >
     <!-- سطر الرسائل يظهر عند خطأ أو تلميح فقط: 22px محجوزة تحت كل حقل كانت
          تطيل النموذج ثلث طوله. الإعداد العام معطّل عمداً، فيُفعَّل هنا وحده. -->
     <v-defaults-provider :defaults="FIELD_DEFAULTS">
-      <div class="property-form__body">
-        <p class="property-form__hint">الحقول المعلّمة بـ * مطلوبة.</p>
+      <div class="dal-form__body">
+        <p class="dal-form__hint">الحقول المعلّمة بـ * مطلوبة.</p>
 
         <FormSection title="الموقع والقطعة">
           <LocationSelects
@@ -346,7 +346,7 @@ defineExpose({ validate, focusField, computedTotal });
             label="العنوان التفصيلي"
           />
           <div class="form-section__wide">
-            <div class="property-form__label">المميزات</div>
+            <div class="dal-form__label">المميزات</div>
             <v-chip-group v-model="amenities" column multiple>
               <v-chip
                 v-for="item in AMENITY_OPTIONS"
@@ -385,25 +385,13 @@ defineExpose({ validate, focusField, computedTotal });
 </template>
 
 <style scoped>
-.property-form {
-  overflow: visible;
-}
-.property-form__body {
-  padding: 4px 16px 0;
-}
-.property-form__hint {
-  margin: 8px 0 0;
-  color: var(--dal-muted);
-  font-size: calc(12px * var(--dal-font-scale));
-}
 .property-form__total {
   display: flex;
   flex-direction: column;
   justify-content: center;
   min-height: 40px;
 }
-.property-form__total span,
-.property-form__label {
+.property-form__total span {
   color: var(--dal-muted);
   font-size: calc(12px * var(--dal-font-scale));
 }

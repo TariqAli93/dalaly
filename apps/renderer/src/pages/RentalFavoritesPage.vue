@@ -3,111 +3,60 @@ import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import RentalTable from "../components/rentals/RentalTable.vue";
-import RentalDetailsDialog from "../components/rentals/RentalDetailsDialog.vue";
 import * as rentals from "../services/rentals.service";
 import { getErrorMessage } from "../services/api.service";
-import { useConfirm } from "../composables/useConfirm";
 import { useRefresh } from "../composables/useRefresh";
 import { useSnackbar } from "../composables/useSnackbar";
+import { useRentalActions } from "../composables/useRentalActions";
+import { exportRentalFolder } from "../utils/listingExport";
 import type { RentalRecord } from "../types";
 
+/** العروض الإيجارية المفضلة للمستخدم الحالي، بجدول قائمة الإيجارات نفسه. */
 const router = useRouter();
-const { openConfirm } = useConfirm();
 const { setRefreshHandler } = useRefresh();
 const { notifyError, notifySuccess } = useSnackbar();
 
 const items = ref<RentalRecord[]>([]);
 const favoriteIds = ref(new Set<number>());
 const loading = ref(false);
-const selected = ref<RentalRecord | null>(null);
-const detailsDialog = ref(false);
+const error = ref<string | null>(null);
 
 async function load() {
   loading.value = true;
+  error.value = null;
   try {
     items.value = await rentals.listRentalFavorites();
     favoriteIds.value = new Set(items.value.map((item) => item.id));
-  } catch (error) {
-    notifyError(getErrorMessage(error));
+  } catch (cause) {
+    error.value = getErrorMessage(cause);
   } finally {
     loading.value = false;
   }
 }
 
-function view(item: RentalRecord) {
-  selected.value = item;
-  detailsDialog.value = true;
+async function removeFavorite(item: RentalRecord) {
+  try {
+    await rentals.removeRentalFavorite(item.id);
+    items.value = items.value.filter((rental) => rental.id !== item.id);
+    favoriteIds.value.delete(item.id);
+  } catch (cause) {
+    notifyError(getErrorMessage(cause));
+  }
+}
+async function exportRental(item: RentalRecord) {
+  try {
+    const result = await exportRentalFolder(item);
+    if (result.canceled) return;
+    if (!result.ok) throw new Error(result.message ?? "تعذر تصدير الإيجار.");
+    notifySuccess(
+      `تم تصدير الإيجار مع صوره إلى: ${result.path ?? "المجلد المحدد"}`,
+    );
+  } catch (cause) {
+    notifyError(getErrorMessage(cause));
+  }
 }
 
-function edit(item: RentalRecord) {
-  detailsDialog.value = false;
-  void router.push(`/rentals/${item.id}/edit`);
-}
-
-function removeFavorite(item: RentalRecord) {
-  void rentals
-    .removeRentalFavorite(item.id)
-    .then(load)
-    .catch((error) => notifyError(getErrorMessage(error)));
-}
-
-function askArchive(item: RentalRecord) {
-  openConfirm({
-    title: `أرشفة ${item.code}`,
-    body: "سيبقى العرض محفوظاً لكنه لن يظهر في القائمة الافتراضية.",
-    confirmText: "أرشفة",
-    color: "warning",
-    onConfirm: async () => {
-      try {
-        await rentals.archiveRental(item.id);
-        detailsDialog.value = false;
-        await load();
-        notifySuccess("تمت أرشفة العرض الإيجاري.");
-      } catch (error) {
-        notifyError(getErrorMessage(error));
-      }
-    },
-  });
-}
-
-function askRestore(item: RentalRecord) {
-  openConfirm({
-    title: `إرجاع ${item.code}`,
-    body: "هل تريد إرجاع هذا الإيجار إلى حالة متاح؟",
-    confirmText: "إرجاع",
-    color: "success",
-    onConfirm: async () => {
-      try {
-        await rentals.restoreRental(item.id);
-        detailsDialog.value = false;
-        await load();
-        notifySuccess("تم إرجاع العرض الإيجاري.");
-      } catch (error) {
-        notifyError(getErrorMessage(error));
-      }
-    },
-  });
-}
-
-function askDelete(item: RentalRecord) {
-  openConfirm({
-    title: `حذف ${item.code}`,
-    body: "سيتم حذف الإيجار وصوره ومتابعاته نهائياً.",
-    confirmText: "حذف",
-    color: "error",
-    onConfirm: async () => {
-      try {
-        await rentals.deleteRental(item.id);
-        detailsDialog.value = false;
-        selected.value = null;
-        await load();
-        notifySuccess("تم حذف العرض الإيجاري.");
-      } catch (error) {
-        notifyError(getErrorMessage(error));
-      }
-    },
-  });
-}
+const { askArchive, askRestore, askDelete } = useRentalActions(load);
 
 onMounted(() => {
   setRefreshHandler(load);
@@ -118,27 +67,29 @@ onMounted(() => {
 <template>
   <AppPage
     title="مفضلة الإيجارات"
-    subtitle="العروض الإيجارية المحفوظة للمستخدم الحالي."
+    :count="loading && !items.length ? null : items.length"
   >
-    <RentalTable
-      :rentals="items"
-      :favorite-ids="favoriteIds"
-      :loading="loading"
-      @view="view"
-      @edit="edit"
-      @archive="askArchive"
-      @restore="askRestore"
-      @delete="askDelete"
-      @favorite="removeFavorite"
-      @create="router.push('/rentals/new')"
-    />
-    <RentalDetailsDialog
-      v-model="detailsDialog"
-      :rental="selected"
-      @edit="edit"
-      @archive="askArchive"
-      @restore="askRestore"
-      @delete="askDelete"
-    />
+    <section
+      class="dal-panel dal-listpanel dal-fill"
+      aria-label="مفضلة الإيجارات"
+    >
+      <RentalTable
+        :rentals="items"
+        :favorite-ids="favoriteIds"
+        :loading="loading"
+        :error="error"
+        empty-title="لا توجد عروض إيجار مفضلة"
+        empty-text="أضف عرضاً إلى المفضلة من زر القلب في قائمة عروض الإيجار ليظهر هنا."
+        @view="router.push(`/rentals/${$event.id}`)"
+        @edit="router.push(`/rentals/${$event.id}/edit`)"
+        @archive="askArchive"
+        @restore="askRestore"
+        @delete="askDelete"
+        @favorite="removeFavorite"
+        @export="exportRental"
+        @retry="load"
+        @create="router.push('/rentals/new')"
+      />
+    </section>
   </AppPage>
 </template>
