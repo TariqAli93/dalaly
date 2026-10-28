@@ -5,7 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "test": "tsx --test scripts/startup.test.ts scripts/setup-security.test.ts scripts/login-throttle.test.ts scripts/postgres-errors.test.ts scripts/error-shape.test.ts scripts/json-file.test.ts scripts/location.test.ts scripts/renderer-utils.test.ts",
+    "test": "tsx --test scripts/startup.test.ts scripts/setup-security.test.ts scripts/login-throttle.test.ts scripts/postgres-errors.test.ts scripts/error-shape.test.ts scripts/json-file.test.ts scripts/location.test.ts scripts/renderer-utils.test.ts scripts/contract-document.test.ts",
     "test:startup": "tsx --test scripts/startup.test.ts scripts/setup-security.test.ts",
     "test:startup:electron": "node scripts/startup-electron.mjs",
     "dev": "tsx watch src/index.ts",
@@ -48,7 +48,8 @@
     "test:dashboard:operations": "tsx --test scripts/dashboard-operations.test.ts",
     "test:timeouts": "tsx --test scripts/statement-timeout.test.ts",
     "test:search": "tsx --test scripts/search-text.test.ts",
-    "test:contract": "tsx --test scripts/api-contract.test.ts"
+    "test:contract": "tsx --test scripts/api-contract.test.ts",
+    "test:agreements": "tsx --test scripts/agreements.test.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",

@@ -99,4 +99,28 @@ export const SYSTEM_PERMISSIONS = [
     name: "إدارة مستندات العملاء",
     module: "documents",
   },
+  // العقود باسم agreements: نطاقا contracts وcontract_templates متقاعدان
+  // ومحجوزان لبيانات النظام القديم (key-policy.ts).
+  { key: "agreements.read", name: "عرض العقود", module: "agreements" },
+  {
+    key: "agreements.manage",
+    name: "إنشاء مسودات العقود وتعديلها",
+    module: "agreements",
+  },
+  {
+    key: "agreements.issue",
+    name: "إصدار العقود وفتح مراجعة لعقد صادر",
+    module: "agreements",
+  },
+  { key: "agreements.cancel", name: "إلغاء العقود", module: "agreements" },
+  {
+    key: "agreements.export",
+    name: "تصدير العقود وطباعتها",
+    module: "agreements",
+  },
+  {
+    key: "agreements.templates",
+    name: "تخصيص قوالب العقود",
+    module: "agreements",
+  },
 ] as const;

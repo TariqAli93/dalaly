@@ -147,8 +147,13 @@ async function save() {
       notifySuccess("تمت إضافة العرض الإيجاري. أضف صوره من صفحته.");
     }
 
-    // بعد الحفظ صفحة العرض نفسه (وفيها الصور)، لا القائمة.
-    const destination = `/rentals/${savedId}`;
+    // بعد الحفظ صفحة العرض نفسه (وفيها الصور)، لا القائمة؛ وعرض أُضيف من
+    // خطوة العقار في عقد (?contract=<id>) يعود إليه مختاراً.
+    const contractId = Number(route.query.contract);
+    const destination =
+      Number.isSafeInteger(contractId) && contractId > 0
+        ? `/contracts/${contractId}?step=property&listing=${savedId}`
+        : `/rentals/${savedId}`;
     try {
       const result = await requests.rentalRequestMatches(savedId);
       matches.value = result.matches;

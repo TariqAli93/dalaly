@@ -30,6 +30,17 @@ export const electronPlatform: PlatformAdapter = {
     return api.exportPdf({ html, suggestedName });
   },
 
+  async printHtml({ html }): Promise<SaveResult> {
+    const api = bridge();
+    if (!api?.printHtml)
+      return {
+        ok: false,
+        message:
+          "خدمة الطباعة غير متاحة. أعد تشغيل تطبيق سطح المكتب لتحديث خدماته.",
+      };
+    return api.printHtml({ html });
+  },
+
   async saveFile({ data, suggestedName, title, filters }): Promise<SaveResult> {
     const api = bridge();
     if (!api?.saveFile)

@@ -167,6 +167,20 @@ test("shared backup v3 survives full restore and rejects incompatible data befor
     await db.insert(schema.rentalFollowups).values({
       rentalId: ctx.rental.id, userId: ctx.adminId, type: "visit", notes: "متابعة الإيجار",
     });
+    // Contract tables: a customised template with its history, and an issued
+    // contract with its parties, revision and an export.
+    const [agreementTemplate] = await db.insert(schema.agreementTemplates).values({ templateKey: "sale", version: 1, definition: { schema: 1 } }).returning();
+    await db.insert(schema.agreementTemplateVersions).values({ templateId: agreementTemplate.id, version: 1, definition: { schema: 1 }, changeType: "saved", createdBy: ctx.adminId });
+    const [agreement] = await db.insert(schema.agreements).values({
+      code: "BACKUP-CT", templateKey: "sale", status: "issued", propertyId: ctx.property.id, terms: { sale_price: 150000000 },
+      document: { schema: 1 }, currentRevision: 1, issuedAt: new Date(), issuedBy: ctx.adminId, createdBy: ctx.adminId,
+    }).returning();
+    await db.insert(schema.agreementParties).values([
+      { agreementId: agreement.id, role: "seller", personId: ctx.people[0].id },
+      { agreementId: agreement.id, role: "buyer", personId: ctx.people[1].id },
+    ]);
+    await db.insert(schema.agreementRevisions).values({ agreementId: agreement.id, revision: 1, templateKey: "sale", document: { schema: 1 }, terms: {}, context: {}, values: {}, issuedBy: ctx.adminId });
+    await db.insert(schema.agreementExports).values({ agreementId: agreement.id, revision: 1, format: "pdf", fileName: "عقد.pdf", createdBy: ctx.adminId });
     await db.insert(schema.favoriteProperties).values({ userId: ctx.adminId, propertyId: ctx.property.id });
     await db.insert(schema.favoriteRentals).values({ userId: ctx.adminId, rentalId: ctx.rental.id });
     await db.insert(schema.auditLogs).values({
@@ -213,14 +227,14 @@ test("shared backup v3 survives full restore and rejects incompatible data befor
     const manifest = JSON.parse(zip.readAsText("manifest.json"));
     const data = JSON.parse(zip.readAsText("data.json")) as Record<string, Record<string, unknown>[]>;
     assert.equal(manifest.version, 3);
-    assert.equal(Object.keys(data).length, 24);
+    assert.equal(Object.keys(data).length, 30);
     assert.ok(data.permissions.some((row) => row.id === customPermissionId && row.key === "reports.custom.review"));
     assert.ok(data.role_permissions.some((row) => row.permissionId === customPermissionId));
     assert.ok(data.app_settings.some((row) => row.key === "reports.custom.preferences"));
     assert.ok(Object.values(data).every((rows) => rows.length > 0), "representative data in every exported table");
     assert.equal(zip.getEntries().filter((entry) => !entry.isDirectory && /^(documents|images)\//.test(entry.entryName)).length, 4);
 
-    await t.test("all 24 shared tables and four managed files round trip", async () => {
+    await t.test("all 30 shared tables and four managed files round trip", async () => {
       await db.update(schema.people).set({ fullName: "اسم تغير بعد النسخ" });
       await db.update(schema.properties).set({ totalPrice: "1.00" });
       await db.update(schema.rentals).set({ rentPrice: "1.00" });

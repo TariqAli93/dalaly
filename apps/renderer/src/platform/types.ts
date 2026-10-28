@@ -46,6 +46,12 @@ export interface PlatformAdapter {
     text: string;
   }): Promise<SaveResult>;
 
+  /** طباعة مستند HTML عبر حوار الطباعة في النظام (اختيار الطابعة). */
+  printHtml(input: {
+    html: string;
+    suggestedName: string;
+  }): Promise<SaveResult>;
+
   saveFile(input: {
     data: Uint8Array;
     suggestedName: string;

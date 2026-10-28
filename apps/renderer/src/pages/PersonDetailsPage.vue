@@ -359,6 +359,13 @@ const listLabel = (count: number, label: string) =>
     </template>
     <template v-if="person" #header-actions>
       <v-btn
+        v-if="can('agreements.read')"
+        variant="text"
+        prepend-icon="mdi-file-sign"
+        :to="`/contracts?person=${person.id}`"
+        >العقود</v-btn
+      >
+      <v-btn
         v-if="can('people.update')"
         color="primary"
         prepend-icon="mdi-pencil-outline"

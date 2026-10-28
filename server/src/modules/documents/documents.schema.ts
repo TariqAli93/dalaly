@@ -1,9 +1,15 @@
 import { z } from "zod";
-import { booleanField, optionalText } from "../../shared/validation/fields.js";
+import {
+  booleanField,
+  optionalId,
+  optionalText,
+} from "../../shared/validation/fields.js";
 import { pageFields } from "../../shared/validation/paging.js";
 
 export const identityDocumentPayloadSchema = z.object({
   person_id: z.coerce.number().int().positive(),
+  /** A signed copy or supporting file of this contract. */
+  agreement_id: optionalId,
   document_type_id: z.coerce.number().int().positive().optional().nullable(),
   document_name: z.string().trim().min(1),
   document_number: optionalText,
@@ -27,6 +33,7 @@ export const identityDocumentUpdateSchema = z.object({
 
 export const documentFiltersSchema = z.object({
   person_id: z.coerce.number().int().positive().optional(),
+  agreement_id: z.coerce.number().int().positive().optional(),
   document_type_id: z.coerce.number().int().positive().optional(),
   // الحالة المحسوبة: "active" = نشط غير منتهٍ، "expired" = نشط انتهى تاريخه.
   status: z.enum(["active", "archived", "expired"]).optional(),

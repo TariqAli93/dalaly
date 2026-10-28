@@ -38,6 +38,11 @@ interface DalalyConfigBridge {
     canceled?: boolean;
     fallback?: boolean;
   }>;
+  printHtml?: (input: { html: string }) => Promise<{
+    ok: boolean;
+    canceled?: boolean;
+    message?: string;
+  }>;
   saveFile?: (input: {
     data: Uint8Array;
     suggestedName: string;

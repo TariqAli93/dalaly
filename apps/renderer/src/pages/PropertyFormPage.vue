@@ -287,8 +287,13 @@ async function save() {
       editingId.value = savedId;
       notifySuccess("تمت إضافة العرض. أضف صوره من صفحته.");
     }
-    // بعد الحفظ صفحة العرض نفسه (وفيها الصور)، لا القائمة.
-    const destination = `/properties/${savedId}`;
+    // بعد الحفظ صفحة العرض نفسه (وفيها الصور)، لا القائمة؛ وعرض أُضيف من
+    // خطوة العقار في عقد (?contract=<id>) يعود إليه مختاراً.
+    const contractId = Number(route.query.contract);
+    const destination =
+      Number.isSafeInteger(contractId) && contractId > 0
+        ? `/contracts/${contractId}?step=property&listing=${savedId}`
+        : `/properties/${savedId}`;
     try {
       const result = await requests.purchaseRequestMatches(savedId!);
       matches.value = result.matches;

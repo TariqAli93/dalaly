@@ -72,6 +72,8 @@ function documentConditions(filters: DocumentFilters) {
   const where: SQL[] = [];
   if (filters.person_id)
     where.push(eq(identityDocuments.personId, filters.person_id));
+  if (filters.agreement_id)
+    where.push(eq(identityDocuments.agreementId, filters.agreement_id));
   if (filters.document_type_id)
     where.push(eq(identityDocuments.documentTypeId, filters.document_type_id));
   // شروط صريحة بدل مقارنة computedStatus كي يبقى فهرس الحالة صالحاً.
@@ -243,6 +245,7 @@ export async function createIdentityDocument(payload: IdentityDocumentPayload) {
       .values({
         code: await generateCode(tx),
         personId: payload.person_id,
+        agreementId: payload.agreement_id ?? null,
         documentTypeId: payload.document_type_id ?? null,
         documentName: payload.document_name,
         documentNumber: payload.document_number,

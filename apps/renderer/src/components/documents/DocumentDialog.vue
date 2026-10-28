@@ -18,6 +18,8 @@ const props = defineProps<{
   document: DocumentRecord | null;
   types: DocumentTypeRecord[];
   personId?: number | null;
+  /** A new file is attached to this contract (a signed copy, a deed…). */
+  agreementId?: number | null;
 }>();
 const emit = defineEmits<{ saved: [DocumentRecord] }>();
 
@@ -141,6 +143,7 @@ async function save() {
       : await documentsService.uploadDocument({
           ...fields,
           person_id: form.value.person_id,
+          agreement_id: props.agreementId ?? null,
           data: await readFileAsDataUrl(file.value!),
           file_type: file.value!.type || "application/octet-stream",
           original_name: file.value!.name,

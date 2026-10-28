@@ -206,6 +206,58 @@ const appPages: RouteRecordRaw[] = [
       titleKey: "routes.documents",
     },
   },
+  // العقود: القائمة، إنشاء عقد (اختيار النوع)، صفحة العقد بخطواتها، والقوالب
+  // الأربعة ومحررها. المحرر يُحمَّل مع صفحته فقط.
+  {
+    path: "/contracts",
+    name: "contracts",
+    component: () => import("../pages/ContractsPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "agreements.read",
+      titleKey: "routes.contracts",
+    },
+  },
+  {
+    path: "/contracts/new",
+    name: "contract-new",
+    component: () => import("../pages/ContractWorkspacePage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "agreements.manage",
+      titleKey: "routes.contracts",
+    },
+  },
+  {
+    path: "/contracts/:id(\\d+)",
+    name: "contract-details",
+    component: () => import("../pages/ContractWorkspacePage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "agreements.read",
+      titleKey: "routes.contracts",
+    },
+  },
+  {
+    path: "/contracts/templates",
+    name: "contract-templates",
+    component: () => import("../pages/ContractTemplatesPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "agreements.templates",
+      titleKey: "routes.contractTemplates",
+    },
+  },
+  {
+    path: "/contracts/templates/:key",
+    name: "contract-template-studio",
+    component: () => import("../pages/ContractTemplateStudioPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "agreements.templates",
+      titleKey: "routes.contractTemplates",
+    },
+  },
   {
     path: "/users",
     name: "users",

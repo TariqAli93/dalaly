@@ -78,6 +78,14 @@ export const webPlatform: PlatformAdapter = {
     return { ok: true, fallback: true };
   },
 
+  async printHtml({ html, suggestedName }): Promise<SaveResult> {
+    // كتصدير PDF: بلا حوار طباعة يحجب الواجهة، مستند جاهز للطباعة بدلاً منه.
+    const filename =
+      suggestedName.replace(/\.(pdf|html)$/i, "") + ".print.html";
+    downloadBlob(filename, html, "text/html;charset=utf-8");
+    return { ok: true, fallback: true };
+  },
+
   async saveFile({ data, suggestedName }): Promise<SaveResult> {
     const buffer = new ArrayBuffer(data.byteLength);
     new Uint8Array(buffer).set(data);

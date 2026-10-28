@@ -106,6 +106,7 @@ pnpm --filter @dalaly/server test:dashboard:operations # matching rules in SQL =
 pnpm --filter @dalaly/server test:timeouts       # slow statements cut off in Arabic; backup, restore, migrations exempt
 pnpm --filter @dalaly/server test:search         # property/rental search finds the same rows as the per-column ILIKE
 pnpm --filter @dalaly/server test:contract       # API responses vs the renderer's hand-written types
+pnpm --filter @dalaly/server test:agreements     # contracts: drafts, issuing, immutable revisions, the four templates, backups
 pnpm --filter @dalaly/server test:maps:runtime
 pnpm --filter @dalaly/server test:startup:electron  # real Electron startup (needs a display)
 ```

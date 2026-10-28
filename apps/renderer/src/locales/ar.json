@@ -124,7 +124,9 @@
     "roles": "الأدوار والصلاحيات",
     "locations": "المواقع",
     "settings": "الإعدادات",
-    "help": "المساعدة"
+    "help": "المساعدة",
+    "contracts": "العقود",
+    "contractTemplates": "قوالب العقود"
   },
   "errors": {
     "generic": "حدث خطأ غير متوقع.",

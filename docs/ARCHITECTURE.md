@@ -74,7 +74,7 @@ main-process calls such as setup proxying and the scheduled backup run.
 | ----------------------------------- | ------------------------------------------------------------------------------------------ |
 | `main.js`                           | lifecycle, main window, API child process, startup sequence, setup/startup/maps/config IPC |
 | `splash.js`                         | splash window, progress stages, `splash:*` IPC                                             |
-| `document-export.js`                | `export:save-pdf` (offscreen print), `export:save-file`, `export:save-folder`              |
+| `document-export.js`                | `export:save-pdf` (offscreen print), `export:print-html` (system print dialog), `export:save-file`, `export:save-folder` |
 | `backup.js`                         | backup file/folder dialogs, schedule IPC, scheduler emailing the encrypted database copy   |
 | `backup-schedule.js`                | pure due-time check (unit tested)                                                          |
 | `app-config.js`                     | read/write `userData/config.json`                                                          |
@@ -214,6 +214,13 @@ Conventions:
   wrong password or a damaged file is an Arabic 400 that changes nothing. A
   database-only archive restores rows and writes no files: the images and
   documents on disk stay, and the `images` scope is refused for it.
+- Tables added after backup version 3 was defined (the six contract tables)
+  are marked `optional` in `TABLE_SPECS`: an archive from an older build
+  lacks them and restores them empty. They are in the `full` scope, the
+  templates also in `settings`, and contracts with their parties, revisions
+  and exports in `crm` (they reference customers, and customer documents may
+  reference them). A `properties` or `rentals` restore sets a contract's
+  listing link to null; its issued revisions keep the listing's data.
 - Retention (owner decision, 2026-10-24): after a scheduled backup or a
   pre-restore copy succeeds, under the operation lock, copies of that kind
   beyond the newest 10 on disk are deleted. A file goes only if a successful
@@ -283,6 +290,68 @@ Conventions:
   (`DO $$ … EXCEPTION … RAISE NOTICE`) and are not declared in `schema.ts`;
   the runner logs migration notices. Without `pg_trgm` the search still
   works, by scanning.
+
+## Contracts (`modules/agreements`)
+
+Contract Studio: sale, installment sale, residential and commercial lease
+contracts, from exactly four built-in templates. The module and its tables,
+permissions and API are named `agreements`: the retired system's names
+(`contracts`, `contract_templates`, `studio_*`) stay reserved for its
+untouched legacy rows (`docs/CONTRACT_SYSTEM_REMOVAL_MAP.md`).
+
+- **One document model, both sides.** `server/src/shared/contract-document/`
+  holds the block document model, the field registry (every `{{key}}` with
+  its Arabic label and group), `resolveValues` (linked records and terms to
+  display text, Latin digits, amounts in Arabic words), `findIssues` (what
+  blocks issuing) and the HTML/CSS renderer. The API imports it directly;
+  the renderer through the `@contract-document` alias (`vite.config.ts` and
+  tsconfig `paths`). It has no Node or DOM imports. The editor preview,
+  printing, the PDF, the API's issue check and the Word file all resolve
+  fields through it.
+- **Templates.** Factory definitions are code (`agreements.templates.ts`),
+  deep-frozen and versioned with the app. `agreement_templates` has one row
+  per key (a CHECK allows only the four; rows are created on first use) whose
+  `definition` is the office's customised copy, or null for the factory one.
+  Every save, reset (design only: the factory layout and styling with the
+  current clauses; or all) and version restore writes
+  `agreement_template_versions` and is checked against the version the editor
+  opened (409 `TEMPLATE_CONFLICT`). No route creates or deletes a template.
+- **Contracts.** A new contract copies the template's current definition into
+  `agreements.document`; later template changes never reach it. Parties link
+  customers (`agreement_parties`, one per role), and the listing is a sale
+  listing for a sale and a rental listing for a lease. A draft saves the parts
+  that changed against `draft_rev`; a stale save is a 409 `DRAFT_CONFLICT`
+  and writes nothing. The renderer saves 1.2 s after the last change and keeps
+  the unsaved state in localStorage (`utils/localDraft.ts`) until the save
+  succeeds, so an interrupted save is offered back on the next visit.
+- **Status.** draft to review, draft or review to issued, review to draft,
+  issued to draft (the next revision, with a reason), and any to cancelled;
+  enforced by the repository under a row lock. Issuing re-reads the linked
+  records in the same transaction, refuses (422 `AGREEMENT_INCOMPLETE`, with
+  the issues) while anything is missing, and inserts `agreement_revisions`
+  with the document, the terms, the records' contract-safe fields
+  (`pickParty` and `pickListing` leave notes out), the resolved values and
+  the office logo. Revisions are never updated; an issued or cancelled
+  contract shows its latest revision, a draft or a contract under review its
+  live data.
+- **Exports.** PDF and printing render the shared HTML with the bundled fonts
+  embedded as data: URLs (`utils/contractExport.ts`; the `?inline` font chunks
+  load on the first export) in Electron's own engine. The page CSS uses @page
+  margin boxes for the repeated header and footer with page numbers. Word
+  files are WordprocessingML written by `agreements.docx.ts` and zipped with
+  yazl; Word paginates them itself, so its page breaks may differ slightly.
+  Successful exports are recorded in `agreement_exports`. Drafts export with
+  a «مسودة» watermark, cancelled contracts with «ملغى».
+- **Editor.** `components/contracts/ContractStudio.vue`: structure panel,
+  A4 canvas, inspector. Text areas are `InlineEditor` (contenteditable read
+  back into text runs and field tokens; paste is plain text). Edits are
+  immutable updates, so undo keeps whole documents (`useDocumentHistory`).
+  `usePagination` moves a `[data-unit]` that would cross a page bottom to the
+  next page, as `break-inside: avoid` does when printing; a unit taller than
+  a page is outlined as a warning.
+- Signed copies and other files attach through the documents module
+  (`identity_documents.agreement_id`) and are stored with the customer's
+  files.
 
 ## Renderer (`apps/renderer/src`)
 

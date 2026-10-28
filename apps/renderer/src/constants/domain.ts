@@ -230,6 +230,23 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    title: "العقود",
+    items: [
+      {
+        title: "العقود",
+        to: "/contracts",
+        icon: "mdi-file-sign",
+        permission: "agreements.read",
+      },
+      {
+        title: "قوالب العقود",
+        to: "/contracts/templates",
+        icon: "mdi-file-document-edit-outline",
+        permission: "agreements.templates",
+      },
+    ],
+  },
+  {
     title: "إدارة النظام",
     items: [
       {
@@ -265,6 +282,9 @@ export const NAV_SECTIONS: NavSection[] = [
 export function isNavActive(item: NavItem, path: string) {
   if (item.to === "/") return path === "/";
   if (item.to === "/people" && path.startsWith("/clients/")) return true;
+  // القوالب تحت /contracts لكنها عنصر مستقل في القائمة.
+  if (item.to === "/contracts" && path.startsWith("/contracts/templates"))
+    return false;
   return path === item.to || path.startsWith(`${item.to}/`);
 }
 

@@ -64,6 +64,49 @@ export function registerDocumentExport(getMainWindow) {
     }
   });
 
+  // Contract printing: the same self-contained HTML as the PDF, in a hidden
+  // window, through the system print dialog (printer, copies, pages).
+  ipcMain.handle("export:print-html", async (event, input) => {
+    if (!isMainWindowSender(event, getMainWindow()))
+      return { ok: false, message: "محتوى غير صالح." };
+    const html = input?.html;
+    if (typeof html !== "string" || !html)
+      return { ok: false, message: "محتوى غير صالح." };
+    const printWindow = new BrowserWindow({
+      show: false,
+      parent: getMainWindow() ?? undefined,
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+        javascript: false,
+      },
+    });
+    try {
+      await printWindow.loadURL(
+        `data:text/html;charset=utf-8,${encodeURIComponent(html)}`,
+      );
+      // Fonts are data: URLs; give layout a moment to settle before printing.
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      const result = await new Promise((resolve) => {
+        printWindow.webContents.print(
+          { silent: false, printBackground: true },
+          (success, failureReason) => resolve({ success, failureReason }),
+        );
+      });
+      if (result.success) return { ok: true };
+      if (result.failureReason === "cancelled")
+        return { ok: false, canceled: true };
+      log.warn("Print failed", result.failureReason);
+      return { ok: false, message: "تعذرت الطباعة. تأكد من إعداد الطابعة." };
+    } catch (error) {
+      log.error("Print failed", error);
+      return { ok: false, message: "تعذرت الطباعة." };
+    } finally {
+      printWindow.destroy();
+    }
+  });
+
   ipcMain.handle("export:save-file", async (event, input) => {
     const data = input?.data;
     const suggestedName =

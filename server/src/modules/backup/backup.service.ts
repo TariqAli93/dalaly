@@ -42,6 +42,12 @@ import {
   officeProfiles,
   auditLogs,
   appSettings,
+  agreementTemplates,
+  agreementTemplateVersions,
+  agreements,
+  agreementParties,
+  agreementRevisions,
+  agreementExports,
 } from "../../infrastructure/database/schema.js";
 import {
   isActivePermissionKey,
@@ -157,6 +163,44 @@ const TABLE_SPECS = [
     table: documentTypes,
     dates: ["createdAt", "updatedAt"],
   },
+  // Contract tables came after backup version 3 was defined: an archive from
+  // an older build has none of them, and restores them as empty tables.
+  {
+    name: "agreement_templates",
+    table: agreementTemplates,
+    dates: ["createdAt", "updatedAt"],
+    optional: true,
+  },
+  {
+    name: "agreement_template_versions",
+    table: agreementTemplateVersions,
+    dates: ["createdAt"],
+    optional: true,
+  },
+  {
+    name: "agreements",
+    table: agreements,
+    dates: ["issuedAt", "cancelledAt", "createdAt", "updatedAt"],
+    optional: true,
+  },
+  {
+    name: "agreement_parties",
+    table: agreementParties,
+    dates: ["createdAt"],
+    optional: true,
+  },
+  {
+    name: "agreement_revisions",
+    table: agreementRevisions,
+    dates: ["issuedAt"],
+    optional: true,
+  },
+  {
+    name: "agreement_exports",
+    table: agreementExports,
+    dates: ["createdAt"],
+    optional: true,
+  },
   {
     name: "identity_documents",
     table: identityDocuments,
@@ -183,7 +227,13 @@ const SCOPE_TABLES: Record<string, TableName[]> = {
   ],
   images: ["property_images"],
   users: ["users", "roles", "permissions", "role_permissions", "user_roles"],
-  settings: ["app_settings", "office_profiles", "document_types"],
+  settings: [
+    "app_settings",
+    "office_profiles",
+    "document_types",
+    "agreement_templates",
+    "agreement_template_versions",
+  ],
   rentals: [
     "governorates",
     "districts",
@@ -193,8 +243,14 @@ const SCOPE_TABLES: Record<string, TableName[]> = {
     "rental_followups",
     "favorite_rentals",
   ],
+  // Contracts reference customers (and customer documents reference
+  // contracts), so they are restored with them.
   crm: [
     "people",
+    "agreements",
+    "agreement_parties",
+    "agreement_revisions",
+    "agreement_exports",
     "rental_requests",
     "purchase_requests",
     "document_types",
@@ -221,9 +277,19 @@ const SERIAL_TABLES = new Set<TableName>([
   "document_types",
   "identity_documents",
   "audit_logs",
+  "agreement_templates",
+  "agreement_template_versions",
+  "agreements",
+  "agreement_parties",
+  "agreement_revisions",
+  "agreement_exports",
 ]);
 function specByName(name: TableName) {
   return TABLE_SPECS.find((spec) => spec.name === name)!;
+}
+/** A table older archives may lack (added after their build). */
+function isOptional(spec: (typeof TABLE_SPECS)[number]) {
+  return "optional" in spec && spec.optional === true;
 }
 
 async function exportDatabase() {
@@ -716,13 +782,16 @@ async function validateBackupSchema(
   const tableNames = new Set<string>(TABLE_SPECS.map((spec) => spec.name));
   if (
     Object.keys(database).some((name) => !tableNames.has(name)) ||
-    TABLE_SPECS.some((spec) => !Object.hasOwn(database, spec.name))
+    TABLE_SPECS.some(
+      (spec) => !isOptional(spec) && !Object.hasOwn(database, spec.name),
+    )
   )
     throw new DomainError(
       400,
       "مخطط جداول النسخة الاحتياطية لا يطابق هذا الإصدار.",
     );
   for (const spec of TABLE_SPECS) {
+    if (isOptional(spec) && !Object.hasOwn(database, spec.name)) continue;
     const rows = database[spec.name];
     const columns = new Set(Object.keys(getTableColumns(spec.table)));
     if (

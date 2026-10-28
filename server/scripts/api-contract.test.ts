@@ -92,6 +92,7 @@ test("API responses match the renderer's types", async (t) => {
     let rentalId = 0;
     let rentalRequestId = 0;
     let purchaseRequestId = 0;
+    let agreementId = 0;
 
     {
       // Records created the way the renderer creates them.
@@ -178,6 +179,23 @@ test("API responses match the renderer's types", async (t) => {
       });
 
       await api("PUT", "/api/office", { company_name: "مكتب العقد", phone_primary: "07700000009" });
+      // A lease drafted and issued the way the renderer does it, so it has a
+      // revision, an export and a Word file, and a template with history.
+      const lease = await api("POST", "/api/agreements", { template_key: "residential_rent" });
+      agreementId = lease.id;
+      const savedLease = await api("PUT", `/api/agreements/${lease.id}`, {
+        base_rev: lease.draft_rev,
+        parties: [
+          { role: "landlord", person_id: ctx.people[0].id },
+          { role: "tenant", person_id: ctx.people[1].id },
+        ],
+        rental_id: rentalId,
+        terms: { ...lease.terms, contract_place: "بغداد", rent_amount: 750000, start_date: "2026-11-01", end_date: "2027-10-31" },
+      });
+      await api("POST", `/api/agreements/${lease.id}/issue`, { base_rev: savedLease.draft_rev });
+      await api("POST", `/api/agreements/${lease.id}/exports`, { format: "pdf", revision: 1, file_name: "عقد.pdf" });
+      const saleTemplate = await api("GET", "/api/agreements/templates/sale");
+      await api("PUT", "/api/agreements/templates/sale", { base_version: saleTemplate.version, definition: saleTemplate.definition });
       const [permission] = await api("GET", "/api/permissions");
       const role = await api("POST", "/api/roles", { name: "دور العقد", description: "للاختبار", permission_ids: [permission.id] });
       await api("POST", "/api/users", { username: "contract_user", display_name: "مستخدم العقد", pin: "1234", is_active: true, role_ids: [role.id] });
@@ -234,6 +252,14 @@ test("API responses match the renderer's types", async (t) => {
         `/api/matching/properties/${id.property}/purchase-requests`,
         "/api/roles",
         "/api/users",
+        "/api/agreements/templates",
+        "/api/agreements/templates/sale",
+        "/api/agreements/templates/sale/versions",
+        "/api/agreements/templates/sale/versions/1",
+        "/api/agreements/paged?page=1&page_size=10",
+        `/api/agreements/${agreementId}`,
+        `/api/agreements/${agreementId}/revisions/1`,
+        `/api/agreements/${agreementId}/docx?revision=1`,
       ];
       for (const url of urls) await api("GET", url);
     }

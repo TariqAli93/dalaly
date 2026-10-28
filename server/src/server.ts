@@ -11,6 +11,7 @@ import {
 import { getSetupStatus } from "./infrastructure/database/health.js";
 import { waitForDatabasePreparation } from "./infrastructure/database/startup.js";
 import { registerAuthHook } from "./modules/auth/auth.hooks.js";
+import { agreementsRoutes } from "./modules/agreements/agreements.routes.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { backupRoutes } from "./modules/backup/backup.routes.js";
 import { dashboardRoutes } from "./modules/dashboard/dashboard.routes.js";
@@ -43,6 +44,9 @@ function localizedValidationMessage(issue: ZodError["issues"][number]) {
     return "القيمة المدخلة أقصر أو أصغر من الحد المطلوب.";
   if (issue.code === "too_big") return "القيمة المدخلة أكبر من الحد المسموح.";
   if (issue.code === "invalid_format") return "تنسيق القيمة المدخلة غير صالح.";
+  // A schema's own refinement already words its message in Arabic.
+  if (issue.code === "custom" && /[\u0600-\u06ff]/.test(issue.message))
+    return issue.message;
   return "القيمة المدخلة غير صالحة.";
 }
 
@@ -225,6 +229,7 @@ export async function buildServer(options: { logger?: boolean } = {}) {
   });
   await app.register(matchingRoutes, { prefix: "/api/matching" });
   await app.register(documentsRoutes, { prefix: "/api/documents" });
+  await app.register(agreementsRoutes, { prefix: "/api/agreements" });
   await app.register(companySettingsRoutes, { prefix: "/api/office" });
   await app.register(locationsRoutes, { prefix: "/api/locations" });
   await app.register(favoritesRoutes, { prefix: "/api/favorites" });

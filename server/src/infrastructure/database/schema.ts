@@ -11,6 +11,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -609,6 +610,233 @@ export const documentTypes = pgTable(
   ],
 );
 
+// ─── Contracts (agreements) ─────────────────────────────────────────────
+// Named "agreements" because the retired contract system's names (contracts,
+// contract_templates, studio_*) stay reserved for its untouched legacy rows
+// (docs/CONTRACT_SYSTEM_REMOVAL_MAP.md).
+
+const TEMPLATE_KEY_CHECK = sql.raw(
+  "('sale', 'installment_sale', 'residential_rent', 'commercial_rent')",
+);
+
+/** One row per built-in template; definition null = the factory default. */
+export const agreementTemplates = pgTable(
+  "agreement_templates",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    templateKey: text("template_key").notNull().unique(),
+    definition: jsonb("definition"),
+    version: integer("version").notNull().default(0),
+    factoryRevision: integer("factory_revision").notNull().default(1),
+    updatedBy: bigint("updated_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    check(
+      "agreement_templates_key",
+      sql`${table.templateKey} in ${TEMPLATE_KEY_CHECK}`,
+    ),
+  ],
+);
+
+/** Every saved state of a template, including resets, for recovery. */
+export const agreementTemplateVersions = pgTable(
+  "agreement_template_versions",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    templateId: bigint("template_id", { mode: "number" })
+      .notNull()
+      .references(() => agreementTemplates.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    definition: jsonb("definition"),
+    changeType: text("change_type").notNull(),
+    note: text("note"),
+    createdBy: bigint("created_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("uq_agreement_template_versions").on(
+      table.templateId,
+      table.version,
+    ),
+    check(
+      "agreement_template_versions_change",
+      sql`${table.changeType} in ('saved', 'design_reset', 'full_reset', 'restored')`,
+    ),
+  ],
+);
+
+export const agreements = pgTable(
+  "agreements",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    code: text("code").notNull().unique(),
+    templateKey: text("template_key").notNull(),
+    status: text("status").notNull().default("draft"),
+    propertyId: bigint("property_id", { mode: "number" }).references(
+      () => properties.id,
+      { onDelete: "set null" },
+    ),
+    rentalId: bigint("rental_id", { mode: "number" }).references(
+      () => rentals.id,
+      { onDelete: "set null" },
+    ),
+    terms: jsonb("terms").notNull(),
+    document: jsonb("document").notNull(),
+    /** The template version the document was copied from. */
+    templateVersion: integer("template_version").notNull().default(0),
+    /** Bumped by every draft save; a save must name the one it edited. */
+    draftRev: integer("draft_rev").notNull().default(1),
+    /** Latest issued revision, 0 before the first issue. */
+    currentRevision: integer("current_revision").notNull().default(0),
+    issuedAt: timestamp("issued_at", { withTimezone: true }),
+    issuedBy: bigint("issued_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    cancelledBy: bigint("cancelled_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    cancelReason: text("cancel_reason"),
+    /** Why an issued contract was reopened; stored on the next revision. */
+    amendReason: text("amend_reason"),
+    createdBy: bigint("created_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    updatedBy: bigint("updated_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_agreements_status").on(table.status),
+    index("idx_agreements_template").on(table.templateKey),
+    index("idx_agreements_property").on(table.propertyId),
+    index("idx_agreements_rental").on(table.rentalId),
+    index("idx_agreements_updated").on(table.updatedAt),
+    check(
+      "agreements_template_key",
+      sql`${table.templateKey} in ${TEMPLATE_KEY_CHECK}`,
+    ),
+    check(
+      "agreements_status",
+      sql`${table.status} in ('draft', 'review', 'issued', 'cancelled')`,
+    ),
+    check(
+      "agreements_one_listing",
+      sql`${table.propertyId} is null or ${table.rentalId} is null`,
+    ),
+  ],
+);
+
+/** The customers in each role; their data at issue is in the revision. */
+export const agreementParties = pgTable(
+  "agreement_parties",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    agreementId: bigint("agreement_id", { mode: "number" })
+      .notNull()
+      .references(() => agreements.id, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+    personId: bigint("person_id", { mode: "number" })
+      .notNull()
+      .references(() => people.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("uq_agreement_parties_role").on(table.agreementId, table.role),
+    index("idx_agreement_parties_person").on(table.personId),
+    check(
+      "agreement_parties_role",
+      sql`${table.role} in ('seller', 'buyer', 'landlord', 'tenant')`,
+    ),
+  ],
+);
+
+/**
+ * An issued contract exactly as issued: the document, the terms, the linked
+ * records' data, the resolved values and the logo. Never updated.
+ */
+export const agreementRevisions = pgTable(
+  "agreement_revisions",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    agreementId: bigint("agreement_id", { mode: "number" })
+      .notNull()
+      .references(() => agreements.id, { onDelete: "restrict" }),
+    revision: integer("revision").notNull(),
+    templateKey: text("template_key").notNull(),
+    document: jsonb("document").notNull(),
+    terms: jsonb("terms").notNull(),
+    context: jsonb("context").notNull(),
+    values: jsonb("values").notNull(),
+    logo: text("logo"),
+    reason: text("reason"),
+    issuedBy: bigint("issued_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    issuedAt: timestamp("issued_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("uq_agreement_revisions").on(table.agreementId, table.revision),
+  ],
+);
+
+export const agreementExports = pgTable(
+  "agreement_exports",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    agreementId: bigint("agreement_id", { mode: "number" })
+      .notNull()
+      .references(() => agreements.id, { onDelete: "cascade" }),
+    /** null: exported as a draft */
+    revision: integer("revision"),
+    format: text("format").notNull(),
+    fileName: text("file_name"),
+    createdBy: bigint("created_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_agreement_exports_agreement").on(table.agreementId),
+    check(
+      "agreement_exports_format",
+      sql`${table.format} in ('pdf', 'docx', 'print')`,
+    ),
+  ],
+);
+
 export const identityDocuments = pgTable(
   "identity_documents",
   {
@@ -617,6 +845,11 @@ export const identityDocuments = pgTable(
     personId: bigint("person_id", { mode: "number" })
       .notNull()
       .references(() => people.id, { onDelete: "restrict" }),
+    /** A signed copy or a supporting file of a contract. */
+    agreementId: bigint("agreement_id", { mode: "number" }).references(
+      () => agreements.id,
+      { onDelete: "set null" },
+    ),
     documentTypeId: bigint("document_type_id", { mode: "number" }).references(
       () => documentTypes.id,
       { onDelete: "set null" },
@@ -645,6 +878,7 @@ export const identityDocuments = pgTable(
     index("idx_identity_documents_type").on(table.documentTypeId),
     index("idx_identity_documents_status").on(table.status),
     index("idx_identity_documents_expires_at").on(table.expiresAt),
+    index("idx_identity_documents_agreement").on(table.agreementId),
   ],
 );
 
@@ -743,4 +977,7 @@ export type NewOfficeProfile = typeof officeProfiles.$inferInsert;
 export type BackupJob = typeof backupJobs.$inferSelect;
 export type NewBackupJob = typeof backupJobs.$inferInsert;
 export type BackupLog = typeof backupLogs.$inferSelect;
+export type AgreementTemplate = typeof agreementTemplates.$inferSelect;
+export type Agreement = typeof agreements.$inferSelect;
+export type AgreementRevision = typeof agreementRevisions.$inferSelect;
 export type AppSetting = typeof appSettings.$inferSelect;

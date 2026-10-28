@@ -115,6 +115,8 @@ export type DocumentRecord = {
   code: string;
   person_id: number;
   person_name: string | null;
+  /** The contract this is a signed copy or supporting file of. */
+  agreement_id: number | null;
   document_type_id: number | null;
   document_type_name: string | null;
   document_name: string;

@@ -1,6 +1,8 @@
 // Historical metadata namespaces remain reserved after their modules were
 // removed. This denylist prevents reactivation through permissions or restored
 // settings; custom keys outside these namespaces keep their original behavior.
+// The current contracts feature uses its own namespace, "agreements", so the
+// retired system's leftover rows stay inactive.
 const RETIRED_METADATA_NAMESPACES = new Set([
   "contracts",
   "contract_templates",

@@ -10,7 +10,10 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "paths": {
+      "@contract-document/*": ["../../server/src/shared/contract-document/*"]
+    }
   },
   "include": ["src/**/*.ts", "src/**/*.vue"]
 }

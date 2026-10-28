@@ -43,6 +43,23 @@ function canonicalRows(rows: unknown[]) {
     .sort();
 }
 
+/**
+ * Rows projected onto the fixture's columns. A column added after the
+ * fixture was written (identity_documents.agreement_id) restores as null.
+ */
+function asFixture(rows: unknown[], fixtureRows: unknown[]) {
+  const known = new Set(fixtureRows.flatMap((row) => Object.keys(row as object)));
+  return rows.map((row) =>
+    Object.fromEntries(
+      Object.entries(row as object).filter(([key, value]) => {
+        if (known.has(key) || !fixtureRows.length) return true;
+        assert.equal(value, null, `${key}, added after the fixture, is null`);
+        return false;
+      }),
+    ),
+  );
+}
+
 /** Where restore writes an archive file entry. */
 function restoredPath(entryName: string) {
   return entryName.startsWith("documents/")
@@ -67,7 +84,7 @@ test("archives written before streaming restore, and new archives keep their lay
       for (const [name, rows] of Object.entries(data)) {
         const table = tables.get(name);
         assert.ok(table, `known table: ${name}`);
-        assert.deepEqual(canonicalRows(await db.select().from(table)), canonicalRows(rows), name);
+        assert.deepEqual(canonicalRows(asFixture(await db.select().from(table), rows)), canonicalRows(rows), name);
       }
       for (const entry of files)
         assert.deepEqual(await fs.readFile(restoredPath(entry.entryName)), entry.getData(), entry.entryName);
@@ -107,7 +124,7 @@ test("archives written before streaming restore, and new archives keep their lay
       assert.equal(JSON.parse(streamed.readAsText("manifest.json")).version, 3);
       const exported = JSON.parse(streamed.readAsText("data.json")) as Record<string, unknown[]>;
       for (const [name, rows] of Object.entries(data))
-        assert.deepEqual(canonicalRows(exported[name]), canonicalRows(rows), name);
+        assert.deepEqual(canonicalRows(asFixture(exported[name]!, rows)), canonicalRows(rows), name);
     });
 
     await t.test("a damaged entry is refused before it replaces the file on disk", async () => {

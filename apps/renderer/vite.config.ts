@@ -51,6 +51,15 @@ export default defineConfig(({ mode }) => {
       ...(isWebDemo ? [] : [vueDevTools({ appendTo: "/src/main.ts" })]),
       tailwindcss(),
     ],
+    resolve: {
+      alias: {
+        // The contract document model shared with the API (preview, PDF and
+        // printing resolve fields exactly as issuing and Word export do).
+        "@contract-document": fileURLToPath(
+          new URL("../../server/src/shared/contract-document", import.meta.url),
+        ),
+      },
+    },
     build: {
       outDir: "dist",
       emptyOutDir: true,
