@@ -14,6 +14,7 @@ import { useRefresh } from "../composables/useRefresh";
 import { useRentals } from "../composables/useRentals";
 import { useRentalActions } from "../composables/useRentalActions";
 import { exportRentalFolder } from "../utils/listingExport";
+import { isDialogOpen } from "../utils/dialog";
 import { RENTAL_SORT_OPTIONS } from "../constants/domain";
 import type { FollowupTarget, RentalRecord, RentalStatus } from "../types";
 
@@ -139,7 +140,7 @@ function logFollowup() {
 function onShortcut(event: KeyboardEvent) {
   if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyN") return;
   if (event.altKey || event.shiftKey || !can("rentals.create")) return;
-  if (document.querySelector(".v-overlay--active .v-dialog")) return;
+  if (isDialogOpen()) return;
   event.preventDefault();
   createRental();
 }

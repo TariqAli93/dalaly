@@ -19,6 +19,7 @@ import { useSnackbar } from "../composables/useSnackbar";
 import { useRefresh } from "../composables/useRefresh";
 import { useAuth } from "../composables/useAuth";
 import { roleLabel } from "../constants/permissions";
+import { isDialogOpen } from "../utils/dialog";
 import type { ManagedUserRecord, RoleRecord } from "../types";
 
 /**
@@ -154,7 +155,7 @@ function actionsOf(user: ManagedUserRecord): RowAction[] {
 function onShortcut(event: KeyboardEvent) {
   if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyN") return;
   if (event.altKey || event.shiftKey || !can("users.create")) return;
-  if (document.querySelector(".v-overlay--active .v-dialog")) return;
+  if (isDialogOpen()) return;
   event.preventDefault();
   openDialog();
 }

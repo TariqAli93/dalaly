@@ -22,6 +22,7 @@ import { useRefresh } from "../composables/useRefresh";
 import { useFavorites } from "../composables/useFavorites";
 import { usePermissions } from "../composables/usePermissions";
 import { exportPropertyFolder } from "../utils/listingExport";
+import { isDialogOpen } from "../utils/dialog";
 import { PROPERTY_SORT_OPTIONS } from "../constants/domain";
 import { getErrorMessage } from "../services/api.service";
 import type { FollowupTarget, PropertyRecord } from "../types";
@@ -170,7 +171,7 @@ function logFollowup() {
 function onShortcut(event: KeyboardEvent) {
   if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyN") return;
   if (event.altKey || event.shiftKey || !can("properties.create")) return;
-  if (document.querySelector(".v-overlay--active .v-dialog")) return;
+  if (isDialogOpen()) return;
   event.preventDefault();
   createProperty();
 }

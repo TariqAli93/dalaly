@@ -6,6 +6,7 @@ import AppSidebar from "../components/app/AppSidebar.vue";
 import AppTopbar from "../components/app/AppTopbar.vue";
 import { useRefresh } from "../composables/useRefresh";
 import { appearance } from "../composables/useAppearance";
+import { isDialogOpen } from "../utils/dialog";
 
 // إطار التطبيق للصفحات بعد تسجيل الدخول: مسار أب في الموجّه، فيبقى مركّباً
 // أثناء التنقّل (لا تُطوى القائمة الموسّعة عند كل صفحة). عنوان كل صفحة
@@ -71,7 +72,7 @@ function focusMain() {
 // اختصارات عامة: Alt+← رجوع كالمتصفح ومستكشف Windows، وF1 للمساعدة. لا
 // تُعترض داخل حوار مفتوح.
 function onShortcut(event: KeyboardEvent) {
-  if (document.querySelector(".v-overlay--active .v-dialog")) return;
+  if (isDialogOpen()) return;
   if (event.altKey && !event.ctrlKey && event.code === "ArrowLeft") {
     event.preventDefault();
     router.back();

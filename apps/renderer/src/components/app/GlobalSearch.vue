@@ -27,6 +27,7 @@ import {
   REQUESTS_DEFAULT_SORT,
 } from "../../constants/crm";
 import { formatMoney, formatPlot } from "../../utils/format";
+import { isDialogOpen } from "../../utils/dialog";
 import type { ListSortOption } from "../../types";
 
 /**
@@ -262,8 +263,7 @@ watch(active, (index) => {
 function onShortcut(event: KeyboardEvent) {
   if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyK") return;
   if (event.altKey || event.shiftKey) return;
-  if (!open.value && document.querySelector(".v-overlay--active .v-dialog"))
-    return;
+  if (!open.value && isDialogOpen()) return;
   event.preventDefault();
   show();
 }
