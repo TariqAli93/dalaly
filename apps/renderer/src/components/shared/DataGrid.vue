@@ -13,6 +13,7 @@ import RowActions from "./RowActions.vue";
 import EmptyState from "./EmptyState.vue";
 import { openedRows, type GridHeader, type RowAction } from "./grid";
 import { LIST_PAGE_SIZES } from "../../constants/domain";
+import { isDialogOpen } from "../../utils/dialog";
 import type { TableSortItem } from "../../types";
 
 /**
@@ -262,12 +263,7 @@ function runMenu(action: RowAction) {
 }
 // إغلاق القائمة يعيد التركيز إلى صفها، لا إلى بداية الصفحة.
 watch(menuOpen, (isOpen) => {
-  if (
-    !isOpen &&
-    menuItem.value &&
-    !document.querySelector(".v-overlay--active .v-dialog")
-  )
-    focusRow(menuItem.value.id);
+  if (!isOpen && menuItem.value && !isDialogOpen()) focusRow(menuItem.value.id);
 });
 
 // اسم الجدول للقارئ الآلي، ووصف مختصر لطريقة التنقّل.

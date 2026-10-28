@@ -26,6 +26,7 @@ import { useRefresh } from "../../composables/useRefresh";
 import { useLocations } from "../../composables/useLocations";
 import { useRequests } from "../../composables/useRequests";
 import { formatMoney } from "../../utils/format";
+import { isDialogOpen } from "../../utils/dialog";
 import {
   requestLabel,
   requestPath,
@@ -257,7 +258,7 @@ function openMatch(match: MatchResult) {
 function onShortcut(event: KeyboardEvent) {
   if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyN") return;
   if (event.altKey || event.shiftKey || !can("requests.create")) return;
-  if (document.querySelector(".v-overlay--active .v-dialog")) return;
+  if (isDialogOpen()) return;
   event.preventDefault();
   openCreate();
 }

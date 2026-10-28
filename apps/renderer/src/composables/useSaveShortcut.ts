@@ -1,4 +1,5 @@
 import { onBeforeUnmount, onMounted } from "vue";
+import { isDialogOpen } from "../utils/dialog";
 
 /**
  * Ctrl+S يحفظ نموذج الصفحة. code لا key: على لوحة المفاتيح العربية key هو
@@ -9,7 +10,7 @@ export function useSaveShortcut(save: () => void) {
     if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyS") return;
     if (event.altKey || event.shiftKey) return;
     event.preventDefault();
-    if (document.querySelector(".v-overlay--active .v-dialog")) return;
+    if (isDialogOpen()) return;
     save();
   }
   onMounted(() => window.addEventListener("keydown", onKeydown));

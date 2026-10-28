@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, useSlots, watch } from "vue";
 import type { FilterChip } from "./grid";
+import { isDialogOpen } from "../../utils/dialog";
 
 /**
  * شريط أدوات القائمة داخل لوحها، واحد لكل القوائم: صف للبحث والفلاتر
@@ -58,7 +59,7 @@ function focusSearch() {
 function onGlobalKeydown(event: KeyboardEvent) {
   if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyF") return;
   if (event.altKey || event.shiftKey) return;
-  if (document.querySelector(".v-overlay--active .v-dialog")) return;
+  if (isDialogOpen()) return;
   event.preventDefault();
   focusSearch();
 }

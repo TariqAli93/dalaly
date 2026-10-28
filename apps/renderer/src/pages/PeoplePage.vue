@@ -19,6 +19,7 @@ import { useSnackbar } from "../composables/useSnackbar";
 import { useConfirm } from "../composables/useConfirm";
 import { useRefresh } from "../composables/useRefresh";
 import { usePeople } from "../composables/usePeople";
+import { isDialogOpen } from "../utils/dialog";
 import {
   PERSON_STATUS_FILTERS,
   personStatusLabel,
@@ -181,7 +182,7 @@ function actionsOf(person: PersonRecord): RowAction[] {
 function onShortcut(event: KeyboardEvent) {
   if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyN") return;
   if (event.altKey || event.shiftKey || !can("people.create")) return;
-  if (document.querySelector(".v-overlay--active .v-dialog")) return;
+  if (isDialogOpen()) return;
   event.preventDefault();
   openCreate();
 }
