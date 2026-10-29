@@ -12,6 +12,7 @@ import AppPage from "../components/app/AppPage.vue";
 import PersonPicker from "../components/people/PersonPicker.vue";
 import DataGrid from "../components/shared/DataGrid.vue";
 import DocumentDialog from "../components/documents/DocumentDialog.vue";
+import DocumentViewer from "../components/documents/DocumentViewer.vue";
 import type {
   DataGridApi,
   GridHeader,
@@ -54,6 +55,7 @@ const typeId = ref<number | null>(null);
 const status = ref<"" | "active" | "expired" | "archived">("");
 const grid = useTemplateRef<DataGridApi>("grid");
 const dialog = ref(false);
+const viewing = ref<DocumentRecord | null>(null);
 const editing = ref<DocumentRecord | null>(null);
 
 const STATUS_FILTERS = [
@@ -101,7 +103,7 @@ const headers: GridHeader[] = [
 
 function openFile(item: DocumentRecord) {
   grid.value?.remember(item.id);
-  window.open(documentsService.fileUrl(item.id), "_blank");
+  viewing.value = item;
 }
 function openCreate() {
   editing.value = null;
@@ -345,5 +347,6 @@ onBeforeUnmount(() => list.cancel());
       :person-id="personId"
       @saved="onSaved"
     />
+    <DocumentViewer :document="viewing" @close="viewing = null" />
   </AppPage>
 </template>

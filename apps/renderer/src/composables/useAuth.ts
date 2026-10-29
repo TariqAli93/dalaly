@@ -1,5 +1,10 @@
 import { computed, ref } from "vue";
-import { clearToken, getToken, setToken } from "../services/api.service";
+import {
+  clearToken,
+  getToken,
+  setMediaToken,
+  setToken,
+} from "../services/api.service";
 import * as authService from "../services/auth.service";
 import type {
   AuthUserRecord,
@@ -27,7 +32,7 @@ function clearAuthState() {
 
 async function loginWithCredentials(credentials: LoginCredentials) {
   const payload = await authService.login(credentials);
-  setToken(payload.token);
+  setToken(payload.token, payload.media_token);
   currentUser.value = payload.user;
   currentRoles.value = payload.roles;
   currentPermissions.value = payload.permissions;
@@ -35,6 +40,7 @@ async function loginWithCredentials(credentials: LoginCredentials) {
 
 async function loadCurrentUser() {
   const me = await authService.fetchCurrentUser();
+  if (me.media_token) setMediaToken(me.media_token);
   currentUser.value = me.user;
   currentRoles.value = me.roles;
   currentPermissions.value = me.permissions;

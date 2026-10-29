@@ -1,5 +1,5 @@
 import type { BackupHistory } from "../types";
-import { API_BASE, getToken, request } from "./api.service";
+import { request } from "./api.service";
 
 type RestoreScope = "full" | "properties" | "images" | "users" | "settings";
 
@@ -52,8 +52,4 @@ export function restoreBackup(input: {
     /** Copy of the data the restore replaced (absent from older APIs). */
     safety_backup_path?: string;
   }>("/backup/restore", { method: "POST", body: JSON.stringify(input) });
-}
-
-export function backupDownloadUrl(jobId: number) {
-  return `${API_BASE}/backup/download/${jobId}?token=${encodeURIComponent(getToken())}`;
 }

@@ -50,7 +50,8 @@ async function main() {
   try {
     await waitHealth();
     await req("POST", "/setup/initialize", { body: { ...adminConnection(TEST_DB), firstAdminUsername: "admin", firstAdminPin: "4321" } });
-    let token = (await req("POST", "/auth/login", { body: { username: "admin", pin: "4321" } })).body.token;
+    const signedIn = (await req("POST", "/auth/login", { body: { username: "admin", pin: "4321" } })).body;
+    let token = signedIn.token;
     check("login", !!token);
 
     // property
@@ -67,7 +68,7 @@ async function main() {
     let imgs = await req("GET", `/properties/${propId}/images`, { token });
     check("list 2 images", imgs.body.length === 2, imgs.body?.length);
     // file served
-    const fileRes = await fetch(`${BASE}/properties/${propId}/images/${img1}/file?token=${token}`);
+    const fileRes = await fetch(`${BASE}/properties/${propId}/images/${img1}/file?media=${encodeURIComponent(signedIn.media_token)}`);
     check("image file served 200", fileRes.status === 200, fileRes.status);
     check("image content-type png", (fileRes.headers.get("content-type") || "").includes("image/png"), fileRes.headers.get("content-type"));
     const fileBuf = Buffer.from(await fileRes.arrayBuffer());

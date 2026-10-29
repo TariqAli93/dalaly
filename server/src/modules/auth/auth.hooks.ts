@@ -1,5 +1,9 @@
-import { type FastifyInstance } from "fastify";
-import { resolveSession, type AuthUser } from "./auth.service.js";
+import { type FastifyInstance, type FastifyRequest } from "fastify";
+import {
+  resolveMediaToken,
+  resolveSession,
+  type AuthUser,
+} from "./auth.service.js";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -20,6 +24,18 @@ const publicPaths = new Set([
   "/api/auth/login",
 ]);
 
+/** مسارات الملفات التي تعرضها الواجهة في <img>: الصور ومصغّراتها والشعار. */
+const MEDIA_PATHS = [
+  /^\/api\/(?:properties|rentals)\/\d+\/images\/\d+\/(?:file|thumbnail)$/,
+  /^\/api\/office\/logo$/,
+];
+
+function isMediaRequest(request: FastifyRequest) {
+  if (request.method !== "GET" && request.method !== "HEAD") return false;
+  const path = request.url.split("?")[0];
+  return MEDIA_PATHS.some((pattern) => pattern.test(path));
+}
+
 export function registerAuthHook(app: FastifyInstance) {
   // onRequest runs before the body is read, so an anonymous caller cannot
   // make the API buffer and parse an upload-sized body.
@@ -33,18 +49,21 @@ export function registerAuthHook(app: FastifyInstance) {
 
     const header = request.headers.authorization ?? "";
     const headerToken = header.startsWith("Bearer ") ? header.slice(7) : "";
-    // السماح بالتوكن عبر query لطلبات الصور (<img> لا يرسل ترويسة Authorization).
-    const queryToken =
-      typeof (request.query as { token?: string })?.token === "string"
-        ? ((request.query as { token?: string }).token ?? "")
+    // رمز الجلسة يأتي في الترويسة فقط. روابط الصور (<img> لا يرسل ترويسة)
+    // تحمل رمز وسائط مشتقاً منها في ?media=، ولا يُقبل إلا لقراءة ملف.
+    const media = (request.query as { media?: unknown } | undefined)?.media;
+    const mediaToken =
+      !headerToken && typeof media === "string" && isMediaRequest(request)
+        ? media
         : "";
-    const token = headerToken || queryToken;
 
-    if (!token) {
+    if (!headerToken && !mediaToken) {
       return reply.code(401).send({ message: "يجب تسجيل الدخول أولاً." });
     }
 
-    const user = await resolveSession(token);
+    const user = headerToken
+      ? await resolveSession(headerToken)
+      : await resolveMediaToken(mediaToken);
     if (!user) {
       return reply
         .code(401)

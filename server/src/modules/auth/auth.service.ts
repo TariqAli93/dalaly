@@ -17,6 +17,9 @@ import {
   createSessionToken,
   hashPin,
   hashSessionToken,
+  mediaTokenFor,
+  parseMediaToken,
+  sameMediaToken,
   verifyPin,
 } from "./crypto.js";
 
@@ -26,6 +29,8 @@ export type AuthUser = Pick<
 > & {
   roles: AuthRole[];
   permissions: AuthPermission[];
+  /** رمز روابط الصور لهذه الجلسة (mediaTokenFor). */
+  mediaToken: string;
 };
 
 export async function bootstrapDefaultAdmin() {
@@ -111,14 +116,18 @@ export async function login(username: string, pin: string) {
     Date.now() + config.sessionTtlHours * 60 * 60 * 1000,
   );
 
-  await db.insert(sessions).values({
-    userId: user.id,
-    tokenHash,
-    expiresAt,
-  });
+  const [session] = await db
+    .insert(sessions)
+    .values({
+      userId: user.id,
+      tokenHash,
+      expiresAt,
+    })
+    .returning({ id: sessions.id });
 
   return {
     token,
+    media_token: mediaTokenFor(session.id, tokenHash),
     expires_at: expiresAt.toISOString(),
     ...(await buildAuthPayload(user)),
   };
@@ -130,19 +139,21 @@ export async function logout(token: string) {
     .where(eq(sessions.tokenHash, hashSessionToken(token)));
 }
 
+const sessionUser = {
+  id: sessions.id,
+  tokenHash: sessions.tokenHash,
+  user: {
+    id: users.id,
+    username: users.username,
+    displayName: users.displayName,
+    isActive: users.isActive,
+  },
+};
+
 export async function resolveSession(token: string): Promise<AuthUser | null> {
   const tokenHash = hashSessionToken(token);
   const [session] = await db
-    .select({
-      id: sessions.id,
-      expiresAt: sessions.expiresAt,
-      user: {
-        id: users.id,
-        username: users.username,
-        displayName: users.displayName,
-        isActive: users.isActive,
-      },
-    })
+    .select(sessionUser)
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
     .where(
@@ -158,7 +169,34 @@ export async function resolveSession(token: string): Promise<AuthUser | null> {
     return null;
   }
 
-  return buildAuthUser(session.user);
+  return buildAuthUser(
+    session.user,
+    mediaTokenFor(session.id, session.tokenHash),
+  );
+}
+
+/** الجلسة التي اشتُق منها رمز الوسائط، ما دامت سارية؛ وإلا null. */
+export async function resolveMediaToken(
+  value: string,
+): Promise<AuthUser | null> {
+  const parsed = parseMediaToken(value);
+  if (!parsed) return null;
+  const [session] = await db
+    .select(sessionUser)
+    .from(sessions)
+    .innerJoin(users, eq(sessions.userId, users.id))
+    .where(
+      and(
+        eq(sessions.id, parsed.sessionId),
+        eq(users.isActive, true),
+        gt(sessions.expiresAt, new Date()),
+      ),
+    )
+    .limit(1);
+  if (!session) return null;
+  const expected = mediaTokenFor(session.id, session.tokenHash);
+  if (!sameMediaToken(value, expected)) return null;
+  return buildAuthUser(session.user, expected);
 }
 
 export async function cleanupExpiredSessions() {
@@ -168,7 +206,8 @@ export async function cleanupExpiredSessions() {
 export async function buildAuthPayload(
   user: Pick<User, "id" | "username" | "displayName" | "isActive">,
 ) {
-  const authUser = await buildAuthUser(user);
+  const { roles, permissions } = await getUserRolesAndPermissions(user.id);
+  const authUser = { ...user, roles, permissions };
   return {
     user: {
       id: authUser.id,
@@ -183,6 +222,7 @@ export async function buildAuthPayload(
 
 async function buildAuthUser(
   user: Pick<User, "id" | "username" | "displayName" | "isActive">,
+  mediaToken: string,
 ): Promise<AuthUser> {
   const { roles, permissions } = await getUserRolesAndPermissions(user.id);
   return {
@@ -192,5 +232,6 @@ async function buildAuthUser(
     isActive: user.isActive,
     roles,
     permissions,
+    mediaToken,
   };
 }

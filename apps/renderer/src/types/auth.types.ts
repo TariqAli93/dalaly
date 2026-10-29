@@ -9,6 +9,8 @@ export type AuthUserRecord = {
 
 export type AuthPayload = {
   token: string;
+  /** Goes in <img> URLs instead of the session token (`?media=`). */
+  media_token: string;
   user: AuthUserRecord;
   roles: RoleSummary[];
   permissions: PermissionRecord[];
@@ -18,6 +20,7 @@ export type CurrentUserPayload = {
   user: AuthUserRecord | null;
   roles: RoleSummary[];
   permissions: PermissionRecord[];
+  media_token: string | null;
 };
 
 export type LoginCredentials = {

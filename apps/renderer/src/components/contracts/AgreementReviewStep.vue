@@ -7,6 +7,7 @@ import type {
 } from "@contract-document/index";
 import ContractPreview from "./ContractPreview.vue";
 import DocumentDialog from "../documents/DocumentDialog.vue";
+import DocumentViewer from "../documents/DocumentViewer.vue";
 import * as documentsService from "../../services/documents.service";
 import { getErrorMessage } from "../../services/api.service";
 import { usePermissions } from "../../composables/usePermissions";
@@ -44,6 +45,7 @@ const pages = ref(1);
 const attachments = ref<DocumentRecord[]>([]);
 const types = ref<DocumentTypeRecord[]>([]);
 const dialog = ref(false);
+const viewing = ref<DocumentRecord | null>(null);
 
 const stepTitle = (key: string) =>
   AGREEMENT_STEPS.find((step) => step.key === key)?.title ?? key;
@@ -162,8 +164,7 @@ watch(() => props.record.id, loadAttachments);
               :key="item.id"
               :title="item.document_name"
               :subtitle="`${item.person_name ?? ''} · ${formatDate(item.uploaded_at)}`"
-              :href="documentsService.fileUrl(item.id)"
-              target="_blank"
+              @click="viewing = item"
               prepend-icon="mdi-file-document-outline"
             />
           </v-list>
@@ -217,6 +218,7 @@ watch(() => props.record.id, loadAttachments);
       :agreement-id="record.id"
       @saved="onSaved"
     />
+    <DocumentViewer :document="viewing" @close="viewing = null" />
   </div>
 </template>
 

@@ -11,13 +11,22 @@ export function isSameDocumentNavigation(current, target) {
   }
 }
 
+// The local API and anything else on this machine: a link there could carry
+// a session or media token, and the system browser would keep it in its
+// history.
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "0.0.0.0"]);
+
 export function safeExternalUrl(value) {
   if (typeof value !== "string" || value.length > 4096) return null;
   try {
     const url = new URL(value);
+    const host = url.hostname.toLowerCase();
     return ["https:", "http:"].includes(url.protocol) &&
       !url.username &&
-      !url.password
+      !url.password &&
+      !LOOPBACK_HOSTS.has(host) &&
+      !host.endsWith(".localhost") &&
+      !/^127\./.test(host)
       ? url.href
       : null;
   } catch {

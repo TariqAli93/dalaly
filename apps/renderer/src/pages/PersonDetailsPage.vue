@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import PersonEditor from "../components/people/PersonEditor.vue";
+import DocumentViewer from "../components/documents/DocumentViewer.vue";
 import RecordNotes from "../components/shared/RecordNotes.vue";
 import RecordFacts from "../components/shared/RecordFacts.vue";
 import DetailList from "../components/shared/DetailList.vue";
@@ -337,8 +338,9 @@ const requestsCount = computed(
 const listingsCount = computed(
   () => saleList.total.value + rentalList.total.value,
 );
+const viewingDocument = ref<DocumentRecord | null>(null);
 function openDocument(item: DocumentRecord) {
-  window.open(documentsService.fileUrl(item.id), "_blank");
+  viewingDocument.value = item;
 }
 const listLabel = (count: number, label: string) =>
   count ? `${label} (${count})` : label;
@@ -731,6 +733,10 @@ const listLabel = (count: number, label: string) =>
       </section>
       <PersonEditor v-model="editOpen" :person="person" @saved="onSaved" />
     </template>
+    <DocumentViewer
+      :document="viewingDocument"
+      @close="viewingDocument = null"
+    />
   </AppPage>
 </template>
 

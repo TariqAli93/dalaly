@@ -1,5 +1,5 @@
 import type { CompanySettingsRecord } from "../types";
-import { API_BASE, getToken, request } from "./api.service";
+import { mediaUrl, request } from "./api.service";
 export function getCompanySettings() {
   return request<CompanySettingsRecord>("/office");
 }
@@ -16,5 +16,5 @@ export function uploadLogo(payload: unknown) {
   });
 }
 export function logoUrl() {
-  return `${API_BASE}/office/logo?token=${encodeURIComponent(getToken())}`;
+  return mediaUrl("/office/logo");
 }

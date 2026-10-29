@@ -5,7 +5,7 @@ import type {
   PageQuery,
   PagedResult,
 } from "../types";
-import { API_BASE, getToken, request } from "./api.service";
+import { request, requestBlob } from "./api.service";
 
 function buildQuery(filters: Record<string, string | number | undefined>) {
   const query = new URLSearchParams(
@@ -64,6 +64,7 @@ export function addPersonDocument(personId: number, payload: unknown) {
     body: JSON.stringify(payload),
   });
 }
-export function fileUrl(id: number) {
-  return `${API_BASE}/documents/${id}/file?token=${encodeURIComponent(getToken())}`;
+/** ملف المستمسك بترويسة المصادقة، ليُعرض داخل البرنامج. */
+export function fetchFile(id: number) {
+  return requestBlob(`/documents/${id}/file`);
 }

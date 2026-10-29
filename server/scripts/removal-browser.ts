@@ -132,7 +132,7 @@ export async function verifyRemovalNavigation(
       await expect(page.locator("tbody tr").filter({ hasText: "REMOVAL-UI-001" })).toBeVisible();
       const session = await page.evaluate(() => localStorage.getItem("dalaly.session"));
       const apiUrl = documentHttp.url().replace(/\/documents$/, "");
-      const file = await page.context().request.get(`${apiUrl}/documents/${document.id}/file?token=${encodeURIComponent(session ?? "")}`);
+      const file = await page.context().request.get(`${apiUrl}/documents/${document.id}/file`, { headers: { authorization: `Bearer ${session ?? ""}` } });
       assert.equal(file.status(), 200);
       assert.deepEqual(await file.body(), png);
       await noContractUi("Shared person documents still upload and return their original bytes");
