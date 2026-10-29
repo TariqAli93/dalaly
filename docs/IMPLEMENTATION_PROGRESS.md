@@ -10,8 +10,8 @@ Do not rely on this file alone.
 
 | Phase | Branch | Pull request | Tests | Status |
 | --- | --- | --- | --- | --- |
-| 0 — audit and plan | `docs/phase-00-audit` | — | docs only; baseline checks pass | In review |
-| 1a — file integrity | `fix/phase-01a-file-integrity` | — | — | Pending |
+| 0 — audit and plan | `docs/phase-00-audit` | [#26](https://github.com/TariqAli93/dalaly/pull/26), merged `115d525` | docs only; CI pass | Completed |
+| 1a — file integrity | `fix/phase-01a-file-integrity` | — | `test:files` 14/14; affected suites pass | In review |
 | 1b — media tokens | `fix/phase-01b-media-tokens` | — | — | Pending |
 | 1c — hardening | `fix/phase-01c-hardening` | — | — | Pending |
 | 2a — activities and tasks | `feat/phase-02a-activities` | — | — | Pending |
@@ -44,6 +44,24 @@ Do not rely on this file alone.
   `test:backup:compat` 5, `test:backup:safety` 4, `test:transactions` 1,
   `test:paging` 17, `test:dashboard:operations` 9 — all pass.
 
+## Phase evidence
+
+### 1a — file integrity
+
+Fixes findings 1–7, 9 and 15 of the plan. Local runs against PostgreSQL 18:
+
+- `test:files` (new) 14/14.
+- Suites that touch images, documents or backups: `test:thumbnails` 11,
+  `test:contract` 80, `test:backup:encrypted` 7, `test:removal:backup` 20,
+  `test:backup:compat` 5, `test:import` 5, `test:codes` 4.
+- Runtime suites: `test:runtime` 49, `test:runtime:phase2` 50,
+  `test:runtime:spaces` 17.
+- Server typecheck and ESLint pass.
+
+No migration. Image files deleted before this phase (rows removed with
+their listing, files left on disk) stay on disk. Removing them is listed
+under the decisions below.
+
 ## Database migrations
 
 | Migration | Phase | What it adds |
@@ -52,7 +70,13 @@ Do not rely on this file alone.
 
 ## Decisions that need the owner
 
-None open yet. The plan follows the owner decisions already recorded in
+- **Orphan image files from before Phase 1a.** A listing deleted before
+  Phase 1a left its image files and thumbnails on disk, outside every row
+  (they are still archived by full backups). The app now removes them on
+  delete, but does not search for and remove the old ones: that deletes
+  user files, so it waits for the owner's decision.
+
+The plan follows the owner decisions already recorded in
 `AUDIT_AND_ROADMAP.md` (section 2) and `CONTRACT_SYSTEM_REMOVAL_MAP.md`. If
 a phase reaches a choice that changes history, deletes data or changes how
 money is accounted for beyond the plan, it is listed here, and the phase

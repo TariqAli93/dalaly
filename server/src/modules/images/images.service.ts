@@ -4,46 +4,45 @@ import path from "node:path";
 import { config } from "../../infrastructure/config.js";
 import { DomainError } from "../../shared/errors.js";
 
-const EXT_BY_MIME: Record<string, string> = {
-  "image/jpeg": ".jpg",
-  "image/jpg": ".jpg",
-  "image/png": ".png",
-  "image/webp": ".webp",
-  "image/gif": ".gif",
-  "image/bmp": ".bmp",
-};
+/**
+ * امتداد الصورة من بايتاتها الأولى لا من نوعها المعلن أو اسمها، فلا يُخزَّن
+ * باسم صورة ملف ليس صورة. null لما ليس صورة مدعومة.
+ */
+export function imageExtension(buffer: Buffer) {
+  const starts = (bytes: number[], offset = 0) =>
+    buffer.length >= offset + bytes.length &&
+    bytes.every((byte, index) => buffer[offset + index] === byte);
+  if (starts([0xff, 0xd8, 0xff])) return ".jpg";
+  if (starts([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return ".png";
+  if (starts([0x47, 0x49, 0x46, 0x38])) return ".gif";
+  if (starts([0x52, 0x49, 0x46, 0x46]) && starts([0x57, 0x45, 0x42, 0x50], 8))
+    return ".webp";
+  if (starts([0x42, 0x4d])) return ".bmp";
+  return null;
+}
 
-/** يحوّل data URL أو base64 خام إلى Buffer مع امتداد مناسب. */
-function decodeImage(data: string, originalName?: string) {
-  let mime = "image/jpeg";
-  let base64 = data;
-  const match = /^data:(image\/[a-zA-Z+]+);base64,(.*)$/s.exec(data);
-  if (match) {
-    mime = match[1];
-    base64 = match[2];
-  }
-
-  const buffer = Buffer.from(base64, "base64");
-  let ext = EXT_BY_MIME[mime] ?? "";
-  if (!ext && originalName) {
-    const fromName = path.extname(originalName).toLowerCase();
-    if (fromName) ext = fromName;
-  }
-  if (!ext) ext = ".jpg";
-
+/** يحوّل data URL أو base64 خام إلى Buffer ويتحقق أنه صورة مدعومة. */
+function decodeImage(data: string) {
+  const match = /^data:image\/[a-zA-Z+.-]+;base64,(.*)$/s.exec(data);
+  const buffer = Buffer.from(match ? match[1] : data, "base64");
+  if (!buffer.length)
+    throw new DomainError(400, "ملف الصورة فارغ أو غير صالح.");
+  const ext = imageExtension(buffer);
+  if (!ext)
+    throw new DomainError(
+      400,
+      "الملف ليس صورة مدعومة (JPEG أو PNG أو WebP أو GIF أو BMP).",
+    );
   return { buffer, ext };
 }
 
-/** يحفظ صورة على القرص ويعيد المسار النسبي المخزَّن في القاعدة. */
-export function saveScopedImageToDisk(
-  scope: string,
+/** يحفظ صورة واحدة على القرص ويعيد المسار النسبي (البذور والاختبارات). */
+function saveScopedImageToDisk(
+  scope: "" | "rentals",
   entityId: number,
   data: string,
-  originalName?: string,
 ) {
-  const { buffer, ext } = decodeImage(data, originalName);
-  if (!buffer.length)
-    throw new DomainError(400, "ملف الصورة فارغ أو غير صالح.");
+  const { buffer, ext } = decodeImage(data);
   const dir = scope
     ? path.join(config.imagesDir, scope, String(entityId))
     : path.join(config.imagesDir, String(entityId));
@@ -58,20 +57,62 @@ export function saveScopedImageToDisk(
   };
 }
 
-export function saveImageToDisk(
-  propertyId: number,
-  data: string,
-  originalName?: string,
-) {
-  return saveScopedImageToDisk("", propertyId, data, originalName);
+export function saveImageToDisk(propertyId: number, data: string) {
+  return saveScopedImageToDisk("", propertyId, data);
 }
 
-export function saveRentalImageToDisk(
-  rentalId: number,
-  data: string,
-  originalName?: string,
+export function saveRentalImageToDisk(rentalId: number, data: string) {
+  return saveScopedImageToDisk("rentals", rentalId, data);
+}
+
+export type ImageUpload = {
+  data: string;
+  original_name?: string | null;
+  thumbnail?: string | null;
+};
+
+export type StoredImageFile = {
+  filePath: string;
+  originalName: string | null;
+};
+
+/**
+ * يحفظ دفعة صور (وما معها من مصغّرات) لعقار أو إيجار، ثم يمرر مساراتها إلى
+ * `insertRows`. تُفحص كل الصور والمصغّرات قبل كتابة أي ملف، وإن فشل الإدراج
+ * حُذفت ملفات الدفعة كلها، فلا يبقى على القرص ملف بلا صف.
+ */
+export async function storeImages<T>(
+  scope: "" | "rentals",
+  ownerId: number,
+  images: ImageUpload[],
+  insertRows: (files: StoredImageFile[]) => Promise<T>,
 ) {
-  return saveScopedImageToDisk("rentals", rentalId, data, originalName);
+  const decoded = images.map((item) => ({
+    ...decodeImage(item.data),
+    originalName: item.original_name ?? null,
+    thumbnail: item.thumbnail ? decodeThumbnail(item.thumbnail) : null,
+  }));
+  const dir = scope
+    ? path.join(config.imagesDir, scope, String(ownerId))
+    : path.join(config.imagesDir, String(ownerId));
+  const written: string[] = [];
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    const files = decoded.map((item) => {
+      const fileName = `${crypto.randomUUID()}${item.ext}`;
+      const filePath = scope
+        ? `${scope}/${ownerId}/${fileName}`
+        : `${ownerId}/${fileName}`;
+      fs.writeFileSync(path.join(dir, fileName), item.buffer, { flag: "wx" });
+      written.push(filePath);
+      if (item.thumbnail) writeThumbnail(filePath, item.thumbnail);
+      return { filePath, originalName: item.originalName };
+    });
+    return await insertRows(files);
+  } catch (error) {
+    for (const filePath of written) deleteImageFromDisk(filePath);
+    throw error;
+  }
 }
 
 /**
@@ -84,18 +125,44 @@ export function resolveImageAbsolutePath(filePath: string) {
   return absolute.startsWith(`${root}${path.sep}`) ? absolute : null;
 }
 
-/** يحذف ملف الصورة ومصغّرتها إن وُجدت. */
+/**
+ * يحذف ملف الصورة ومصغّرتها إن وُجدت. لا يرمي (الصف حُذف قبله)؛ يعيد false
+ * إن بقي ملف لم يُحذف (مقفول مثلاً) ليسجله المستدعي.
+ */
 export function deleteImageFromDisk(filePath: string) {
+  let removed = true;
   for (const absolute of [
     resolveImageAbsolutePath(filePath),
     resolveThumbnailPath(filePath),
   ]) {
     try {
-      if (absolute && fs.existsSync(absolute)) fs.unlinkSync(absolute);
+      if (absolute) fs.rmSync(absolute, { force: true });
     } catch {
-      // تجاهل أخطاء حذف الملف.
+      removed = false;
     }
   }
+  return removed;
+}
+
+/**
+ * يحذف ملفات صور عقار أو إيجار حُذف (حذفت القاعدة صفوفها معه) ومجلده إن
+ * فرغ. يعيد مسارات ما تعذر حذفه.
+ */
+export function deleteOwnerImageFiles(
+  scope: "" | "rentals",
+  ownerId: number,
+  filePaths: string[],
+) {
+  const failed = filePaths.filter((filePath) => !deleteImageFromDisk(filePath));
+  const dir = scope
+    ? path.join(config.imagesDir, scope, String(ownerId))
+    : path.join(config.imagesDir, String(ownerId));
+  try {
+    if (fs.existsSync(dir) && !fs.readdirSync(dir).length) fs.rmdirSync(dir);
+  } catch {
+    // مجلد فارغ باقٍ لا يضر.
+  }
+  return failed;
 }
 
 /** أكبر حجم لمصغّرة: الواجهة تصنعها بعرض 320 بكسل فتأتي بعشرات الكيلوبايت. */

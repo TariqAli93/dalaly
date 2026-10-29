@@ -24,7 +24,8 @@ import {
   totalRowsColumn,
   type SortOrder,
 } from "../../shared/utils/paging.js";
-import { saveManagedFile } from "./documents.storage.js";
+import { DomainError } from "../../shared/errors.js";
+import { removeManagedFile, saveManagedFile } from "./documents.storage.js";
 import type {
   DocumentFilters,
   DocumentPageQuery,
@@ -232,7 +233,16 @@ export async function getIdentityDocument(id: number) {
   return row ? documentApi(row.document, row.personName, row.typeName) : null;
 }
 
+/**
+ * يحفظ الملف ثم صفه؛ إن فشل الإدراج (عقد أو نوع محذوف، انقطاع) حُذف الملف
+ * فلا يبقى على القرص بلا صف.
+ */
 export async function createIdentityDocument(payload: IdentityDocumentPayload) {
+  const [person] = await db
+    .select({ id: people.id })
+    .from(people)
+    .where(eq(people.id, payload.person_id));
+  if (!person) throw new DomainError(404, "الزبون غير موجود.");
   const stored = saveManagedFile(
     `people/${payload.person_id}`,
     payload.data,
@@ -258,7 +268,10 @@ export async function createIdentityDocument(payload: IdentityDocumentPayload) {
         status: "active",
       })
       .returning(),
-  );
+  ).catch((error: unknown) => {
+    removeManagedFile(stored.filePath);
+    throw error;
+  });
   return getIdentityDocument(row.id);
 }
 

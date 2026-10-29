@@ -40,6 +40,15 @@ export function resolveManagedFile(filePath: string) {
     throw new DomainError(400, "مسار الملف غير صالح.");
   return absolute;
 }
+/** يحذف ملفاً مُداراً دون أن يرمي؛ يعيد false إن بقي على القرص. */
+export function removeManagedFile(filePath: string) {
+  try {
+    fs.rmSync(resolveManagedFile(filePath), { force: true });
+    return true;
+  } catch {
+    return false;
+  }
+}
 export function contentTypeForFile(filePath: string) {
   const ext = path.extname(filePath).toLowerCase();
   return (

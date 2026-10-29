@@ -183,6 +183,17 @@ Conventions:
   image to a user with the images permission
   (`composables/useThumbnailBackfill.ts`). Until then the row shows the
   original. Deleting an image deletes its thumbnail.
+- Every image route acts only on an image of the listing in its URL. A
+  foreign or unknown id is a 404 that changes nothing, set-primary
+  included. Each route runs under a `FOR NO KEY UPDATE` lock on the
+  listing row. An upload (`storeImages`) checks that the listing exists and
+  checks each file's leading bytes (JPEG, PNG, WebP, GIF, BMP; the stored
+  extension comes from them). It then writes the batch's files and inserts
+  all its rows in one transaction. If the rows fail, the files are removed.
+  Deleting a listing deletes its image files, thumbnails and folder after
+  the delete commits. A document's file is removed when its row cannot be
+  inserted, and a replaced logo's previous file is removed. Follow-up
+  updates and deletes likewise match the listing in the URL.
 - A list that returns related rows loads them for every row at once (an
   `IN` query or a join), not with a query per row: users with their roles
   and permissions, roles with their permission ids. Saving a record reads

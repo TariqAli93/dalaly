@@ -3,10 +3,9 @@ import { type FastifyPluginAsync } from "fastify";
 import { requirePermission } from "../auth/auth.hooks.js";
 import { recordAudit } from "../audit/audit.service.js";
 import {
-  addImage,
-  countImages,
-  deleteImageRow,
-  ensurePrimary,
+  addImages,
+  assertPropertyExists,
+  deleteImage,
   getImage,
   listImages,
   reorderImages,
@@ -18,7 +17,7 @@ import {
   deleteImageFromDisk,
   resolveImageAbsolutePath,
   resolveThumbnailPath,
-  saveImageToDisk,
+  storeImages,
   writeThumbnail,
 } from "./images.service.js";
 import {
@@ -46,11 +45,12 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
     { preHandler: requirePermission("properties.read") },
     async (request, reply) => {
       const params = request.params as { id: string; imageId: string };
+      const propertyId = parseId(params.id);
       const imageId = parseId(params.imageId);
-      if (!imageId)
+      if (!propertyId || !imageId)
         return reply.code(400).send({ message: "معرف الصورة غير صحيح." });
 
-      const image = await getImage(imageId);
+      const image = await getImage(propertyId, imageId);
       if (!image)
         return reply.code(404).send({ message: "الصورة غير موجودة." });
 
@@ -76,8 +76,8 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
       if (!propertyId || !imageId)
         return reply.code(400).send({ message: "معرف الصورة غير صحيح." });
 
-      const image = await getImage(imageId);
-      if (!image || image.propertyId !== propertyId)
+      const image = await getImage(propertyId, imageId);
+      if (!image)
         return reply.code(404).send({ message: "الصورة غير موجودة." });
 
       const absolute = resolveThumbnailPath(image.filePath);
@@ -103,8 +103,8 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
 
       const { data } = thumbnailSchema.parse(request.body);
       const thumbnail = decodeThumbnail(data);
-      const image = await getImage(imageId);
-      if (!image || image.propertyId !== propertyId)
+      const image = await getImage(propertyId, imageId);
+      if (!image)
         return reply.code(404).send({ message: "الصورة غير موجودة." });
 
       writeThumbnail(image.filePath, thumbnail);
@@ -124,31 +124,13 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ message: "معرف العقار غير صحيح." });
 
       const payload = imageUploadSchema.parse(request.body);
-      // تُفحص المصغّرات قبل حفظ أي أصل.
-      const thumbnails = payload.images.map((item) =>
-        item.thumbnail ? decodeThumbnail(item.thumbnail) : null,
+      await assertPropertyExists(propertyId);
+      const created = await storeImages(
+        "",
+        propertyId,
+        payload.images,
+        (files) => addImages(propertyId, files),
       );
-      const existing = await countImages(propertyId);
-      const created = [];
-
-      for (let i = 0; i < payload.images.length; i += 1) {
-        const item = payload.images[i];
-        const { filePath } = saveImageToDisk(
-          propertyId,
-          item.data,
-          item.original_name ?? undefined,
-        );
-        const thumbnail = thumbnails[i];
-        if (thumbnail) writeThumbnail(filePath, thumbnail);
-        const isPrimary = existing === 0 && i === 0;
-        const row = await addImage({
-          propertyId,
-          filePath,
-          originalName: item.original_name ?? null,
-          isPrimary,
-        });
-        created.push(row);
-      }
 
       await recordAudit({
         entityType: "property",
@@ -199,11 +181,11 @@ export const imagesRoutes: FastifyPluginAsync = async (app) => {
       if (!propertyId || !imageId)
         return reply.code(400).send({ message: "معرف غير صحيح." });
 
-      const row = await deleteImageRow(imageId);
+      const row = await deleteImage(propertyId, imageId);
       if (!row) return reply.code(404).send({ message: "الصورة غير موجودة." });
 
-      deleteImageFromDisk(row.filePath);
-      await ensurePrimary(propertyId);
+      if (!deleteImageFromDisk(row.filePath))
+        request.log.warn({ imageId }, "image file could not be deleted");
 
       await recordAudit({
         entityType: "property",

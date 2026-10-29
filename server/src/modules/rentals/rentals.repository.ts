@@ -15,11 +15,13 @@ import { type AnyPgColumn } from "drizzle-orm/pg-core";
 import { db } from "../../infrastructure/database/db.js";
 import {
   favoriteRentals,
+  rentalImages,
   rentals,
   type NewRental,
 } from "../../infrastructure/database/schema.js";
 import { toApiObject, toApiObjects } from "../../shared/utils/case.js";
 import { getLocationNames } from "../locations/locations.repository.js";
+import { deleteOwnerImageFiles } from "../images/images.service.js";
 import { listEntityAudit, recordAudit } from "../audit/audit.service.js";
 import {
   type RentalFilters,
@@ -304,9 +306,30 @@ export async function updateRental(
   return result;
 }
 
+/** يحذف الإيجار ثم ملفات صوره بعد نجاح الحذف، كما في العقارات. */
 export async function deleteRental(id: number, userId?: number) {
-  const [row] = await db.delete(rentals).where(eq(rentals.id, id)).returning();
-  if (!row) return null;
+  const deleted = await db.transaction(async (tx) => {
+    // يقفل الصف أولاً فينتظر أي رفع صور جارٍ، ولا تفوت القائمة صورة أُضيفت.
+    const [locked] = await tx
+      .select({ id: rentals.id })
+      .from(rentals)
+      .where(eq(rentals.id, id))
+      .for("update");
+    if (!locked) return null;
+    const images = await tx
+      .select({ filePath: rentalImages.filePath })
+      .from(rentalImages)
+      .where(eq(rentalImages.rentalId, id));
+    const [row] = await tx.delete(rentals).where(eq(rentals.id, id)).returning();
+    return row ? { row, images } : null;
+  });
+  if (!deleted) return null;
+  const row = deleted.row;
+  deleteOwnerImageFiles(
+    "rentals",
+    id,
+    deleted.images.map((image) => image.filePath),
+  );
   const result = toApiObject(row, "rentals");
   await recordAudit({
     entityType: ENTITY,

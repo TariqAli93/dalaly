@@ -5,6 +5,7 @@ import {
   propertyFollowups,
   users,
 } from "../../infrastructure/database/schema.js";
+import { DomainError } from "../../shared/errors.js";
 import {
   normalizeScheduledAt,
   type FollowupPayload,
@@ -33,6 +34,11 @@ export async function createFollowup(
   userId: number | undefined,
   payload: FollowupPayload,
 ) {
+  const [property] = await db
+    .select({ id: properties.id })
+    .from(properties)
+    .where(eq(properties.id, propertyId));
+  if (!property) throw new DomainError(404, "العقار غير موجود.");
   const [row] = await db
     .insert(propertyFollowups)
     .values({
@@ -46,7 +52,11 @@ export async function createFollowup(
   return row;
 }
 
-export async function updateFollowup(id: number, payload: FollowupPayload) {
+export async function updateFollowup(
+  propertyId: number,
+  id: number,
+  payload: FollowupPayload,
+) {
   const [row] = await db
     .update(propertyFollowups)
     .set({
@@ -54,15 +64,25 @@ export async function updateFollowup(id: number, payload: FollowupPayload) {
       notes: payload.notes ?? null,
       scheduledAt: normalizeScheduledAt(payload.scheduled_at),
     })
-    .where(eq(propertyFollowups.id, id))
+    .where(
+      and(
+        eq(propertyFollowups.id, id),
+        eq(propertyFollowups.propertyId, propertyId),
+      ),
+    )
     .returning();
   return row ?? null;
 }
 
-export async function deleteFollowup(id: number) {
+export async function deleteFollowup(propertyId: number, id: number) {
   const [row] = await db
     .delete(propertyFollowups)
-    .where(eq(propertyFollowups.id, id))
+    .where(
+      and(
+        eq(propertyFollowups.id, id),
+        eq(propertyFollowups.propertyId, propertyId),
+      ),
+    )
     .returning();
   return row ?? null;
 }

@@ -1,9 +1,11 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import {
   rentalFollowups,
+  rentals,
   users,
 } from "../../infrastructure/database/schema.js";
+import { DomainError } from "../../shared/errors.js";
 import {
   normalizeScheduledAt,
   type FollowupPayload,
@@ -30,6 +32,11 @@ export async function createRentalFollowup(
   userId: number | undefined,
   payload: FollowupPayload,
 ) {
+  const [rental] = await db
+    .select({ id: rentals.id })
+    .from(rentals)
+    .where(eq(rentals.id, rentalId));
+  if (!rental) throw new DomainError(404, "الإيجار غير موجود.");
   const [row] = await db
     .insert(rentalFollowups)
     .values({
@@ -43,6 +50,7 @@ export async function createRentalFollowup(
   return row;
 }
 export async function updateRentalFollowup(
+  rentalId: number,
   id: number,
   payload: FollowupPayload,
 ) {
@@ -53,14 +61,18 @@ export async function updateRentalFollowup(
       notes: payload.notes ?? null,
       scheduledAt: normalizeScheduledAt(payload.scheduled_at),
     })
-    .where(eq(rentalFollowups.id, id))
+    .where(
+      and(eq(rentalFollowups.id, id), eq(rentalFollowups.rentalId, rentalId)),
+    )
     .returning();
   return row ?? null;
 }
-export async function deleteRentalFollowup(id: number) {
+export async function deleteRentalFollowup(rentalId: number, id: number) {
   const [row] = await db
     .delete(rentalFollowups)
-    .where(eq(rentalFollowups.id, id))
+    .where(
+      and(eq(rentalFollowups.id, id), eq(rentalFollowups.rentalId, rentalId)),
+    )
     .returning();
   return row ?? null;
 }
