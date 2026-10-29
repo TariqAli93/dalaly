@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import PersonEditor from "../components/people/PersonEditor.vue";
+import PersonActivity from "../components/people/PersonActivity.vue";
 import DocumentViewer from "../components/documents/DocumentViewer.vue";
 import RecordNotes from "../components/shared/RecordNotes.vue";
 import RecordFacts from "../components/shared/RecordFacts.vue";
@@ -30,6 +31,8 @@ import {
   documentStatusLabel,
   personStatusColor,
   personStatusLabel,
+  personRoleLabel,
+  personSourceLabel,
   personTypeLabel,
   requestStatusColor,
   requestStatusLabel,
@@ -53,6 +56,7 @@ import type {
   ListSortOption,
   PageQuery,
   PagedResult,
+  PersonDetailRecord,
   PersonRecord,
   PropertyRecord,
   PropertySortKey,
@@ -75,12 +79,17 @@ const { setRefreshHandler } = useRefresh();
 const { notifyError, notifySuccess } = useSnackbar();
 const { openConfirm } = useConfirm();
 
-const person = ref<PersonRecord | null>(null);
+const person = ref<PersonDetailRecord | null>(null);
 const loading = ref(false);
 const error = ref("");
 const editOpen = ref(false);
 const personId = ref<number | null>(null);
-const tab = ref("requests");
+// النشاط أولاً: ما جرى مع الزبون وما هو مستحق، لمن يرى المتابعات.
+const canSeeActivity = computed(
+  () => can("people.read") && can(["followups.read", "rentals.followups.read"]),
+);
+const firstTab = () => (canSeeActivity.value ? "activity" : "requests");
+const tab = ref(firstTab());
 let requestId = 0;
 
 // ─── قوائم الملف: صفحة من الخادم لكل قسم، بمرشّح الزبون ─────────────────
@@ -180,7 +189,7 @@ watch(
   () => route.params.id,
   () => {
     person.value = null;
-    tab.value = "requests";
+    tab.value = firstTab();
     void load();
   },
   { immediate: true },
@@ -216,7 +225,26 @@ const facts = computed<RecordFact[]>(() => {
       value: personTypeLabel(p.person_type),
       hint: p.email,
     },
+    {
+      key: "roles",
+      label: "صفته",
+      value: roleLabels.value || "—",
+      hint: personSourceLabel(p.source) || null,
+    },
+    {
+      key: "assigned",
+      label: "الموظف المتابع",
+      value: p.assigned_user_name ?? "—",
+    },
   ];
+});
+/** صفاته المسجلة وما تقوله سجلاته (مالك عرض، صاحب طلب، طرف عقد). */
+const roleLabels = computed(() => {
+  const p = person.value;
+  if (!p) return "";
+  return [...new Set([...p.roles, ...p.implied_roles])]
+    .map(personRoleLabel)
+    .join("، ");
 });
 const sections = computed<DetailSection[]>(() => {
   const p = person.value;
@@ -272,7 +300,7 @@ async function restore() {
   const p = person.value;
   if (!p) return;
   try {
-    person.value = await peopleService.restorePerson(p.id);
+    person.value = withImplied(await peopleService.restorePerson(p.id));
     notifySuccess(`أُعيد ${p.full_name} إلى الزبائن الحاليين.`);
   } catch (cause) {
     notifyError(getErrorMessage(cause));
@@ -287,13 +315,17 @@ function askArchive() {
     confirmText: "أرشفة",
     color: "warning",
     onConfirm: async () => {
-      person.value = await peopleService.archivePerson(p.id);
+      person.value = withImplied(await peopleService.archivePerson(p.id));
       notifySuccess(`أُرشف ${p.full_name}.`, { label: "تراجع", run: restore });
     },
   });
 }
 function onSaved(saved: PersonRecord) {
-  person.value = saved;
+  person.value = withImplied(saved);
+}
+/** A saved record keeps the roles implied by the records, which it lacks. */
+function withImplied(record: PersonRecord): PersonDetailRecord {
+  return { ...record, implied_roles: person.value?.implied_roles ?? [] };
 }
 
 // ─── أعمدة القوائم ───────────────────────────────────────────────────────
@@ -451,6 +483,7 @@ const listLabel = (count: number, label: string) =>
 
       <section class="dal-panel person-hub" aria-label="عمل الزبون مع المكتب">
         <v-tabs v-model="tab" color="primary" show-arrows>
+          <v-tab v-if="canSeeActivity" value="activity">النشاط</v-tab>
           <v-tab v-if="can('requests.read')" value="requests">{{
             listLabel(requestsCount, "الطلبات")
           }}</v-tab>
@@ -467,6 +500,12 @@ const listLabel = (count: number, label: string) =>
         </v-tabs>
         <v-divider />
         <v-window v-model="tab" class="person-hub__body">
+          <v-window-item v-if="canSeeActivity" value="activity">
+            <PersonActivity
+              :person-id="person.id"
+              :person-name="person.full_name"
+            />
+          </v-window-item>
           <v-window-item v-if="can('requests.read')" value="requests">
             <div
               v-for="section in [

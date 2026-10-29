@@ -17,8 +17,8 @@ Do not rely on this file alone.
 | 2a — activities and tasks | `feat/phase-02a-activities` | [#30](https://github.com/TariqAli93/dalaly/pull/30), merged `2d82389` | `test:tasks` 13/13, `test:contract` 87; all suites; CI pass | Completed |
 | 2b — customer CRM | `feat/phase-02b-customer-crm` | [#31](https://github.com/TariqAli93/dalaly/pull/31), merged `6ec058d` | `test:customers` 8/8, `test:contract` 90; all suites; CI pass | Completed |
 | 2c — tasks UI | `feat/phase-02c-tasks-ui` | [#32](https://github.com/TariqAli93/dalaly/pull/32), merged `c1a02b3` | renderer typecheck, lint, build; web demo; CI pass | Completed |
-| 2d — customer UI | `feat/phase-02d-customer-ui` | — | — | Pending |
-| 3a — deals core | `feat/phase-03a-deals-core` | — | `test:deals` 10/10, deal rules 5/5, money 4/4, `test:contract` 97; all suites | In review |
+| 2d — customer UI | `feat/phase-02d-customer-ui` | [#34](https://github.com/TariqAli93/dalaly/pull/34) | renderer typecheck, lint, build; checked in the web demo | In review |
+| 3a — deals core | `feat/phase-03a-deals-core` | [#33](https://github.com/TariqAli93/dalaly/pull/33), merged `1b54f56` | `test:deals` 10/10, deal rules 5/5, money 4/4, `test:contract` 97; all suites; CI pass | Completed |
 | 3b — deals UI | `feat/phase-03b-deals-ui` | — | — | Pending |
 | 3c — deal integration | `feat/phase-03c-deal-integration` | — | — | Pending |
 | 4a — chart of accounts | `feat/phase-04a-chart-of-accounts` | — | — | Pending |
@@ -172,6 +172,36 @@ below.
     `completed_at`, and the list dropped to three.
   - The listing's history shows the new state, and a past follow-up
     migrated by `0005` shows as done.
+  - No console errors.
+- No server change.
+
+### 2d — customer UI
+
+- The customer page opens on a new "النشاط" tab for anyone who sees
+  follow-ups. It shows last contact, the next due date, and open and overdue
+  tasks, then the customer's follow-ups and activities, newest first, with
+  status, outcome and links to listings. "تسجيل نشاط" logs an activity for
+  the customer in the shared task dialog, and open tasks can be completed
+  from the list.
+- The page's facts add the customer's roles (stored ones and those their
+  records imply: owner, buyer, tenant, contract party), their source and
+  the assigned employee.
+- The customer form gains a "علاقته بالمكتب" section: roles (several),
+  source and assigned employee. It warns, without blocking, when the phone
+  or national ID belongs to another customer: name, code, which field
+  matched, and whether that customer is archived.
+- The people list filters by role and by employee ("زبائني", unassigned)
+  and shows a roles column.
+- The sale listing form can now link the owner to a registered customer,
+  as the rental form already could. The picked customer fills the name and
+  phone when those are empty.
+- Checked in the web demo:
+  - The hub opens on Activity, and the implied "مالك" role shows.
+  - Logging a call adds it to the timeline and sets the last contact.
+  - Typing `+964 780 111 2233` in the form warned about the customer
+    stored as `07801112233`.
+  - The list shows the new filters and column, and the sale form shows the
+    owner picker.
   - No console errors.
 - No server change.
 
