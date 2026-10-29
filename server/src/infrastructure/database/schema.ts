@@ -400,6 +400,33 @@ export const auditLogs = pgTable(
   (table) => [index("idx_audit_entity").on(table.entityType, table.entityId)],
 );
 
+const TASK_STATUS_CHECK = sql.raw("('open', 'done', 'cancelled')");
+const TASK_PRIORITY_CHECK = sql.raw("('low', 'normal', 'high', 'urgent')");
+
+/**
+ * The task columns every follow-up and activity has: a follow-up with a date
+ * is a task due then (`scheduled_at`); one without is a logged interaction,
+ * done when recorded. `user_id` is who recorded it, `assigned_user_id` who
+ * must do it.
+ */
+const taskColumns = () => ({
+  personId: bigint("person_id", { mode: "number" }).references(
+    () => people.id,
+    { onDelete: "set null" },
+  ),
+  assignedUserId: bigint("assigned_user_id", { mode: "number" }).references(
+    () => users.id,
+    { onDelete: "set null" },
+  ),
+  status: text("status").notNull().default("open"),
+  priority: text("priority").notNull().default("normal"),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  outcome: text("outcome"),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 export const propertyFollowups = pgTable(
   "property_followups",
   {
@@ -414,10 +441,22 @@ export const propertyFollowups = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    ...taskColumns(),
   },
   (table) => [
     index("idx_followups_property").on(table.propertyId),
     index("idx_followups_scheduled").on(table.scheduledAt),
+    index("idx_followups_open_due").on(table.status, table.scheduledAt),
+    index("idx_followups_assigned").on(table.assignedUserId),
+    index("idx_followups_person").on(table.personId),
+    check(
+      "property_followups_status",
+      sql`${table.status} in ${TASK_STATUS_CHECK}`,
+    ),
+    check(
+      "property_followups_priority",
+      sql`${table.priority} in ${TASK_PRIORITY_CHECK}`,
+    ),
   ],
 );
 
@@ -453,10 +492,22 @@ export const rentalFollowups = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    ...taskColumns(),
   },
   (table) => [
     index("idx_rental_followups_rental").on(table.rentalId),
     index("idx_rental_followups_scheduled").on(table.scheduledAt),
+    index("idx_rental_followups_open_due").on(table.status, table.scheduledAt),
+    index("idx_rental_followups_assigned").on(table.assignedUserId),
+    index("idx_rental_followups_person").on(table.personId),
+    check(
+      "rental_followups_status",
+      sql`${table.status} in ${TASK_STATUS_CHECK}`,
+    ),
+    check(
+      "rental_followups_priority",
+      sql`${table.priority} in ${TASK_PRIORITY_CHECK}`,
+    ),
   ],
 );
 
@@ -585,6 +636,48 @@ export const purchaseRequests = pgTable(
     index("idx_purchase_requests_district").on(table.districtId),
     index("idx_purchase_requests_neighborhood").on(table.neighborhoodId),
     index("idx_purchase_requests_status").on(table.status),
+  ],
+);
+
+/**
+ * Customer activities and tasks that belong to no listing: a call or meeting
+ * with the customer, or about one of their requests. Listing follow-ups stay
+ * in their own tables; the tasks read model unions all three.
+ */
+export const activities = pgTable(
+  "activities",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    userId: bigint("user_id", { mode: "number" }).references(() => users.id, {
+      onDelete: "set null",
+    }),
+    type: text("type").notNull(),
+    notes: text("notes"),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    ...taskColumns(),
+    // An activity always belongs to a customer.
+    personId: bigint("person_id", { mode: "number" })
+      .notNull()
+      .references(() => people.id, { onDelete: "restrict" }),
+    purchaseRequestId: bigint("purchase_request_id", {
+      mode: "number",
+    }).references(() => purchaseRequests.id, { onDelete: "set null" }),
+    rentalRequestId: bigint("rental_request_id", {
+      mode: "number",
+    }).references(() => rentalRequests.id, { onDelete: "set null" }),
+  },
+  (table) => [
+    index("idx_activities_person").on(table.personId),
+    index("idx_activities_open_due").on(table.status, table.scheduledAt),
+    index("idx_activities_assigned").on(table.assignedUserId),
+    check("activities_status", sql`${table.status} in ${TASK_STATUS_CHECK}`),
+    check(
+      "activities_priority",
+      sql`${table.priority} in ${TASK_PRIORITY_CHECK}`,
+    ),
   ],
 );
 
@@ -962,6 +1055,7 @@ export type PropertyFollowup = typeof propertyFollowups.$inferSelect;
 export type NewPropertyFollowup = typeof propertyFollowups.$inferInsert;
 export type FavoriteProperty = typeof favoriteProperties.$inferSelect;
 export type RentalFollowup = typeof rentalFollowups.$inferSelect;
+export type Activity = typeof activities.$inferSelect;
 export type NewRentalFollowup = typeof rentalFollowups.$inferInsert;
 export type FavoriteRental = typeof favoriteRentals.$inferSelect;
 export type RentalRequest = typeof rentalRequests.$inferSelect;

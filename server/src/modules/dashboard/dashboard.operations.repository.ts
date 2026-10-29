@@ -1,7 +1,10 @@
 import { inArray, sql, type SQL } from "drizzle-orm";
-import { PgDialect } from "drizzle-orm/pg-core";
 import { db } from "../../infrastructure/database/db.js";
-import { pool } from "../../infrastructure/database/pool.js";
+import {
+  OFFICE_TODAY,
+  rawRows,
+  type RawRow,
+} from "../../infrastructure/database/raw-query.js";
 import { properties, rentals } from "../../infrastructure/database/schema.js";
 import { toApiObject } from "../../shared/utils/case.js";
 import {
@@ -27,8 +30,7 @@ export type OperationsAccess = {
   rentalFollowups: boolean;
 };
 
-// Start of today in the office's time zone, as a timestamptz.
-const TODAY = sql`(date_trunc('day', now() at time zone 'Asia/Baghdad') at time zone 'Asia/Baghdad')`;
+const TODAY = OFFICE_TODAY;
 /** How far back the closings and viewings look. */
 const RECENT_DAYS = 30;
 const APPOINTMENT_DAYS = 7;
@@ -36,18 +38,8 @@ const APPOINTMENT_LIMIT = 20;
 const EXAMPLE_LIMIT = 5;
 const CUSTOMER_LIMIT = 8;
 
-type Row = Record<string, unknown>;
-
-const dialect = new PgDialect();
-
-/**
- * Runs a raw query on the pool itself: unlike db.execute, which keeps
- * timestamps as PostgreSQL text, it returns them as Dates (ISO in JSON).
- */
-async function rows(query: SQL): Promise<Row[]> {
-  const { sql: text, params } = dialect.sqlToQuery(query);
-  return (await pool.query(text, params)).rows as Row[];
-}
+type Row = RawRow;
+const rows = rawRows;
 const toNumber = (value: unknown) => (value === null ? null : Number(value));
 const toCount = (value: unknown) => Number(value ?? 0);
 
@@ -107,9 +99,12 @@ function appointmentRow(row: Row) {
   };
 }
 
-/** Scheduled follow-ups from the start of today through the next 7 days. */
+/**
+ * Scheduled follow-ups from the start of today through the next 7 days,
+ * except cancelled ones.
+ */
 async function getAppointments(kinds: MatchKind[]) {
-  const window = sql`f.scheduled_at >= ${TODAY} AND f.scheduled_at < ${TODAY} + make_interval(days => ${APPOINTMENT_DAYS})`;
+  const window = sql`f.scheduled_at >= ${TODAY} AND f.scheduled_at < ${TODAY} + make_interval(days => ${APPOINTMENT_DAYS}) AND f.status <> 'cancelled'`;
   const all = followupUnion(kinds, window);
   const [counts] = await rows(sql`SELECT
       count(*) FILTER (WHERE scheduled_at < ${TODAY} + interval '1 day')::int AS today,
@@ -128,8 +123,9 @@ async function getAppointments(kinds: MatchKind[]) {
 
 /**
  * Viewings (follow-ups of type "visit") whose time passed in the last 30
- * days with nothing recorded on that listing since: no follow-up added after
- * the viewing's time.
+ * days with no outcome: none recorded on the viewing itself, and no
+ * follow-up added on that listing after the viewing's time. Cancelled
+ * viewings do not count.
  */
 async function getViewingsWithoutOutcome(kinds: MatchKind[]) {
   const pending = sql.join(
@@ -137,7 +133,8 @@ async function getViewingsWithoutOutcome(kinds: MatchKind[]) {
       const source = FOLLOWUP_SOURCES[kind];
       return sql`(${followupUnion(
         [kind],
-        sql`f.type = 'visit' AND f.scheduled_at < now()
+        sql`f.type = 'visit' AND f.status <> 'cancelled' AND f.outcome IS NULL
+          AND f.scheduled_at < now()
           AND f.scheduled_at >= now() - make_interval(days => ${RECENT_DAYS})
           AND NOT EXISTS (
             SELECT 1 FROM ${source.followups} later
@@ -372,7 +369,8 @@ export function matchSummarySql(kind: MatchKind) {
  */
 export async function bestOffers(kind: MatchKind, requestIds: number[]) {
   if (!requestIds.length) return new Map<number, number>();
-  const found = await rows(sql`WITH open_requests AS (${openRequestsSql(kind, requestIds)})
+  const found =
+    await rows(sql`WITH open_requests AS (${openRequestsSql(kind, requestIds)})
     SELECT r.id AS request_id, b.offer_id
     FROM open_requests r
     CROSS JOIN LATERAL (
@@ -381,7 +379,9 @@ export async function bestOffers(kind: MatchKind, requestIds: number[]) {
       ORDER BY ${preferencesMet(kind)} DESC, o.updated_at DESC, o.id DESC
       LIMIT 1
     ) b`);
-  return new Map(found.map((row) => [Number(row.request_id), Number(row.offer_id)]));
+  return new Map(
+    found.map((row) => [Number(row.request_id), Number(row.offer_id)]),
+  );
 }
 
 export async function requestMatchSummaries(kind: MatchKind) {
@@ -542,14 +542,19 @@ export async function getOperationsMatching(
   for (const kind of kinds) {
     const ids = await bestOffers(
       kind,
-      page.filter((item) => item.summary.kind === kind).map((item) => item.summary.id),
+      page
+        .filter((item) => item.summary.kind === kind)
+        .map((item) => item.summary.id),
     );
     best.set(kind, ids);
     offers.set(kind, await loadOffers(kind, [...new Set(ids.values())]));
   }
   const items = page.flatMap((item) => {
     const offerId = best.get(item.summary.kind)?.get(item.summary.id);
-    const offer = offerId === undefined ? undefined : offers.get(item.summary.kind)?.get(offerId);
+    const offer =
+      offerId === undefined
+        ? undefined
+        : offers.get(item.summary.kind)?.get(offerId);
     // Changed between the queries (sold, deleted): leave it out of this page.
     if (!offer) return [];
     const evaluation: MatchEvaluation = evaluateMatch(

@@ -17,13 +17,7 @@ const PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwA
  * widen. An entry that stops matching fails the test, so the list only
  * shrinks.
  */
-const KNOWN_DRIFT = [
-  {
-    route: /^POST \/(properties\/:propertyId|rentals\/:id)\/followups /,
-    problem: /./,
-    reason: "creating a follow-up returns the raw row in camelCase (no toApiObject); the renderer reloads the list and never reads it",
-  },
-];
+const KNOWN_DRIFT: Array<{ route: RegExp; problem: RegExp; reason: string }> = [];
 
 /** The renderer endpoint a concrete URL is a call of; literal segments win over parameters. */
 function endpointFor(method: string, url: string, endpoints: RendererEndpoint[]) {
@@ -93,6 +87,7 @@ test("API responses match the renderer's types", async (t) => {
     let rentalRequestId = 0;
     let purchaseRequestId = 0;
     let agreementId = 0;
+    let activityId = 0;
 
     {
       // Records created the way the renderer creates them.
@@ -143,8 +138,15 @@ test("API responses match the renderer's types", async (t) => {
       const image = { data: `data:image/png;base64,${PNG}`, original_name: "a.png" };
       await api("POST", `/api/properties/${propertyId}/images`, { images: [image] });
       await api("POST", `/api/rentals/${rentalId}/images`, { images: [image] });
-      await api("POST", `/api/properties/${propertyId}/followups`, { type: "phone_call", notes: "اتصال", scheduled_at: new Date(Date.now() + 86_400_000).toISOString() });
-      await api("POST", `/api/rentals/${rentalId}/followups`, { type: "visit", notes: "زيارة" });
+      await api("POST", `/api/properties/${propertyId}/followups`, {
+        type: "phone_call",
+        notes: "اتصال",
+        scheduled_at: new Date(Date.now() + 86_400_000).toISOString(),
+        person_id: person.id,
+        assigned_user_id: ctx.adminId,
+        priority: "high",
+      });
+      await api("POST", `/api/rentals/${rentalId}/followups`, { type: "visit", notes: "زيارة", outcome: "أعجبه" });
       await api("POST", `/api/favorites/${propertyId}`);
       await api("POST", `/api/rental-favorites/${rentalId}`);
 
@@ -164,6 +166,17 @@ test("API responses match the renderer's types", async (t) => {
         area_min: 100,
         ...location,
       })).id;
+
+      const activity = await api("POST", "/api/activities", {
+        person_id: person.id,
+        purchase_request_id: purchaseRequestId,
+        type: "meeting",
+        notes: "اجتماع في المكتب",
+        scheduled_at: new Date(Date.now() + 2 * 86_400_000).toISOString(),
+        assigned_user_id: ctx.adminId,
+      });
+      activityId = activity.id;
+      await api("PATCH", `/api/tasks/activity/${activity.id}`, { priority: "urgent" });
 
       const [documentType] = await api("GET", "/api/documents/types");
       await api("POST", `/api/documents/people/${person.id}`, {
@@ -260,6 +273,11 @@ test("API responses match the renderer's types", async (t) => {
         `/api/agreements/${agreementId}`,
         `/api/agreements/${agreementId}/revisions/1`,
         `/api/agreements/${agreementId}/docx?revision=1`,
+        "/api/tasks/paged?page=1&page_size=10&sort_by=scheduled_at&sort_order=asc&status=all",
+        "/api/tasks/assignees",
+        `/api/activities?person_id=${id.person}`,
+        `/api/activities/${activityId}`,
+        `/api/people/${id.person}/timeline`,
       ];
       for (const url of urls) await api("GET", url);
     }

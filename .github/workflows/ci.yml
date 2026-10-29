@@ -154,6 +154,9 @@ jobs:
       - name: test:files
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:files
+      - name: test:tasks
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:tasks
       - name: test:import
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:import

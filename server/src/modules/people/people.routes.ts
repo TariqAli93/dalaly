@@ -15,6 +15,7 @@ import {
   personPayloadSchema,
 } from "./people.schema.js";
 import { parseId } from "../../shared/utils/parse-id.js";
+import { personTimeline } from "../tasks/tasks.repository.js";
 
 export const peopleRoutes: FastifyPluginAsync = async (app) => {
   app.get(
@@ -39,6 +40,20 @@ export const peopleRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ message: "معرّف الشخص غير صحيح." });
       const row = await getPerson(id);
       return row ?? reply.code(404).send({ message: "الشخص غير موجود." });
+    },
+  );
+  // ما جرى مع الزبون وما هو مستحق: متابعات العروض والإيجارات المرتبطة به
+  // وأنشطته، بقدر ما تسمح صلاحيات المستخدم.
+  app.get(
+    "/:id/timeline",
+    { preHandler: requirePermission("people.read") },
+    async (request, reply) => {
+      const id = parseId((request.params as { id: string }).id);
+      if (!id)
+        return reply.code(400).send({ message: "معرّف الشخص غير صحيح." });
+      if (!(await getPerson(id)))
+        return reply.code(404).send({ message: "الشخص غير موجود." });
+      return personTimeline(id, request.user!);
     },
   );
   app.post(

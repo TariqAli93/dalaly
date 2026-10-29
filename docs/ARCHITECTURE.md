@@ -333,6 +333,44 @@ Conventions:
   the runner logs migration notices. Without `pg_trgm` the search still
   works, by scanning.
 
+## Tasks and activities (`modules/tasks`, `modules/activities`)
+
+Follow-ups are tasks. `property_followups` and `rental_followups` carry the
+task columns (migration `0005_crm_tasks`): `person_id`, `assigned_user_id`,
+`status` (open, done, cancelled), `priority` (low, normal, high, urgent),
+`completed_at`, `outcome` and `updated_at`; `scheduled_at` is the due date
+and `user_id` who recorded it. `activities` has the same columns for what
+belongs to a customer rather than a listing (a call, a meeting, a task
+about one of their requests), and always names its customer. The shared
+fields, statuses and their rules are `tasks.schema.ts`: a new row with a
+date is open, one without is done (it records something that happened);
+`completed_at` is set the first time a row becomes done and cleared when it
+is reopened. An update that leaves a task field out keeps it, so older
+clients that send only type, notes and date change nothing else.
+
+- The tasks read model (`tasks.repository.ts`) is a `UNION ALL` of the
+  three tables with a `source` column (`sale_followup`, `rental_followup`,
+  `activity`), each included only when the caller has its read permissions
+  (`followups.read` + `properties.read`, `rentals.followups.read` +
+  `rentals.read`, `followups.read` + `people.read`). `GET /tasks/paged`
+  filters by status (or `overdue`: open and past due), assignee, due window
+  (the office's day, `OFFICE_TODAY`), customer, source, type and text;
+  `PATCH /tasks/:source/:id` completes, reopens, cancels, reschedules or
+  reassigns, checked against that source's update permission.
+  `GET /people/:id/timeline` is the customer's rows with their last
+  interaction and next due date. Writes other than that patch go to each
+  table's own routes (`/properties/:id/followups`, `/rentals/:id/followups`,
+  `/activities`).
+- Moving follow-ups into one table was rejected (`BUSINESS_SYSTEM_PLAN.md`,
+  6.1): the `properties` and `rentals` backup scopes restore follow-ups with
+  their listings.
+- A restore of an archive from before tasks gives its follow-ups the status
+  `0005` gave existing rows (done unless the date is ahead; `upgradeRow`).
+  A `crm` (customers) restore replaces `people`, which would set every link
+  to a person from tables outside that scope to null; it saves those links
+  (listing owners, follow-up customers) and puts back each whose person is
+  in the restored data.
+
 ## Contracts (`modules/agreements`)
 
 Contract Studio: sale, installment sale, residential and commercial lease
