@@ -7,6 +7,7 @@ import RecordFacts from "../components/shared/RecordFacts.vue";
 import PhoneLink from "../components/shared/PhoneLink.vue";
 import StatusChip from "../components/shared/StatusChip.vue";
 import RecordFollowupDialog from "../components/shared/RecordFollowupDialog.vue";
+import DealDialog from "../components/deals/DealDialog.vue";
 import type { RecordFact } from "../components/shared/record";
 import * as rentals from "../services/rentals.service";
 import { getErrorMessage } from "../services/api.service";
@@ -20,7 +21,12 @@ import {
   RENT_PERIOD_LABELS,
   RENTAL_PROPERTY_LABELS,
 } from "../constants/domain";
-import type { FollowupTarget, RentalRecord } from "../types";
+import type {
+  DealPayload,
+  DealRecord,
+  FollowupTarget,
+  RentalRecord,
+} from "../types";
 
 /**
  * صفحة العرض الإيجاري، بدل حوار التفاصيل (1120px): رابط ثابت، وعودة بـ Alt+←
@@ -32,6 +38,22 @@ const { can } = usePermissions();
 const { setRefreshHandler } = useRefresh();
 const { notifyError, notifySuccess } = useSnackbar();
 const rental = ref<RentalRecord | null>(null);
+
+// صفقة على هذا العرض: المؤجر من العرض، والمستأجر يُختار في الحوار.
+const dealDialog = ref(false);
+const dealPreset = computed<Partial<DealPayload> | null>(() =>
+  rental.value
+    ? {
+        deal_type: "rent",
+        rental_id: rental.value.id,
+        owner_person_id: rental.value.owner_person_id,
+      }
+    : null,
+);
+function onDealSaved(deal: DealRecord) {
+  notifySuccess(`أُنشئت الصفقة ${deal.code}.`);
+  void router.push(`/deals/${deal.id}`);
+}
 const error = ref("");
 const loading = ref(false);
 const favorite = ref(false);
@@ -172,6 +194,13 @@ const followupTarget = computed<FollowupTarget | null>(() =>
     </template>
     <template v-if="rental" #header-actions>
       <v-btn
+        v-if="can('deals.create') && rental.status !== 'archived'"
+        variant="text"
+        prepend-icon="mdi-handshake-outline"
+        @click="dealDialog = true"
+        >صفقة</v-btn
+      >
+      <v-btn
         v-if="can('rentals.update')"
         color="primary"
         prepend-icon="mdi-pencil-outline"
@@ -275,6 +304,11 @@ const followupTarget = computed<FollowupTarget | null>(() =>
       v-model="followupOpen"
       :target="followupTarget"
       @saved="panel?.followupSaved()"
+    />
+    <DealDialog
+      v-model="dealDialog"
+      :preset="dealPreset"
+      @saved="onDealSaved"
     />
   </AppPage>
 </template>

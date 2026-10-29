@@ -19,8 +19,8 @@ Do not rely on this file alone.
 | 2c — tasks UI | `feat/phase-02c-tasks-ui` | [#32](https://github.com/TariqAli93/dalaly/pull/32), merged `c1a02b3` | renderer typecheck, lint, build; web demo; CI pass | Completed |
 | 2d — customer UI | `feat/phase-02d-customer-ui` | [#34](https://github.com/TariqAli93/dalaly/pull/34), merged `1a361ac` | renderer typecheck, lint, build; web demo; CI pass | Completed |
 | 3a — deals core | `feat/phase-03a-deals-core` | [#33](https://github.com/TariqAli93/dalaly/pull/33), merged `1b54f56` | `test:deals` 10/10, deal rules 5/5, money 4/4, `test:contract` 97; all suites; CI pass | Completed |
-| 3b — deals UI | `feat/phase-03b-deals-ui` | — | renderer typecheck, lint, build; `formatAmount` tests; checked in the web demo | In review |
-| 3c — deal integration | `feat/phase-03c-deal-integration` | — | — | Pending |
+| 3b — deals UI | `feat/phase-03b-deals-ui` | [#35](https://github.com/TariqAli93/dalaly/pull/35), merged `eed0dcc` | renderer typecheck, lint, build; `formatAmount` tests; web demo; CI pass | Completed |
+| 3c — deal integration | `feat/phase-03c-deal-integration` | — | `test:deals` 15/15; renderer checks; web demo | In review |
 | 4a — chart of accounts | `feat/phase-04a-chart-of-accounts` | — | — | Pending |
 | 4b — general ledger | `feat/phase-04b-general-ledger` | — | — | Pending |
 | 4c — receipts and payments | `feat/phase-04c-receipts-payments` | — | — | Pending |
@@ -271,6 +271,43 @@ below.
   - "إغلاق كمكسوبة" without a seller showed the server's "حدد البائع أو
     المؤجر قبل كسب الصفقة."
 - No server change.
+
+### 3c — deal integration
+
+- **Deal to contract.** `POST /deals/:id/agreement` (needs `deals.update` and
+  `agreements.manage`) drafts a contract from a template of the deal's kind.
+  - The draft gets the owner and client as the two parties, the deal's
+    listing, its currency, its agreed (else asking) price as the sale price
+    or rent, and its expected commission.
+  - It is linked to the deal, and a deal before "إعداد العقد" moves there.
+  - A deal with a live contract gets a 409 until that contract is
+    cancelled.
+- **Contract to deal.** Issuing a linked contract moves its open deal to
+  "صدر العقد" (`onAgreementIssued`), recorded with the contract's code.
+  The deal can then close as won.
+- **Where deals start.**
+  - "صفقة" on each match of an open request: the requester is the client,
+    the matched listing and the request are linked.
+  - "صفقة" on a sale or rental listing page: the owner comes from the
+    listing.
+  - "صفقة جديدة" on a customer page: the customer is the client.
+  - A new deal left without an owner takes its listing's.
+- The customer page has a "الصفقات" tab: the customer's deals as client or
+  owner, with stage and price. The deal page offers "إعداد العقد" (a choice
+  of the kind's two templates, then the draft opens in the contract
+  workspace) and "العقد" once linked.
+- `test:deals` adds 5 checks (15 in all):
+  - the draft's parties, listing, price, commission and currency;
+  - a refused second contract and a wrong-kind template;
+  - the permission;
+  - issuing moving the deal, then closing it as won.
+- Checked in the web demo:
+  - "إعداد العقد" made `CT-0001` with the buyer, listing and 305,000,000
+    price and opened its workspace; the deal moved to "إعداد العقد".
+  - The customer's deals tab lists the deal.
+  - "صفقة" on a request match opened the dialog with the buyer, listing and
+    request filled, and saved deal `D-0002` linked to `PR-9002` with the
+    listing's price.
 
 ## Database migrations
 

@@ -6,8 +6,13 @@ import type { MatchResult } from "../../types";
  * الشروط الأساسية (النوع والموقع والميزانية ونوع الإيجار)؛ الجزئية تبلغ درجة
  * 40 دونها. لا نسبة مئوية: الدرجة مجموع أوزان لا يُقسَم على شيء.
  */
-defineProps<{ matches: MatchResult[]; emptyText?: string }>();
-const emit = defineEmits<{ open: [MatchResult] }>();
+defineProps<{
+  matches: MatchResult[];
+  emptyText?: string;
+  /** Show "صفقة" on each match: a deal between the request and the listing. */
+  canDeal?: boolean;
+}>();
+const emit = defineEmits<{ open: [MatchResult]; deal: [MatchResult] }>();
 
 function recordOf(match: MatchResult) {
   return match.record as {
@@ -56,6 +61,16 @@ function metOf(match: MatchResult) {
       @click="emit('open', match)"
     >
       <template #append>
+        <v-btn
+          v-if="canDeal"
+          size="small"
+          variant="tonal"
+          prepend-icon="mdi-handshake-outline"
+          class="me-2"
+          :aria-label="`صفقة على ${titleOf(match)}`"
+          @click.stop="emit('deal', match)"
+          >صفقة</v-btn
+        >
         <v-chip
           size="small"
           :color="match.required_met ? 'success' : 'warning'"

@@ -8,6 +8,7 @@ import { optionalId, optionalText } from "../../shared/validation/fields.js";
 import { pageFields } from "../../shared/validation/paging.js";
 import { TASK_PRIORITIES } from "../tasks/tasks.schema.js";
 import { DEAL_STAGES } from "./deals.rules.js";
+import { TEMPLATE_KEYS } from "../../shared/contract-document/index.js";
 
 const isoDate = z
   .string()
@@ -53,6 +54,11 @@ export const dealOfferSchema = z.object({
 
 export const dealOfferStatusSchema = z.object({
   status: z.enum(["countered", "accepted", "rejected", "withdrawn"]),
+});
+
+/** The contract template a deal's contract is prepared from. */
+export const dealAgreementSchema = z.object({
+  template_key: z.enum(TEMPLATE_KEYS),
 });
 
 export const DEAL_SORT_KEYS = [

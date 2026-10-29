@@ -433,6 +433,15 @@ price when the payload leaves them empty.
   open with no stage move, activity or offer for `stalled_days`.
 - `GET /deals/pipeline` sums per stage and currency in SQL (numeric), never
   adding IQD to USD. Changes are audited (`entity_type` `deal`).
+- **Contract.** `POST /deals/:id/agreement` (`deals.service.ts`) drafts a
+  contract from a template of the deal's kind with the deal's parties,
+  listing, currency, price and commission, links it, and moves a deal before
+  `contract_preparation` there; a deal whose contract is not cancelled gets a
+  409. When a linked contract is issued, the agreements route calls
+  `onAgreementIssued`, which moves its open deal to `contract_issued`.
+- Deals start from a request's match, a listing's page or a customer's page
+  (`DealDialog` with a `preset`); a new deal sent without an owner takes the
+  listing's.
 - In the renderer, `pages/DealsPage.vue` is the board (open stages, one
   column each, totals from `/deals/pipeline`) and the table, and
   `pages/DealPage.vue` the deal's page; `components/deals/DealDialog.vue`

@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
+import {
+  TEMPLATES,
+  TEMPLATE_KEYS,
+  type TemplateKey,
+} from "@contract-document/index";
 import AppPage from "../components/app/AppPage.vue";
 import RecordFacts from "../components/shared/RecordFacts.vue";
 import NumberField from "../components/app/NumberField.vue";
@@ -43,6 +48,7 @@ import type {
  * ونشاطاتها (معاينات واتصالات مسجلة على الزبون مع الصفقة)، وسجل مراحلها.
  */
 const route = useRoute();
+const router = useRouter();
 const { can } = usePermissions();
 const { notifyError, notifySuccess } = useSnackbar();
 const { setRefreshHandler } = useRefresh();
@@ -140,6 +146,46 @@ function onMoved(moved: DealDetail) {
 
 // ─── التعديل ────────────────────────────────────────────────────────────
 const editDialog = ref(false);
+
+// ─── العقد ──────────────────────────────────────────────────────────────
+// مسودة من قالب نوع الصفقة بأطرافها وعرضها وسعرها وعمولتها، تُفتح للإكمال.
+const contractDialog = ref(false);
+const contractTemplate = ref<TemplateKey | null>(null);
+const preparing = ref(false);
+const contractTemplates = computed(() =>
+  TEMPLATE_KEYS.filter((key) => TEMPLATES[key].kind === deal.value?.deal_type),
+);
+const canPrepare = computed(
+  () =>
+    Boolean(deal.value) &&
+    can("deals.update") &&
+    can("agreements.manage") &&
+    !closed.value &&
+    (!deal.value!.agreement_id || deal.value!.agreement_status === "cancelled"),
+);
+function openContract() {
+  contractTemplate.value = contractTemplates.value[0] ?? null;
+  contractDialog.value = true;
+}
+async function prepareContract() {
+  const d = deal.value;
+  if (!d || !contractTemplate.value || preparing.value) return;
+  preparing.value = true;
+  try {
+    const prepared = await dealsService.prepareDealAgreement(
+      d.id,
+      contractTemplate.value,
+    );
+    deal.value = prepared.deal;
+    contractDialog.value = false;
+    notifySuccess("أُعدّت مسودة العقد؛ أكمل بياناتها ثم أصدرها.");
+    void router.push(`/contracts/${prepared.agreement_id}`);
+  } catch (cause) {
+    notifyError(getErrorMessage(cause));
+  } finally {
+    preparing.value = false;
+  }
+}
 function onEdited(saved: DealRecord) {
   notifySuccess(`حُفظت الصفقة ${saved.code}.`);
   void load();
@@ -239,6 +285,20 @@ async function addActivity(value: TaskFieldsPayload) {
         prepend-icon="mdi-pencil-outline"
         @click="editDialog = true"
         >تعديل</v-btn
+      >
+      <v-btn
+        v-if="canPrepare"
+        variant="tonal"
+        prepend-icon="mdi-file-sign"
+        @click="openContract"
+        >إعداد العقد</v-btn
+      >
+      <v-btn
+        v-else-if="deal.agreement_id && can('agreements.read')"
+        variant="text"
+        prepend-icon="mdi-file-document-outline"
+        :to="`/contracts/${deal.agreement_id}`"
+        >العقد</v-btn
       >
       <v-btn
         v-if="can('deals.update')"
@@ -505,6 +565,44 @@ async function addActivity(value: TaskFieldsPayload) {
     </template>
 
     <DealDialog v-model="editDialog" :deal="deal" @saved="onEdited" />
+    <v-dialog v-model="contractDialog" max-width="480" :persistent="preparing">
+      <v-card>
+        <v-card-title class="text-subtitle-1 font-weight-bold"
+          >إعداد عقد للصفقة {{ deal?.code }}</v-card-title
+        >
+        <v-card-text>
+          <p class="mb-2">
+            تُنشأ مسودة بأطراف الصفقة وعرضها وسعرها وعمولتها، تكملها في محرر
+            العقد ثم تصدرها؛ صدورها ينقل الصفقة إلى «صدر العقد».
+          </p>
+          <v-radio-group v-model="contractTemplate" hide-details>
+            <v-radio
+              v-for="key in contractTemplates"
+              :key="key"
+              :value="key"
+              :label="TEMPLATES[key].title"
+            />
+          </v-radio-group>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn
+            variant="text"
+            :disabled="preparing"
+            @click="contractDialog = false"
+            >إلغاء</v-btn
+          >
+          <v-btn
+            color="primary"
+            variant="flat"
+            :loading="preparing"
+            :disabled="!contractTemplate"
+            @click="prepareContract"
+            >إعداد المسودة</v-btn
+          >
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
     <DealStageDialog
       v-model="stageDialog"
       :deal="deal"
