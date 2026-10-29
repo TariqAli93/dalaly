@@ -177,6 +177,9 @@ test("API responses match the renderer's types", async (t) => {
       });
       activityId = activity.id;
       await api("PATCH", `/api/tasks/activity/${activity.id}`, { priority: "urgent" });
+      // An audited change to the customer, for /people/:id/audit.
+      const current = await api("GET", `/api/people/${person.id}`);
+      await api("PUT", `/api/people/${person.id}`, { ...current, notes: "زبون الفحص" });
 
       const [documentType] = await api("GET", "/api/documents/types");
       await api("POST", `/api/documents/people/${person.id}`, {
@@ -238,6 +241,8 @@ test("API responses match the renderer's types", async (t) => {
         "/api/people",
         "/api/people/paged?page=1&page_size=10",
         `/api/people/${id.person}`,
+        `/api/people/duplicates?phone=${encodeURIComponent(ctx.people[0].phone_primary)}`,
+        `/api/people/${id.person}/audit`,
         "/api/permissions",
         "/api/properties",
         "/api/properties/paged?page=1&page_size=10",

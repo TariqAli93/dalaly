@@ -43,6 +43,13 @@
       "when": 1793281707059,
       "tag": "0005_crm_tasks",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793283408894,
+      "tag": "0006_customer_crm",
+      "breakpoints": true
     }
   ]
 }

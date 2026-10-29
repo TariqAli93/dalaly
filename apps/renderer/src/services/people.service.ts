@@ -1,6 +1,9 @@
 import type {
+  AuditLogRecord,
   PageQuery,
   PagedResult,
+  PersonDetailRecord,
+  PersonDuplicate,
   PersonRecord,
   PersonSortKey,
   PersonTimeline,
@@ -33,11 +36,23 @@ export function listPeoplePage(
   );
 }
 export function getPerson(id: number) {
-  return request<PersonRecord>(`/people/${id}`);
+  return request<PersonDetailRecord>(`/people/${id}`);
 }
 /** The customer's tasks and interactions, with last contact and next due. */
 export function getPersonTimeline(id: number) {
   return request<PersonTimeline>(`/people/${id}/timeline`);
+}
+/** Customers who already have one of these numbers or this national ID. */
+export function findDuplicatePeople(query: {
+  phone?: string;
+  phone_secondary?: string;
+  national_id?: string;
+  exclude_id?: number;
+}) {
+  return request<PersonDuplicate[]>(`/people/duplicates${buildQuery(query)}`);
+}
+export function getPersonAudit(id: number) {
+  return request<AuditLogRecord[]>(`/people/${id}/audit`);
 }
 export function createPerson(payload: unknown) {
   return request<PersonRecord>("/people", {

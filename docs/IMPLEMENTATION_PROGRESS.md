@@ -14,8 +14,8 @@ Do not rely on this file alone.
 | 1a — file integrity | `fix/phase-01a-file-integrity` | [#27](https://github.com/TariqAli93/dalaly/pull/27), merged `f0761b0` | `test:files` 14/14; all database suites; CI pass | Completed |
 | 1b — media tokens | `fix/phase-01b-media-tokens` | [#28](https://github.com/TariqAli93/dalaly/pull/28), merged `fb3512d` | `test:media-tokens` 8/8; affected suites; CI pass | Completed |
 | 1c — hardening | `fix/phase-01c-hardening` | [#29](https://github.com/TariqAli93/dalaly/pull/29), merged `8ac6385` | `test:hardening` 5/5, lifecycle 6/6; all suites; CI pass | Completed |
-| 2a — activities and tasks | `feat/phase-02a-activities` | — | `test:tasks` 13/13, `test:contract` 87; all suites | In review |
-| 2b — customer CRM | `feat/phase-02b-customer-crm` | — | — | Pending |
+| 2a — activities and tasks | `feat/phase-02a-activities` | [#30](https://github.com/TariqAli93/dalaly/pull/30), merged `2d82389` | `test:tasks` 13/13, `test:contract` 87; all suites; CI pass | Completed |
+| 2b — customer CRM | `feat/phase-02b-customer-crm` | — | `test:customers` 8/8, `test:contract` 90 | In review |
 | 2c — CRM UI | `feat/phase-02c-crm-ui` | — | — | Pending |
 | 3a — deals core | `feat/phase-03a-deals-core` | — | — | Pending |
 | 3b — deals UI | `feat/phase-03b-deals-ui` | — | — | Pending |
@@ -132,12 +132,31 @@ below.
   restore cases, and `test:contract` (87, with the new endpoints).
 - No UI yet: the tasks page and customer timeline are Phase 2c.
 
+### 2b — customer CRM
+
+- Customers have roles, a source and an assigned employee (`0006`). An
+  omitted field keeps its value. Lists filter by role and by assignee.
+- The record page adds the roles the customer's records imply.
+- `GET /people/duplicates` matches by phone (last ten digits, any format,
+  either phone) and by national ID, archived customers included. It only
+  warns; nothing is merged.
+- Customer changes are audited: create, edit with old and new values,
+  archive and restore. `GET /people/:id/audit` returns them.
+- `test:customers` 8/8.
+- `test:contract` is 90: the detail now has its own `PersonDetailRecord`,
+  and duplicates and audit are called.
+- `test:backup:compat` now accepts a newer column's empty default (`roles`)
+  as well as null.
+- No UI yet: the person form, its duplicate warning and the owner picker on
+  the sale form are Phase 2c.
+
 ## Database migrations
 
 | Migration | Phase | What it adds |
 | --- | --- | --- |
 | `0000`–`0004` | before this plan | baseline schema, document types, property indexes, search text, agreements |
 | `0005_crm_tasks` | 2a | task columns on both follow-up tables (customer, assignee, status, priority, completion, outcome, `updated_at`), `activities`, their indexes and checks; existing follow-ups without a date or already past become `done` |
+| `0006_customer_crm` | 2b | `people.roles` (checked `text[]`, GIN index), `source` (checked), `assigned_user_id` (FK users, set null, indexed) |
 
 ## Decisions that need the owner
 

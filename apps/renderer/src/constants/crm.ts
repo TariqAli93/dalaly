@@ -3,6 +3,8 @@ import type {
   FollowupType,
   ListSortOption,
   PersonRecord,
+  PersonRole,
+  PersonSource,
   PersonSortKey,
   PurchaseRequestSortKey,
 } from "../types";
@@ -72,6 +74,35 @@ export const PERSON_STATUS_FILTERS: Array<{
   { title: "غير نشط", value: "inactive" },
   { title: "المؤرشفون", value: "archived" },
 ];
+
+/** صفات الزبون عند المكتب (PERSON_ROLES في الخادم)؛ قد تجتمع أكثر من صفة. */
+export const PERSON_ROLES: Array<{ title: string; value: PersonRole }> = [
+  { title: "مشترٍ", value: "buyer" },
+  { title: "بائع", value: "seller" },
+  { title: "مستأجر", value: "tenant" },
+  { title: "مؤجر", value: "landlord" },
+  { title: "مالك", value: "owner" },
+  { title: "مستثمر", value: "investor" },
+  { title: "أخرى", value: "other" },
+];
+export function personRoleLabel(value: string) {
+  return PERSON_ROLES.find((item) => item.value === value)?.title ?? value;
+}
+
+/** كيف وصل الزبون إلى المكتب. */
+export const PERSON_SOURCES: Array<{ title: string; value: PersonSource }> = [
+  { title: "زيارة للمكتب", value: "walk_in" },
+  { title: "اتصال هاتفي", value: "phone" },
+  { title: "توصية من زبون", value: "referral" },
+  { title: "مواقع التواصل", value: "social" },
+  { title: "إعلان عن عرض", value: "listing_ad" },
+  { title: "أخرى", value: "other" },
+];
+export function personSourceLabel(value: string | null) {
+  return value
+    ? (PERSON_SOURCES.find((item) => item.value === value)?.title ?? value)
+    : "";
+}
 
 /** أنواع المتابعة كما يقبلها الخادم، للعروض والإيجارات معاً. */
 export const FOLLOWUP_TYPES: Array<{
