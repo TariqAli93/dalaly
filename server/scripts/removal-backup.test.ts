@@ -168,9 +168,16 @@ test("shared backup v3 survives full restore and rejects incompatible data befor
       rentalId: ctx.rental.id, userId: ctx.adminId, type: "visit", notes: "متابعة الإيجار",
       personId: ctx.people[1].id, assignedUserId: ctx.adminId, status: "done", outcome: "تمت المعاينة",
     });
+    const [deal] = await db.insert(schema.deals).values({
+      code: "D-0001", dealType: "sale", stage: "negotiating", propertyId: ctx.property.id,
+      clientPersonId: ctx.people[1].id, ownerPersonId: ctx.people[0].id, askingPrice: "150000000.00",
+      agreedPrice: "145000000.50", assignedUserId: ctx.adminId, createdBy: ctx.adminId,
+    }).returning();
+    await db.insert(schema.dealStageHistory).values({ dealId: deal.id, fromStage: "new", toStage: "negotiating", userId: ctx.adminId });
+    await db.insert(schema.dealOffers).values({ dealId: deal.id, party: "client", amount: "140000000.00", createdBy: ctx.adminId });
     await db.insert(schema.activities).values({
       personId: ctx.people[1].id, userId: ctx.adminId, type: "meeting", notes: "اجتماع محفوظ",
-      assignedUserId: ctx.adminId, priority: "high",
+      assignedUserId: ctx.adminId, priority: "high", dealId: deal.id,
     });
     // Contract tables: a customised template with its history, and an issued
     // contract with its parties, revision and an export.
@@ -232,14 +239,14 @@ test("shared backup v3 survives full restore and rejects incompatible data befor
     const manifest = JSON.parse(zip.readAsText("manifest.json"));
     const data = JSON.parse(zip.readAsText("data.json")) as Record<string, Record<string, unknown>[]>;
     assert.equal(manifest.version, 3);
-    assert.equal(Object.keys(data).length, 31);
+    assert.equal(Object.keys(data).length, 34);
     assert.ok(data.permissions.some((row) => row.id === customPermissionId && row.key === "reports.custom.review"));
     assert.ok(data.role_permissions.some((row) => row.permissionId === customPermissionId));
     assert.ok(data.app_settings.some((row) => row.key === "reports.custom.preferences"));
     assert.ok(Object.values(data).every((rows) => rows.length > 0), "representative data in every exported table");
     assert.equal(zip.getEntries().filter((entry) => !entry.isDirectory && /^(documents|images)\//.test(entry.entryName)).length, 4);
 
-    await t.test("all 31 shared tables and four managed files round trip", async () => {
+    await t.test("all 34 shared tables and four managed files round trip", async () => {
       await db.update(schema.people).set({ fullName: "اسم تغير بعد النسخ" });
       await db.update(schema.properties).set({ totalPrice: "1.00" });
       await db.update(schema.rentals).set({ rentPrice: "1.00" });

@@ -33,6 +33,9 @@ import {
   propertyImages,
   propertyFollowups,
   activities,
+  deals,
+  dealOffers,
+  dealStageHistory,
   favoriteProperties,
   rentalImages,
   rentalFollowups,
@@ -160,13 +163,6 @@ const TABLE_SPECS = [
     table: purchaseRequests,
     dates: ["createdAt", "updatedAt"],
   },
-  // Added after backup version 3, like the contract tables below.
-  {
-    name: "activities",
-    table: activities,
-    dates: ["scheduledAt", "createdAt", "completedAt", "updatedAt"],
-    optional: true,
-  },
   {
     name: "document_types",
     table: documentTypes,
@@ -208,6 +204,32 @@ const TABLE_SPECS = [
     name: "agreement_exports",
     table: agreementExports,
     dates: ["createdAt"],
+    optional: true,
+  },
+  // Deals reference contracts and requests; activities may name a deal.
+  {
+    name: "deals",
+    table: deals,
+    dates: ["stageChangedAt", "closedAt", "createdAt", "updatedAt"],
+    optional: true,
+  },
+  {
+    name: "deal_stage_history",
+    table: dealStageHistory,
+    dates: ["createdAt"],
+    optional: true,
+  },
+  {
+    name: "deal_offers",
+    table: dealOffers,
+    dates: ["createdAt", "updatedAt"],
+    optional: true,
+  },
+  // Added after backup version 3, like the contract tables above.
+  {
+    name: "activities",
+    table: activities,
+    dates: ["scheduledAt", "createdAt", "completedAt", "updatedAt"],
     optional: true,
   },
   {
@@ -262,7 +284,11 @@ const SCOPE_TABLES: Record<string, TableName[]> = {
     "agreement_exports",
     "rental_requests",
     "purchase_requests",
-    // After the requests it may name: rows go in in this order.
+    // Rows go in in this order: deals after the contracts and requests they
+    // name, activities after the deals.
+    "deals",
+    "deal_stage_history",
+    "deal_offers",
     "activities",
     "document_types",
     "identity_documents",
@@ -285,6 +311,9 @@ const SERIAL_TABLES = new Set<TableName>([
   "rental_followups",
   "rental_requests",
   "purchase_requests",
+  "deals",
+  "deal_stage_history",
+  "deal_offers",
   "activities",
   "document_types",
   "identity_documents",
@@ -725,31 +754,105 @@ function upgradeRow(name: TableName, row: Record<string, unknown>) {
   return row;
 }
 
-/** Links to people from tables a customers-only restore leaves in place. */
-const PERSON_LINKS = [
-  { table: "properties", column: "owner_person_id" },
-  { table: "rentals", column: "owner_person_id" },
-  { table: "property_followups", column: "person_id" },
-  { table: "rental_followups", column: "person_id" },
+/**
+ * Nullable links from restored rows to tables a scoped restore leaves in
+ * place. A row from the archive may point at a listing or user deleted since
+ * the backup; the restore treats that link as ON DELETE SET NULL would.
+ */
+const OUTSIDE_LINKS: Array<{
+  table: TableName;
+  column: string;
+  target: TableName;
+}> = [
+  { table: "agreements", column: "propertyId", target: "properties" },
+  { table: "agreements", column: "rentalId", target: "rentals" },
+  { table: "deals", column: "propertyId", target: "properties" },
+  { table: "deals", column: "rentalId", target: "rentals" },
+  { table: "deals", column: "assignedUserId", target: "users" },
+  { table: "deals", column: "createdBy", target: "users" },
+  { table: "deals", column: "updatedBy", target: "users" },
+  { table: "deal_stage_history", column: "userId", target: "users" },
+  { table: "deal_offers", column: "createdBy", target: "users" },
+  { table: "activities", column: "userId", target: "users" },
+  { table: "activities", column: "assignedUserId", target: "users" },
+  { table: "people", column: "assignedUserId", target: "users" },
+];
+
+/**
+ * Clears links in `rows` of `name` whose target is not restored with them
+ * and no longer exists. Targets' ids are read once per restore.
+ */
+async function dropDanglingLinks(
+  tx: Transaction,
+  name: TableName,
+  rows: Record<string, unknown>[],
+  restoring: readonly TableName[],
+  existing: Map<TableName, Set<number>>,
+) {
+  for (const link of OUTSIDE_LINKS) {
+    if (link.table !== name || restoring.includes(link.target)) continue;
+    let ids = existing.get(link.target);
+    if (!ids) {
+      const spec = specByName(link.target);
+      const found = await tx
+        .select({ id: (spec.table as typeof users).id })
+        .from(spec.table as typeof users);
+      ids = new Set(found.map((row) => Number(row.id)));
+      existing.set(link.target, ids);
+    }
+    for (const row of rows) {
+      const value = row[link.column];
+      if (value != null && !ids.has(Number(value))) row[link.column] = null;
+    }
+  }
+}
+
+/**
+ * Links into a table a scoped restore replaces, from tables it leaves in
+ * place. Deleting the target rows sets these to null (ON DELETE SET NULL),
+ * so they are saved first and put back where the target is in the restored
+ * data: a customers-only restore keeps listing owners, a listings-only one
+ * keeps the listing of a deal or a contract.
+ */
+const KEPT_LINKS = [
+  { table: "properties", column: "owner_person_id", target: "people" },
+  { table: "rentals", column: "owner_person_id", target: "people" },
+  { table: "property_followups", column: "person_id", target: "people" },
+  { table: "rental_followups", column: "person_id", target: "people" },
+  { table: "deals", column: "property_id", target: "properties" },
+  { table: "deals", column: "rental_id", target: "rentals" },
+  { table: "agreements", column: "property_id", target: "properties" },
+  { table: "agreements", column: "rental_id", target: "rentals" },
 ] as const;
 
-async function savePersonLinks(tx: Transaction) {
-  await tx.execute(
-    sql.raw(`CREATE TEMP TABLE restore_person_links ON COMMIT DROP AS
-      ${PERSON_LINKS.map(
-        ({ table, column }) =>
-          `SELECT '${table}'::text AS tbl, id, ${column} AS person_id FROM ${table} WHERE ${column} IS NOT NULL`,
-      ).join(" UNION ALL ")}`),
+function keptLinks(restoring: readonly string[]) {
+  return KEPT_LINKS.filter(
+    (link) =>
+      restoring.includes(link.target) && !restoring.includes(link.table),
   );
 }
 
-/** Puts back each saved link whose person is in the restored data. */
-async function restorePersonLinks(tx: Transaction) {
-  for (const { table, column } of PERSON_LINKS)
+async function saveKeptLinks(tx: Transaction, restoring: readonly string[]) {
+  const links = keptLinks(restoring);
+  if (!links.length) return;
+  await tx.execute(
+    sql.raw(`CREATE TEMP TABLE restore_kept_links ON COMMIT DROP AS
+      ${links
+        .map(
+          ({ table, column }) =>
+            `SELECT '${table}.${column}'::text AS link, id, ${column} AS target_id FROM ${table} WHERE ${column} IS NOT NULL`,
+        )
+        .join(" UNION ALL ")}`),
+  );
+}
+
+/** Puts back each saved link whose target is in the restored data. */
+async function restoreKeptLinks(tx: Transaction, restoring: readonly string[]) {
+  for (const { table, column, target } of keptLinks(restoring))
     await tx.execute(
-      sql.raw(`UPDATE ${table} t SET ${column} = k.person_id
-        FROM restore_person_links k JOIN people p ON p.id = k.person_id
-        WHERE k.tbl = '${table}' AND t.id = k.id AND t.${column} IS NULL`),
+      sql.raw(`UPDATE ${table} t SET ${column} = k.target_id
+        FROM restore_kept_links k JOIN ${target} x ON x.id = k.target_id
+        WHERE k.link = '${table}.${column}' AND t.id = k.id AND t.${column} IS NULL`),
     );
 }
 
@@ -978,12 +1081,10 @@ async function restoreArchive(
     await db.transaction(async (tx) => {
       // Rewriting whole tables may take longer than a request is allowed.
       await tx.execute(sql`SET LOCAL statement_timeout = 0`);
-      // Replacing people sets every link to them in tables outside the scope
-      // to null (ON DELETE SET NULL); keep those links to put them back.
-      const keepsPersonLinks =
-        tablesToRestore.includes("people") &&
-        !tablesToRestore.includes("properties");
-      if (keepsPersonLinks) await savePersonLinks(tx);
+      // Replacing a table sets links to it from tables outside the scope to
+      // null (ON DELETE SET NULL); keep those links to put them back.
+      await saveKeptLinks(tx, tablesToRestore);
+      const existingIds = new Map<TableName, Set<number>>();
       // حذف بترتيب عكسي (الابن قبل الأب) لتفادي قيود المفاتيح الأجنبية.
       for (const name of [...tablesToRestore].reverse()) {
         if (scope === "users" && name === "users") continue;
@@ -995,6 +1096,7 @@ async function restoreArchive(
         const rows = (database[name] ?? []).map((row) =>
           upgradeRow(name, coerceRow(row, spec.dates)),
         );
+        await dropDanglingLinks(tx, name, rows, tablesToRestore, existingIds);
         if (rows.length) {
           if (scope === "users" && name === "users") {
             for (const row of rows)
@@ -1022,7 +1124,7 @@ async function restoreArchive(
           }
         }
       }
-      if (keepsPersonLinks) await restorePersonLinks(tx);
+      await restoreKeptLinks(tx, tablesToRestore);
     });
 
     for (const name of tablesToRestore) {

@@ -88,6 +88,7 @@ test("API responses match the renderer's types", async (t) => {
     let purchaseRequestId = 0;
     let agreementId = 0;
     let activityId = 0;
+    let dealId = 0;
 
     {
       // Records created the way the renderer creates them.
@@ -176,6 +177,18 @@ test("API responses match the renderer's types", async (t) => {
         assigned_user_id: ctx.adminId,
       });
       activityId = activity.id;
+      const deal = await api("POST", "/api/deals", {
+        deal_type: "sale",
+        property_id: propertyId,
+        client_person_id: ctx.people[1].id,
+        purchase_request_id: null,
+        assigned_user_id: ctx.adminId,
+        expected_close_date: "2026-12-31",
+      });
+      dealId = deal.id;
+      const offer = await api("POST", `/api/deals/${deal.id}/offers`, { party: "client", amount: "140000000" });
+      await api("PATCH", `/api/deals/${deal.id}/offers/${offer.id}`, { status: "accepted" });
+      await api("POST", `/api/deals/${deal.id}/stage`, { stage: "contract_preparation" });
       await api("PATCH", `/api/tasks/activity/${activity.id}`, { priority: "urgent" });
       // An audited change to the customer, for /people/:id/audit.
       const current = await api("GET", `/api/people/${person.id}`);
@@ -283,6 +296,9 @@ test("API responses match the renderer's types", async (t) => {
         `/api/activities?person_id=${id.person}`,
         `/api/activities/${activityId}`,
         `/api/people/${id.person}/timeline`,
+        "/api/deals/paged?page=1&page_size=10&sort_by=updated_at&sort_order=desc",
+        "/api/deals/pipeline",
+        `/api/deals/${dealId}`,
       ];
       for (const url of urls) await api("GET", url);
     }
