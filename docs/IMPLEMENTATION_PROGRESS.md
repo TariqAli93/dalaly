@@ -17,9 +17,9 @@ Do not rely on this file alone.
 | 2a — activities and tasks | `feat/phase-02a-activities` | [#30](https://github.com/TariqAli93/dalaly/pull/30), merged `2d82389` | `test:tasks` 13/13, `test:contract` 87; all suites; CI pass | Completed |
 | 2b — customer CRM | `feat/phase-02b-customer-crm` | [#31](https://github.com/TariqAli93/dalaly/pull/31), merged `6ec058d` | `test:customers` 8/8, `test:contract` 90; all suites; CI pass | Completed |
 | 2c — tasks UI | `feat/phase-02c-tasks-ui` | [#32](https://github.com/TariqAli93/dalaly/pull/32), merged `c1a02b3` | renderer typecheck, lint, build; web demo; CI pass | Completed |
-| 2d — customer UI | `feat/phase-02d-customer-ui` | [#34](https://github.com/TariqAli93/dalaly/pull/34) | renderer typecheck, lint, build; checked in the web demo | In review |
+| 2d — customer UI | `feat/phase-02d-customer-ui` | [#34](https://github.com/TariqAli93/dalaly/pull/34), merged `1a361ac` | renderer typecheck, lint, build; web demo; CI pass | Completed |
 | 3a — deals core | `feat/phase-03a-deals-core` | [#33](https://github.com/TariqAli93/dalaly/pull/33), merged `1b54f56` | `test:deals` 10/10, deal rules 5/5, money 4/4, `test:contract` 97; all suites; CI pass | Completed |
-| 3b — deals UI | `feat/phase-03b-deals-ui` | — | — | Pending |
+| 3b — deals UI | `feat/phase-03b-deals-ui` | — | renderer typecheck, lint, build; `formatAmount` tests; checked in the web demo | In review |
 | 3c — deal integration | `feat/phase-03c-deal-integration` | — | — | Pending |
 | 4a — chart of accounts | `feat/phase-04a-chart-of-accounts` | — | — | Pending |
 | 4b — general ledger | `feat/phase-04b-general-ledger` | — | — | Pending |
@@ -232,6 +232,45 @@ below.
   - `pnpm test` adds `deal-rules` 5 and `money` 4.
   - `test:contract` 97; `test:removal:backup` now covers 34 tables.
 - No UI yet: the pipeline, deal list and deal page are Phase 3b.
+
+### 3b — deals UI
+
+- "الصفقات" (`/deals`) heads a renamed navigation group, "الصفقات والعقود".
+  - It has a board of the open stages: a column per stage, with its count
+    and exact asking-price total in each currency.
+  - Each card shows the deal, its code and type, its price, its days in the
+    stage and its owner employee, plus a one-step "next stage" button.
+  - There is also a server-paged table of all deals.
+  - Filters for type, state (in the table), assignee ("صفقاتي") and stalled
+    for 14 days, plus text search, apply to both views. The chosen view is
+    remembered.
+- The deal page (`/deals/:id`) has these parts:
+  - Facts: price (agreed, else asking), parties, listing, expected
+    commission, assignee, expected close.
+  - The stage path, with the current stage marked.
+  - Offers: record one for either party, then accept, counter or reject it.
+  - Activities (viewings and calls, logged on the client with the deal),
+    the stage history, and links to the request, contract and notes.
+  - Header commands: edit, move stage (reopen when closed), close as won,
+    and lost. Closing is shown only with `deals.close`.
+- `DealDialog` creates and edits a deal: kind, parties, listing (the
+  contract `ListingPicker`), assignee, expected close, currency and amounts.
+  A picked listing brings its owner. `DealStageDialog` asks for a reason
+  when losing, cancelling or reopening, and shows the server's refusal as
+  is.
+- `formatAmount` shows exact amounts from the server's decimal strings.
+  Grouping is done on the string, never through a number, and fractions
+  show when they are not zero (always for USD). Tested in
+  `renderer-utils.test.ts`.
+- Checked in the web demo:
+  - The board shows all nine stages, and a new deal appears in its column
+    with its total.
+  - The deal page loads with the right stages marked done.
+  - Recording a 305,000,000 offer and accepting it set the agreed price,
+    moved the deal to "تم الاتفاق" and recorded that move.
+  - "إغلاق كمكسوبة" without a seller showed the server's "حدد البائع أو
+    المؤجر قبل كسب الصفقة."
+- No server change.
 
 ## Database migrations
 

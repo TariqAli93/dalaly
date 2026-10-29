@@ -433,6 +433,12 @@ price when the payload leaves them empty.
   open with no stage move, activity or offer for `stalled_days`.
 - `GET /deals/pipeline` sums per stage and currency in SQL (numeric), never
   adding IQD to USD. Changes are audited (`entity_type` `deal`).
+- In the renderer, `pages/DealsPage.vue` is the board (open stages, one
+  column each, totals from `/deals/pipeline`) and the table, and
+  `pages/DealPage.vue` the deal's page; `components/deals/DealDialog.vue`
+  and `DealStageDialog.vue` create, edit and move deals. Amounts are shown
+  with `formatAmount` (`utils/format.ts`), which groups the decimal string
+  itself rather than going through a number.
 
 ## Contracts (`modules/agreements`)
 

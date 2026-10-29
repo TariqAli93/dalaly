@@ -237,8 +237,14 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: "العقود",
+    title: "الصفقات والعقود",
     items: [
+      {
+        title: "الصفقات",
+        to: "/deals",
+        icon: "mdi-handshake-outline",
+        permission: "deals.read",
+      },
       {
         title: "العقود",
         to: "/contracts",
