@@ -15,8 +15,9 @@ Do not rely on this file alone.
 | 1b — media tokens | `fix/phase-01b-media-tokens` | [#28](https://github.com/TariqAli93/dalaly/pull/28), merged `fb3512d` | `test:media-tokens` 8/8; affected suites; CI pass | Completed |
 | 1c — hardening | `fix/phase-01c-hardening` | [#29](https://github.com/TariqAli93/dalaly/pull/29), merged `8ac6385` | `test:hardening` 5/5, lifecycle 6/6; all suites; CI pass | Completed |
 | 2a — activities and tasks | `feat/phase-02a-activities` | [#30](https://github.com/TariqAli93/dalaly/pull/30), merged `2d82389` | `test:tasks` 13/13, `test:contract` 87; all suites; CI pass | Completed |
-| 2b — customer CRM | `feat/phase-02b-customer-crm` | — | `test:customers` 8/8, `test:contract` 90 | In review |
-| 2c — CRM UI | `feat/phase-02c-crm-ui` | — | — | Pending |
+| 2b — customer CRM | `feat/phase-02b-customer-crm` | [#31](https://github.com/TariqAli93/dalaly/pull/31), merged `6ec058d` | `test:customers` 8/8, `test:contract` 90; all suites; CI pass | Completed |
+| 2c — tasks UI | `feat/phase-02c-tasks-ui` | [#32](https://github.com/TariqAli93/dalaly/pull/32) | renderer typecheck, lint, build; checked in the web demo | In review |
+| 2d — customer UI | `feat/phase-02d-customer-ui` | — | — | Pending |
 | 3a — deals core | `feat/phase-03a-deals-core` | — | — | Pending |
 | 3b — deals UI | `feat/phase-03b-deals-ui` | — | — | Pending |
 | 3c — deal integration | `feat/phase-03c-deal-integration` | — | — | Pending |
@@ -149,6 +150,30 @@ below.
   as well as null.
 - No UI yet: the person form, its duplicate warning and the owner picker on
   the sale form are Phase 2c.
+
+### 2c — tasks UI
+
+- New "المهام والمتابعات" page (`/tasks`, in the navigation under customers
+  and requests). It is shown to anyone with either follow-up permission:
+  a nav item and a route may now name several keys, any of which is
+  enough.
+- The page has filters for status, assignee ("مهامي"), due window, type and
+  text. Each row can be completed with an outcome, reopened, postponed a
+  day, cancelled or edited, and links to its listing or customer. "مهمة
+  لزبون" adds a customer task.
+- One `TaskDialog` (type, customer, notes, date, assignee, priority,
+  status, outcome) now serves the listing follow-up history, the
+  dashboard's "تسجيل متابعة" and the tasks page.
+- The listing history shows each follow-up's status (overdue in red),
+  priority, assignee, customer and outcome, with a "complete" button.
+- Checked in the web demo:
+  - The tasks page lists the demo's four open follow-ups.
+  - Completing one with an outcome saved `done`, the outcome and
+    `completed_at`, and the list dropped to three.
+  - The listing's history shows the new state, and a past follow-up
+    migrated by `0005` shows as done.
+  - No console errors.
+- No server change.
 
 ## Database migrations
 

@@ -11,7 +11,8 @@ import { usePermissions } from "../composables/usePermissions";
 declare module "vue-router" {
   interface RouteMeta {
     requiresAuth?: boolean;
-    permission?: string;
+    /** A key, or keys of which any one opens the page. */
+    permission?: string | string[];
     titleKey?: string;
   }
 }
@@ -194,6 +195,17 @@ const appPages: RouteRecordRaw[] = [
       requiresAuth: true,
       permission: "requests.read",
       titleKey: "routes.purchaseRequests",
+    },
+  },
+  // المهام والمتابعات: تكفي أي صلاحية قراءة متابعات؛ القائمة تعرض ما تسمح به.
+  {
+    path: "/tasks",
+    name: "tasks",
+    component: () => import("../pages/TasksPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: ["followups.read", "rentals.followups.read"],
+      titleKey: "routes.tasks",
     },
   },
   {

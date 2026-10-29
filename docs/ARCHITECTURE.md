@@ -365,6 +365,13 @@ date is open, one without is done (it records something that happened);
 is reopened. An update that leaves a task field out keeps it, so older
 clients that send only type, notes and date change nothing else.
 
+- In the renderer, `pages/TasksPage.vue` is the tasks list and
+  `components/tasks/TaskDialog.vue` the one task form, used by the listing
+  follow-up history (`ListingFollowups`), the dashboard's
+  `RecordFollowupDialog` and the tasks page. The caller passes what saving
+  does (`save`); `useAssignees` loads who can be assigned once. Grid rows
+  get an id from source and id (`id * 3 + source index`), since the three
+  sources share id numbers.
 - The tasks read model (`tasks.repository.ts`) is a `UNION ALL` of the
   three tables with a `source` column (`sale_followup`, `rental_followup`,
   `activity`), each included only when the caller has its read permissions

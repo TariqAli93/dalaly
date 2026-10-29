@@ -33,6 +33,9 @@ export type TaskFieldsPayload = {
   outcome?: string | null;
 };
 
+/** What the task dialog edits: the payload, with the row's id when editing. */
+export type TaskDialogValue = TaskFieldsPayload & { id?: number };
+
 /** A row of /tasks/paged: a listing follow-up or a customer activity. */
 export type TaskRecord = {
   source: TaskSource;
