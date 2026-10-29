@@ -37,7 +37,9 @@ test("authentication runs before body parsing and only upload routes take large 
     });
 
     await t.test("image uploads still accept multi-megabyte files", async () => {
-      const image = `data:image/png;base64,${Buffer.alloc(2 * 1024 * 1024, 7).toString("base64")}`;
+      // A PNG signature, then 2 MB: uploads check a file's leading bytes.
+      const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+      const image = `data:image/png;base64,${Buffer.concat([signature, Buffer.alloc(2 * 1024 * 1024, 7)]).toString("base64")}`;
       const result = await post(`/api/properties/${ctx.property.id}/images`, { images: [{ data: image }] }, ctx.token);
       assert.equal(result.statusCode, 201, result.body.slice(0, 200));
     });
