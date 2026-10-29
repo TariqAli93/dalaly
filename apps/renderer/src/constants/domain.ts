@@ -149,7 +149,8 @@ export type NavItem = {
   title: string;
   to: string;
   icon: string;
-  permission?: string;
+  /** A key, or keys of which any one shows the item. */
+  permission?: string | string[];
 };
 
 export type NavSection = { title: string | null; items: NavItem[] };
@@ -207,6 +208,12 @@ export const NAV_SECTIONS: NavSection[] = [
         to: "/people",
         icon: "mdi-account-box-multiple-outline",
         permission: "people.read",
+      },
+      {
+        title: "المهام والمتابعات",
+        to: "/tasks",
+        icon: "mdi-clipboard-check-outline",
+        permission: ["followups.read", "rentals.followups.read"],
       },
       {
         title: "طلبات الشراء",

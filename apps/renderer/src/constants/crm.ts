@@ -5,6 +5,9 @@ import type {
   PersonRecord,
   PersonSortKey,
   PurchaseRequestSortKey,
+  TaskPriority,
+  TaskSortKey,
+  TaskStatus,
 } from "../types";
 
 // الترتيب الافتراضي للجداول المقسّمة في الخادم، وهو ترتيب القوائم الكاملة نفسه.
@@ -72,6 +75,50 @@ export const PERSON_STATUS_FILTERS: Array<{
   { title: "غير نشط", value: "inactive" },
   { title: "المؤرشفون", value: "archived" },
 ];
+
+/** حالات المهمة (متابعة عرض أو نشاط زبون) كما يقبلها الخادم. */
+export const TASK_STATUSES: Array<{ title: string; value: TaskStatus }> = [
+  { title: "مفتوحة", value: "open" },
+  { title: "أُنجزت", value: "done" },
+  { title: "ملغاة", value: "cancelled" },
+];
+export function taskStatusLabel(value: string) {
+  return TASK_STATUSES.find((item) => item.value === value)?.title ?? value;
+}
+export function taskStatusColor(value: string) {
+  return value === "open"
+    ? "primary"
+    : value === "done"
+      ? "success"
+      : "default";
+}
+
+export const TASK_PRIORITIES: Array<{ title: string; value: TaskPriority }> = [
+  { title: "منخفضة", value: "low" },
+  { title: "عادية", value: "normal" },
+  { title: "مرتفعة", value: "high" },
+  { title: "عاجلة", value: "urgent" },
+];
+export function taskPriorityLabel(value: string) {
+  return TASK_PRIORITIES.find((item) => item.value === value)?.title ?? value;
+}
+export function taskPriorityColor(value: string) {
+  return value === "urgent"
+    ? "error"
+    : value === "high"
+      ? "warning"
+      : value === "low"
+        ? "default"
+        : "info";
+}
+
+/** جدول المهام: الأقرب موعداً أولاً (بلا موعد في آخره). */
+export const TASKS_DEFAULT_SORT: ListSortOption<TaskSortKey> = {
+  value: "due",
+  title: "الأقرب موعداً",
+  key: "scheduled_at",
+  order: "asc",
+};
 
 /** أنواع المتابعة كما يقبلها الخادم، للعروض والإيجارات معاً. */
 export const FOLLOWUP_TYPES: Array<{

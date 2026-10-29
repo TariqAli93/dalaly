@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
+import TaskDialog from "../tasks/TaskDialog.vue";
 import * as saleFollowups from "../../services/followups.service";
 import * as rentalFollowups from "../../services/rental-followups.service";
 import { getErrorMessage } from "../../services/api.service";
@@ -8,29 +9,30 @@ import { useSnackbar } from "../../composables/useSnackbar";
 import { useConfirm } from "../../composables/useConfirm";
 import type {
   FollowupRecord,
-  FollowupType,
   RentalFollowupRecord,
+  TaskDialogValue,
+  TaskFieldsPayload,
 } from "../../types";
 import { formatDateTime } from "../../utils/format";
 import {
-  FOLLOWUP_TYPES,
   followupTypeIcon,
   followupTypeLabel,
+  taskPriorityColor,
+  taskPriorityLabel,
+  taskStatusColor,
+  taskStatusLabel,
 } from "../../constants/crm";
 
 /**
- * سجل متابعات العرض، واحد لعروض البيع والإيجار: خط زمني بالأحدث أولاً، وإضافة
- * وتعديل في حوار نموذج حقيقي (Enter يحفظ)، وحذف بعد تأكيد. kind يختار الخدمة
- * والصلاحيات (followups.* أو rentals.followups.*).
+ * سجل متابعات العرض، واحد لعروض البيع والإيجار: خط زمني بالأحدث أولاً بحالة
+ * كل متابعة ومكلّفها ونتيجتها، وإضافة وتعديل في حوار المهمة المشترك
+ * (TaskDialog)، وحذف بعد تأكيد. kind يختار الخدمة والصلاحيات (followups.*
+ * أو rentals.followups.*).
  */
 const props = defineProps<{ kind: "sale" | "rental"; listingId: number }>();
 
 type Item = FollowupRecord | RentalFollowupRecord;
-type Payload = {
-  type: FollowupType;
-  notes: string | null;
-  scheduled_at: string | null;
-};
+type Payload = TaskFieldsPayload;
 const api = computed(() =>
   props.kind === "sale"
     ? {
@@ -58,31 +60,24 @@ const perm = (action: "create" | "update" | "delete") =>
   );
 
 const { can } = usePermissions();
-const { notifySuccess, notifyError } = useSnackbar();
+const { notifySuccess } = useSnackbar();
 const { openConfirm } = useConfirm();
 
 const followups = ref<Item[]>([]);
 const loading = ref(false);
 // فشل التحميل يُعرض مكانه مع إعادة، لا «لا توجد متابعات».
 const loadError = ref<string | null>(null);
-const saving = ref(false);
 const dialog = ref(false);
-const editingId = ref<number | null>(null);
-const form = ref<{ type: FollowupType; notes: string; scheduled_at: string }>({
-  type: "phone_call",
-  notes: "",
-  scheduled_at: "",
-});
+const editing = ref<Partial<TaskDialogValue> | null>(null);
+const completing = ref(false);
 
 function fmt(value: string | null) {
   return value ? formatDateTime(value) : "";
 }
-function toLocalInput(iso: string | null) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+const isOverdue = (item: Item) =>
+  item.status === "open" &&
+  Boolean(item.scheduled_at) &&
+  new Date(item.scheduled_at!).getTime() < Date.now();
 
 async function load() {
   loading.value = true;
@@ -96,40 +91,31 @@ async function load() {
   }
 }
 
-function openDialog(followup?: Item) {
-  editingId.value = followup?.id ?? null;
-  form.value = {
-    type: (followup?.type as FollowupType) ?? "phone_call",
-    notes: followup?.notes ?? "",
-    scheduled_at: toLocalInput(followup?.scheduled_at ?? null),
-  };
+function openDialog(followup?: Item, complete = false) {
+  completing.value = complete;
+  editing.value = followup
+    ? {
+        id: followup.id,
+        type: followup.type,
+        notes: followup.notes,
+        scheduled_at: followup.scheduled_at,
+        status: complete ? "done" : followup.status,
+        priority: followup.priority,
+        assigned_user_id: followup.assigned_user_id,
+        person_id: followup.person_id,
+        outcome: followup.outcome,
+      }
+    : null;
   dialog.value = true;
 }
 
-async function save() {
-  if (saving.value) return;
-  saving.value = true;
-  try {
-    const payload: Payload = {
-      type: form.value.type,
-      notes: form.value.notes || null,
-      scheduled_at: form.value.scheduled_at
-        ? new Date(form.value.scheduled_at).toISOString()
-        : null,
-    };
-    if (editingId.value !== null) {
-      await api.value.update(props.listingId, editingId.value, payload);
-    } else {
-      await api.value.create(props.listingId, payload);
-    }
-    dialog.value = false;
-    await load();
-    notifySuccess("تم حفظ المتابعة.");
-  } catch (error) {
-    notifyError(getErrorMessage(error));
-  } finally {
-    saving.value = false;
-  }
+/** حوار المهمة يعرض الخطأ في مكانه؛ هنا الحفظ ثم إعادة التحميل. */
+async function save(payload: Payload) {
+  if (editing.value?.id)
+    await api.value.update(props.listingId, editing.value.id, payload);
+  else await api.value.create(props.listingId, payload);
+  notifySuccess("تم حفظ المتابعة.");
+  await load().catch(() => undefined);
 }
 
 function askDelete(followup: Item) {
@@ -196,17 +182,41 @@ defineExpose({ reload: load });
         v-for="item in followups"
         :key="item.id"
         size="x-small"
-        dot-color="primary"
+        :dot-color="isOverdue(item) ? 'error' : taskStatusColor(item.status)"
       >
         <template #icon>
           <v-icon :icon="followupTypeIcon(item.type)" />
         </template>
         <div class="d-flex">
           <div class="flex-grow-1">
-            <div class="font-weight-medium">
-              {{ followupTypeLabel(item.type) }}
+            <div class="followups__head">
+              <span class="font-weight-medium">{{
+                followupTypeLabel(item.type)
+              }}</span>
+              <v-chip
+                size="x-small"
+                variant="tonal"
+                label
+                :color="
+                  isOverdue(item) ? 'error' : taskStatusColor(item.status)
+                "
+                >{{
+                  isOverdue(item) ? "متأخرة" : taskStatusLabel(item.status)
+                }}</v-chip
+              >
+              <v-chip
+                v-if="item.priority !== 'normal'"
+                size="x-small"
+                variant="tonal"
+                label
+                :color="taskPriorityColor(item.priority)"
+                >{{ taskPriorityLabel(item.priority) }}</v-chip
+              >
             </div>
             <div v-if="item.notes" class="text-body-2">{{ item.notes }}</div>
+            <div v-if="item.outcome" class="text-body-2">
+              <strong>النتيجة:</strong> {{ item.outcome }}
+            </div>
             <div class="text-caption text-medium-emphasis">
               {{ item.user_name || "—" }} · {{ fmt(item.created_at) }}
               <span v-if="item.scheduled_at">
@@ -218,9 +228,24 @@ defineExpose({ reload: load });
                 />
                 موعد: {{ fmt(item.scheduled_at) }}
               </span>
+              <span v-if="item.assigned_user_name">
+                · المكلّف: {{ item.assigned_user_name }}</span
+              >
+              <span v-if="item.person_name">
+                · الزبون: {{ item.person_name }}</span
+              >
             </div>
           </div>
           <div>
+            <v-btn
+              v-if="perm('update') && item.status === 'open'"
+              icon="mdi-check-circle-outline"
+              size="small"
+              variant="text"
+              title="إنجاز"
+              :aria-label="`إنجاز متابعة ${followupTypeLabel(item.type)}`"
+              @click="openDialog(item, true)"
+            />
             <v-btn
               v-if="perm('update')"
               icon="mdi-pencil-outline"
@@ -246,40 +271,29 @@ defineExpose({ reload: load });
       </v-timeline-item>
     </v-timeline>
 
-    <v-dialog
+    <TaskDialog
       v-model="dialog"
-      width="520"
-      :persistent="saving"
-      :aria-label="editingId ? 'تعديل متابعة' : 'إضافة متابعة'"
-    >
-      <v-card tag="form" @submit.prevent="save">
-        <v-card-title>{{
-          editingId ? "تعديل متابعة" : "إضافة متابعة"
-        }}</v-card-title>
-        <v-card-text>
-          <v-select v-model="form.type" :items="FOLLOWUP_TYPES" label="النوع" />
-          <v-textarea v-model="form.notes" label="الملاحظات" rows="3" />
-          <v-text-field
-            v-model="form.scheduled_at"
-            label="موعد المتابعة (اختياري)"
-            type="datetime-local"
-          />
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" :disabled="saving" @click="dialog = false"
-            >إلغاء</v-btn
-          >
-          <v-btn color="primary" variant="flat" type="submit" :loading="saving"
-            >حفظ</v-btn
-          >
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+      :title="
+        editing
+          ? completing
+            ? 'إنجاز المتابعة'
+            : 'تعديل متابعة'
+          : 'إضافة متابعة'
+      "
+      :initial="editing"
+      person="optional"
+      :save="save"
+    />
   </div>
 </template>
 
 <style scoped>
+.followups__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
 .followups__title {
   margin: 0;
   font-size: calc(14px * var(--dal-font-scale));
