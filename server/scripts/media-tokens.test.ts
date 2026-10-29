@@ -84,7 +84,9 @@ test("media tokens open image files only, and session tokens never travel in URL
     await t.test("a forged or altered media token is refused", async () => {
       const [, signature] = session.media_token.split(".");
       assert.equal((await inject("GET", media(file, `${Number(session.media_token.split(".")[0]) + 1}.${signature}`))).statusCode, 401);
-      assert.equal((await inject("GET", media(file, `${session.media_token.slice(0, -1)}A`))).statusCode, 401);
+      // Always a different last character: one token in 64 already ends in "A".
+      const last = session.media_token.at(-1) === "A" ? "B" : "A";
+      assert.equal((await inject("GET", media(file, `${session.media_token.slice(0, -1)}${last}`))).statusCode, 401);
       assert.equal((await inject("GET", media(file, "1.short"))).statusCode, 401);
     });
 
