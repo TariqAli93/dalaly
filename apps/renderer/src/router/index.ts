@@ -197,6 +197,27 @@ const appPages: RouteRecordRaw[] = [
       titleKey: "routes.purchaseRequests",
     },
   },
+  // الصفقات: اللوحة والجدول، وصفحة كل صفقة.
+  {
+    path: "/deals",
+    name: "deals",
+    component: () => import("../pages/DealsPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "deals.read",
+      titleKey: "routes.deals",
+    },
+  },
+  {
+    path: "/deals/:id(\\d+)",
+    name: "deal-details",
+    component: () => import("../pages/DealPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "deals.read",
+      titleKey: "routes.deals",
+    },
+  },
   // المهام والمتابعات: تكفي أي صلاحية قراءة متابعات؛ القائمة تعرض ما تسمح به.
   {
     path: "/tasks",

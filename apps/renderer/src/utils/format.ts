@@ -42,6 +42,25 @@ export function formatMoney(value: unknown) {
   return MONEY.format(toNumber(value));
 }
 
+/**
+ * مبلغ دقيق كما يرسله الخادم ("1450000.50") بفواصل آلاف لاتينية، دون أن يمر
+ * برقم JavaScript، مع رمز العملة. الكسور تظهر إن لم تكن صفراً، وتظهر دائماً
+ * للدولار.
+ */
+export function formatAmount(
+  value: string | null | undefined,
+  currency: "IQD" | "USD" = "IQD",
+) {
+  if (value === null || value === undefined || value === "") return "—";
+  const match = /^(-?)(\d+)(?:\.(\d{1,2}))?$/.exec(String(value).trim());
+  if (!match) return String(value);
+  const whole = match[2].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const fraction = (match[3] ?? "").padEnd(2, "0");
+  const decimals =
+    currency === "USD" || fraction !== "00" ? `.${fraction}` : "";
+  return `${match[1]}${whole}${decimals} ${currency === "USD" ? "$" : "د.ع"}`;
+}
+
 /** تنسيق عدد عام مع فواصل آلاف لاتينية، مع الحفاظ على الكسور إن وُجدت. */
 export function formatNumber(value: unknown, maximumFractionDigits = 2) {
   let formatter = NUMBERS.get(maximumFractionDigits);

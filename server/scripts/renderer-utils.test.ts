@@ -30,3 +30,13 @@ test("request amenities map stored Arabic names to listing keys and keep the res
   });
   assert.deepEqual(splitAmenityKeys(null), { known: [], other: [] });
 });
+
+test("exact amounts are grouped without passing through a number", async () => {
+  const { formatAmount } = await import("../../apps/renderer/src/utils/format.js");
+  assert.equal(formatAmount("145000000.50"), "145,000,000.50 د.ع");
+  assert.equal(formatAmount("150000000.00"), "150,000,000 د.ع");
+  assert.equal(formatAmount("9007199254740993.00"), "9,007,199,254,740,993 د.ع", "past 2^53");
+  assert.equal(formatAmount("1200.00", "USD"), "1,200.00 $");
+  assert.equal(formatAmount("-150.5"), "-150.50 د.ع");
+  assert.equal(formatAmount(null), "—");
+});
