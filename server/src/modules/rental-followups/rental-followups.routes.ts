@@ -41,10 +41,13 @@ export const rentalFollowupsRoutes: FastifyPluginAsync = async (app) => {
     "/:id/followups/:followupId",
     { preHandler: requirePermission("rentals.followups.update") },
     async (request, reply) => {
-      const id = parseId((request.params as { followupId: string }).followupId);
-      if (!id)
+      const params = request.params as { id: string; followupId: string };
+      const rentalId = parseId(params.id);
+      const id = parseId(params.followupId);
+      if (!rentalId || !id)
         return reply.code(400).send({ message: "معرف المتابعة غير صحيح." });
       const row = await updateRentalFollowup(
+        rentalId,
         id,
         followupPayloadSchema.parse(request.body),
       );
@@ -57,10 +60,12 @@ export const rentalFollowupsRoutes: FastifyPluginAsync = async (app) => {
     "/:id/followups/:followupId",
     { preHandler: requirePermission("rentals.followups.delete") },
     async (request, reply) => {
-      const id = parseId((request.params as { followupId: string }).followupId);
-      if (!id)
+      const params = request.params as { id: string; followupId: string };
+      const rentalId = parseId(params.id);
+      const id = parseId(params.followupId);
+      if (!rentalId || !id)
         return reply.code(400).send({ message: "معرف المتابعة غير صحيح." });
-      const row = await deleteRentalFollowup(id);
+      const row = await deleteRentalFollowup(rentalId, id);
       return row
         ? { deleted: true }
         : reply.code(404).send({ message: "المتابعة غير موجودة." });

@@ -8,7 +8,7 @@ import {
   deleteImageFromDisk,
   resolveImageAbsolutePath,
   resolveThumbnailPath,
-  saveRentalImageToDisk,
+  storeImages,
   writeThumbnail,
 } from "../images/images.service.js";
 import {
@@ -17,10 +17,9 @@ import {
   thumbnailSchema,
 } from "../images/images.schema.js";
 import {
-  addRentalImage,
-  countRentalImages,
+  addRentalImages,
+  assertRentalExists,
   deleteRentalImage,
-  ensurePrimaryRentalImage,
   getRentalImage,
   listRentalImages,
   reorderRentalImages,
@@ -112,30 +111,13 @@ export const rentalImagesRoutes: FastifyPluginAsync = async (app) => {
       if (!rentalId)
         return reply.code(400).send({ message: "معرف الإيجار غير صحيح." });
       const payload = imageUploadSchema.parse(request.body);
-      // تُفحص المصغّرات قبل حفظ أي أصل.
-      const thumbnails = payload.images.map((item) =>
-        item.thumbnail ? decodeThumbnail(item.thumbnail) : null,
+      await assertRentalExists(rentalId);
+      const created = await storeImages(
+        "rentals",
+        rentalId,
+        payload.images,
+        (files) => addRentalImages(rentalId, files),
       );
-      const existing = await countRentalImages(rentalId);
-      const created = [];
-      for (let index = 0; index < payload.images.length; index += 1) {
-        const item = payload.images[index];
-        const saved = saveRentalImageToDisk(
-          rentalId,
-          item.data,
-          item.original_name ?? undefined,
-        );
-        const thumbnail = thumbnails[index];
-        if (thumbnail) writeThumbnail(saved.filePath, thumbnail);
-        created.push(
-          await addRentalImage({
-            rentalId,
-            filePath: saved.filePath,
-            originalName: item.original_name ?? null,
-            isPrimary: existing === 0 && index === 0,
-          }),
-        );
-      }
       await recordAudit({
         entityType: "rental",
         entityId: rentalId,
@@ -184,8 +166,15 @@ export const rentalImagesRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ message: "معرف غير صحيح." });
       const row = await deleteRentalImage(rentalId, imageId);
       if (!row) return reply.code(404).send({ message: "الصورة غير موجودة." });
-      deleteImageFromDisk(row.filePath);
-      await ensurePrimaryRentalImage(rentalId);
+      if (!deleteImageFromDisk(row.filePath))
+        request.log.warn({ imageId }, "image file could not be deleted");
+      await recordAudit({
+        entityType: "rental",
+        entityId: rentalId,
+        action: "image_removed",
+        oldValue: { file_path: row.filePath },
+        userId: request.user?.id,
+      });
       return { deleted: true };
     },
   );

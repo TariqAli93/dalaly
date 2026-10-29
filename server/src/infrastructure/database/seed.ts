@@ -483,11 +483,7 @@ async function seedPropertyImages(propertyIds: number[]) {
       continue;
     }
 
-    const stored = saveImageToDisk(
-      propertyId,
-      DEMO_IMAGE_DATA,
-      "demo-property.png",
-    );
+    const stored = saveImageToDisk(propertyId, DEMO_IMAGE_DATA);
     await db.insert(propertyImages).values({
       propertyId,
       filePath: stored.filePath,
@@ -576,11 +572,7 @@ async function seedRentals(
       .where(eq(rentalImages.rentalId, rentalId))
       .limit(1);
     if (!image) {
-      const stored = saveRentalImageToDisk(
-        rentalId,
-        DEMO_IMAGE_DATA,
-        "demo-rental.png",
-      );
+      const stored = saveRentalImageToDisk(rentalId, DEMO_IMAGE_DATA);
       await db.insert(rentalImages).values({
         rentalId,
         filePath: stored.filePath,

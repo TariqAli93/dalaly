@@ -19,12 +19,12 @@ import { identityDocumentPayloadSchema } from "../src/modules/documents/document
 import { resolveManagedFile } from "../src/modules/documents/documents.storage.js";
 import { updateCompanyLogo } from "../src/modules/company-settings/company-settings.repository.js";
 import { companyLogoSchema } from "../src/modules/company-settings/company-settings.schema.js";
-import { addImage } from "../src/modules/images/images.repository.js";
+import { addImages } from "../src/modules/images/images.repository.js";
 import {
   saveImageToDisk,
   saveRentalImageToDisk,
 } from "../src/modules/images/images.service.js";
-import { addRentalImage } from "../src/modules/rental-images/rental-images.repository.js";
+import { addRentalImages } from "../src/modules/rental-images/rental-images.repository.js";
 import { setSetting } from "../src/modules/settings/settings.repository.js";
 import {
   getRolePermissionIds,
@@ -196,10 +196,10 @@ test("shared backup v3 survives full restore and rejects incompatible data befor
     })))!;
     const logo = await updateCompanyLogo(companyLogoSchema.parse({ data: png, file_type: "image/png", original_name: "office.png" }));
     await db.update(schema.officeProfiles).set({ companyName: "مكتب فحص النسخ", address: "بغداد" }).where(eq(schema.officeProfiles.id, 1));
-    const propertyImage = saveImageToDisk(ctx.property.id, png, "property.png");
-    await addImage({ propertyId: ctx.property.id, filePath: propertyImage.filePath, originalName: "property.png", isPrimary: true });
-    const rentalImage = saveRentalImageToDisk(ctx.rental.id, png, "rental.png");
-    await addRentalImage({ rentalId: ctx.rental.id, filePath: rentalImage.filePath, originalName: "rental.png", isPrimary: true });
+    const propertyImage = saveImageToDisk(ctx.property.id, png);
+    await addImages(ctx.property.id, [{ filePath: propertyImage.filePath, originalName: "property.png" }]);
+    const rentalImage = saveRentalImageToDisk(ctx.rental.id, png);
+    await addRentalImages(ctx.rental.id, [{ filePath: rentalImage.filePath, originalName: "rental.png" }]);
     await setSetting("backup_dir", config.backupsDir);
     await setSetting("last_backup_at", "2026-10-19T00:00:00.000Z");
     await setSetting("reports.custom.preferences", { language: "ar", columns: ["name", "price"] });

@@ -19,7 +19,7 @@ import {
 } from "../src/modules/backup/backup.service.js";
 import { createIdentityDocument } from "../src/modules/documents/documents.repository.js";
 import { identityDocumentPayloadSchema } from "../src/modules/documents/documents.schema.js";
-import { addImage } from "../src/modules/images/images.repository.js";
+import { addImages } from "../src/modules/images/images.repository.js";
 import { saveImageToDisk } from "../src/modules/images/images.service.js";
 import { DomainError } from "../src/shared/errors.js";
 import { removalTestContext } from "./removal-test-context.js";
@@ -97,8 +97,8 @@ test("the emailed backup is the database alone, encrypted, and restores with its
         data: png, file_type: "image/png", original_name: "identity.png",
       }),
     );
-    const image = saveImageToDisk(ctx.property.id, png, "property.png");
-    await addImage({ propertyId: ctx.property.id, filePath: image.filePath, originalName: "property.png", isPrimary: true });
+    const image = saveImageToDisk(ctx.property.id, png);
+    await addImages(ctx.property.id, [{ filePath: image.filePath, originalName: "property.png" }]);
 
     const original = await databaseSnapshot();
     const archive = await createEmailArchive(PASSWORD);
@@ -149,8 +149,8 @@ test("the emailed backup is the database alone, encrypted, and restores with its
     await t.test("it restores with its password and leaves images and documents on disk", async () => {
       await pool.query("UPDATE properties SET name = 'بعد النسخة' WHERE id = $1", [ctx.property.id]);
       await pool.query("DELETE FROM identity_documents");
-      const later = saveImageToDisk(ctx.property.id, png, "later.png");
-      await addImage({ propertyId: ctx.property.id, filePath: later.filePath, originalName: "later.png", isPrimary: false });
+      const later = saveImageToDisk(ctx.property.id, png);
+      await addImages(ctx.property.id, [{ filePath: later.filePath, originalName: "later.png" }]);
       const mediaBefore = await fileSnapshot(path.join(ctx.root, "images"));
       const documentsBefore = await fileSnapshot(config.documentsDir);
 

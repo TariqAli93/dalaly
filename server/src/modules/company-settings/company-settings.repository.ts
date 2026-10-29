@@ -2,7 +2,10 @@ import { eq } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import { officeProfiles } from "../../infrastructure/database/schema.js";
 import { toApiObject } from "../../shared/utils/case.js";
-import { saveManagedFile } from "../documents/documents.storage.js";
+import {
+  removeManagedFile,
+  saveManagedFile,
+} from "../documents/documents.storage.js";
 import type {
   CompanyLogoPayload,
   CompanySettingsPayload,
@@ -44,8 +47,13 @@ export async function updateCompanySettings(payload: CompanySettingsPayload) {
     .returning();
   return toApiObject(row);
 }
+/** يستبدل الشعار ويحذف ملف السابق بعد حفظ الجديد؛ وإن فشل الحفظ حُذف الجديد. */
 export async function updateCompanyLogo(payload: CompanyLogoPayload) {
   await ensureRow();
+  const [current] = await db
+    .select({ logoFilePath: officeProfiles.logoFilePath })
+    .from(officeProfiles)
+    .where(eq(officeProfiles.id, 1));
   const stored = saveManagedFile(
     "company",
     payload.data,
@@ -56,6 +64,12 @@ export async function updateCompanyLogo(payload: CompanyLogoPayload) {
     .update(officeProfiles)
     .set({ logoFilePath: stored.filePath, updatedAt: new Date() })
     .where(eq(officeProfiles.id, 1))
-    .returning();
+    .returning()
+    .catch((error: unknown) => {
+      removeManagedFile(stored.filePath);
+      throw error;
+    });
+  if (current?.logoFilePath && current.logoFilePath !== stored.filePath)
+    removeManagedFile(current.logoFilePath);
   return toApiObject(row);
 }

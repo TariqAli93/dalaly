@@ -99,6 +99,7 @@ pnpm --filter @dalaly/server test:codes          # concurrent saves get distinct
 pnpm --filter @dalaly/server test:transactions   # db.transaction stays on one connection under load
 pnpm --filter @dalaly/server test:paging         # server-paged property and rental lists
 pnpm --filter @dalaly/server test:thumbnails     # list rows' primary images, thumbnails, backups without them
+pnpm --filter @dalaly/server test:files          # image, follow-up and document operations stay on their record; no orphan files
 pnpm --filter @dalaly/server test:import         # Excel import: all rows or none, row cap, same skips as before
 pnpm --filter @dalaly/server test:queries        # users/roles lists and location names in a fixed number of queries
 pnpm --filter @dalaly/server test:dashboard      # dashboard summary unchanged by its merged queries

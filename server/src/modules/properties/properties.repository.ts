@@ -18,6 +18,7 @@ import { db } from "../../infrastructure/database/db.js";
 import {
   favoriteProperties,
   properties,
+  propertyImages,
   type NewProperty,
   type Property,
 } from "../../infrastructure/database/schema.js";
@@ -31,6 +32,7 @@ import { calculateTotalPrice } from "../../shared/utils/pricing.js";
 import { toApiObject, toApiObjects } from "../../shared/utils/case.js";
 import { DuplicatePlotError } from "../../shared/errors.js";
 import { getLocationNames } from "../locations/locations.repository.js";
+import { deleteOwnerImageFiles } from "../images/images.service.js";
 import {
   listEntityAudit,
   recordAudit,
@@ -553,12 +555,36 @@ export async function updateProperty(
   return after;
 }
 
+/**
+ * يحذف العقار (تحذف القاعدة صفوف صوره ومتابعاته معه) ثم ملفات صوره
+ * ومصغّراتها بعد نجاح الحذف، فلا تبقى على القرص بلا صف.
+ */
 export async function deleteProperty(id: number, userId?: number) {
-  const [property] = await db
-    .delete(properties)
-    .where(eq(properties.id, id))
-    .returning();
-  if (!property) return null;
+  const deleted = await db.transaction(async (tx) => {
+    // يقفل الصف أولاً فينتظر أي رفع صور جارٍ، ولا تفوت القائمة صورة أُضيفت.
+    const [locked] = await tx
+      .select({ id: properties.id })
+      .from(properties)
+      .where(eq(properties.id, id))
+      .for("update");
+    if (!locked) return null;
+    const images = await tx
+      .select({ filePath: propertyImages.filePath })
+      .from(propertyImages)
+      .where(eq(propertyImages.propertyId, id));
+    const [row] = await tx
+      .delete(properties)
+      .where(eq(properties.id, id))
+      .returning();
+    return row ? { row, images } : null;
+  });
+  if (!deleted) return null;
+  const property = deleted.row;
+  deleteOwnerImageFiles(
+    "",
+    id,
+    deleted.images.map((image) => image.filePath),
+  );
 
   const result = toApiObject(property, "properties");
   await recordAudit({
