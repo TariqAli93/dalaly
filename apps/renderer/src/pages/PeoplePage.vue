@@ -21,7 +21,9 @@ import { useRefresh } from "../composables/useRefresh";
 import { usePeople } from "../composables/usePeople";
 import { isDialogOpen } from "../utils/dialog";
 import {
+  PERSON_ROLES,
   PERSON_STATUS_FILTERS,
+  personRoleLabel,
   personStatusLabel,
   personTypeLabel,
   personStatusColor,
@@ -38,7 +40,11 @@ const { can } = usePermissions();
 const { notifyError, notifySuccess } = useSnackbar();
 const { openConfirm } = useConfirm();
 const { setRefreshHandler } = useRefresh();
-const { search, status, list, apply, clear } = usePeople();
+const { search, status, role, assigned, list, apply, clear } = usePeople();
+const ASSIGNED_FILTERS = [
+  { title: "زبائني", value: "me" },
+  { title: "بلا موظف متابع", value: "unassigned" },
+];
 const { items, total, loading, error, page, pageSize, sortBy, onTableOptions } =
   list;
 
@@ -56,10 +62,24 @@ const chips = computed<FilterChip[]>(() => {
         PERSON_STATUS_FILTERS.find((item) => item.value === status.value)
           ?.title ?? status.value,
     });
+  if (role.value)
+    result.push({
+      key: "role",
+      label: `الصفة: ${personRoleLabel(role.value)}`,
+    });
+  if (assigned.value)
+    result.push({
+      key: "assigned",
+      label:
+        ASSIGNED_FILTERS.find((item) => item.value === assigned.value)?.title ??
+        "",
+    });
   return result;
 });
 function removeChip(key: string) {
   if (key === "q") search.value = "";
+  else if (key === "role") role.value = null;
+  else if (key === "assigned") assigned.value = null;
   else status.value = "current";
 }
 
@@ -68,6 +88,7 @@ const headers: GridHeader[] = [
   { key: "full_name", title: "الزبون", sortable: true },
   { key: "phone_primary", title: "الهاتف", sortable: true },
   { key: "person_type", title: "النوع", sortable: true, priority: 3 },
+  { key: "roles", title: "الصفة", priority: 2 },
   { key: "residence", title: "السكن", priority: 2 },
   { key: "status", title: "الحالة", sortable: true },
   { key: "actions", title: "", align: "end", width: 96 },
@@ -216,7 +237,7 @@ onBeforeUnmount(() => {
     <section class="dal-panel dal-listpanel dal-fill" aria-label="الزبائن">
       <FilterBar
         v-model:search="search"
-        :filters="status"
+        :filters="[status, role, assigned]"
         search-label="بحث في الزبائن"
         placeholder="بحث بالاسم أو الهاتف أو الرمز"
         :chips="chips"
@@ -231,6 +252,22 @@ onBeforeUnmount(() => {
             :items="PERSON_STATUS_FILTERS"
             label="الحالة"
             hide-details
+            class="dal-toolbar__filter"
+          />
+          <v-select
+            v-model="role"
+            :items="PERSON_ROLES"
+            label="الصفة"
+            hide-details
+            clearable
+            class="dal-toolbar__filter"
+          />
+          <v-select
+            v-model="assigned"
+            :items="ASSIGNED_FILTERS"
+            label="الموظف المتابع"
+            hide-details
+            clearable
             class="dal-toolbar__filter"
           />
         </template>
@@ -284,6 +321,11 @@ onBeforeUnmount(() => {
         <template #item.residence="{ item }">
           <span class="dal-clip" :title="residenceOf(item)">{{
             residenceOf(item) || "—"
+          }}</span>
+        </template>
+        <template #item.roles="{ item }">
+          <span class="dal-clip">{{
+            item.roles.map(personRoleLabel).join("، ") || "—"
           }}</span>
         </template>
         <template #item.status="{ item }">

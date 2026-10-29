@@ -1,19 +1,28 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import FormSection from "../shared/FormSection.vue";
 import PhoneField from "../app/PhoneField.vue";
 import * as peopleService from "../../services/people.service";
 import { getErrorMessage } from "../../services/api.service";
 import { useSnackbar } from "../../composables/useSnackbar";
-import type { PersonRecord } from "../../types";
+import { useAssignees } from "../../composables/useAssignees";
+import { usePermissions } from "../../composables/usePermissions";
+import { PERSON_ROLES, PERSON_SOURCES } from "../../constants/crm";
+import type {
+  PersonDuplicate,
+  PersonRecord,
+  PersonRole,
+  PersonSource,
+} from "../../types";
 const open = defineModel<boolean>({ required: true });
 const props = defineProps<{ person: PersonRecord | null }>();
 const emit = defineEmits<{ saved: [PersonRecord] }>();
 
 /**
- * إضافة زبون وتعديله: أقسام الاتصال والهوية والسكن، والاسم وحده مطلوب. لا
- * يُغلق بـ Esc أو بالنقر خارجه بعد أي تعديل؛ Ctrl+S وEnter يحفظان، والتركيز
- * يعود بعد الإغلاق إلى ما فتحه.
+ * إضافة زبون وتعديله: أقسام الاتصال والهوية والسكن وعلاقته بالمكتب (صفاته،
+ * ومن أين جاء، والموظف المتابع)، والاسم وحده مطلوب. يُنبّه، دون أن يمنع،
+ * إن كان للهاتف أو رقم الهوية زبون مسجل آخر. لا يُغلق بـ Esc أو بالنقر خارجه
+ * بعد أي تعديل؛ Ctrl+S وEnter يحفظان، والتركيز يعود بعد الإغلاق إلى ما فتحه.
  */
 const PERSON_TYPES = [
   { title: "فرد", value: "individual" },
@@ -31,6 +40,11 @@ const FIELD_DEFAULTS = {
 };
 let opener: HTMLElement | null = null;
 const { notifySuccess } = useSnackbar();
+const { can } = usePermissions();
+const { assignees, loadAssignees } = useAssignees();
+const duplicates = ref<PersonDuplicate[]>([]);
+let duplicateTimer: ReturnType<typeof setTimeout> | undefined;
+let duplicateRequest = 0;
 const saving = ref(false);
 const submitted = ref(false);
 const error = ref("");
@@ -51,6 +65,9 @@ const form = ref({
   person_type: "individual" as PersonRecord["person_type"],
   status: "active" as PersonRecord["status"],
   notes: "",
+  roles: [] as PersonRole[],
+  source: null as PersonSource | null,
+  assigned_user_id: null as number | null,
 });
 // بعد أي تعديل لا يُغلق الحوار بـ Esc أو بالنقر خارجه؛ «إلغاء» يبقى متاحاً.
 const openedWith = ref("");
@@ -86,11 +103,54 @@ watch(
       person_type: person?.person_type ?? "individual",
       status: person?.status ?? "active",
       notes: person?.notes ?? "",
+      roles: [...(person?.roles ?? [])],
+      source: person?.source ?? null,
+      assigned_user_id: person?.assigned_user_id ?? null,
     };
     openedWith.value = JSON.stringify(form.value);
+    duplicates.value = [];
+    void loadAssignees();
   },
   { immediate: true },
 );
+// زبون آخر بالهاتف أو رقم الهوية نفسه: تنبيه بعد توقف الكتابة، لا منع.
+watch(
+  () => [
+    open.value,
+    form.value.phone_primary,
+    form.value.phone_secondary,
+    form.value.national_id,
+  ],
+  () => {
+    clearTimeout(duplicateTimer);
+    if (!open.value || !can("people.read")) return;
+    duplicateTimer = setTimeout(async () => {
+      const current = ++duplicateRequest;
+      const { phone_primary, phone_secondary, national_id } = form.value;
+      if (!phone_primary && !phone_secondary && !national_id.trim()) {
+        duplicates.value = [];
+        return;
+      }
+      try {
+        const found = await peopleService.findDuplicatePeople({
+          phone: phone_primary || undefined,
+          phone_secondary: phone_secondary || undefined,
+          national_id: national_id.trim() || undefined,
+          exclude_id: props.person?.id,
+        });
+        if (current === duplicateRequest) duplicates.value = found;
+      } catch {
+        // التنبيه مساعدة؛ فشله لا يمنع الحفظ.
+      }
+    }, 400);
+  },
+);
+onBeforeUnmount(() => clearTimeout(duplicateTimer));
+const matchedOn = (row: PersonDuplicate) =>
+  row.matched_on
+    .map((field) => (field === "phone" ? "الهاتف" : "رقم الهوية"))
+    .join(" و");
+
 async function save() {
   if (saving.value) return;
   submitted.value = true;
@@ -203,6 +263,27 @@ const nameError = computed(() =>
                 label="النوع"
               />
             </FormSection>
+            <v-alert
+              v-if="duplicates.length"
+              type="warning"
+              variant="tonal"
+              density="compact"
+              class="mb-3"
+              role="status"
+            >
+              <p class="mb-1">
+                يوجد زبون مسجل بالبيانات نفسها؛ تأكد أنه ليس الشخص ذاته قبل
+                الحفظ:
+              </p>
+              <ul class="person-editor__duplicates">
+                <li v-for="row in duplicates" :key="row.id">
+                  <strong>{{ row.full_name }}</strong>
+                  (<bdi>{{ row.code }}</bdi
+                  >) — {{ matchedOn(row)
+                  }}<span v-if="row.status === 'archived'"> (مؤرشف)</span>
+                </li>
+              </ul>
+            </v-alert>
             <FormSection title="الهوية" :columns="2">
               <v-text-field
                 v-model="form.national_id"
@@ -238,6 +319,34 @@ const nameError = computed(() =>
                 label="محل الإقامة الحالي وتفاصيل العنوان"
               />
             </FormSection>
+            <FormSection title="علاقته بالمكتب" :columns="2">
+              <v-select
+                v-model="form.roles"
+                :items="PERSON_ROLES"
+                class="form-section__wide"
+                label="صفة الزبون"
+                hint="قد تجتمع أكثر من صفة؛ مالك العرض وصاحب الطلب يُعرفان من سجلاتهما أيضاً."
+                persistent-hint
+                multiple
+                chips
+                closable-chips
+              />
+              <v-select
+                v-model="form.source"
+                :items="PERSON_SOURCES"
+                label="كيف وصل إلى المكتب"
+                clearable
+              />
+              <v-select
+                v-if="assignees.length"
+                v-model="form.assigned_user_id"
+                :items="assignees"
+                item-title="display_name"
+                item-value="id"
+                label="الموظف المتابع"
+                clearable
+              />
+            </FormSection>
             <FormSection title="الملاحظات" :columns="1">
               <v-textarea
                 v-model="form.notes"
@@ -270,3 +379,10 @@ const nameError = computed(() =>
     </v-card>
   </v-dialog>
 </template>
+
+<style scoped>
+.person-editor__duplicates {
+  margin: 0;
+  padding-inline-start: 18px;
+}
+</style>

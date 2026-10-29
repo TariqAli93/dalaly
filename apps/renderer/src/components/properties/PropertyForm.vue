@@ -9,13 +9,14 @@ import {
   STATUSES,
 } from "../../constants/domain";
 import { formatMoney, toNumber } from "../../utils/format";
-import type { PropertyForm } from "../../types";
+import type { PersonRecord, PropertyForm } from "../../types";
 import LocationSelects from "./LocationSelects.vue";
 import PropertyLocationEditor from "../shared/PropertyLocationEditor.vue";
 import FormSection from "../shared/FormSection.vue";
 import FormActionsBar from "../shared/FormActionsBar.vue";
 import NumberField from "../app/NumberField.vue";
 import PhoneField from "../app/PhoneField.vue";
+import PersonPicker from "../people/PersonPicker.vue";
 import CountField from "../app/CountField.vue";
 import { AMENITY_OPTIONS } from "../../utils/amenities";
 
@@ -26,6 +27,14 @@ import { AMENITY_OPTIONS } from "../../utils/amenities";
  * التركيز. أخطاء الخادم تصل عبر fieldErrors باسم الحقل في الطلب.
  */
 const model = defineModel<PropertyForm>({ required: true });
+
+// ربط المالك بزبون يملأ اسمه وهاتفه إن كانا فارغين، ولا يمسّ ما كُتب.
+function ownerPicked(person: PersonRecord | null) {
+  if (!person) return;
+  if (!model.value.owner_name.trim()) model.value.owner_name = person.full_name;
+  if (!model.value.owner_phone.trim() && person.phone_primary)
+    model.value.owner_phone = person.phone_primary;
+}
 
 const props = defineProps<{
   saving?: boolean;
@@ -290,6 +299,14 @@ defineExpose({ validate, focusField, computedTotal });
             :rules="[required]"
             :error-messages="errorsOf('owner_phone')"
             label="هاتف المالك *"
+          />
+          <PersonPicker
+            v-model="model.owner_person_id"
+            clearable
+            label="ربط المالك بزبون مسجّل"
+            hint="يملأ الاسم والهاتف إن كانا فارغين"
+            persistent-hint
+            @picked="ownerPicked"
           />
           <v-textarea
             v-model="model.owner_notes"
