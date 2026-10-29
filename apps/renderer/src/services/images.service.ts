@@ -1,5 +1,5 @@
 import type { PropertyImage } from "../types";
-import { API_BASE, getToken, request } from "./api.service";
+import { mediaUrl, request } from "./api.service";
 
 export function listImages(propertyId: number) {
   return request<PropertyImage[]>(`/properties/${propertyId}/images`);
@@ -42,12 +42,12 @@ export function deleteImage(propertyId: number, imageId: number) {
 
 /** رابط ملف الصورة مع التوكن في query (لأن <img> لا يرسل ترويسة Authorization). */
 export function imageFileUrl(propertyId: number, imageId: number) {
-  return `${API_BASE}/properties/${propertyId}/images/${imageId}/file?token=${encodeURIComponent(getToken())}`;
+  return mediaUrl(`/properties/${propertyId}/images/${imageId}/file`);
 }
 
 /** رابط مصغّرة الصورة (موجودة متى قال primary_image.thumbnail ذلك). */
 export function thumbnailUrl(propertyId: number, imageId: number) {
-  return `${API_BASE}/properties/${propertyId}/images/${imageId}/thumbnail?token=${encodeURIComponent(getToken())}`;
+  return mediaUrl(`/properties/${propertyId}/images/${imageId}/thumbnail`);
 }
 
 export function saveThumbnail(

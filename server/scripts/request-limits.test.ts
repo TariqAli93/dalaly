@@ -44,10 +44,9 @@ test("authentication runs before body parsing and only upload routes take large 
       assert.equal(result.statusCode, 201, result.body.slice(0, 200));
     });
 
-    await t.test("image file URLs still authenticate with ?token=", async () => {
+    await t.test("the session token is not accepted from a query string", async () => {
       const list = await ctx.app.inject({ url: `/api/properties/${ctx.property.id}/images?token=${encodeURIComponent(ctx.token)}` });
-      assert.equal(list.statusCode, 200);
-      assert.equal(list.json().length, 1);
+      assert.equal(list.statusCode, 401);
     });
   } finally {
     await ctx.close();

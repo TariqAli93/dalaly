@@ -38,6 +38,7 @@
     "test:permissions": "tsx --test scripts/permissions-scope.test.ts",
     "test:remote-access": "tsx --test scripts/remote-access.test.ts",
     "test:limits": "tsx --test scripts/request-limits.test.ts",
+    "test:media-tokens": "tsx --test scripts/media-tokens.test.ts",
     "test:codes": "tsx --test scripts/record-codes.test.ts",
     "test:transactions": "tsx --test scripts/transactions.test.ts",
     "test:paging": "tsx --test scripts/list-paging.test.ts scripts/crm-paging.test.ts",

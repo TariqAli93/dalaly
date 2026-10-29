@@ -85,7 +85,8 @@ test("list rows carry their primary image and thumbnails never touch originals",
       assert.equal(saved.statusCode, 200, saved.body);
       assert.deepEqual(await pagedRow("properties", ctx.property.id), { id: first.id, thumbnail: true });
 
-      const served = await ctx.app.inject({ url: `${thumbnailUrl}?token=${encodeURIComponent(ctx.token)}` });
+      const me = (await send("GET", "/api/auth/me")).json() as { media_token: string };
+      const served = await ctx.app.inject({ url: `${thumbnailUrl}?media=${encodeURIComponent(me.media_token)}` });
       assert.equal(served.statusCode, 200);
       assert.equal(served.headers["content-type"], "image/jpeg");
       assert.deepEqual(served.rawPayload, JPEG);

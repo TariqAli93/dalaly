@@ -85,6 +85,16 @@ test("Electron link guards reject executable schemes and spoofed mapping hosts",
   for (const url of ["javascript:alert(1)", "file:///C:/Windows/test.exe", "data:text/html,test", "https://user:pass@www.google.com/maps", "https://www.google.com.evil.test/maps", "https://www.google.com/url?q=evil", "https://127.0.0.1/maps", "https://www.openstreetmap.org.evil.test/", "https://user:pass@openstreetmap.org/", "https://openstreetmap.org:8443/", "http://openstreetmap.org/"])
     assert.equal(safeMapLinkUrl(url), null);
   assert.equal(safeExternalUrl("file:///test"), null);
+  // Links to this machine (the API) never go to the system browser.
+  for (const local of [
+    "http://127.0.0.1:34567/api/documents/1/file?media=1.x",
+    "http://localhost:34567/",
+    "http://[::1]:34567/",
+    "http://127.1.2.3/",
+    "http://dalaly.localhost/",
+  ])
+    assert.equal(safeExternalUrl(local), null, local);
+  assert.equal(safeExternalUrl("https://example.com/a"), "https://example.com/a");
   const url = "https://www.google.com/maps?q=33,44";
   for (const value of [url, buildMapLink({ lat: 33, lng: 44 }), "https://www.openstreetmap.org/search?query=Baghdad"])
     assert.equal(safeMapLinkUrl(value), mapLinkUrl(value)?.href);

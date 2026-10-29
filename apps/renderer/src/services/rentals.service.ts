@@ -8,7 +8,7 @@ import type {
   RentalRecord,
   RentalSortKey,
 } from "../types";
-import { API_BASE, getToken, request } from "./api.service";
+import { mediaUrl, request } from "./api.service";
 
 /** إيجارات مالك مسجَّل (ملف الزبون)، ومعها المؤرشفة عند الطلب. */
 type OwnerFilters = {
@@ -105,10 +105,10 @@ export function deleteRentalImage(id: number, imageId: number) {
   });
 }
 export function rentalImageUrl(id: number, imageId: number) {
-  return `${API_BASE}/rentals/${id}/images/${imageId}/file?token=${encodeURIComponent(getToken())}`;
+  return mediaUrl(`/rentals/${id}/images/${imageId}/file`);
 }
 export function rentalThumbnailUrl(id: number, imageId: number) {
-  return `${API_BASE}/rentals/${id}/images/${imageId}/thumbnail?token=${encodeURIComponent(getToken())}`;
+  return mediaUrl(`/rentals/${id}/images/${imageId}/thumbnail`);
 }
 export function saveRentalThumbnail(id: number, imageId: number, data: string) {
   return request<{ thumbnail: boolean }>(

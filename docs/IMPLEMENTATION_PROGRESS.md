@@ -11,8 +11,8 @@ Do not rely on this file alone.
 | Phase | Branch | Pull request | Tests | Status |
 | --- | --- | --- | --- | --- |
 | 0 — audit and plan | `docs/phase-00-audit` | [#26](https://github.com/TariqAli93/dalaly/pull/26), merged `115d525` | docs only; CI pass | Completed |
-| 1a — file integrity | `fix/phase-01a-file-integrity` | — | `test:files` 14/14; affected suites pass | In review |
-| 1b — media tokens | `fix/phase-01b-media-tokens` | — | — | Pending |
+| 1a — file integrity | `fix/phase-01a-file-integrity` | [#27](https://github.com/TariqAli93/dalaly/pull/27), merged `f0761b0` | `test:files` 14/14; all database suites; CI pass | Completed |
+| 1b — media tokens | `fix/phase-01b-media-tokens` | — | `test:media-tokens` 8/8; affected suites pass | In review |
 | 1c — hardening | `fix/phase-01c-hardening` | — | — | Pending |
 | 2a — activities and tasks | `feat/phase-02a-activities` | — | — | Pending |
 | 2b — customer CRM | `feat/phase-02b-customer-crm` | — | — | Pending |
@@ -61,6 +61,29 @@ Fixes findings 1–7, 9 and 15 of the plan. Local runs against PostgreSQL 18:
 No migration. Image files deleted before this phase (rows removed with
 their listing, files left on disk) stay on disk. Removing them is listed
 under the decisions below.
+
+Every other database suite was also run on the 1a branch and passed
+(permissions, remote access, backup safety, retention, large restore,
+paging, queries, dashboards, timeouts, search, agreements, transactions,
+maps, runtime phases 1, 3, 4, 5).
+
+### 1b — media tokens
+
+Fixes findings 8, 12 and 17 of the plan. Local runs on the branch rebased
+onto `f0761b0`:
+
+- `test:media-tokens` (new) 8/8, `test:files` 14, `test:limits` 5,
+  `test:thumbnails` 11, `test:contract` 80, `test:backup:encrypted` 7,
+  `test:removal:backup` 20, `test:runtime:phase2` 50,
+  `test:runtime:spaces` 17; `location.test.ts` (in `pnpm test`) covers the
+  loopback refusal.
+- `pnpm typecheck`, ESLint and `pnpm test` (52) pass.
+- In the web demo (`pnpm dev:web`): every table image loads from a
+  `?media=` URL and none carries `token=`; a document opens in the in-app
+  viewer, fetched with the `Authorization` header (an image document shows
+  inline, a text document offers "حفظ نسخة").
+
+No migration.
 
 ## Database migrations
 

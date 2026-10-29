@@ -101,3 +101,23 @@ export function lockedOutMessage(retryAfterMs: number) {
 }
 
 export const loginThrottle = new LoginThrottle();
+
+const queues = new Map<string, Promise<unknown>>();
+
+/**
+ * Runs `work` after every earlier call with the same key has settled, so
+ * throttle checks and the failures they count happen in order.
+ */
+export function oneAtATime<T>(key: string, work: () => Promise<T>) {
+  const previous = queues.get(key) ?? Promise.resolve();
+  const run = previous.then(work, work);
+  const tail = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  queues.set(key, tail);
+  void tail.then(() => {
+    if (queues.get(key) === tail) queues.delete(key);
+  });
+  return run;
+}

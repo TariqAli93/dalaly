@@ -76,7 +76,8 @@ async function main() {
     const init = await req("POST", "/setup/initialize", { body: { ...adminConnection(TEST_DB), firstAdminUsername: "admin", firstAdminPin: "4321" } });
     check("migrations ran from spaced dir + DB initialized", init.body?.ok === true, init.body);
 
-    const token = (await req("POST", "/auth/login", { body: { username: "admin", pin: "4321" } })).body.token;
+    const signedIn = (await req("POST", "/auth/login", { body: { username: "admin", pin: "4321" } })).body;
+    const token = signedIn.token;
     check("login", !!token);
 
     const prop = await req("POST", "/properties", { token, body: { property_type: "بيت", legal_type: "طابو ملك صرف", area_value: 200, area_unit: "متر", pricing_method: "سعر على المتر", unit_price: 1000000, owner_name: "علي", owner_phone: "07700000001" } });
@@ -88,7 +89,7 @@ async function main() {
     check("upload image", up.status === 201, up.status);
     const imgDir = path.join(appData, "images", "properties", String(propId));
     check("image saved to spaced disk path", fs.existsSync(imgDir) && fs.readdirSync(imgDir).length === 1, imgDir);
-    const fileRes = await fetch(`${BASE}/properties/${propId}/images/${up.body[0].id}/file?token=${token}`);
+    const fileRes = await fetch(`${BASE}/properties/${propId}/images/${up.body[0].id}/file?media=${encodeURIComponent(signedIn.media_token)}`);
     check("image served 200 from spaced path", fileRes.status === 200, fileRes.status);
 
     console.log("== Backup under spaced path ==");

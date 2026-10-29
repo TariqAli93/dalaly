@@ -95,6 +95,7 @@ pnpm --filter @dalaly/server test:backup:encrypted # emailed archive: database o
 pnpm --filter @dalaly/server test:permissions    # dashboard/matching follow read permissions
 pnpm --filter @dalaly/server test:remote-access  # only remote_access.manage starts the tunnel (never spawns cloudflared)
 pnpm --filter @dalaly/server test:limits         # auth before body parsing, 1 MB limit off upload routes
+pnpm --filter @dalaly/server test:media-tokens   # session tokens only in headers; media tokens open image files only
 pnpm --filter @dalaly/server test:codes          # concurrent saves get distinct codes; duplicates are 409
 pnpm --filter @dalaly/server test:transactions   # db.transaction stays on one connection under load
 pnpm --filter @dalaly/server test:paging         # server-paged property and rental lists

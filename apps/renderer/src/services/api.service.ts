@@ -11,22 +11,41 @@ export const API_BASE =
   configuredApiBase?.replace(/\/$/, "") || "http://127.0.0.1:34567/api";
 
 const SESSION_KEY = "dalaly.session";
+const MEDIA_KEY = "dalaly.media";
 
 let token = localStorage.getItem(SESSION_KEY) ?? "";
+/**
+ * رمز روابط الصور: مشتق من الجلسة ويبطل معها، ولا يقبله الخادم إلا لقراءة
+ * صورة أو مصغّرة أو الشعار. رمز الجلسة نفسه لا يوضع في رابط أبداً.
+ */
+let mediaToken = localStorage.getItem(MEDIA_KEY) ?? "";
 let onUnauthorized: (() => void) | null = null;
 
 export function getToken() {
   return token;
 }
 
-export function setToken(value: string) {
+export function setToken(value: string, media: string) {
   token = value;
   localStorage.setItem(SESSION_KEY, value);
+  setMediaToken(media);
+}
+
+export function setMediaToken(value: string) {
+  mediaToken = value;
+  localStorage.setItem(MEDIA_KEY, value);
+}
+
+/** رابط ملف يُعرض في <img>: المسار مع رمز الوسائط. */
+export function mediaUrl(path: string) {
+  return `${API_BASE}${path}?media=${encodeURIComponent(mediaToken)}`;
 }
 
 export function clearToken() {
   token = "";
+  mediaToken = "";
   localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(MEDIA_KEY);
 }
 
 export function setUnauthorizedHandler(handler: () => void) {
@@ -141,4 +160,16 @@ export async function request<T>(
   }
 
   return body as T;
+}
+
+/** ملف بترويسة المصادقة (مستمسك مثلاً)، فلا يحتاج رابطاً يحمل رمزاً. */
+export async function requestBlob(path: string): Promise<Blob> {
+  const response = await send(`${API_BASE}${path}`, buildRequest({}, true));
+  if (response.status === 401) {
+    clearToken();
+    onUnauthorized?.();
+  }
+  if (!response.ok)
+    throw new ApiError(await parseBody(response), response.status);
+  return response.blob();
 }

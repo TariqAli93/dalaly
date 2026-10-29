@@ -26,10 +26,22 @@ Electron main (apps/desktop/src)
   Cloudflare tunnel (they arrive from 127.0.0.1). Starting or stopping that
   tunnel needs `remote_access.manage`, which only Super Admin has by
   default; its status needs `settings.read`. Wrong PINs are throttled
-  per account in `modules/auth/login-throttle.ts`.
+  per account in `modules/auth/login-throttle.ts`, and one account's login
+  (or PIN change) attempts run one at a time (`oneAtATime`), so a parallel
+  burst cannot pass the check before the first failure is counted.
+- **Tokens in URLs**: the session token is read from the `Authorization`
+  header only, never from a query string. An `<img>` cannot send that
+  header, so image, thumbnail and logo URLs carry `?media=<media token>`
+  instead (`mediaUrl` in `services/api.service.ts`). The media token is an
+  HMAC of the session's id keyed by its stored hash (`mediaTokenFor`),
+  returned by login and `/auth/me`. It is accepted only on GET/HEAD of
+  those file routes (`MEDIA_PATHS` in `auth.hooks.ts`), and it dies with
+  its session. Documents open in `DocumentViewer`, which fetches the file
+  with the header; nothing opens an API URL in the system browser
+  (`safeExternalUrl` refuses loopback hosts).
 - **Logging**: the API's pino output is piped into electron-log in
-  production. Request URLs are logged without their query string (image and
-  download URLs carry the session token), and only failed (5xx) or slow
+  production. Request URLs are logged without their query string (image
+  URLs carry a media token), and only failed (5xx) or slow
   (≥ 1 s) requests are logged, at warn level.
 - **Renderer** owns UI state and presentation. Business data goes over HTTP
   through `apps/renderer/src/services/*.service.ts`; only native operations go
