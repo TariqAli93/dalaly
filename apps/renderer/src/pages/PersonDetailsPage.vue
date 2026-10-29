@@ -4,6 +4,8 @@ import { useRoute, useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import PersonEditor from "../components/people/PersonEditor.vue";
 import PersonActivity from "../components/people/PersonActivity.vue";
+import PersonDeals from "../components/deals/PersonDeals.vue";
+import DealDialog from "../components/deals/DealDialog.vue";
 import DocumentViewer from "../components/documents/DocumentViewer.vue";
 import RecordNotes from "../components/shared/RecordNotes.vue";
 import RecordFacts from "../components/shared/RecordFacts.vue";
@@ -56,6 +58,8 @@ import type {
   ListSortOption,
   PageQuery,
   PagedResult,
+  DealPayload,
+  DealRecord,
   PersonDetailRecord,
   PersonRecord,
   PropertyRecord,
@@ -90,6 +94,18 @@ const canSeeActivity = computed(
 );
 const firstTab = () => (canSeeActivity.value ? "activity" : "requests");
 const tab = ref(firstTab());
+
+// صفقة جديدة والزبون هو المشتري أو المستأجر؛ العرض يُختار في الحوار.
+const dealDialog = ref(false);
+const dealPreset = computed<Partial<DealPayload> | null>(() =>
+  person.value
+    ? { deal_type: "sale", client_person_id: person.value.id }
+    : null,
+);
+function onDealSaved(deal: DealRecord) {
+  notifySuccess(`أُنشئت الصفقة ${deal.code}.`);
+  void router.push(`/deals/${deal.id}`);
+}
 let requestId = 0;
 
 // ─── قوائم الملف: صفحة من الخادم لكل قسم، بمرشّح الزبون ─────────────────
@@ -393,6 +409,13 @@ const listLabel = (count: number, label: string) =>
     </template>
     <template v-if="person" #header-actions>
       <v-btn
+        v-if="can('deals.create') && person.status !== 'archived'"
+        variant="text"
+        prepend-icon="mdi-handshake-outline"
+        @click="dealDialog = true"
+        >صفقة جديدة</v-btn
+      >
+      <v-btn
         v-if="can('agreements.read')"
         variant="text"
         prepend-icon="mdi-file-sign"
@@ -484,6 +507,7 @@ const listLabel = (count: number, label: string) =>
       <section class="dal-panel person-hub" aria-label="عمل الزبون مع المكتب">
         <v-tabs v-model="tab" color="primary" show-arrows>
           <v-tab v-if="canSeeActivity" value="activity">النشاط</v-tab>
+          <v-tab v-if="can('deals.read')" value="deals">الصفقات</v-tab>
           <v-tab v-if="can('requests.read')" value="requests">{{
             listLabel(requestsCount, "الطلبات")
           }}</v-tab>
@@ -505,6 +529,9 @@ const listLabel = (count: number, label: string) =>
               :person-id="person.id"
               :person-name="person.full_name"
             />
+          </v-window-item>
+          <v-window-item v-if="can('deals.read')" value="deals">
+            <PersonDeals :person-id="person.id" />
           </v-window-item>
           <v-window-item v-if="can('requests.read')" value="requests">
             <div
@@ -775,6 +802,11 @@ const listLabel = (count: number, label: string) =>
     <DocumentViewer
       :document="viewingDocument"
       @close="viewingDocument = null"
+    />
+    <DealDialog
+      v-model="dealDialog"
+      :preset="dealPreset"
+      @saved="onDealSaved"
     />
   </AppPage>
 </template>

@@ -69,6 +69,17 @@ export function moveDealStage(
   });
 }
 
+/**
+ * Drafts the deal's contract from `template` (its parties, listing, price
+ * and commission filled in) and links it; returns the deal and the draft.
+ */
+export function prepareDealAgreement(id: number, template: string) {
+  return request<{ deal: DealDetail; agreement_id: number }>(
+    `/deals/${id}/agreement`,
+    { method: "POST", body: JSON.stringify({ template_key: template }) },
+  );
+}
+
 export function addDealOffer(
   id: number,
   offer: { party: "client" | "owner"; amount: string; notes?: string | null },

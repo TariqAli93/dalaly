@@ -13,7 +13,9 @@ import {
   updateDeal,
 } from "./deals.repository.js";
 import { needsClosePermission } from "./deals.rules.js";
+import { prepareDealAgreement } from "./deals.service.js";
 import {
+  dealAgreementSchema,
   dealFiltersSchema,
   dealOfferSchema,
   dealOfferStatusSchema,
@@ -104,6 +106,30 @@ export const dealsRoutes: FastifyPluginAsync = async (app) => {
         request.user?.id,
       );
       return deal ?? reply.code(404).send(notFound);
+    },
+  );
+
+  // إعداد عقد الصفقة: مسودة من القالب المختار بأطرافها وعرضها ومبالغها.
+  app.post(
+    "/:id/agreement",
+    {
+      preHandler: [
+        requirePermission("deals.update"),
+        requirePermission("agreements.manage"),
+      ],
+    },
+    async (request, reply) => {
+      const id = parseId((request.params as { id: string }).id);
+      if (!id) return reply.code(400).send(badId);
+      const { template_key } = dealAgreementSchema.parse(request.body);
+      const prepared = await prepareDealAgreement(
+        id,
+        template_key,
+        request.user!.id,
+      );
+      return prepared
+        ? reply.code(201).send(prepared)
+        : reply.code(404).send(notFound);
     },
   );
 

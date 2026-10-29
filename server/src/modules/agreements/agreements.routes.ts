@@ -1,5 +1,6 @@
 import { type FastifyPluginAsync, type FastifyRequest } from "fastify";
 import { requirePermission } from "../auth/auth.hooks.js";
+import { onAgreementIssued } from "../deals/deals.service.js";
 import { UPLOAD_BODY_LIMIT } from "../../shared/constants/limits.js";
 import { DomainError } from "../../shared/errors.js";
 import { parseId } from "../../shared/utils/parse-id.js";
@@ -224,6 +225,8 @@ export const agreementsRoutes: FastifyPluginAsync = async (app) => {
             message: issue.message,
           })),
         });
+      // A deal waiting for this contract moves to "contract issued".
+      await onAgreementIssued(id, userId(request));
       return getAgreement(id);
     },
   );

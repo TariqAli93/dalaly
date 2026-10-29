@@ -178,3 +178,90 @@ test("deals move from first interest to an outcome under their rules", async (t)
     fs.rmSync(ctx.root, { recursive: true, force: true });
   }
 });
+
+test("a deal prepares its contract, and issuing that contract moves the deal", async (t) => {
+  const ctx = await removalTestContext("dealcontract");
+  try {
+    const call = (method: "GET" | "POST" | "PUT", url: string, body?: unknown, token = ctx.token) =>
+      ctx.app.inject({
+        method,
+        url,
+        ...(body === undefined ? {} : { payload: JSON.stringify(body) }),
+        headers: {
+          authorization: `Bearer ${token}`,
+          ...(body === undefined ? {} : { "content-type": "application/json" }),
+        },
+      });
+    const ok = async (method: "GET" | "POST" | "PUT", url: string, body?: unknown) => {
+      const result = await call(method, url, body);
+      assert.ok(result.statusCode < 300, `${method} ${url}: ${result.statusCode} ${result.body}`);
+      return result.json();
+    };
+    const [seller, buyer] = ctx.people;
+    const deal = await ok("POST", "/api/deals", {
+      deal_type: "sale",
+      property_id: ctx.property.id,
+      client_person_id: buyer.id,
+      agreed_price: "145000000.50",
+      expected_commission: "2900000",
+      currency: "IQD",
+    });
+
+    let agreementId = 0;
+    await t.test("the draft gets the deal's parties, listing, price and commission", async () => {
+      assert.equal((await call("POST", `/api/deals/${deal.id}/agreement`, { template_key: "residential_rent" })).statusCode, 400);
+      const prepared = await ok("POST", `/api/deals/${deal.id}/agreement`, { template_key: "sale" });
+      agreementId = prepared.agreement_id;
+      assert.equal(prepared.deal.stage, "contract_preparation");
+      assert.equal(prepared.deal.agreement_id, agreementId);
+      assert.match(prepared.deal.history[0].reason, /أُعدّ العقد/);
+      const agreement = await ok("GET", `/api/agreements/${agreementId}`);
+      assert.equal(agreement.status, "draft");
+      assert.equal(agreement.property_id, ctx.property.id);
+      assert.deepEqual(
+        agreement.parties.map((party: { role: string; person_id: number }) => [party.role, party.person_id]).sort(),
+        [["buyer", buyer.id], ["seller", seller.id]],
+      );
+      assert.equal(agreement.terms.sale_price, 145000000.5);
+      assert.equal(agreement.terms.commission, 2900000);
+      assert.equal(agreement.terms.currency, "IQD");
+    });
+
+    await t.test("a second contract waits until the first is cancelled", async () => {
+      const again = await call("POST", `/api/deals/${deal.id}/agreement`, { template_key: "installment_sale" });
+      assert.equal(again.statusCode, 409);
+      assert.equal(again.json().code, "DEAL_HAS_AGREEMENT");
+    });
+
+    await t.test("preparing a contract needs agreements.manage too", async () => {
+      const role = (await pool.query("INSERT INTO roles(name) VALUES('deals_only') RETURNING id")).rows[0];
+      await pool.query("INSERT INTO role_permissions(role_id, permission_id) SELECT $1, id FROM permissions WHERE key = ANY($2)", [role.id, ["deals.read", "deals.create", "deals.update"]]);
+      const user = (await pool.query("INSERT INTO users(username, display_name, pin_hash) VALUES('deals_only','d',$1) RETURNING id", [await hashPin("5678")])).rows[0];
+      await pool.query("INSERT INTO user_roles(user_id, role_id) VALUES($1, $2)", [user.id, role.id]);
+      const token = (await login("deals_only", "5678"))!.token;
+      const other = await ok("POST", "/api/deals", { deal_type: "sale", client_person_id: buyer.id });
+      assert.equal((await call("POST", `/api/deals/${other.id}/agreement`, { template_key: "sale" }, token)).statusCode, 403);
+    });
+
+    await t.test("issuing the contract moves its deal to contract issued", async () => {
+      await ok("PUT", "/api/office", { company_name: "مكتب الصفقات", phone_primary: "07700000009" });
+      await pool.query("UPDATE properties SET plot_number = '12', subdistrict_number = '5', subdistrict_name = 'الكرادة' WHERE id = $1", [ctx.property.id]);
+      const draft = await ok("GET", `/api/agreements/${agreementId}`);
+      const saved = await ok("PUT", `/api/agreements/${agreementId}`, {
+        base_rev: draft.draft_rev,
+        terms: { ...draft.terms, contract_place: "بغداد", delivery_date: "2026-12-01" },
+      });
+      const issued = await call("POST", `/api/agreements/${agreementId}/issue`, { base_rev: saved.draft_rev });
+      assert.equal(issued.statusCode, 200, issued.body);
+      const after = await ok("GET", `/api/deals/${deal.id}`);
+      assert.equal(after.stage, "contract_issued");
+      assert.equal(after.agreement_status, "issued");
+      assert.match(after.history[0].reason, /صدر العقد/);
+      const won = await ok("POST", `/api/deals/${deal.id}/stage`, { stage: "won" });
+      assert.equal(won.stage, "won");
+    });
+  } finally {
+    await ctx.close();
+    fs.rmSync(ctx.root, { recursive: true, force: true });
+  }
+});

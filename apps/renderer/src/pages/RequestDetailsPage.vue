@@ -6,6 +6,7 @@ import RecordFacts from "../components/shared/RecordFacts.vue";
 import DetailList from "../components/shared/DetailList.vue";
 import PhoneLink from "../components/shared/PhoneLink.vue";
 import MatchList from "../components/requests/MatchList.vue";
+import DealDialog from "../components/deals/DealDialog.vue";
 import RequestFormDialog from "../components/requests/RequestFormDialog.vue";
 import type { DetailSection, RecordFact } from "../components/shared/record";
 import * as requests from "../services/requests.service";
@@ -32,7 +33,12 @@ import {
   type RequestMode,
   type RequestRecord,
 } from "../utils/requestForm";
-import type { MatchResult, PersonRecord } from "../types";
+import type {
+  DealPayload,
+  DealRecord,
+  MatchResult,
+  PersonRecord,
+} from "../types";
 
 /**
  * صفحة طلب شراء أو إيجار: من الزبون وكيف يُتّصل به، وماذا يريد، والعروض التي
@@ -251,6 +257,27 @@ function askArchive() {
   });
 }
 
+// صفقة بين صاحب الطلب والعرض المطابق، والطلب مرتبط بها.
+const dealDialog = ref(false);
+const dealPreset = ref<Partial<DealPayload> | null>(null);
+function openDeal(match: MatchResult) {
+  const listingId = Number((match.record as { id?: number }).id);
+  const r = record.value;
+  if (!listingId || !r) return;
+  const sale = props.mode !== "rental";
+  dealPreset.value = {
+    deal_type: sale ? "sale" : "rent",
+    client_person_id: r.person_id,
+    ...(sale
+      ? { property_id: listingId, purchase_request_id: r.id }
+      : { rental_id: listingId, rental_request_id: r.id }),
+  };
+  dealDialog.value = true;
+}
+function onDealSaved(deal: DealRecord) {
+  notifySuccess(`أُنشئت الصفقة ${deal.code}.`);
+  void router.push(`/deals/${deal.id}`);
+}
 function openMatch(match: MatchResult) {
   const id = Number((match.record as { id?: number }).id);
   if (!id) return;
@@ -405,7 +432,9 @@ function onSaved(saved: RequestRecord) {
                   ? 'لا يوجد عرض متاح يحقق الشروط الأساسية الآن. راجع الشروط أو ابحث عن عرض جديد.'
                   : 'المطابقة تشمل الطلبات المفتوحة. أعد فتح الطلب ليُطابَق.'
               "
+              :can-deal="can('deals.create') && record.status === 'open'"
               @open="openMatch"
+              @deal="openDeal"
             />
           </div>
         </section>
@@ -428,6 +457,11 @@ function onSaved(saved: RequestRecord) {
       :mode="mode"
       :request="record"
       @saved="onSaved"
+    />
+    <DealDialog
+      v-model="dealDialog"
+      :preset="dealPreset"
+      @saved="onDealSaved"
     />
   </AppPage>
 </template>

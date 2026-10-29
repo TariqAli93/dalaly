@@ -141,7 +141,10 @@ async function save() {
     property_id: sale ? form.value.listing_id : null,
     rental_id: sale ? null : form.value.listing_id,
     client_person_id: form.value.client_person_id,
-    owner_person_id: form.value.owner_person_id,
+    // A new deal left without an owner takes its listing's: the server fills
+    // it when the field is absent. On an edit, empty means none.
+    owner_person_id:
+      form.value.owner_person_id ?? (props.deal ? null : undefined),
     assigned_user_id: form.value.assigned_user_id,
     purchase_request_id: sale ? form.value.purchase_request_id : null,
     rental_request_id: sale ? null : form.value.rental_request_id,

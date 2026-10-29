@@ -459,8 +459,11 @@ export async function updateDeal(
   return after;
 }
 
-/** Moves a deal under a row lock: checks the move, then records it. */
-async function applyStage(
+/**
+ * Moves a deal inside the caller's transaction, which holds its row lock:
+ * checks the move, then records it.
+ */
+export async function moveDealStageIn(
   tx: Transaction,
   deal: Deal,
   to: DealStage,
@@ -516,7 +519,7 @@ export async function moveDealStage(
   const from = await db.transaction(async (tx) => {
     const deal = await lockDeal(tx, id);
     if (!deal) return null;
-    await applyStage(tx, deal, to, input, userId);
+    await moveDealStageIn(tx, deal, to, input, userId);
     return deal.stage;
   });
   if (from === null) return null;
@@ -605,7 +608,7 @@ export async function setDealOfferStatus(
         OPEN_STAGES.indexOf(deal.stage as (typeof OPEN_STAGES)[number]) <
         OPEN_STAGES.indexOf("agreed");
       if (beforeAgreed)
-        await applyStage(
+        await moveDealStageIn(
           tx,
           { ...deal, agreedPrice: offer.amount },
           "agreed",

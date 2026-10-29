@@ -8,22 +8,45 @@ import RecordFacts from "../components/shared/RecordFacts.vue";
 import PhoneLink from "../components/shared/PhoneLink.vue";
 import StatusChip from "../components/shared/StatusChip.vue";
 import RecordFollowupDialog from "../components/shared/RecordFollowupDialog.vue";
+import DealDialog from "../components/deals/DealDialog.vue";
 import type { RecordFact } from "../components/shared/record";
 import { getProperty } from "../services/properties.service";
 import { getErrorMessage } from "../services/api.service";
 import { usePermissions } from "../composables/usePermissions";
+import { useSnackbar } from "../composables/useSnackbar";
 import { useRefresh } from "../composables/useRefresh";
 import { usePropertyActions } from "../composables/usePropertyActions";
 import { formatMoney, formatNumber, formatPlot } from "../utils/format";
 import { neighborhoodOf } from "../utils/exportProperty";
 import { DIRECT_PRICE } from "../constants/domain";
-import type { FollowupTarget, PropertyRecord } from "../types";
+import type {
+  DealPayload,
+  DealRecord,
+  FollowupTarget,
+  PropertyRecord,
+} from "../types";
 
 const route = useRoute();
 const router = useRouter();
 const { can } = usePermissions();
 const { setRefreshHandler } = useRefresh();
 const property = ref<PropertyRecord | null>(null);
+
+// صفقة على هذا العرض: المالك من العرض، والزبون يُختار في الحوار.
+const dealDialog = ref(false);
+const dealPreset = computed<Partial<DealPayload> | null>(() =>
+  property.value
+    ? {
+        deal_type: "sale",
+        property_id: property.value.id,
+        owner_person_id: property.value.owner_person_id,
+      }
+    : null,
+);
+function onDealSaved(deal: DealRecord) {
+  useSnackbar().notifySuccess(`أُنشئت الصفقة ${deal.code}.`);
+  void router.push(`/deals/${deal.id}`);
+}
 const error = ref("");
 const loading = ref(false);
 const followupOpen = ref(false);
@@ -144,6 +167,13 @@ const followupTarget = computed<FollowupTarget | null>(() =>
     </template>
     <template v-if="property" #header-actions>
       <v-btn
+        v-if="can('deals.create') && property.status !== 'archived'"
+        variant="text"
+        prepend-icon="mdi-handshake-outline"
+        @click="dealDialog = true"
+        >صفقة</v-btn
+      >
+      <v-btn
         v-if="can('properties.update')"
         color="primary"
         prepend-icon="mdi-pencil-outline"
@@ -244,6 +274,11 @@ const followupTarget = computed<FollowupTarget | null>(() =>
       v-model="followupOpen"
       :target="followupTarget"
       @saved="panel?.followupSaved()"
+    />
+    <DealDialog
+      v-model="dealDialog"
+      :preset="dealPreset"
+      @saved="onDealSaved"
     />
   </AppPage>
 </template>
