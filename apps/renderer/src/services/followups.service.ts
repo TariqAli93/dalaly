@@ -1,11 +1,7 @@
-import type { FollowupRecord, FollowupType } from "../types";
+import type { FollowupRecord, TaskFieldsPayload } from "../types";
 import { request } from "./api.service";
 
-type FollowupPayload = {
-  type: FollowupType;
-  notes?: string | null;
-  scheduled_at?: string | null;
-};
+type FollowupPayload = TaskFieldsPayload;
 
 export function listFollowups(propertyId: number) {
   return request<FollowupRecord[]>(`/properties/${propertyId}/followups`);

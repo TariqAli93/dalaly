@@ -81,8 +81,10 @@ export const FOLLOWUP_TYPES: Array<{
 }> = [
   { title: "اتصال هاتفي", value: "phone_call", icon: "mdi-phone" },
   { title: "اجتماع", value: "meeting", icon: "mdi-account-group" },
+  { title: "رسالة", value: "message", icon: "mdi-message-text-outline" },
   { title: "معاينة", value: "visit", icon: "mdi-home-search" },
   { title: "تفاوض", value: "negotiation", icon: "mdi-handshake" },
+  { title: "مهمة", value: "task", icon: "mdi-checkbox-marked-circle-outline" },
   { title: "أخرى", value: "other", icon: "mdi-note-text-outline" },
 ];
 

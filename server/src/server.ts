@@ -12,6 +12,7 @@ import {
 import { getSetupStatus } from "./infrastructure/database/health.js";
 import { waitForDatabasePreparation } from "./infrastructure/database/startup.js";
 import { registerAuthHook } from "./modules/auth/auth.hooks.js";
+import { activitiesRoutes } from "./modules/activities/activities.routes.js";
 import { agreementsRoutes } from "./modules/agreements/agreements.routes.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { backupRoutes } from "./modules/backup/backup.routes.js";
@@ -37,6 +38,7 @@ import { remoteAccessRoutes } from "./modules/remote-access/remote-access.routes
 import { rolesRoutes } from "./modules/roles/roles.routes.js";
 import { setupRoutes } from "./modules/setup/setup.routes.js";
 import { statsRoutes } from "./modules/stats/stats.routes.js";
+import { tasksRoutes } from "./modules/tasks/tasks.routes.js";
 import { usersRoutes } from "./modules/users/users.routes.js";
 
 function localizedValidationMessage(issue: ZodError["issues"][number]) {
@@ -225,6 +227,8 @@ export async function buildServer(options: { logger?: boolean } = {}) {
   await app.register(statsRoutes, { prefix: "/api/stats" });
   await app.register(dashboardRoutes, { prefix: "/api/dashboard" });
   await app.register(peopleRoutes, { prefix: "/api/people" });
+  await app.register(activitiesRoutes, { prefix: "/api/activities" });
+  await app.register(tasksRoutes, { prefix: "/api/tasks" });
   await app.register(rentalRequestsRoutes, { prefix: "/api/rental-requests" });
   await app.register(purchaseRequestsRoutes, {
     prefix: "/api/purchase-requests",

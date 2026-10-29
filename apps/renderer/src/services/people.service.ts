@@ -3,6 +3,7 @@ import type {
   PagedResult,
   PersonRecord,
   PersonSortKey,
+  PersonTimeline,
 } from "../types";
 import { request } from "./api.service";
 
@@ -33,6 +34,10 @@ export function listPeoplePage(
 }
 export function getPerson(id: number) {
   return request<PersonRecord>(`/people/${id}`);
+}
+/** The customer's tasks and interactions, with last contact and next due. */
+export function getPersonTimeline(id: number) {
+  return request<PersonTimeline>(`/people/${id}/timeline`);
 }
 export function createPerson(payload: unknown) {
   return request<PersonRecord>("/people", {

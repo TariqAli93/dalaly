@@ -13,8 +13,8 @@ Do not rely on this file alone.
 | 0 — audit and plan | `docs/phase-00-audit` | [#26](https://github.com/TariqAli93/dalaly/pull/26), merged `115d525` | docs only; CI pass | Completed |
 | 1a — file integrity | `fix/phase-01a-file-integrity` | [#27](https://github.com/TariqAli93/dalaly/pull/27), merged `f0761b0` | `test:files` 14/14; all database suites; CI pass | Completed |
 | 1b — media tokens | `fix/phase-01b-media-tokens` | [#28](https://github.com/TariqAli93/dalaly/pull/28), merged `fb3512d` | `test:media-tokens` 8/8; affected suites; CI pass | Completed |
-| 1c — hardening | `fix/phase-01c-hardening` | — | `test:hardening` 5/5, lifecycle 6/6; all suites pass | In review |
-| 2a — activities and tasks | `feat/phase-02a-activities` | — | — | Pending |
+| 1c — hardening | `fix/phase-01c-hardening` | [#29](https://github.com/TariqAli93/dalaly/pull/29), merged `8ac6385` | `test:hardening` 5/5, lifecycle 6/6; all suites; CI pass | Completed |
+| 2a — activities and tasks | `feat/phase-02a-activities` | — | `test:tasks` 13/13, `test:contract` 87; all suites | In review |
 | 2b — customer CRM | `feat/phase-02b-customer-crm` | — | — | Pending |
 | 2c — CRM UI | `feat/phase-02c-crm-ui` | — | — | Pending |
 | 3a — deals core | `feat/phase-03a-deals-core` | — | — | Pending |
@@ -110,11 +110,34 @@ Encrypting it with `safeStorage` would make the app unable to start when
 the Windows profile's key changes. That trade-off is the owner's, listed
 below.
 
+### 2a — activities and tasks
+
+- Follow-ups are tasks (status, assignee, priority, outcome, customer), and
+  `activities` holds a customer's tasks that are not on a listing.
+- `/tasks/paged`, `/tasks/assignees` and `PATCH /tasks/:source/:id` cover
+  all three sources by permission. `/people/:id/timeline` gives a
+  customer's rows with their last contact and next due date.
+- Creating a follow-up now returns the listed snake_case shape. This was the
+  last entry in `test:contract`'s `KNOWN_DRIFT`.
+- Dashboard: cancelled appointments are left out. A viewing with an outcome
+  recorded on it is no longer "without outcome" (`OPERATIONS_DASHBOARD.md`).
+- Backup:
+  - `activities` is in the `full` and `crm` scopes.
+  - Follow-ups from older archives get their status on restore.
+  - A `crm` restore now keeps listing-owner and follow-up customer links.
+    Before, it nulled every listing's `owner_person_id`. That was an existing
+    data-loss bug, found here.
+- New suite `test:tasks` 13/13. It includes a real upgrade from `0004` with
+  existing follow-ups, permission filtering, the dashboard rules, both
+  restore cases, and `test:contract` (87, with the new endpoints).
+- No UI yet: the tasks page and customer timeline are Phase 2c.
+
 ## Database migrations
 
 | Migration | Phase | What it adds |
 | --- | --- | --- |
 | `0000`–`0004` | before this plan | baseline schema, document types, property indexes, search text, agreements |
+| `0005_crm_tasks` | 2a | task columns on both follow-up tables (customer, assignee, status, priority, completion, outcome, `updated_at`), `activities`, their indexes and checks; existing follow-ups without a date or already past become `done` |
 
 ## Decisions that need the owner
 

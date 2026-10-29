@@ -12,6 +12,7 @@ import {
 import { config } from "../../infrastructure/config.js";
 import { db } from "../../infrastructure/database/db.js";
 import { pool } from "../../infrastructure/database/pool.js";
+import type { Transaction } from "../../infrastructure/database/record-codes.js";
 import { resolveManagedFile } from "../documents/documents.storage.js";
 import { getSetting, setSetting } from "../settings/settings.repository.js";
 import { DomainError } from "../../shared/errors.js";
@@ -31,6 +32,7 @@ import {
   rentals,
   propertyImages,
   propertyFollowups,
+  activities,
   favoriteProperties,
   rentalImages,
   rentalFollowups,
@@ -134,7 +136,7 @@ const TABLE_SPECS = [
   {
     name: "property_followups",
     table: propertyFollowups,
-    dates: ["scheduledAt", "createdAt"],
+    dates: ["scheduledAt", "createdAt", "completedAt", "updatedAt"],
   },
   {
     name: "favorite_properties",
@@ -145,7 +147,7 @@ const TABLE_SPECS = [
   {
     name: "rental_followups",
     table: rentalFollowups,
-    dates: ["scheduledAt", "createdAt"],
+    dates: ["scheduledAt", "createdAt", "completedAt", "updatedAt"],
   },
   { name: "favorite_rentals", table: favoriteRentals, dates: ["createdAt"] },
   {
@@ -157,6 +159,13 @@ const TABLE_SPECS = [
     name: "purchase_requests",
     table: purchaseRequests,
     dates: ["createdAt", "updatedAt"],
+  },
+  // Added after backup version 3, like the contract tables below.
+  {
+    name: "activities",
+    table: activities,
+    dates: ["scheduledAt", "createdAt", "completedAt", "updatedAt"],
+    optional: true,
   },
   {
     name: "document_types",
@@ -253,6 +262,8 @@ const SCOPE_TABLES: Record<string, TableName[]> = {
     "agreement_exports",
     "rental_requests",
     "purchase_requests",
+    // After the requests it may name: rows go in in this order.
+    "activities",
     "document_types",
     "identity_documents",
     "office_profiles",
@@ -274,6 +285,7 @@ const SERIAL_TABLES = new Set<TableName>([
   "rental_followups",
   "rental_requests",
   "purchase_requests",
+  "activities",
   "document_types",
   "identity_documents",
   "audit_logs",
@@ -691,6 +703,56 @@ export async function exportBackup(
   return exclusive(() => writeBackupTo(target, "manual_export", userId));
 }
 
+/**
+ * Rows from an archive written before a column existed. A follow-up from
+ * before tasks (no `status`) gets what migration 0005 gave the rows that
+ * existed then: done unless its date is still ahead.
+ */
+function upgradeRow(name: TableName, row: Record<string, unknown>) {
+  if (
+    (name === "property_followups" || name === "rental_followups") &&
+    !("status" in row)
+  ) {
+    const scheduledAt = row.scheduledAt as Date | null | undefined;
+    const upcoming = scheduledAt instanceof Date && scheduledAt > new Date();
+    return {
+      ...row,
+      status: upcoming ? "open" : "done",
+      completedAt: upcoming ? null : (scheduledAt ?? row.createdAt ?? null),
+      updatedAt: row.updatedAt ?? row.createdAt,
+    };
+  }
+  return row;
+}
+
+/** Links to people from tables a customers-only restore leaves in place. */
+const PERSON_LINKS = [
+  { table: "properties", column: "owner_person_id" },
+  { table: "rentals", column: "owner_person_id" },
+  { table: "property_followups", column: "person_id" },
+  { table: "rental_followups", column: "person_id" },
+] as const;
+
+async function savePersonLinks(tx: Transaction) {
+  await tx.execute(
+    sql.raw(`CREATE TEMP TABLE restore_person_links ON COMMIT DROP AS
+      ${PERSON_LINKS.map(
+        ({ table, column }) =>
+          `SELECT '${table}'::text AS tbl, id, ${column} AS person_id FROM ${table} WHERE ${column} IS NOT NULL`,
+      ).join(" UNION ALL ")}`),
+  );
+}
+
+/** Puts back each saved link whose person is in the restored data. */
+async function restorePersonLinks(tx: Transaction) {
+  for (const { table, column } of PERSON_LINKS)
+    await tx.execute(
+      sql.raw(`UPDATE ${table} t SET ${column} = k.person_id
+        FROM restore_person_links k JOIN people p ON p.id = k.person_id
+        WHERE k.tbl = '${table}' AND t.id = k.id AND t.${column} IS NULL`),
+    );
+}
+
 function coerceRow(
   row: Record<string, unknown>,
   dateFields: readonly string[],
@@ -916,6 +978,12 @@ async function restoreArchive(
     await db.transaction(async (tx) => {
       // Rewriting whole tables may take longer than a request is allowed.
       await tx.execute(sql`SET LOCAL statement_timeout = 0`);
+      // Replacing people sets every link to them in tables outside the scope
+      // to null (ON DELETE SET NULL); keep those links to put them back.
+      const keepsPersonLinks =
+        tablesToRestore.includes("people") &&
+        !tablesToRestore.includes("properties");
+      if (keepsPersonLinks) await savePersonLinks(tx);
       // حذف بترتيب عكسي (الابن قبل الأب) لتفادي قيود المفاتيح الأجنبية.
       for (const name of [...tablesToRestore].reverse()) {
         if (scope === "users" && name === "users") continue;
@@ -925,7 +993,7 @@ async function restoreArchive(
       for (const name of tablesToRestore) {
         const spec = specByName(name);
         const rows = (database[name] ?? []).map((row) =>
-          coerceRow(row, spec.dates),
+          upgradeRow(name, coerceRow(row, spec.dates)),
         );
         if (rows.length) {
           if (scope === "users" && name === "users") {
@@ -954,6 +1022,7 @@ async function restoreArchive(
           }
         }
       }
+      if (keepsPersonLinks) await restorePersonLinks(tx);
     });
 
     for (const name of tablesToRestore) {

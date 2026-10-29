@@ -1,16 +1,9 @@
-import type { FollowupType, RentalFollowupRecord } from "../types";
+import type { RentalFollowupRecord, TaskFieldsPayload } from "../types";
 import { request } from "./api.service";
 export function listRentalFollowups(id: number) {
   return request<RentalFollowupRecord[]>(`/rentals/${id}/followups`);
 }
-export function createRentalFollowup(
-  id: number,
-  payload: {
-    type: FollowupType;
-    notes?: string | null;
-    scheduled_at?: string | null;
-  },
-) {
+export function createRentalFollowup(id: number, payload: TaskFieldsPayload) {
   return request<RentalFollowupRecord>(`/rentals/${id}/followups`, {
     method: "POST",
     body: JSON.stringify(payload),
@@ -19,11 +12,7 @@ export function createRentalFollowup(
 export function updateRentalFollowup(
   id: number,
   followupId: number,
-  payload: {
-    type: FollowupType;
-    notes?: string | null;
-    scheduled_at?: string | null;
-  },
+  payload: TaskFieldsPayload,
 ) {
   return request<RentalFollowupRecord>(
     `/rentals/${id}/followups/${followupId}`,

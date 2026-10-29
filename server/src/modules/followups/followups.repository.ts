@@ -1,17 +1,25 @@
 import { and, asc, desc, eq, gte, isNotNull } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "../../infrastructure/database/db.js";
 import {
+  people,
   properties,
   propertyFollowups,
   users,
 } from "../../infrastructure/database/schema.js";
 import { DomainError } from "../../shared/errors.js";
 import {
+  completedAtFor,
+  initialStatus,
   normalizeScheduledAt,
-  type FollowupPayload,
-} from "./followups.schema.js";
+  type TaskStatus,
+} from "../tasks/tasks.schema.js";
+import { assertTaskLinks } from "../tasks/tasks.links.js";
+import type { FollowupPayload } from "./followups.schema.js";
 
-export async function listFollowups(propertyId: number) {
+const assignee = alias(users, "assignee");
+
+function selectFollowups() {
   return db
     .select({
       id: propertyFollowups.id,
@@ -22,11 +30,36 @@ export async function listFollowups(propertyId: number) {
       notes: propertyFollowups.notes,
       scheduled_at: propertyFollowups.scheduledAt,
       created_at: propertyFollowups.createdAt,
+      updated_at: propertyFollowups.updatedAt,
+      status: propertyFollowups.status,
+      priority: propertyFollowups.priority,
+      completed_at: propertyFollowups.completedAt,
+      outcome: propertyFollowups.outcome,
+      person_id: propertyFollowups.personId,
+      person_name: people.fullName,
+      assigned_user_id: propertyFollowups.assignedUserId,
+      assigned_user_name: assignee.displayName,
     })
     .from(propertyFollowups)
     .leftJoin(users, eq(propertyFollowups.userId, users.id))
+    .leftJoin(assignee, eq(propertyFollowups.assignedUserId, assignee.id))
+    .leftJoin(people, eq(propertyFollowups.personId, people.id));
+}
+
+export async function listFollowups(propertyId: number) {
+  return selectFollowups()
     .where(eq(propertyFollowups.propertyId, propertyId))
     .orderBy(desc(propertyFollowups.createdAt), desc(propertyFollowups.id));
+}
+
+async function getFollowup(propertyId: number, id: number) {
+  const [row] = await selectFollowups().where(
+    and(
+      eq(propertyFollowups.id, id),
+      eq(propertyFollowups.propertyId, propertyId),
+    ),
+  );
+  return row ?? null;
 }
 
 export async function createFollowup(
@@ -39,6 +72,8 @@ export async function createFollowup(
     .from(properties)
     .where(eq(properties.id, propertyId));
   if (!property) throw new DomainError(404, "العقار غير موجود.");
+  await assertTaskLinks(payload);
+  const status = initialStatus(payload);
   const [row] = await db
     .insert(propertyFollowups)
     .values({
@@ -47,9 +82,15 @@ export async function createFollowup(
       type: payload.type,
       notes: payload.notes ?? null,
       scheduledAt: normalizeScheduledAt(payload.scheduled_at),
+      status,
+      priority: payload.priority ?? "normal",
+      completedAt: completedAtFor(status, null),
+      outcome: payload.outcome ?? null,
+      assignedUserId: payload.assigned_user_id ?? null,
+      personId: payload.person_id ?? null,
     })
-    .returning();
-  return row;
+    .returning({ id: propertyFollowups.id });
+  return getFollowup(propertyId, row.id);
 }
 
 export async function updateFollowup(
@@ -57,21 +98,46 @@ export async function updateFollowup(
   id: number,
   payload: FollowupPayload,
 ) {
-  const [row] = await db
+  const [current] = await db
+    .select({
+      status: propertyFollowups.status,
+      completedAt: propertyFollowups.completedAt,
+    })
+    .from(propertyFollowups)
+    .where(
+      and(
+        eq(propertyFollowups.id, id),
+        eq(propertyFollowups.propertyId, propertyId),
+      ),
+    );
+  if (!current) return null;
+  await assertTaskLinks(payload);
+  const status = (payload.status ?? current.status) as TaskStatus;
+  await db
     .update(propertyFollowups)
     .set({
       type: payload.type,
       notes: payload.notes ?? null,
       scheduledAt: normalizeScheduledAt(payload.scheduled_at),
+      status,
+      completedAt: completedAtFor(status, current),
+      ...(payload.priority === undefined ? {} : { priority: payload.priority }),
+      ...(payload.outcome === undefined ? {} : { outcome: payload.outcome }),
+      ...(payload.assigned_user_id === undefined
+        ? {}
+        : { assignedUserId: payload.assigned_user_id }),
+      ...(payload.person_id === undefined
+        ? {}
+        : { personId: payload.person_id }),
+      updatedAt: new Date(),
     })
     .where(
       and(
         eq(propertyFollowups.id, id),
         eq(propertyFollowups.propertyId, propertyId),
       ),
-    )
-    .returning();
-  return row ?? null;
+    );
+  return getFollowup(propertyId, id);
 }
 
 export async function deleteFollowup(propertyId: number, id: number) {

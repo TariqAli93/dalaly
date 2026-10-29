@@ -6,6 +6,7 @@ export * from "./setup.types";
 export * from "./location.types";
 export * from "./audit.types";
 export * from "./phase2.types";
+export * from "./task.types";
 
 export * from "./rental.types";
 export * from "./paging.types";

@@ -1,29 +1,11 @@
-import { z } from "zod";
+import { taskFieldsSchema, type TaskFields } from "../tasks/tasks.schema.js";
 
-export const FOLLOWUP_TYPES = [
-  "phone_call",
-  "meeting",
-  "visit",
-  "negotiation",
-  "other",
-] as const;
+export {
+  TASK_TYPES as FOLLOWUP_TYPES,
+  normalizeScheduledAt,
+} from "../tasks/tasks.schema.js";
 
-export const followupPayloadSchema = z.object({
-  type: z.enum(FOLLOWUP_TYPES),
-  notes: z.string().trim().optional().nullable(),
-  scheduled_at: z
-    .string()
-    .datetime({ offset: true })
-    .optional()
-    .nullable()
-    .or(z.literal("")),
-});
+/** A listing follow-up is a task on that listing (tasks.schema.ts). */
+export const followupPayloadSchema = taskFieldsSchema;
 
-export type FollowupPayload = z.infer<typeof followupPayloadSchema>;
-
-/** موعد المتابعة كتاريخ، أو null عند غيابه أو عدم صلاحيته. */
-export function normalizeScheduledAt(value?: string | null) {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
+export type FollowupPayload = TaskFields;

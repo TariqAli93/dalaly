@@ -1,3 +1,5 @@
+import type { TaskFieldsRecord } from "./task.types";
+
 export type PropertyImage = {
   id: number;
   property_id: number;
@@ -9,9 +11,16 @@ export type PropertyImage = {
 };
 
 export type FollowupType =
-  "phone_call" | "meeting" | "visit" | "negotiation" | "other";
+  | "phone_call"
+  | "meeting"
+  | "message"
+  | "visit"
+  | "negotiation"
+  | "task"
+  | "other";
 
-export type FollowupRecord = {
+/** A sale listing's follow-up, which is also a task (task.types.ts). */
+export type FollowupRecord = TaskFieldsRecord & {
   id: number;
   property_id: number;
   user_id: number | null;
