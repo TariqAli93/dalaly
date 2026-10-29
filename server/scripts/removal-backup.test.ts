@@ -179,6 +179,12 @@ test("shared backup v3 survives full restore and rejects incompatible data befor
       personId: ctx.people[1].id, userId: ctx.adminId, type: "meeting", notes: "اجتماع محفوظ",
       assignedUserId: ctx.adminId, priority: "high", dealId: deal.id,
     });
+    // An office account under a default heading, next to the default chart.
+    const [expensesHeading] = await db.select().from(schema.accounts).where(eq(schema.accounts.systemKey, "expenses"));
+    await db.insert(schema.accounts).values({
+      code: "5301", name: "إيجار المكتب", accountType: "expense", parentId: expensesHeading.id,
+      currency: "IQD", description: "حساب محفوظ", createdBy: ctx.adminId,
+    });
     // Contract tables: a customised template with its history, and an issued
     // contract with its parties, revision and an export.
     const [agreementTemplate] = await db.insert(schema.agreementTemplates).values({ templateKey: "sale", version: 1, definition: { schema: 1 } }).returning();
@@ -239,19 +245,20 @@ test("shared backup v3 survives full restore and rejects incompatible data befor
     const manifest = JSON.parse(zip.readAsText("manifest.json"));
     const data = JSON.parse(zip.readAsText("data.json")) as Record<string, Record<string, unknown>[]>;
     assert.equal(manifest.version, 3);
-    assert.equal(Object.keys(data).length, 34);
+    assert.equal(Object.keys(data).length, 35);
     assert.ok(data.permissions.some((row) => row.id === customPermissionId && row.key === "reports.custom.review"));
     assert.ok(data.role_permissions.some((row) => row.permissionId === customPermissionId));
     assert.ok(data.app_settings.some((row) => row.key === "reports.custom.preferences"));
     assert.ok(Object.values(data).every((rows) => rows.length > 0), "representative data in every exported table");
     assert.equal(zip.getEntries().filter((entry) => !entry.isDirectory && /^(documents|images)\//.test(entry.entryName)).length, 4);
 
-    await t.test("all 34 shared tables and four managed files round trip", async () => {
+    await t.test("all 35 shared tables and four managed files round trip", async () => {
       await db.update(schema.people).set({ fullName: "اسم تغير بعد النسخ" });
       await db.update(schema.properties).set({ totalPrice: "1.00" });
       await db.update(schema.rentals).set({ rentPrice: "1.00" });
       await db.update(schema.identityDocuments).set({ documentName: "مستمسك تغير" });
       await db.update(schema.officeProfiles).set({ companyName: "مكتب تغير" });
+      await db.update(schema.accounts).set({ name: "حساب تغير" }).where(eq(schema.accounts.code, "5301"));
       await db.delete(schema.favoriteProperties);
       await db.delete(schema.favoriteRentals);
       for (const absolute of expectedFiles.keys()) await fs.writeFile(absolute, "changed fixture contents");

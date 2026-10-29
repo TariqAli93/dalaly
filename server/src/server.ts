@@ -12,6 +12,7 @@ import {
 import { getSetupStatus } from "./infrastructure/database/health.js";
 import { waitForDatabasePreparation } from "./infrastructure/database/startup.js";
 import { registerAuthHook } from "./modules/auth/auth.hooks.js";
+import { accountingRoutes } from "./modules/accounting/accounting.routes.js";
 import { activitiesRoutes } from "./modules/activities/activities.routes.js";
 import { agreementsRoutes } from "./modules/agreements/agreements.routes.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
@@ -231,6 +232,7 @@ export async function buildServer(options: { logger?: boolean } = {}) {
   await app.register(activitiesRoutes, { prefix: "/api/activities" });
   await app.register(tasksRoutes, { prefix: "/api/tasks" });
   await app.register(dealsRoutes, { prefix: "/api/deals" });
+  await app.register(accountingRoutes, { prefix: "/api/accounting" });
   await app.register(rentalRequestsRoutes, { prefix: "/api/rental-requests" });
   await app.register(purchaseRequestsRoutes, {
     prefix: "/api/purchase-requests",

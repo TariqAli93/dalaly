@@ -135,4 +135,14 @@ export const SYSTEM_PERMISSIONS = [
     name: "تخصيص قوالب العقود",
     module: "agreements",
   },
+  {
+    key: "accounting.read",
+    name: "عرض دليل الحسابات والقيود والتقارير المالية",
+    module: "accounting",
+  },
+  {
+    key: "accounting.accounts.manage",
+    name: "إدارة دليل الحسابات",
+    module: "accounting",
+  },
 ] as const;
