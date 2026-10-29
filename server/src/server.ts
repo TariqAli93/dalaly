@@ -64,7 +64,7 @@ export async function buildServer(options: { logger?: boolean } = {}) {
   const logger: FastifyServerOptions["logger"] = options.logger !== false && {
     level: process.env.LOG_LEVEL?.trim() || "info",
     serializers: {
-      // Image URLs carry a token in the query string, and production logs
+      // Image URLs carry a media token in the query string, and production logs
       // end up in electron-log's file.
       req: (request) => ({
         method: request.method,

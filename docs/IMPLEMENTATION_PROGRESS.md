@@ -12,8 +12,8 @@ Do not rely on this file alone.
 | --- | --- | --- | --- | --- |
 | 0 — audit and plan | `docs/phase-00-audit` | [#26](https://github.com/TariqAli93/dalaly/pull/26), merged `115d525` | docs only; CI pass | Completed |
 | 1a — file integrity | `fix/phase-01a-file-integrity` | [#27](https://github.com/TariqAli93/dalaly/pull/27), merged `f0761b0` | `test:files` 14/14; all database suites; CI pass | Completed |
-| 1b — media tokens | `fix/phase-01b-media-tokens` | — | `test:media-tokens` 8/8; affected suites pass | In review |
-| 1c — hardening | `fix/phase-01c-hardening` | — | — | Pending |
+| 1b — media tokens | `fix/phase-01b-media-tokens` | [#28](https://github.com/TariqAli93/dalaly/pull/28), merged `fb3512d` | `test:media-tokens` 8/8; affected suites; CI pass | Completed |
+| 1c — hardening | `fix/phase-01c-hardening` | — | `test:hardening` 5/5, lifecycle 6/6; all suites pass | In review |
 | 2a — activities and tasks | `feat/phase-02a-activities` | — | — | Pending |
 | 2b — customer CRM | `feat/phase-02b-customer-crm` | — | — | Pending |
 | 2c — CRM UI | `feat/phase-02c-crm-ui` | — | — | Pending |
@@ -85,6 +85,31 @@ onto `f0761b0`:
 
 No migration.
 
+### 1c — hardening
+
+Fixes findings 10, 11, 13, 14, 16 and 18–20 of the plan.
+
+- New: `test:hardening` 5/5 (database, CI). `remote-access-lifecycle.test.ts`
+  6/6 uses a fake cloudflared. Schedule-validation and database-URL checks
+  are in `startup.test.ts` (8). Log redaction is in `error-shape.test.ts`
+  (7). All of these run in `pnpm test`, now 61 tests.
+- Every database and runtime suite passed on the branch before the rebase.
+  After the rebase onto `fb3512d` (with 1b), `test:media-tokens`,
+  `test:hardening`, `test:remote-access`, `test:contract`,
+  `test:backup:safety`, `test:files` and `test:runtime:phase2` were rerun
+  and pass.
+- `test:startup:electron` (real Electron, built renderer with the CSP):
+  all 11 scenarios pass, setup through login to the dashboard.
+- The same policy applied to the web demo: no `securitypolicyviolation` and
+  no broken image on the sale and rental lists and records, the contract
+  template editor, documents and the dashboard.
+- `pnpm typecheck` and ESLint pass.
+
+Not changed: the database URL stays in plain text in `config.json`.
+Encrypting it with `safeStorage` would make the app unable to start when
+the Windows profile's key changes. That trade-off is the owner's, listed
+below.
+
 ## Database migrations
 
 | Migration | Phase | What it adds |
@@ -98,6 +123,11 @@ No migration.
   (they are still archived by full backups). The app now removes them on
   delete, but does not search for and remove the old ones: that deletes
   user files, so it waits for the owner's decision.
+
+- **Database URL at rest.** `config.json` holds the PostgreSQL URL,
+  password included, in plain text (the SMTP and backup passwords use
+  `safeStorage`). Encrypting it protects a copied profile, but a reset
+  Windows profile key would then send the app back to Setup.
 
 The plan follows the owner decisions already recorded in
 `AUDIT_AND_ROADMAP.md` (section 2) and `CONTRACT_SYSTEM_REMOVAL_MAP.md`. If
