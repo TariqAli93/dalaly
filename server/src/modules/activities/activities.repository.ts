@@ -3,6 +3,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { db } from "../../infrastructure/database/db.js";
 import {
   activities,
+  deals,
   people,
   purchaseRequests,
   rentalRequests,
@@ -30,6 +31,8 @@ function selectActivities() {
       purchase_request_code: purchaseRequests.code,
       rental_request_id: activities.rentalRequestId,
       rental_request_code: rentalRequests.code,
+      deal_id: activities.dealId,
+      deal_code: deals.code,
       user_id: activities.userId,
       user_name: users.username,
       type: activities.type,
@@ -51,6 +54,7 @@ function selectActivities() {
       eq(activities.purchaseRequestId, purchaseRequests.id),
     )
     .leftJoin(rentalRequests, eq(activities.rentalRequestId, rentalRequests.id))
+    .leftJoin(deals, eq(activities.dealId, deals.id))
     .leftJoin(users, eq(activities.userId, users.id))
     .leftJoin(assignee, eq(activities.assignedUserId, assignee.id));
 }
@@ -62,6 +66,7 @@ export async function listActivities(filters: ActivityFilters) {
     where.push(eq(activities.purchaseRequestId, filters.purchase_request_id));
   if (filters.rental_request_id)
     where.push(eq(activities.rentalRequestId, filters.rental_request_id));
+  if (filters.deal_id) where.push(eq(activities.dealId, filters.deal_id));
   return selectActivities()
     .where(and(...where))
     .orderBy(desc(activities.createdAt), desc(activities.id));
@@ -88,6 +93,17 @@ async function assertActivityLinks(payload: ActivityPayload) {
     if (!request || request.personId !== payload.person_id)
       throw new DomainError(400, "الطلب المحدد ليس من طلبات هذا الزبون.");
   }
+  if (payload.deal_id) {
+    const [deal] = await db
+      .select({ client: deals.clientPersonId, owner: deals.ownerPersonId })
+      .from(deals)
+      .where(eq(deals.id, payload.deal_id));
+    if (
+      !deal ||
+      (deal.client !== payload.person_id && deal.owner !== payload.person_id)
+    )
+      throw new DomainError(400, "الصفقة المحددة ليست من صفقات هذا الزبون.");
+  }
 }
 
 export async function createActivity(
@@ -102,6 +118,7 @@ export async function createActivity(
       personId: payload.person_id,
       purchaseRequestId: payload.purchase_request_id ?? null,
       rentalRequestId: payload.rental_request_id ?? null,
+      dealId: payload.deal_id ?? null,
       userId: userId ?? null,
       type: payload.type,
       notes: payload.notes ?? null,
@@ -133,6 +150,7 @@ export async function updateActivity(id: number, payload: ActivityPayload) {
       personId: payload.person_id,
       purchaseRequestId: payload.purchase_request_id ?? null,
       rentalRequestId: payload.rental_request_id ?? null,
+      ...(payload.deal_id === undefined ? {} : { dealId: payload.deal_id }),
       type: payload.type,
       notes: payload.notes ?? null,
       scheduledAt: normalizeScheduledAt(payload.scheduled_at),

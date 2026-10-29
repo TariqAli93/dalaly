@@ -16,9 +16,9 @@ Do not rely on this file alone.
 | 1c — hardening | `fix/phase-01c-hardening` | [#29](https://github.com/TariqAli93/dalaly/pull/29), merged `8ac6385` | `test:hardening` 5/5, lifecycle 6/6; all suites; CI pass | Completed |
 | 2a — activities and tasks | `feat/phase-02a-activities` | [#30](https://github.com/TariqAli93/dalaly/pull/30), merged `2d82389` | `test:tasks` 13/13, `test:contract` 87; all suites; CI pass | Completed |
 | 2b — customer CRM | `feat/phase-02b-customer-crm` | [#31](https://github.com/TariqAli93/dalaly/pull/31), merged `6ec058d` | `test:customers` 8/8, `test:contract` 90; all suites; CI pass | Completed |
-| 2c — tasks UI | `feat/phase-02c-tasks-ui` | [#32](https://github.com/TariqAli93/dalaly/pull/32) | renderer typecheck, lint, build; checked in the web demo | In review |
-| 2d — customer UI | `feat/phase-02d-customer-ui` | — | renderer typecheck, lint, build; checked in the web demo | In review |
-| 3a — deals core | `feat/phase-03a-deals-core` | — | — | Pending |
+| 2c — tasks UI | `feat/phase-02c-tasks-ui` | [#32](https://github.com/TariqAli93/dalaly/pull/32), merged `c1a02b3` | renderer typecheck, lint, build; web demo; CI pass | Completed |
+| 2d — customer UI | `feat/phase-02d-customer-ui` | [#34](https://github.com/TariqAli93/dalaly/pull/34) | renderer typecheck, lint, build; checked in the web demo | In review |
+| 3a — deals core | `feat/phase-03a-deals-core` | [#33](https://github.com/TariqAli93/dalaly/pull/33), merged `1b54f56` | `test:deals` 10/10, deal rules 5/5, money 4/4, `test:contract` 97; all suites; CI pass | Completed |
 | 3b — deals UI | `feat/phase-03b-deals-ui` | — | — | Pending |
 | 3c — deal integration | `feat/phase-03c-deal-integration` | — | — | Pending |
 | 4a — chart of accounts | `feat/phase-04a-chart-of-accounts` | — | — | Pending |
@@ -205,6 +205,34 @@ below.
   - No console errors.
 - No server change.
 
+### 3a — deals core
+
+- Deals (`0007`) are a sale or rent between a client and an owner, on a
+  listing of the matching kind. A deal can link the request it came from, its
+  contract and an assignee, and carries a currency and exact amounts. The
+  shared money library (`shared/money.ts`) does the arithmetic in `bigint`.
+- Twelve stages with checked moves (`deals.rules.ts`). Every move is
+  recorded. Closing and reopening need the new `deals.close` permission;
+  the others are `deals.read/create/update`.
+- Offers and counteroffers: accepting one sets the agreed price and moves
+  the deal to `agreed`.
+- There is a pipeline with exact totals per stage and currency, and a
+  stalled filter. Activities can belong to a deal.
+- Backup:
+  - The three tables are in the `full` and `crm` scopes, in foreign-key
+    order.
+  - Scoped restores now keep a deal's or a contract's listing. Before, a
+    `properties` or `rentals` restore nulled a contract's listing link.
+  - A restored row pointing at a listing or user deleted since the backup no
+    longer fails the restore; that link is cleared instead.
+- Tests:
+  - `test:deals` 10/10 covers creation and defaults, link checks, the
+    offer-to-agreed flow, stage rules, close permission, filters, exact
+    per-currency totals, stalled deals and both restore cases.
+  - `pnpm test` adds `deal-rules` 5 and `money` 4.
+  - `test:contract` 97; `test:removal:backup` now covers 34 tables.
+- No UI yet: the pipeline, deal list and deal page are Phase 3b.
+
 ## Database migrations
 
 | Migration | Phase | What it adds |
@@ -212,6 +240,7 @@ below.
 | `0000`–`0004` | before this plan | baseline schema, document types, property indexes, search text, agreements |
 | `0005_crm_tasks` | 2a | task columns on both follow-up tables (customer, assignee, status, priority, completion, outcome, `updated_at`), `activities`, their indexes and checks; existing follow-ups without a date or already past become `done` |
 | `0006_customer_crm` | 2b | `people.roles` (checked `text[]`, GIN index), `source` (checked), `assigned_user_id` (FK users, set null, indexed) |
+| `0007_deals` | 3a | `deals` (checked type, stage, priority, currency, listing kind, distinct parties, ISO close date), `deal_stage_history`, `deal_offers`, `activities.deal_id` |
 
 ## Decisions that need the owner
 

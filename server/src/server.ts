@@ -17,6 +17,7 @@ import { agreementsRoutes } from "./modules/agreements/agreements.routes.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { backupRoutes } from "./modules/backup/backup.routes.js";
 import { dashboardRoutes } from "./modules/dashboard/dashboard.routes.js";
+import { dealsRoutes } from "./modules/deals/deals.routes.js";
 import { peopleRoutes } from "./modules/people/people.routes.js";
 import { rentalRequestsRoutes } from "./modules/rental-requests/rental-requests.routes.js";
 import { purchaseRequestsRoutes } from "./modules/purchase-requests/purchase-requests.routes.js";
@@ -229,6 +230,7 @@ export async function buildServer(options: { logger?: boolean } = {}) {
   await app.register(peopleRoutes, { prefix: "/api/people" });
   await app.register(activitiesRoutes, { prefix: "/api/activities" });
   await app.register(tasksRoutes, { prefix: "/api/tasks" });
+  await app.register(dealsRoutes, { prefix: "/api/deals" });
   await app.register(rentalRequestsRoutes, { prefix: "/api/rental-requests" });
   await app.register(purchaseRequestsRoutes, {
     prefix: "/api/purchase-requests",
