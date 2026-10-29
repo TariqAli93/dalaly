@@ -8,6 +8,23 @@ import {
 } from "../rbac/rbac.service.js";
 import type { PermissionPayload } from "./permissions.schema.js";
 import { isActivePermissionKey } from "../rbac/key-policy.js";
+import { SYSTEM_PERMISSIONS } from "../rbac/rbac.constants.js";
+import { DomainError } from "../../shared/errors.js";
+
+const SYSTEM_KEYS = new Set<string>(SYSTEM_PERMISSIONS.map((item) => item.key));
+
+/**
+ * The routes check permissions by key, so a system permission renamed or
+ * deleted here would silently lock its feature until the next startup's seed.
+ */
+async function assertCustomPermission(id: number) {
+  const [row] = await db
+    .select({ key: permissions.key })
+    .from(permissions)
+    .where(eq(permissions.id, id));
+  if (row && SYSTEM_KEYS.has(row.key))
+    throw new DomainError(400, "لا يمكن تعديل صلاحية نظامية أو حذفها.");
+}
 
 export async function listPermissions() {
   const rows = await db
@@ -40,6 +57,9 @@ export async function createPermission(payload: PermissionPayload) {
 }
 
 export async function updatePermission(id: number, payload: PermissionPayload) {
+  await assertCustomPermission(id);
+  if (SYSTEM_KEYS.has(payload.key))
+    throw new DomainError(400, "هذا المفتاح محجوز لصلاحية نظامية.");
   const [permission] = await db
     .update(permissions)
     .set({
@@ -55,6 +75,7 @@ export async function updatePermission(id: number, payload: PermissionPayload) {
 }
 
 export async function deletePermission(id: number) {
+  await assertCustomPermission(id);
   const [permission] = await db
     .delete(permissions)
     .where(eq(permissions.id, id))

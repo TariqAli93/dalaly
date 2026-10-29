@@ -4,6 +4,10 @@ import { type FastifyPluginAsync, type FastifyRequest } from "fastify";
 import { z } from "zod";
 import { config } from "../../infrastructure/config.js";
 import { requirePermission } from "../auth/auth.hooks.js";
+import {
+  isLocalRequest,
+  requireLocalRequest,
+} from "../setup/setup.security.js";
 import { MIN_BACKUP_PASSWORD_LENGTH } from "./backup.crypto.js";
 import {
   createBackup,
@@ -18,6 +22,7 @@ import {
   type RestoreScope,
 } from "./backup.service.js";
 import { UPLOAD_BODY_LIMIT } from "../../shared/constants/limits.js";
+import { parseId } from "../../shared/utils/parse-id.js";
 
 const restoreSchema = z.object({
   scope: z
@@ -75,7 +80,9 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
 
   app.put(
     "/dir",
-    { preHandler: requirePermission("backups.create") },
+    {
+      preHandler: [requirePermission("backups.create"), requireLocalRequest],
+    },
     async (request) => {
       const payload = dirSchema.parse(request.body);
       await setBackupDir(payload.dir);
@@ -92,7 +99,9 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
   // تصدير يدوي إلى مسار يختاره المستخدم عبر حوار حفظ Electron.
   app.post(
     "/export",
-    { preHandler: requirePermission("backups.create") },
+    {
+      preHandler: [requirePermission("backups.create"), requireLocalRequest],
+    },
     async (request) => {
       const payload = exportSchema.parse(request.body);
       return exportBackup(payload.outputPath, request.user?.id);
@@ -103,7 +112,9 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
     "/download/:jobId",
     { preHandler: requirePermission("backups.read") },
     async (request, reply) => {
-      const jobId = Number((request.params as { jobId: string }).jobId);
+      const jobId = parseId((request.params as { jobId: string }).jobId);
+      if (!jobId)
+        return reply.code(400).send({ message: "معرف النسخة غير صحيح." });
       const job = await getBackupJob(jobId);
       if (!job?.filePath || !fs.existsSync(job.filePath)) {
         return reply.code(404).send({ message: "ملف النسخة غير موجود." });
@@ -128,6 +139,12 @@ export const backupRoutes: FastifyPluginAsync = async (app) => {
       let source: string | Buffer | null = null;
 
       if (payload.file_path) {
+        // A path on this machine: only the desktop app's own file dialog
+        // names one. A remote user uploads the archive instead.
+        if (!isLocalRequest(request))
+          return reply
+            .code(403)
+            .send({ message: "هذه العملية متاحة من الجهاز المحلي فقط." });
         if (!fs.existsSync(payload.file_path)) {
           return reply.code(400).send({ message: "ملف النسخة غير موجود." });
         }

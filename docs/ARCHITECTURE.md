@@ -23,7 +23,12 @@ Electron main (apps/desktop/src)
   requires a bearer session token; `requirePermission` checks RBAC keys per
   route. Anonymous setup mutations are further limited to local callers by
   `requireLocalSetup`, which also refuses requests forwarded by the optional
-  Cloudflare tunnel (they arrive from 127.0.0.1). Starting or stopping that
+  Cloudflare tunnel (they arrive from 127.0.0.1). Routes that name a path
+  on this machine (the backup folder, an export target, a backup file to
+  restore) use `requireLocalRequest` / `isLocalRequest` the same way, so a
+  remote user can restore only by uploading the archive. System
+  permissions (`SYSTEM_PERMISSIONS`) cannot be renamed or deleted, and
+  system roles keep their names. Starting or stopping that
   tunnel needs `remote_access.manage`, which only Super Admin has by
   default; its status needs `settings.read`. Wrong PINs are throttled
   per account in `modules/auth/login-throttle.ts`, and one account's login
@@ -42,7 +47,9 @@ Electron main (apps/desktop/src)
 - **Logging**: the API's pino output is piped into electron-log in
   production. Request URLs are logged without their query string (image
   URLs carry a media token), and only failed (5xx) or slow
-  (≥ 1 s) requests are logged, at warn level.
+  (≥ 1 s) requests are logged, at warn level. Errors are logged through
+  `serializeError` (`shared/utils/log-errors.ts`), which keeps a query
+  error's SQL and its database cause but replaces its bound values.
 - **Renderer** owns UI state and presentation. Business data goes over HTTP
   through `apps/renderer/src/services/*.service.ts`; only native operations go
   over IPC, through `apps/renderer/src/platform/` (a browser fallback exists
@@ -95,7 +102,19 @@ main-process calls such as setup proxying and the scheduled backup run.
 | `external-links.js`, `startup.js`   | pure helpers (unit tested from `server/scripts`)                                           |
 | `preload.cjs`, `splash-preload.cjs` | the only APIs exposed to the renderers                                                     |
 
-Windows run with `contextIsolation`, `sandbox` and no `nodeIntegration`. A new
+Windows run with `contextIsolation`, `sandbox` and no `nodeIntegration`. The
+built `index.html` and `splash.html` carry a Content-Security-Policy `<meta>`
+(`contentSecurityPolicy` in `apps/renderer/vite.config.ts`, build only):
+scripts from the bundle alone, no `eval`, styles inline allowed (Vuetify),
+network and images only to loopback ports, OpenStreetMap tiles, `data:` and
+`blob:`, and `blob:` frames for the document viewer. On quit, `stopLocalApi`
+ends the API with `taskkill /T` on Windows, so a remote-access tunnel it
+started ends with it. The API also stops the tunnel on exit and signals, and
+at startup stops a cloudflared left by a previous run (`remote-access.pid` in
+the app data folder, checked against the process name). The scheduled-backup
+settings are validated (`validateSchedule`): a changed SMTP host or user
+drops the saved SMTP password unless a new one comes with it. A saved
+database URL must be a `postgres(ql)://` URL (`isDatabaseUrl`). A new
 native capability needs: a handler that validates its sender and input, one
 preload method, a typed entry in `apps/renderer/src/env.d.ts`, and an
 implementation in both `platform/electron.ts` and `platform/web.ts`.

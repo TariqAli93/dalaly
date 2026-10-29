@@ -17,8 +17,13 @@ import {
   resetSplashOpacity,
   sendSplashProgress,
 } from "./splash.js";
-import { fetchJson, pollApiHealth, withDeadline } from "./startup.js";
-import { spawn } from "node:child_process";
+import {
+  fetchJson,
+  isDatabaseUrl,
+  pollApiHealth,
+  withDeadline,
+} from "./startup.js";
+import { spawn, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -333,9 +338,18 @@ ipcMain.handle("setup:request", async (event, input) => {
 });
 
 function stopLocalApi() {
-  if (serverProcess && !serverProcess.killed) {
-    serverProcess.kill();
+  if (!serverProcess || serverProcess.killed) return;
+  // kill() terminates the API alone on Windows, and a remote-access tunnel it
+  // started would keep running; taskkill /T ends the API with its children.
+  if (process.platform === "win32" && serverProcess.pid) {
+    const result = spawnSync(
+      "taskkill",
+      ["/PID", String(serverProcess.pid), "/T", "/F"],
+      { windowsHide: true },
+    );
+    if (result.status === 0) return;
   }
+  serverProcess.kill();
 }
 
 ipcMain.handle("maps:open-external", async (event, value) => {
@@ -353,11 +367,7 @@ ipcMain.handle("maps:open-external", async (event, value) => {
 // يحفظ DATABASE_URL الناتج عن /api/setup/initialize ليُستخدم في التشغيل القادم.
 // الخادم الحالي يكون قد أعاد تهيئة الـ pool حيّاً، لذا لا حاجة لإعادة تشغيله الآن.
 ipcMain.handle("config:save-database-url", async (event, databaseUrl) => {
-  if (
-    !trustedMainSender(event) ||
-    typeof databaseUrl !== "string" ||
-    !databaseUrl
-  ) {
+  if (!trustedMainSender(event) || !isDatabaseUrl(databaseUrl)) {
     return { ok: false, message: "DATABASE_URL غير صالح." };
   }
 
