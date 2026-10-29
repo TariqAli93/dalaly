@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 import { config } from "./infrastructure/config.js";
 import { DomainError, errorCodeForStatus } from "./shared/errors.js";
 import { DEFAULT_BODY_LIMIT } from "./shared/constants/limits.js";
+import { serializeError } from "./shared/utils/log-errors.js";
 import {
   isPoolTimeout,
   postgresError,
@@ -63,12 +64,13 @@ export async function buildServer(options: { logger?: boolean } = {}) {
   const logger: FastifyServerOptions["logger"] = options.logger !== false && {
     level: process.env.LOG_LEVEL?.trim() || "info",
     serializers: {
-      // Image, document and backup URLs carry the session token in the
-      // query string, and production logs end up in electron-log's file.
+      // Image URLs carry a token in the query string, and production logs
+      // end up in electron-log's file.
       req: (request) => ({
         method: request.method,
         url: request.url.split("?")[0],
       }),
+      err: serializeError,
     },
   };
   const app = Fastify({

@@ -2,7 +2,7 @@ import { dialog, ipcMain, safeStorage } from "electron";
 import log from "electron-log/main.js";
 import nodemailer from "nodemailer";
 import { readAppConfig, writeAppConfig } from "./app-config.js";
-import { isScheduleDue } from "./backup-schedule.js";
+import { isScheduleDue, validateSchedule } from "./backup-schedule.js";
 import { isMainWindowSender } from "./ipc-guard.js";
 
 // ===== النسخ الاحتياطي: حوارات الملفات والجدولة بالبريد =====
@@ -79,22 +79,26 @@ export function registerBackupHandlers(getMainWindow) {
     if (!trusted(event)) return { ok: false };
     const config = readAppConfig();
     const previous = config.scheduledBackup ?? {};
+    const checked = validateSchedule(incoming, previous);
+    if (!checked.ok) return checked;
     const next = {
-      enabled: Boolean(incoming?.enabled),
-      recipient: incoming?.recipient ?? "",
-      smtpHost: incoming?.smtpHost ?? "",
-      smtpPort: incoming?.port ?? incoming?.smtpPort ?? 587,
-      smtpUser: incoming?.smtpUser ?? "",
-      frequency: incoming?.frequency === "weekly" ? "weekly" : "daily",
-      time: incoming?.time ?? "02:00",
-      passwordEnc: previous.passwordEnc ?? null,
+      ...checked.value,
+      passwordEnc: checked.dropPassword ? null : (previous.passwordEnc ?? null),
       backupPasswordEnc: previous.backupPasswordEnc ?? null,
       lastRunAt: previous.lastRunAt ?? null,
       lastError: previous.lastError ?? null,
     };
-    // تشفير كلمة المرور فقط عند تقديم قيمة جديدة (وإلا الإبقاء على المخزَّنة).
+    // تشفير كلمة المرور فقط عند تقديم قيمة جديدة (وإلا الإبقاء على المخزَّنة،
+    // ما لم يتغير الخادم أو المستخدم).
     if (incoming?.password) {
       next.passwordEnc = encryptSecret(String(incoming.password));
+      if (!next.passwordEnc) {
+        return {
+          ok: false,
+          message:
+            "تعذر حفظ كلمة مرور البريد بأمان على هذا الجهاز، فلم تُحفظ الإعدادات.",
+        };
+      }
     }
     // The emailed copy is encrypted with this password; without it on this
     // machine nothing can be emailed, so it is never dropped silently.

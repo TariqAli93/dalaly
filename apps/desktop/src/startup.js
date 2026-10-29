@@ -62,3 +62,24 @@ export async function pollApiHealth(
   }
   throw new Error("STARTUP_BACKEND_TIMEOUT");
 }
+
+/**
+ * A PostgreSQL connection URL as setup saves it: postgres(ql)://, a host, and
+ * no control characters. Anything else is refused before it reaches config.json
+ * and the next launch's API.
+ */
+export function isDatabaseUrl(value) {
+  if (typeof value !== "string" || !value || value.length > 2048) return false;
+  // eslint-disable-next-line no-control-regex -- control characters are refused
+  if (/[\u0000-\u001f\u007f]/.test(value)) return false;
+  try {
+    const url = new URL(value);
+    return (
+      ["postgres:", "postgresql:"].includes(url.protocol) &&
+      Boolean(url.hostname) &&
+      /^\/[^/]+$/.test(url.pathname)
+    );
+  } catch {
+    return false;
+  }
+}

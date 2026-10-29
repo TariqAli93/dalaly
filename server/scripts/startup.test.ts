@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createServer } from "node:http";
 import { classifyStartup, type StartupHealth } from "../src/infrastructure/database/startup-state.js";
-import { pollApiHealth, withDeadline } from "../../apps/desktop/src/startup.js";
+import { isDatabaseUrl, pollApiHealth, withDeadline } from "../../apps/desktop/src/startup.js";
 import { isSameDocumentNavigation } from "../../apps/desktop/src/external-links.js";
-import { isScheduleDue } from "../../apps/desktop/src/backup-schedule.js";
+import { isScheduleDue, validateSchedule } from "../../apps/desktop/src/backup-schedule.js";
 
 test("scheduled email backup is due once per day or week after its local time", () => {
   const at = (day: number, hour: number, minute = 0) => new Date(2026, 9, day, hour, minute);
@@ -94,4 +94,40 @@ test("a backend that never responds and a renderer promise that never resolves a
     await assert.rejects(pollApiHealth(`http://127.0.0.1:${address.port}`, 100), /STARTUP_BACKEND_TIMEOUT/);
     await assert.rejects(withDeadline(new Promise(() => {}), 50, "RENDERER_TIMEOUT"), /RENDERER_TIMEOUT/);
   } finally { server.closeAllConnections(); await new Promise<void>((resolve) => server.close(() => resolve())); }
+});
+
+test("scheduled backup settings are checked, and a new mail account needs its password again", () => {
+  const saved = { smtpHost: "smtp.example.com", smtpUser: "office@example.com" };
+  const form = { enabled: true, recipient: "owner@example.com", smtpHost: "SMTP.example.com", port: 587, smtpUser: "office@example.com", time: "02:30" };
+  const ok = validateSchedule(form, saved);
+  assert.equal(ok.ok, true);
+  if (ok.ok) {
+    assert.equal(ok.value.smtpHost, "smtp.example.com");
+    assert.equal(ok.dropPassword, false, "same account keeps the saved password");
+  }
+  for (const [field, value] of [
+    ["recipient", "not-an-email"],
+    ["smtpHost", "https://evil.test/x"],
+    ["smtpHost", "evil.test:25"],
+    ["port", 70000],
+    ["smtpUser", "a\nRCPT TO:<x@y>"],
+    ["time", "25:00"],
+  ] as const)
+    assert.equal(validateSchedule({ ...form, [field]: value }, saved).ok, false, `${field}=${value}`);
+  assert.equal(validateSchedule({ ...form, recipient: "" }, saved).ok, false, "enabled needs a recipient");
+  assert.equal(validateSchedule({ ...form, enabled: false, recipient: "", smtpHost: "" }, {}).ok, true, "a disabled schedule may be empty");
+
+  const moved = validateSchedule({ ...form, smtpHost: "mail.other.test" }, saved);
+  assert.ok(moved.ok && moved.dropPassword, "a new host without a new password drops the saved one");
+  const renamed = validateSchedule({ ...form, smtpUser: "someone@else.test" }, saved);
+  assert.ok(renamed.ok && renamed.dropPassword, "so does a new user");
+  const withPassword = validateSchedule({ ...form, smtpHost: "mail.other.test", password: "x" }, saved);
+  assert.ok(withPassword.ok && !withPassword.dropPassword, "unless the new password comes with it");
+});
+
+test("only a PostgreSQL URL is saved as the database URL", () => {
+  for (const url of ["postgresql://postgres:p%40ss@127.0.0.1:5432/dalaly", "postgres://u@db.local/office"])
+    assert.equal(isDatabaseUrl(url), true, url);
+  for (const url of ["", "dalaly", "http://127.0.0.1:5432/dalaly", "postgresql://127.0.0.1:5432/", "postgresql://127.0.0.1/a/b", "postgresql://h/db\nX=1", 42, null])
+    assert.equal(isDatabaseUrl(url), false, String(url));
 });

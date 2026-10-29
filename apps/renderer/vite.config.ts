@@ -34,6 +34,50 @@ function mdiWoff2Only(): Plugin {
   };
 }
 
+/**
+ * The packaged windows' Content-Security-Policy, as a <meta> in each HTML
+ * entry (both load from file://, so there are no response headers to carry
+ * it). Development keeps Vite's HMR and DevTools unrestricted.
+ *
+ * - Scripts: the bundle only. Nothing is evaluated at runtime.
+ * - Styles: Vuetify's theme <style> and inline style attributes need
+ *   'unsafe-inline'.
+ * - The API is on the loopback interface; tests and the perf harness run it
+ *   on other ports, so any loopback port is allowed (never another host).
+ * - Images: listing photos and the logo from the API, map tiles, and data:
+ *   and blob: URLs (contract images, thumbnails made before upload, the
+ *   document viewer). The viewer shows PDFs in a blob: frame.
+ */
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: http://127.0.0.1:* https://tile.openstreetmap.org",
+  "font-src 'self' data:",
+  "connect-src 'self' http://127.0.0.1:*",
+  "frame-src blob:",
+  "media-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'none'",
+].join("; ");
+
+function contentSecurityPolicy(): Plugin {
+  return {
+    name: "dalaly:content-security-policy",
+    apply: "build",
+    transformIndexHtml: () => [
+      {
+        tag: "meta",
+        attrs: {
+          "http-equiv": "Content-Security-Policy",
+          content: CONTENT_SECURITY_POLICY,
+        },
+        injectTo: "head-prepend",
+      },
+    ],
+  };
+}
+
 export default defineConfig(({ mode }) => {
   // وضع web-demo مخصص للتصوير: لوحة Vue DevTools العائمة تظهر فوق الواجهة
   // وتُفسد اللقطات، لذلك تُستبعد في هذا الوضع فقط. التطوير العادي والبناء
@@ -44,6 +88,7 @@ export default defineConfig(({ mode }) => {
     base: "./",
     plugins: [
       mdiWoff2Only(),
+      contentSecurityPolicy(),
       vue(),
       // Imports only the Vuetify components and directives the templates
       // use (with their CSS), instead of the whole library at startup.

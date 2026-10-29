@@ -37,6 +37,15 @@ export async function createRole(payload: RolePayload) {
 }
 
 export async function updateRole(id: number, payload: RolePayload) {
+  // Super Admin is found by its name (seed, delete and permission guards), so
+  // a system role keeps its name; its description may change.
+  const current = await getRawRole(id);
+  if (
+    current &&
+    (current.isSystem || current.name === SUPER_ADMIN_ROLE) &&
+    payload.name !== current.name
+  )
+    throw new DomainError(400, "لا يمكن تغيير اسم دور نظامي.");
   const [role] = await db
     .update(roles)
     .set({

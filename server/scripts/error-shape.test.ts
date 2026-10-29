@@ -86,3 +86,18 @@ test("an unexpected failure is a generic 500, without the driver's text", async 
 });
 
 test.after(async () => { await app.close(); });
+
+test("logged query errors keep the SQL and the database error, not the bound values", async () => {
+  const { serializeError } = await import("../src/shared/utils/log-errors.js");
+  const { DrizzleQueryError } = await import("drizzle-orm/errors");
+  const cause = Object.assign(new Error('duplicate key value violates unique constraint "users_username_unique"'), { code: "23505" });
+  const error = new DrizzleQueryError("insert into users (username, pin_hash) values ($1, $2)", ["ahmed", "scrypt:salt:hash"], cause);
+  const logged = serializeError(error);
+  const text = JSON.stringify(logged);
+  assert.ok(!text.includes("scrypt:salt:hash"), text);
+  assert.ok(!text.includes("ahmed"), text);
+  assert.match(String(logged.message), /insert into users/);
+  assert.match(String(logged.message), /params: \[redacted\]$/);
+  assert.equal((logged.cause as { code: string }).code, "23505");
+  assert.equal(serializeError(new Error("plain")).message, "plain");
+});
