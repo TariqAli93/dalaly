@@ -691,9 +691,15 @@ export const activities = pgTable(
     rentalRequestId: bigint("rental_request_id", {
       mode: "number",
     }).references(() => rentalRequests.id, { onDelete: "set null" }),
+    /** A viewing, call or negotiation step of a deal. */
+    dealId: bigint("deal_id", { mode: "number" }).references(
+      (): AnyPgColumn => deals.id,
+      { onDelete: "set null" },
+    ),
   },
   (table) => [
     index("idx_activities_person").on(table.personId),
+    index("idx_activities_deal").on(table.dealId),
     index("idx_activities_open_due").on(table.status, table.scheduledAt),
     index("idx_activities_assigned").on(table.assignedUserId),
     check("activities_status", sql`${table.status} in ${TASK_STATUS_CHECK}`),
@@ -953,6 +959,182 @@ export const agreementExports = pgTable(
   ],
 );
 
+// ─── Deals ───────────────────────────────────────────────────────────────
+// An opportunity from first interest to contract and outcome: who buys (or
+// rents) what from whom, at what price, at which stage.
+
+export const DEAL_STAGES = [
+  "new",
+  "contacted",
+  "qualified",
+  "viewing_scheduled",
+  "viewing_done",
+  "negotiating",
+  "agreed",
+  "contract_preparation",
+  "contract_issued",
+  "won",
+  "lost",
+  "cancelled",
+] as const;
+const DEAL_STAGE_CHECK = sql.raw(
+  `(${DEAL_STAGES.map((stage) => `'${stage}'`).join(", ")})`,
+);
+
+export const deals = pgTable(
+  "deals",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    code: text("code").notNull().unique(),
+    dealType: text("deal_type").notNull(),
+    stage: text("stage").notNull().default("new"),
+    priority: text("priority").notNull().default("normal"),
+    title: text("title"),
+    propertyId: bigint("property_id", { mode: "number" }).references(
+      () => properties.id,
+      { onDelete: "set null" },
+    ),
+    rentalId: bigint("rental_id", { mode: "number" }).references(
+      () => rentals.id,
+      { onDelete: "set null" },
+    ),
+    /** The buyer of a sale, the tenant of a rent. */
+    clientPersonId: bigint("client_person_id", { mode: "number" })
+      .notNull()
+      .references(() => people.id, { onDelete: "restrict" }),
+    /** The seller of a sale, the landlord of a rent. */
+    ownerPersonId: bigint("owner_person_id", { mode: "number" }).references(
+      () => people.id,
+      { onDelete: "restrict" },
+    ),
+    assignedUserId: bigint("assigned_user_id", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    purchaseRequestId: bigint("purchase_request_id", {
+      mode: "number",
+    }).references(() => purchaseRequests.id, { onDelete: "set null" }),
+    rentalRequestId: bigint("rental_request_id", {
+      mode: "number",
+    }).references(() => rentalRequests.id, { onDelete: "set null" }),
+    agreementId: bigint("agreement_id", { mode: "number" }).references(
+      () => agreements.id,
+      { onDelete: "set null" },
+    ),
+    currency: text("currency").notNull().default("IQD"),
+    askingPrice: numeric("asking_price", { precision: 18, scale: 2 }),
+    agreedPrice: numeric("agreed_price", { precision: 18, scale: 2 }),
+    expectedCommission: numeric("expected_commission", {
+      precision: 18,
+      scale: 2,
+    }),
+    expectedCloseDate: text("expected_close_date"),
+    lostReason: text("lost_reason"),
+    notes: text("notes"),
+    stageChangedAt: timestamp("stage_changed_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    createdBy: bigint("created_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    updatedBy: bigint("updated_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_deals_stage").on(table.stage),
+    index("idx_deals_client").on(table.clientPersonId),
+    index("idx_deals_owner").on(table.ownerPersonId),
+    index("idx_deals_assigned").on(table.assignedUserId),
+    index("idx_deals_property").on(table.propertyId),
+    index("idx_deals_rental").on(table.rentalId),
+    index("idx_deals_agreement").on(table.agreementId),
+    index("idx_deals_updated").on(table.updatedAt),
+    check("deals_type", sql`${table.dealType} in ('sale', 'rent')`),
+    check("deals_stage", sql`${table.stage} in ${DEAL_STAGE_CHECK}`),
+    check("deals_priority", sql`${table.priority} in ${TASK_PRIORITY_CHECK}`),
+    check("deals_currency", sql`${table.currency} in ('IQD', 'USD')`),
+    // A sale deal is about a sale listing, a rent deal about a rental one.
+    check(
+      "deals_listing",
+      sql`(${table.dealType} = 'sale' and ${table.rentalId} is null) or (${table.dealType} = 'rent' and ${table.propertyId} is null)`,
+    ),
+    check(
+      "deals_parties",
+      sql`${table.ownerPersonId} is null or ${table.ownerPersonId} <> ${table.clientPersonId}`,
+    ),
+    check(
+      "deals_close_date",
+      sql`${table.expectedCloseDate} is null or ${table.expectedCloseDate} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'`,
+    ),
+  ],
+);
+
+/** Every stage move, with who made it and why. Never updated. */
+export const dealStageHistory = pgTable(
+  "deal_stage_history",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    dealId: bigint("deal_id", { mode: "number" })
+      .notNull()
+      .references(() => deals.id, { onDelete: "cascade" }),
+    fromStage: text("from_stage"),
+    toStage: text("to_stage").notNull(),
+    reason: text("reason"),
+    userId: bigint("user_id", { mode: "number" }).references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("idx_deal_stage_history_deal").on(table.dealId)],
+);
+
+/** Offers and counteroffers in a negotiation, in the deal's currency. */
+export const dealOffers = pgTable(
+  "deal_offers",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    dealId: bigint("deal_id", { mode: "number" })
+      .notNull()
+      .references(() => deals.id, { onDelete: "cascade" }),
+    /** Who made it: the client (buyer/tenant) or the owner (seller/landlord). */
+    party: text("party").notNull(),
+    amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+    status: text("status").notNull().default("proposed"),
+    notes: text("notes"),
+    createdBy: bigint("created_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_deal_offers_deal").on(table.dealId),
+    check("deal_offers_party", sql`${table.party} in ('client', 'owner')`),
+    check(
+      "deal_offers_status",
+      sql`${table.status} in ('proposed', 'countered', 'accepted', 'rejected', 'withdrawn')`,
+    ),
+    check("deal_offers_amount", sql`${table.amount} >= 0`),
+  ],
+);
+
 export const identityDocuments = pgTable(
   "identity_documents",
   {
@@ -1097,4 +1279,6 @@ export type BackupLog = typeof backupLogs.$inferSelect;
 export type AgreementTemplate = typeof agreementTemplates.$inferSelect;
 export type Agreement = typeof agreements.$inferSelect;
 export type AgreementRevision = typeof agreementRevisions.$inferSelect;
+export type Deal = typeof deals.$inferSelect;
+export type DealOffer = typeof dealOffers.$inferSelect;
 export type AppSetting = typeof appSettings.$inferSelect;

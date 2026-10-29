@@ -50,6 +50,13 @@
       "when": 1793283408894,
       "tag": "0006_customer_crm",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793284690624,
+      "tag": "0007_deals",
+      "breakpoints": true
     }
   ]
 }

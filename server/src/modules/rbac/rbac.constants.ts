@@ -99,6 +99,18 @@ export const SYSTEM_PERMISSIONS = [
     name: "إدارة مستندات العملاء",
     module: "documents",
   },
+  { key: "deals.read", name: "عرض الصفقات", module: "deals" },
+  { key: "deals.create", name: "إنشاء صفقات", module: "deals" },
+  {
+    key: "deals.update",
+    name: "تعديل الصفقات وتسجيل العروض ونقل المراحل",
+    module: "deals",
+  },
+  {
+    key: "deals.close",
+    name: "إغلاق الصفقات (ربح أو خسارة أو إلغاء) وإعادة فتحها",
+    module: "deals",
+  },
   // العقود باسم agreements: نطاقا contracts وcontract_templates متقاعدان
   // ومحجوزان لبيانات النظام القديم (key-policy.ts).
   { key: "agreements.read", name: "عرض العقود", module: "agreements" },

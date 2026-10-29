@@ -95,6 +95,8 @@ export type ActivityRecord = TaskFieldsRecord & {
   purchase_request_code: string | null;
   rental_request_id: number | null;
   rental_request_code: string | null;
+  deal_id: number | null;
+  deal_code: string | null;
   user_id: number | null;
   user_name: string | null;
   type: FollowupType;
@@ -107,6 +109,8 @@ export type ActivityPayload = TaskFieldsPayload & {
   person_id: number;
   purchase_request_id?: number | null;
   rental_request_id?: number | null;
+  /** A step of one of the customer's deals. */
+  deal_id?: number | null;
 };
 
 /** GET /people/:id/timeline: the customer's tasks, newest first. */

@@ -4,11 +4,12 @@
  */
 export const PERMISSION_MODULES: Array<{ key: string; title: string }> = [
   { key: "properties", title: "عروض البيع" },
-  { key: "followups", title: "متابعات عروض البيع" },
+  { key: "followups", title: "المتابعات والمهام" },
   { key: "rentals", title: "عروض الإيجار ومتابعاتها" },
   { key: "people", title: "الزبائن" },
   { key: "requests", title: "طلبات الزبائن" },
   { key: "documents", title: "المستمسكات" },
+  { key: "deals", title: "الصفقات" },
   { key: "agreements", title: "العقود وقوالبها" },
   { key: "locations", title: "المحافظات والمناطق" },
   { key: "users", title: "المستخدمون" },

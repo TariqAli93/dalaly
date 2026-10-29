@@ -256,13 +256,22 @@ Conventions:
   wrong password or a damaged file is an Arabic 400 that changes nothing. A
   database-only archive restores rows and writes no files: the images and
   documents on disk stay, and the `images` scope is refused for it.
-- Tables added after backup version 3 was defined (the six contract tables)
-  are marked `optional` in `TABLE_SPECS`: an archive from an older build
-  lacks them and restores them empty. They are in the `full` scope, the
-  templates also in `settings`, and contracts with their parties, revisions
-  and exports in `crm` (they reference customers, and customer documents may
-  reference them). A `properties` or `rentals` restore sets a contract's
-  listing link to null; its issued revisions keep the listing's data.
+- Tables added after backup version 3 was defined (the six contract
+  tables, `activities`, the three deal tables) are marked `optional` in
+  `TABLE_SPECS`: an archive from an older build lacks them and restores them
+  empty. They are in the `full` scope, the templates also in `settings`, and
+  contracts, deals and activities in `crm` (they reference customers).
+  `TABLE_SPECS` and each scope list tables in foreign-key order, since rows
+  go in in that order and come out in reverse.
+- A scoped restore replaces whole tables, and deleting a table's rows sets
+  links to them from tables outside the scope to null (ON DELETE SET NULL).
+  `KEPT_LINKS` are saved first and put back where their target is in the
+  restored data: listing owners and follow-up customers in a `crm` restore,
+  a deal's or a contract's listing in a `properties` or `rentals` one. The
+  other way round, a restored row may point at a listing or user deleted
+  since the backup (`OUTSIDE_LINKS`); that link is cleared instead of
+  failing the restore. Issued contract revisions keep the listing's data
+  either way.
 - Retention (owner decision, 2026-10-24): after a scheduled backup or a
   pre-restore copy succeeds, under the operation lock, copies of that kind
   beyond the newest 10 on disk are deleted. A file goes only if a successful
@@ -394,6 +403,36 @@ clients that send only type, notes and date change nothing else.
   to a person from tables outside that scope to null; it saves those links
   (listing owners, follow-up customers) and puts back each whose person is
   in the restored data.
+
+## Deals (`modules/deals`)
+
+A deal is an opportunity from first interest to contract and outcome
+(migration `0007_deals`): a sale or rent, a client (buyer or tenant) and an
+owner (seller or landlord), a listing of the matching kind, the request it
+came from, the contract it led to, an assignee, a currency (IQD or USD) and
+exact amounts (asking and agreed price, expected commission;
+`shared/money.ts`: decimal strings in the API, `bigint` minor units in code,
+never a JavaScript number). A deal on a listing takes the listing's owner and
+price when the payload leaves them empty.
+
+- **Stages.** `new` … `contract_issued` are open and move freely among
+  themselves, so a deal can go back a step; `won`, `lost` and `cancelled`
+  close it. The rules are `deals.rules.ts` (`stageMoveError`, unit tested):
+  `won` only from `agreed`, `contract_preparation` or `contract_issued`, with
+  an agreed price and both parties; `lost` needs a reason, `cancelled` too;
+  `contract_issued` needs an issued linked contract; a closed deal is reopened
+  (with a reason) before it can close another way. `POST /deals/:id/stage`
+  applies a move under a row lock and writes `deal_stage_history`; closing
+  and reopening need `deals.close`, other moves `deals.update`.
+- **Offers** (`deal_offers`) are made by the client or the owner. Accepting
+  one makes its amount the agreed price and moves a deal still before
+  `agreed` there, recorded like any other move. A closed deal takes no
+  offers.
+- Viewings, calls and negotiation steps are activities with `deal_id` (an
+  activity names one of the deal's parties). A deal is stalled when it is
+  open with no stage move, activity or offer for `stalled_days`.
+- `GET /deals/pipeline` sums per stage and currency in SQL (numeric), never
+  adding IQD to USD. Changes are audited (`entity_type` `deal`).
 
 ## Contracts (`modules/agreements`)
 
