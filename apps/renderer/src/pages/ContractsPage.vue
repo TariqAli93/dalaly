@@ -71,6 +71,7 @@ const grid = useTemplateRef<DataGridApi>("grid");
 const cancelling = ref<AgreementListItem | null>(null);
 const cancelBusy = ref(false);
 const revisionsOf = ref<AgreementListItem | null>(null);
+const creating = ref(false);
 
 const list = createPagedList<AgreementListItem, AgreementSortKey>(
   (page, signal) =>
@@ -288,6 +289,19 @@ onBeforeUnmount(() => {
   clearTimeout(searchTimer);
   list.cancel();
 });
+
+async function create(key: TemplateKey) {
+  if (creating.value) return;
+  creating.value = true;
+  try {
+    const created = await agreementsService.createAgreement(key);
+    await router.replace(`/contracts/${created.id}?step=parties`);
+  } catch (error) {
+    notifyError(getErrorMessage(error));
+  } finally {
+    creating.value = false;
+  }
+}
 </script>
 
 <template>
@@ -300,13 +314,36 @@ onBeforeUnmount(() => {
         to="/contracts/templates"
         >القوالب</v-btn
       >
-      <v-btn
-        v-if="can('agreements.manage')"
-        color="primary"
-        prepend-icon="mdi-file-plus-outline"
-        to="/contracts/new"
-        >عقد جديد</v-btn
-      >
+
+      <!-- to="/contracts/new" -->
+      <v-menu location="bottom start">
+        <template #activator="{ props }">
+          <v-btn
+            v-if="can('agreements.manage')"
+            v-bind="props"
+            color="primary"
+            prepend-icon="mdi-plus"
+            append-icon="mdi-chevron-down"
+            >عقد جديد</v-btn
+          >
+        </template>
+        <v-list density="compact" navigation-strategy="track" nav>
+          <v-list-item
+            v-for="key in TEMPLATE_KEYS"
+            nav
+            :key="key"
+            :title="TEMPLATES[key].title"
+            :subtitle="TEMPLATES[key].description"
+            lines="two"
+            @click="create(key)"
+            :prepend-icon="
+              TEMPLATES[key].kind === 'sale'
+                ? 'mdi-home-export-outline'
+                : 'mdi-key-chain-variant'
+            "
+          />
+        </v-list>
+      </v-menu>
     </template>
 
     <section class="dal-panel dal-listpanel dal-fill" aria-label="العقود">

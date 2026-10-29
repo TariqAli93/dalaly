@@ -7,7 +7,7 @@ defineProps<{ subtitle?: string }>();
 <template>
   <v-main>
     <section class="auth-screen">
-      <v-card class="auth-panel auth-split" variant="text">
+      <v-card class="auth-panel auth-split rounded-none!" variant="text">
         <div class="auth-form-side">
           <div class="auth-form-top">
             <span>أهلاً بك في دلالي</span><ThemeToggle />
@@ -101,7 +101,7 @@ defineProps<{ subtitle?: string }>();
 .auth-photo__brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 15px;
 }
 .auth-photo__brand strong {
   font-size: calc(32px * var(--dal-font-scale));

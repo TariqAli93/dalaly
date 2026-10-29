@@ -329,7 +329,7 @@ body {
   min-height: 100dvh;
   display: grid;
   place-items: center;
-  padding: 32px;
+  padding: 0;
   background: var(--dal-canvas);
 }
 
@@ -422,6 +422,7 @@ body {
   padding: var(--dal-gutter);
   max-width: 1920px;
   margin-inline: auto;
+  background: rgba(var(--dal-canvas));
 }
 .v-container.dal-content:focus {
   outline: none;

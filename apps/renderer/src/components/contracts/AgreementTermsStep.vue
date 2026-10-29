@@ -292,6 +292,8 @@ function setWitness(
           <div class="terms__computed">
             <span>المدة</span>
             <strong>{{ duration ?? "—" }}</strong>
+
+            <v-divider vertical class="mx-1.5" />
             <span v-if="!readonly && terms.start_date" class="terms__quick">
               <v-btn size="x-small" variant="text" @click="setLength(6)"
                 >6 أشهر</v-btn

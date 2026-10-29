@@ -1084,7 +1084,6 @@ watch(template, () => step.value === "content" && void loadReference());
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: var(--dal-gutter);
-  max-width: 980px;
 }
 .chooser__item {
   display: flex;
