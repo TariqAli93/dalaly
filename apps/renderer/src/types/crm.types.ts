@@ -18,6 +18,31 @@ export type PersonRecord = {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  /** What the office deals with them as; PERSON_ROLES in constants/crm.ts. */
+  roles: PersonRole[];
+  source: PersonSource | null;
+  assigned_user_id: number | null;
+  assigned_user_name: string | null;
+};
+
+export type PersonRole =
+  "buyer" | "seller" | "tenant" | "landlord" | "owner" | "investor" | "other";
+export type PersonSource =
+  "walk_in" | "phone" | "referral" | "social" | "listing_ad" | "other";
+
+/** GET /people/:id: also the roles their records imply (owner, buyer…). */
+export type PersonDetailRecord = PersonRecord & { implied_roles: string[] };
+
+/** Another customer with one of the same phones or the same national ID. */
+export type PersonDuplicate = {
+  id: number;
+  code: string;
+  full_name: string;
+  phone_primary: string | null;
+  phone_secondary: string | null;
+  national_id: string | null;
+  status: PersonRecord["status"];
+  matched_on: Array<"phone" | "national_id">;
 };
 
 export type RentalRequestRecord = {
