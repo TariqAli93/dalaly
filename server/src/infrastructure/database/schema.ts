@@ -1,4 +1,5 @@
 import {
+  type AnyPgColumn,
   bigint,
   bigserial,
   check,
@@ -174,12 +175,34 @@ export const people = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    /** What the office deals with this customer as (several at once). */
+    roles: text("roles")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    /** How the customer came to the office. */
+    source: text("source"),
+    /** The employee who looks after this customer. */
+    assignedUserId: bigint("assigned_user_id", { mode: "number" }).references(
+      (): AnyPgColumn => users.id,
+      { onDelete: "set null" },
+    ),
   },
   (table) => [
     index("idx_people_full_name").on(table.fullName),
     index("idx_people_phone_primary").on(table.phonePrimary),
     index("idx_people_person_type").on(table.personType),
     index("idx_people_status").on(table.status),
+    index("idx_people_assigned").on(table.assignedUserId),
+    index("idx_people_roles").using("gin", table.roles),
+    check(
+      "people_roles",
+      sql`${table.roles} <@ ARRAY['buyer', 'seller', 'tenant', 'landlord', 'owner', 'investor', 'other']::text[]`,
+    ),
+    check(
+      "people_source",
+      sql`${table.source} is null or ${table.source} in ('walk_in', 'phone', 'referral', 'social', 'listing_ad', 'other')`,
+    ),
   ],
 );
 

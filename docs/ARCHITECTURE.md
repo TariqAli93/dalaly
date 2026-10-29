@@ -333,6 +333,23 @@ Conventions:
   the runner logs migration notices. Without `pg_trgm` the search still
   works, by scanning.
 
+## Customers (`modules/people`)
+
+A customer has `roles` (buyer, seller, tenant, landlord, owner, investor,
+other; several at once, a checked `text[]` with a GIN index), a `source`
+(how they came) and an `assigned_user_id` (the employee who looks after
+them), from migration `0006_customer_crm`. A payload that leaves these out
+keeps them. Lists filter by `role` and `assigned` (`me`, `unassigned` or a
+user id) and carry `assigned_user_name`; `GET /people/:id` adds
+`implied_roles`, the roles the records themselves give (owner of a listing,
+buyer or tenant with a request, a party to a contract), which are never
+stored. `GET /people/duplicates` finds other customers with one of the
+given phones (compared by their last ten digits, `phoneKey`: 0770…, +964 770…
+and 00964 770… are one number) or the same national ID, archived ones
+included; the form warns, nothing is merged. Creating, editing (with the
+old and new values), archiving and restoring a customer are audited
+(`entity_type` `person`, `GET /people/:id/audit` with `audit.read`).
+
 ## Tasks and activities (`modules/tasks`, `modules/activities`)
 
 Follow-ups are tasks. `property_followups` and `rental_followups` carry the

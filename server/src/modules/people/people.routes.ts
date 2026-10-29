@@ -3,13 +3,17 @@ import { requirePermission } from "../auth/auth.hooks.js";
 import {
   archivePerson,
   createPerson,
+  findDuplicatePeople,
   getPerson,
+  getPersonAudit,
+  getPersonDetail,
   listPeople,
   listPeoplePage,
   restorePerson,
   updatePerson,
 } from "./people.repository.js";
 import {
+  personDuplicatesQuerySchema,
   personFiltersSchema,
   personPageQuerySchema,
   personPayloadSchema,
@@ -21,7 +25,8 @@ export const peopleRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     "/",
     { preHandler: requirePermission("people.read") },
-    async (request) => listPeople(personFiltersSchema.parse(request.query)),
+    async (request) =>
+      listPeople(personFiltersSchema.parse(request.query), request.user?.id),
   );
   // صفحة واحدة مع العدد الكلي لجدول الأشخاص. القائمة الكاملة أعلاه باقية
   // لقوائم الاختيار (مالك العرض، عميل الطلب، تصفية المستمسكات).
@@ -29,7 +34,40 @@ export const peopleRoutes: FastifyPluginAsync = async (app) => {
     "/paged",
     { preHandler: requirePermission("people.read") },
     async (request) =>
-      listPeoplePage(personPageQuerySchema.parse(request.query)),
+      listPeoplePage(
+        personPageQuerySchema.parse(request.query),
+        request.user?.id,
+      ),
+  );
+  // زبائن لهم أحد هذه الهواتف أو رقم الهوية نفسه، قبل الحفظ: تنبيه لا دمج.
+  app.get(
+    "/duplicates",
+    { preHandler: requirePermission("people.read") },
+    async (request) => {
+      const query = personDuplicatesQuerySchema.parse(request.query);
+      return findDuplicatePeople({
+        phones: [query.phone, query.phone_secondary].filter(
+          (value): value is string => Boolean(value),
+        ),
+        national_id: query.national_id,
+        exclude_id: query.exclude_id,
+      });
+    },
+  );
+  app.get(
+    "/:id/audit",
+    {
+      preHandler: [
+        requirePermission("people.read"),
+        requirePermission("audit.read"),
+      ],
+    },
+    async (request, reply) => {
+      const id = parseId((request.params as { id: string }).id);
+      if (!id)
+        return reply.code(400).send({ message: "معرّف الشخص غير صحيح." });
+      return getPersonAudit(id);
+    },
   );
   app.get(
     "/:id",
@@ -38,7 +76,7 @@ export const peopleRoutes: FastifyPluginAsync = async (app) => {
       const id = parseId((request.params as { id: string }).id);
       if (!id)
         return reply.code(400).send({ message: "معرّف الشخص غير صحيح." });
-      const row = await getPerson(id);
+      const row = await getPersonDetail(id);
       return row ?? reply.code(404).send({ message: "الشخص غير موجود." });
     },
   );
@@ -62,7 +100,12 @@ export const peopleRoutes: FastifyPluginAsync = async (app) => {
     async (request, reply) =>
       reply
         .code(201)
-        .send(await createPerson(personPayloadSchema.parse(request.body))),
+        .send(
+          await createPerson(
+            personPayloadSchema.parse(request.body),
+            request.user?.id,
+          ),
+        ),
   );
   app.put(
     "/:id",
@@ -74,6 +117,7 @@ export const peopleRoutes: FastifyPluginAsync = async (app) => {
       const row = await updatePerson(
         id,
         personPayloadSchema.parse(request.body),
+        request.user?.id,
       );
       return row ?? reply.code(404).send({ message: "الشخص غير موجود." });
     },
@@ -85,7 +129,7 @@ export const peopleRoutes: FastifyPluginAsync = async (app) => {
       const id = parseId((request.params as { id: string }).id);
       if (!id)
         return reply.code(400).send({ message: "معرّف الشخص غير صحيح." });
-      const row = await archivePerson(id);
+      const row = await archivePerson(id, request.user?.id);
       return row ?? reply.code(404).send({ message: "الشخص غير موجود." });
     },
   );
@@ -96,7 +140,7 @@ export const peopleRoutes: FastifyPluginAsync = async (app) => {
       const id = parseId((request.params as { id: string }).id);
       if (!id)
         return reply.code(400).send({ message: "معرّف الشخص غير صحيح." });
-      const row = await restorePerson(id);
+      const row = await restorePerson(id, request.user?.id);
       return row ?? reply.code(404).send({ message: "الشخص غير موجود." });
     },
   );

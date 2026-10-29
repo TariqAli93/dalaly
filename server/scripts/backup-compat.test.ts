@@ -45,7 +45,8 @@ function canonicalRows(rows: unknown[]) {
 
 /**
  * Rows projected onto the fixture's columns. A column added after the
- * fixture was written (identity_documents.agreement_id) restores as null.
+ * fixture was written (identity_documents.agreement_id) restores as null,
+ * or as its empty default (people.roles).
  */
 function asFixture(rows: unknown[], fixtureRows: unknown[]) {
   const known = new Set(fixtureRows.flatMap((row) => Object.keys(row as object)));
@@ -53,7 +54,10 @@ function asFixture(rows: unknown[], fixtureRows: unknown[]) {
     Object.fromEntries(
       Object.entries(row as object).filter(([key, value]) => {
         if (known.has(key) || !fixtureRows.length) return true;
-        assert.equal(value, null, `${key}, added after the fixture, is null`);
+        assert.ok(
+          value === null || (Array.isArray(value) && value.length === 0),
+          `${key}, added after the fixture, is null or empty`,
+        );
         return false;
       }),
     ),
