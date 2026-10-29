@@ -218,6 +218,17 @@ const appPages: RouteRecordRaw[] = [
       titleKey: "routes.deals",
     },
   },
+  // المالية: دليل الحسابات.
+  {
+    path: "/accounting/accounts",
+    name: "accounts",
+    component: () => import("../pages/AccountsPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "accounting.read",
+      titleKey: "routes.accounts",
+    },
+  },
   // المهام والمتابعات: تكفي أي صلاحية قراءة متابعات؛ القائمة تعرض ما تسمح به.
   {
     path: "/tasks",

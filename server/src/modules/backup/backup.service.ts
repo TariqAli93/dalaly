@@ -13,6 +13,7 @@ import { config } from "../../infrastructure/config.js";
 import { db } from "../../infrastructure/database/db.js";
 import { pool } from "../../infrastructure/database/pool.js";
 import type { Transaction } from "../../infrastructure/database/record-codes.js";
+import { ensureDefaultChart } from "../accounting/default-chart.js";
 import { resolveManagedFile } from "../documents/documents.storage.js";
 import { getSetting, setSetting } from "../settings/settings.repository.js";
 import { DomainError } from "../../shared/errors.js";
@@ -32,6 +33,7 @@ import {
   rentals,
   propertyImages,
   propertyFollowups,
+  accounts,
   activities,
   deals,
   dealOffers,
@@ -225,6 +227,15 @@ const TABLE_SPECS = [
     dates: ["createdAt", "updatedAt"],
     optional: true,
   },
+  // The chart of accounts (Phase 4a). Only a full restore replaces it; an
+  // archive from before it restores an empty table, and the default
+  // accounts are added again afterwards.
+  {
+    name: "accounts",
+    table: accounts,
+    dates: ["createdAt", "updatedAt"],
+    optional: true,
+  },
   // Added after backup version 3, like the contract tables above.
   {
     name: "activities",
@@ -315,6 +326,7 @@ const SERIAL_TABLES = new Set<TableName>([
   "deal_stage_history",
   "deal_offers",
   "activities",
+  "accounts",
   "document_types",
   "identity_documents",
   "audit_logs",
@@ -737,6 +749,29 @@ export async function exportBackup(
  * before tasks (no `status`) gets what migration 0005 gave the rows that
  * existed then: done unless its date is still ahead.
  */
+/**
+ * Rows of a table that refers to itself, each after its parent, so one
+ * chunk never names a parent a later chunk inserts. A row whose parent is
+ * not among them keeps its place (its link is checked like any other).
+ */
+function parentsFirst(rows: Record<string, unknown>[], key: string) {
+  const byId = new Map(rows.map((row) => [Number(row.id), row]));
+  const placed = new Set<number>();
+  const out: Record<string, unknown>[] = [];
+  const place = (row: Record<string, unknown>, path: Set<number>) => {
+    const id = Number(row.id);
+    if (placed.has(id) || path.has(id)) return;
+    path.add(id);
+    const parent = byId.get(Number(row[key]));
+    if (row[key] !== null && row[key] !== undefined && parent)
+      place(parent, path);
+    placed.add(id);
+    out.push(row);
+  };
+  for (const row of rows) place(row, new Set());
+  return out;
+}
+
 function upgradeRow(name: TableName, row: Record<string, unknown>) {
   if (
     (name === "property_followups" || name === "rental_followups") &&
@@ -1093,9 +1128,10 @@ async function restoreArchive(
       // إدراج بترتيب الأب قبل الابن.
       for (const name of tablesToRestore) {
         const spec = specByName(name);
-        const rows = (database[name] ?? []).map((row) =>
+        let rows = (database[name] ?? []).map((row) =>
           upgradeRow(name, coerceRow(row, spec.dates)),
         );
+        if (name === "accounts") rows = parentsFirst(rows, "parentId");
         await dropDanglingLinks(tx, name, rows, tablesToRestore, existingIds);
         if (rows.length) {
           if (scope === "users" && name === "users") {
@@ -1130,6 +1166,7 @@ async function restoreArchive(
     for (const name of tablesToRestore) {
       await resetSequence(name);
     }
+    if (tablesToRestore.includes("accounts")) await ensureDefaultChart();
 
     let imagesRestored = 0;
     if (scope === "full" || scope === "images" || scope === "properties") {

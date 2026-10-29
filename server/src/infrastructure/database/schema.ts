@@ -1180,6 +1180,67 @@ export const identityDocuments = pgTable(
   ],
 );
 
+/**
+ * The chart of accounts. A heading (`is_postable` false) groups accounts and
+ * takes no postings; it may span both currencies (`currency` null). A posting
+ * account has exactly one currency. `system_key` marks the default accounts
+ * the ledger finds by key (`cash.IQD`, `client_funds.USD`): see
+ * modules/accounting/default-chart.ts. The chart's other rules (a child has
+ * its parent's type and currency, no cycles) are in accounting.rules.ts.
+ */
+export const accounts = pgTable(
+  "accounts",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    code: text("code").notNull().unique(),
+    name: text("name").notNull(),
+    accountType: text("account_type").notNull(),
+    parentId: bigint("parent_id", { mode: "number" }).references(
+      (): AnyPgColumn => accounts.id,
+      { onDelete: "restrict" },
+    ),
+    currency: text("currency"),
+    isPostable: boolean("is_postable").notNull().default(true),
+    systemKey: text("system_key").unique(),
+    isActive: boolean("is_active").notNull().default(true),
+    description: text("description"),
+    createdBy: bigint("created_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    updatedBy: bigint("updated_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_accounts_parent").on(table.parentId),
+    check(
+      "accounts_type",
+      sql`${table.accountType} in ('asset', 'liability', 'equity', 'revenue', 'expense')`,
+    ),
+    check(
+      "accounts_currency",
+      sql`${table.currency} is null or ${table.currency} in ('IQD', 'USD')`,
+    ),
+    check(
+      "accounts_postable_currency",
+      sql`not ${table.isPostable} or ${table.currency} is not null`,
+    ),
+    check("accounts_code", sql`${table.code} ~ '^[0-9]{1,10}$'`),
+    check(
+      "accounts_parent",
+      sql`${table.parentId} is null or ${table.parentId} <> ${table.id}`,
+    ),
+  ],
+);
+
 export const officeProfiles = pgTable("office_profiles", {
   id: integer("id").primaryKey().default(1),
   companyName: text("company_name").notNull().default(""),
@@ -1282,3 +1343,4 @@ export type AgreementRevision = typeof agreementRevisions.$inferSelect;
 export type Deal = typeof deals.$inferSelect;
 export type DealOffer = typeof dealOffers.$inferSelect;
 export type AppSetting = typeof appSettings.$inferSelect;
+export type Account = typeof accounts.$inferSelect;

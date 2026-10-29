@@ -190,6 +190,17 @@ test("API responses match the renderer's types", async (t) => {
       await api("PATCH", `/api/deals/${deal.id}/offers/${offer.id}`, { status: "accepted" });
       await api("POST", `/api/deals/${deal.id}/stage`, { stage: "contract_preparation" });
       await api("PATCH", `/api/tasks/activity/${activity.id}`, { priority: "urgent" });
+      const chart = await api("GET", "/api/accounting/accounts");
+      const expenses = chart.find((row: { system_key: string | null }) => row.system_key === "expenses");
+      const officeAccount = await api("POST", "/api/accounting/accounts", {
+        code: "5301",
+        name: "إيجار المكتب",
+        account_type: "expense",
+        parent_id: expenses.id,
+        currency: "IQD",
+        is_postable: true,
+      });
+      await api("PUT", `/api/accounting/accounts/${officeAccount.id}`, { ...officeAccount, description: "إيجار شهري" });
       // An audited change to the customer, for /people/:id/audit.
       const current = await api("GET", `/api/people/${person.id}`);
       await api("PUT", `/api/people/${person.id}`, { ...current, notes: "زبون الفحص" });
@@ -299,6 +310,7 @@ test("API responses match the renderer's types", async (t) => {
         "/api/deals/paged?page=1&page_size=10&sort_by=updated_at&sort_order=desc",
         "/api/deals/pipeline",
         `/api/deals/${dealId}`,
+        "/api/accounting/accounts",
       ];
       for (const url of urls) await api("GET", url);
     }

@@ -449,6 +449,43 @@ price when the payload leaves them empty.
   with `formatAmount` (`utils/format.ts`), which groups the decimal string
   itself rather than going through a number.
 
+## Accounting (`modules/accounting`)
+
+Money is exact (`shared/money.ts`), and IQD and USD are never converted or
+added together.
+
+- **Chart of accounts** (`accounts`, migration `0008_chart_of_accounts`).
+  - An account is a heading (`is_postable` false), which groups accounts and
+    may span both currencies (`currency` null), or a posting account, which
+    has exactly one currency.
+  - The rules are `accounting.rules.ts` (`accountChangeError`, unit tested):
+    - a child has its parent's type, and its currency if the parent has one;
+    - a parent is an active heading, and no account goes under itself or its
+      own children;
+    - a heading with children stays a heading and keeps its type;
+    - a heading stops only after its children.
+  - Chart edits lock the table against other chart edits (`SHARE ROW
+    EXCLUSIVE`; reads continue), so two saves cannot make a cycle or reuse a
+    code.
+- **Default accounts** (`default-chart.ts`). Each has a `system_key`: a
+  heading key (`cash`) or the posting account of one currency
+  (`cash.IQD`). The ledger finds accounts by these keys, so they keep their
+  code, type, currency and place; only the name and description change.
+  - `ensureDefaultChart` adds any that are missing, after migrations at
+    startup and after a full restore. An archive from before the chart
+    restores an empty table and gets them back.
+  - Money held for a landlord or seller is `client_funds` (a liability), never
+    income. Only commissions and fees are revenue.
+- **API.** `GET /accounting/accounts` needs `accounting.read`; `POST` and
+  `PUT /accounting/accounts/:id` need `accounting.accounts.manage`.
+  Changes are audited (`entity_type` `account`).
+- **Backup.** `accounts` is in a full restore only. Rows go in parents
+  first, since the table refers to itself.
+- In the renderer, `pages/AccountsPage.vue` is the chart, a tree with
+  filters by currency and text. `components/accounting/AccountDialog.vue`
+  adds and edits accounts: a child takes its parent's type and currency, and
+  a code is suggested.
+
 ## Contracts (`modules/agreements`)
 
 Contract Studio: sale, installment sale, residential and commercial lease

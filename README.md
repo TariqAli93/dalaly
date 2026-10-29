@@ -105,6 +105,7 @@ pnpm --filter @dalaly/server test:files          # image, follow-up and document
 pnpm --filter @dalaly/server test:tasks          # follow-ups as tasks, customer activities, tasks list by permission, 0005 upgrade
 pnpm --filter @dalaly/server test:customers      # duplicate warnings, customer audit, roles, source and assigned employee
 pnpm --filter @dalaly/server test:deals          # deal stages, offers, close permission, pipeline totals, stalled deals, restores
+pnpm --filter @dalaly/server test:accounting     # chart of accounts: default accounts, chart rules, permissions, restores
 pnpm --filter @dalaly/server test:import         # Excel import: all rows or none, row cap, same skips as before
 pnpm --filter @dalaly/server test:queries        # users/roles lists and location names in a fixed number of queries
 pnpm --filter @dalaly/server test:dashboard      # dashboard summary unchanged by its merged queries

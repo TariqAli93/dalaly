@@ -207,10 +207,16 @@ on `bigint` minor units (`shared/money.ts`) and never on `number`.
   currency, every journal entry is in one currency, and every report shows
   each currency separately. Nothing is converted between them.
 - `accounts`: code, Arabic name, type (asset, liability, equity, revenue,
-  expense), parent, currency, `is_postable`, `system_key`, active. A data
-  migration seeds the default chart: cash and bank per currency,
-  receivables, client funds held, payables, employee commissions payable,
-  brokerage income, other income, operating expenses and equity.
+  expense), parent, currency, `is_postable`, `system_key`, active. The
+  default chart has, per currency:
+  - cash, bank and receivables;
+  - client funds held, payables and employee commissions payable;
+  - capital and retained earnings;
+  - brokerage income and other income;
+  - employee commissions and operating expenses.
+  It is added idempotently at startup, next to the RBAC seed, rather than by
+  a data migration (decided in 4a). A full restore of an archive from before
+  the chart then gets it back too.
 - `journal_entries` (code, date, description, currency, status draft or
   posted, source type and id, a unique `idempotency_key`, `reversal_of`)
   and `journal_lines` (account, debit, credit, optional person and deal,

@@ -20,8 +20,8 @@ Do not rely on this file alone.
 | 2d — customer UI | `feat/phase-02d-customer-ui` | [#34](https://github.com/TariqAli93/dalaly/pull/34), merged `1a361ac` | renderer typecheck, lint, build; web demo; CI pass | Completed |
 | 3a — deals core | `feat/phase-03a-deals-core` | [#33](https://github.com/TariqAli93/dalaly/pull/33), merged `1b54f56` | `test:deals` 10/10, deal rules 5/5, money 4/4, `test:contract` 97; all suites; CI pass | Completed |
 | 3b — deals UI | `feat/phase-03b-deals-ui` | [#35](https://github.com/TariqAli93/dalaly/pull/35), merged `eed0dcc` | renderer typecheck, lint, build; `formatAmount` tests; web demo; CI pass | Completed |
-| 3c — deal integration | `feat/phase-03c-deal-integration` | — | `test:deals` 15/15; renderer checks; web demo | In review |
-| 4a — chart of accounts | `feat/phase-04a-chart-of-accounts` | — | — | Pending |
+| 3c — deal integration | `feat/phase-03c-deal-integration` | [#36](https://github.com/TariqAli93/dalaly/pull/36), merged `8364e11` | `test:deals` 15/15; all suites; web demo; CI pass | Completed |
+| 4a — chart of accounts | `feat/phase-04a-chart-of-accounts` | — | `test:accounting` 9/9, account rules 7/7, `test:contract` 100, backup round trip 35 tables; web demo | In review |
 | 4b — general ledger | `feat/phase-04b-general-ledger` | — | — | Pending |
 | 4c — receipts and payments | `feat/phase-04c-receipts-payments` | — | — | Pending |
 | 4d — commissions | `feat/phase-04d-commissions` | — | — | Pending |
@@ -308,6 +308,50 @@ below.
   - "صفقة" on a request match opened the dialog with the buyer, listing and
     request filled, and saved deal `D-0002` linked to `PR-9002` with the
     listing's price.
+- The first CI run of #36 failed in `test:media-tokens` (phase 1b). Its
+  forged-token check "altered" the last character to `A`, so a token that
+  already ended in `A` (one run in 64) was not altered at all, and the
+  server rightly accepted it. The check now always changes the character.
+
+### 4a — chart of accounts
+
+- `accounts` (`0008`) holds headings and posting accounts. A posting account
+  has one currency; a heading may span both. The rules are in
+  `accounting.rules.ts`: parent type and currency, no cycles, headings keep
+  their kind, and stopping goes children first. They are unit tested
+  (7 tests) and enforced again by checks in the database.
+- The default chart is 41 accounts: 5 type headings and 12 group headings,
+  each group with one posting account per currency. The groups are cash,
+  bank, receivables, client funds, payables, employee commissions payable,
+  capital, retained earnings, brokerage income, other income, employee
+  commissions and operating expenses.
+  - `ensureDefaultChart` adds missing default accounts by `system_key` at
+    startup and after a full restore.
+  - Default accounts keep their code, type, currency and place; only their
+    name and description change.
+- `accounting.read` and `accounting.accounts.manage` are new permissions.
+  The Super Admin gets them through the RBAC seed.
+- The renderer has a "المالية" navigation group with "دليل الحسابات": the
+  chart as a tree, filtered by currency and text, with an add/edit dialog.
+- `test:accounting` (9):
+  - an upgrade from `0007` with data;
+  - the default chart and a second run adding nothing;
+  - a deleted default account coming back under its heading;
+  - every chart rule through the API, codes taken, unknown parents;
+  - default accounts' fixed fields;
+  - both permissions and the audit;
+  - a full restore (moved accounts, later accounts gone, sequences);
+  - an archive from before the chart getting the default accounts.
+  `test:removal:backup` now covers 35 tables. `test:contract` checks the
+  three new calls (100).
+- `ensureDefaultChart` skips a database whose migrations end before `0008`,
+  which the 0005 upgrade test exercises.
+- Checked in the web demo:
+  - the 41 default accounts as a tree, with a lock on default accounts;
+  - "+" on "المصروفات التشغيلية" suggested `5203` with the heading's type
+    and currency, and saved it;
+  - a taken code showed the server's message in the dialog;
+  - a default account's dialog allows only its name and description.
 
 ## Database migrations
 
@@ -317,6 +361,7 @@ below.
 | `0005_crm_tasks` | 2a | task columns on both follow-up tables (customer, assignee, status, priority, completion, outcome, `updated_at`), `activities`, their indexes and checks; existing follow-ups without a date or already past become `done` |
 | `0006_customer_crm` | 2b | `people.roles` (checked `text[]`, GIN index), `source` (checked), `assigned_user_id` (FK users, set null, indexed) |
 | `0007_deals` | 3a | `deals` (checked type, stage, priority, currency, listing kind, distinct parties, ISO close date), `deal_stage_history`, `deal_offers`, `activities.deal_id` |
+| `0008_chart_of_accounts` | 4a | `accounts` (checked type, currency, code digits, posting accounts with a currency, no self-parent; unique code and `system_key`; parent FK restrict). The default accounts are added at startup, not by the migration. |
 
 ## Decisions that need the owner
 
