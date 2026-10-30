@@ -1,7 +1,8 @@
 # Reports
 
 Every report figure comes from stored records and has one definition,
-written below. The financial reports (Phase 6a) read the **posted journal**.
+written below. The financial reports are in Phase 6a, and the operational
+reports (deals, customers, listings, leases) in Phase 6b. The financial reports (Phase 6a) read the **posted journal**.
 Commissions and employees' shares also read the documents behind the
 journal (commissions, splits, vouchers). So a report always agrees with the
 trial balance, and a correction (a reversal, a voided voucher) shows on the
@@ -160,6 +161,92 @@ One account's posted lines in the period with a running balance on its
 normal side, after its opening balance. This is the cash and bank ledgers.
 It is the same statement as `/api/accounting/accounts/:id/statement` (at
 most 2000 lines), behind `reports.financial`.
+
+## Operational reports (Phase 6b)
+
+They are under `/api/reports/operations/`.
+
+- **Permission.** Each needs `reports.operations` **and** its area's read
+  permission: `deals.read`, `people.read`, `properties.read` or
+  `rentals.read` by kind, and `leases.read`. Figures built on requests are
+  null without `requests.read`, the way the dashboard leaves them out.
+- **Dates.** Timestamps are read as dates in Baghdad. Periods default to
+  the year to date, as in the financial reports.
+- **Rates.** A rate is a percentage to one decimal, null when there is
+  nothing to divide by. A money rate (collection) is computed from exact
+  hundredths.
+
+### Deals — `GET /api/reports/operations/deals?from&to&user_id&deal_type`
+
+`user_id` keeps the deals assigned to that employee; `deal_type` keeps sale
+or rent deals.
+
+| Figure                       | Definition                                                                                                                                                             |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `created`                    | deals created in the period                                                                                                                                            |
+| `won` / `lost` / `cancelled` | deals in that stage whose `closed_at` is in the period                                                                                                                 |
+| `open_now`                   | deals now in any stage but won, lost, cancelled (the active negotiations)                                                                                              |
+| `win_rate`                   | won ÷ (won + lost) of those closed in the period; a cancelled deal (withdrawn) is neither                                                                              |
+| `cohort_conversion`          | of the deals created in the period, the share won by now                                                                                                               |
+| cycle                        | days from `created_at` to `closed_at` of the deals won in the period: average and median                                                                               |
+| `stages`                     | open deals per stage, with the average days since they entered it                                                                                                      |
+| `pipeline`                   | open deals and their expected commission, per currency                                                                                                                 |
+| `lost_reasons`               | deals lost in the period by their reason (trimmed; empty is «بلا سبب»), with its share of the losses                                                                   |
+| `employees`                  | per assigned employee: open now, created, won, lost, win rate, average cycle, and the active commissions dated in the period on their deals (dinars and dollars apart) |
+| `commissions`                | active commissions dated in the period, per currency and deal type                                                                                                     |
+| `closed`                     | the deals closed in the period, newest first (at most 1000)                                                                                                            |
+
+### Customers — `GET /api/reports/operations/customers?from&to&user_id&days`
+
+**A contact** is an activity, or a sale or rental follow-up, that names the
+customer.
+
+`user_id` keeps:
+
+- the customers assigned to that employee (active, new, uncontacted,
+  repeat);
+- the contacts made by that employee (contacted, by type, by employee).
+
+| Figure                                 | Definition                                                                                                                                                                                                                                           |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `active`                               | customers whose status is active                                                                                                                                                                                                                     |
+| `new`                                  | customers added in the period                                                                                                                                                                                                                        |
+| `contacted`                            | customers with a contact in the period                                                                                                                                                                                                               |
+| `uncontacted`                          | active customers with something open (an open deal as client or owner, or an open request), whose last contact is more than `days` (default 30) days before the period's end, or who were never contacted. Never contacted first, at most 500 listed |
+| `repeat`                               | customers on two or more won deals (as client or owner) closed by the period's end                                                                                                                                                                   |
+| `new_conversion`                       | of the customers added in the period, the share on a won deal by its end                                                                                                                                                                             |
+| `contacts_by_type`, `contacts_by_user` | contacts in the period, and the customers they reached                                                                                                                                                                                               |
+| `requests`                             | per kind: open requests of active customers; requests added in the period, those with a deal, those with a won deal, and the share won (`conversion`)                                                                                                |
+
+### Listings — `GET /api/reports/operations/listings?kind&from&to`
+
+For sale listings (`kind=sale`) or rentals (`kind=rental`), and the
+requests for them.
+
+| Figure        | Definition                                                                                                                                                                                                                                                                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `statuses`    | listings per current status                                                                                                                                                                                                                                                                                                                 |
+| `closed`      | listings now sold (rented) whose change log records the change in the period (the dashboard's definition)                                                                                                                                                                                                                                   |
+| `stale`       | available listings with no edit and no follow-up in the last 30 days (the dashboard's definition)                                                                                                                                                                                                                                           |
+| `age`         | available listings by days since added: 0–30, 31–90, 91–180, 181–365, over 365; and the median                                                                                                                                                                                                                                              |
+| `types`       | available listings and open requests (of active customers) per property type                                                                                                                                                                                                                                                                |
+| `price_bands` | available listings by price, and open requests by their top budget, in fixed bands of dinars. A sale uses its total price. A rental uses its rent as a month's share (annual ÷ 12, semi-annual ÷ 6), and a request's budget is read the same way. A band holds its lower bound and not its upper one; amounts are compared in SQL `numeric` |
+| `demand`      | open requests per governorate and district, beside the available listings in the same governorate and district                                                                                                                                                                                                                              |
+| `unmatched`   | open requests of active customers that no available listing matches on every required criterion (the dashboard's matching)                                                                                                                                                                                                                  |
+
+Sale bands start at 0, 100, 200, 300 and 500 million, and 1 billion dinars.
+Rental bands start at 0, 500 thousand, 1, 1.5, 2 and 3 million.
+
+### Leases — `GET /api/reports/operations/leases?from&to&days`
+
+| Figure      | Definition                                                                                                                                                                                                                    |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `in_force`  | per currency: leases in force today (status active, today within their dates) and upcoming ones; their rent as a month's share (each lease's rent ÷ the months of its frequency, rounded to the fils), summed                 |
+| `expiring`  | leases in force whose last day is within `days` (default 60) days of today                                                                                                                                                    |
+| `due`       | installments due in the period on leases where the office collects (not cancelled, not released by a termination): their amount, what was paid on them (never beyond each one's amount) and the collection rate paid ÷ amount |
+| `overdue`   | the same installments due before today and not fully paid: how many, what is left, the oldest's days                                                                                                                          |
+| `ended`     | leases (not cancelled) whose termination day, else last day, is in the period; how many were renewed or terminated; renewal rate = renewed ÷ ended                                                                            |
+| `brokerage` | leases added in the period (activated, and renewals apart), rent deals won in the period, and active commissions on rent deals dated in the period per currency                                                               |
 
 ## Screens and exports
 

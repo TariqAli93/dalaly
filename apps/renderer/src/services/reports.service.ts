@@ -1,5 +1,13 @@
 import type {
   AccountStatement,
+  CustomersReport,
+  CustomersReportQuery,
+  DealsReport,
+  DealsReportQuery,
+  LeasesReport,
+  LeasesReportQuery,
+  ListingsReport,
+  ListingsReportQuery,
   BalanceSheetReport,
   CashFlowReport,
   CommissionsReport,
@@ -75,5 +83,31 @@ export function getAccountLedger(
 ) {
   return request<AccountStatement>(
     `/reports/financial/ledger/${id}${buildQuery(range)}`,
+  );
+}
+
+// ─── Operational (reports.operations and each area's read permission) ───
+
+export function getDealsReport(query: DealsReportQuery) {
+  return request<DealsReport>(
+    `/reports/operations/deals${buildQuery({ ...query })}`,
+  );
+}
+
+export function getCustomersReport(query: CustomersReportQuery) {
+  return request<CustomersReport>(
+    `/reports/operations/customers${buildQuery({ ...query })}`,
+  );
+}
+
+export function getListingsReport(query: ListingsReportQuery) {
+  return request<ListingsReport>(
+    `/reports/operations/listings${buildQuery({ ...query })}`,
+  );
+}
+
+export function getLeasesReport(query: LeasesReportQuery) {
+  return request<LeasesReport>(
+    `/reports/operations/leases${buildQuery({ ...query })}`,
   );
 }

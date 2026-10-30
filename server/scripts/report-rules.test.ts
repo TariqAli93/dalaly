@@ -86,3 +86,22 @@ test("sums are exact", () => {
   assert.equal(sumOf(["9999999999999999.99", "-9999999999999999.99", "0.01"]), "0.01");
   assert.equal(sumOf([]), "0.00");
 });
+
+test("operational rates, medians, listing ages and price bands", async () => {
+  const { rate, median, average, ageBucket, bandEnd, PRICE_BANDS } = await import("../src/modules/reports/operations.rules.js");
+  assert.equal(rate(1, 3), 33.3);
+  assert.equal(rate(2, 3), 66.7);
+  assert.equal(rate(0, 0), null, "nothing to divide");
+  assert.equal(median([30, 20]), 25);
+  assert.equal(median([5, 1, 9]), 5);
+  assert.equal(median([]), null);
+  assert.equal(average([20, 30, 31]), 27);
+  assert.equal(ageBucket(0), "days_0_30");
+  assert.equal(ageBucket(30), "days_0_30");
+  assert.equal(ageBucket(31), "days_31_90");
+  assert.equal(ageBucket(365), "days_181_365");
+  assert.equal(ageBucket(366), "over_365");
+  assert.equal(bandEnd("sale", 100_000_000), 200_000_000);
+  assert.equal(bandEnd("sale", PRICE_BANDS.sale.at(-1)!), null, "the last band has no end");
+  assert.equal(bandEnd("rental", 0), 500_000);
+});

@@ -475,6 +475,11 @@ test("API responses match the renderer's types", async (t) => {
         "/api/reports/financial/receivables",
         "/api/reports/financial/payables",
         `/api/reports/financial/ledger/${cashAccountId}?from=2026-10-01`,
+        "/api/reports/operations/deals?from=2020-01-01",
+        "/api/reports/operations/customers?from=2020-01-01",
+        "/api/reports/operations/listings?kind=sale&from=2020-01-01",
+        "/api/reports/operations/listings?kind=rental&from=2020-01-01",
+        "/api/reports/operations/leases?from=2020-01-01",
       ];
       for (const url of urls) await api("GET", url);
     }
