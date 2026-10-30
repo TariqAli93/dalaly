@@ -263,6 +263,12 @@ export const NAV_SECTIONS: NavSection[] = [
     title: "المالية",
     items: [
       {
+        title: "القيود",
+        to: "/accounting/journal",
+        icon: "mdi-book-open-variant",
+        permission: "accounting.read",
+      },
+      {
         title: "دليل الحسابات",
         to: "/accounting/accounts",
         icon: "mdi-file-tree-outline",

@@ -128,3 +128,9 @@ export function formatPlot(plotNumber: unknown, plotLetter?: unknown): string {
   if (!number) return "";
   return letter ? `${number} ${letter}` : number;
 }
+
+/** اليوم بتوقيت الجهاز، بصيغة حقول التاريخ (YYYY-MM-DD). */
+export function todayIso(date = new Date()) {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}

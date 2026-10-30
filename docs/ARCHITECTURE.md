@@ -521,6 +521,17 @@ added together.
   filters by currency and text. `components/accounting/AccountDialog.vue`
   adds and edits accounts: a child takes its parent's type and currency, and
   a code is suggested.
+- The journal pages are under "المالية":
+  - `JournalPage.vue` lists entries (filters by currency, status, source,
+    dates, text).
+  - `JournalEntryPage.vue` shows an entry and offers what its status and the
+    user's permissions allow: edit, post or delete a draft; reverse a posted
+    entry.
+  - `AccountStatementPage.vue` is an account's statement.
+  - `components/accounting/JournalEntryDialog.vue` edits a draft's lines.
+    Its balance uses `utils/money.ts` (bigint hundredths, as on the server),
+    so "متوازن" there means the server will accept the post.
+  - `PeriodsDialog.vue` closes and reopens months.
 
 ## Contracts (`modules/agreements`)
 

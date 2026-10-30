@@ -40,3 +40,16 @@ test("exact amounts are grouped without passing through a number", async () => {
   assert.equal(formatAmount("-150.5"), "-150.50 د.ع");
   assert.equal(formatAmount(null), "—");
 });
+
+test("the journal editor sums amounts exactly", async () => {
+  const { amountToMinor, minorToAmount, sumAmounts } = await import("../../apps/renderer/src/utils/money.js");
+  assert.equal(amountToMinor("1,500.5"), 150050n);
+  assert.equal(amountToMinor(""), 0n);
+  assert.equal(amountToMinor(null), 0n);
+  assert.equal(amountToMinor("1.234"), null, "three decimals is not an amount");
+  assert.equal(amountToMinor("-5"), null);
+  assert.equal(sumAmounts(["0.10", "0.20"]), amountToMinor("0.30"), "where 0.1 + 0.2 is not 0.3");
+  assert.equal(minorToAmount(sumAmounts(["9007199254740993.00", "0.01"])!), "9007199254740993.01", "past 2^53");
+  assert.equal(minorToAmount(-150n), "-1.50");
+  assert.equal(sumAmounts(["1", "x"]), null);
+});

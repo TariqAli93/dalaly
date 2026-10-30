@@ -78,7 +78,7 @@ const sideOf = (deal: DealRecord) => {
           <bdi>{{
             formatAmount(deal.agreed_price ?? deal.asking_price, deal.currency)
           }}</bdi>
-          · <bdi>{{ formatDate(deal.updated_at) }}</bdi>
+          · <span>{{ formatDate(deal.updated_at) }}</span>
         </v-list-item-subtitle>
         <template #append>
           <v-chip

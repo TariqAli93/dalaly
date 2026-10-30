@@ -1,4 +1,9 @@
-import type { AccountType, Currency } from "../types";
+import type {
+  AccountType,
+  Currency,
+  JournalSource,
+  JournalStatus,
+} from "../types";
 
 /** أنواع الحسابات بترتيب الدليل، وجهة رصيدها المعتادة. */
 export const ACCOUNT_TYPES: Array<{
@@ -27,4 +32,43 @@ export function accountCurrencyLabel(value: Currency | null) {
     ? (ACCOUNT_CURRENCIES.find((currency) => currency.value === value)?.title ??
         value)
     : "العملتان";
+}
+
+/** من أين جاء القيد: يدوي، أو عكسي، أو من سند وعمولة ومصروف في المراحل التالية. */
+export const JOURNAL_SOURCES: Array<{ value: JournalSource; title: string }> = [
+  { value: "manual", title: "قيد يدوي" },
+  { value: "reversal", title: "قيد عكسي" },
+  { value: "receipt", title: "سند قبض" },
+  { value: "payment", title: "سند صرف" },
+  { value: "commission", title: "عمولة" },
+  { value: "expense", title: "مصروف" },
+  { value: "transfer", title: "تحويل نقدي" },
+  { value: "lease", title: "إيجار" },
+];
+
+export function journalSourceLabel(value: string) {
+  return (
+    JOURNAL_SOURCES.find((source) => source.value === value)?.title ?? value
+  );
+}
+
+export const JOURNAL_STATUSES: Array<{
+  value: JournalStatus;
+  title: string;
+  color: string;
+}> = [
+  { value: "draft", title: "مسودة", color: "warning" },
+  { value: "posted", title: "مرحَّل", color: "success" },
+];
+
+export function journalStatusLabel(value: string) {
+  return (
+    JOURNAL_STATUSES.find((status) => status.value === value)?.title ?? value
+  );
+}
+export function journalStatusColor(value: string) {
+  return (
+    JOURNAL_STATUSES.find((status) => status.value === value)?.color ??
+    "default"
+  );
 }

@@ -263,6 +263,15 @@ onMounted(() => {
             }}
           </td>
           <td class="accounts-table__actions">
+            <v-btn
+              v-if="row.account.is_postable"
+              icon="mdi-text-box-search-outline"
+              size="small"
+              variant="text"
+              :to="`/accounting/accounts/${row.account.id}`"
+              :aria-label="`كشف حساب ${row.account.name}`"
+              :title="`كشف حساب ${row.account.name}`"
+            />
             <template v-if="can('accounting.accounts.manage')">
               <v-btn
                 v-if="!row.account.is_postable && row.account.is_active"

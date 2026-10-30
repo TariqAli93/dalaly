@@ -218,7 +218,7 @@ const appPages: RouteRecordRaw[] = [
       titleKey: "routes.deals",
     },
   },
-  // المالية: دليل الحسابات.
+  // المالية: دليل الحسابات وكشوفها، والقيود.
   {
     path: "/accounting/accounts",
     name: "accounts",
@@ -227,6 +227,36 @@ const appPages: RouteRecordRaw[] = [
       requiresAuth: true,
       permission: "accounting.read",
       titleKey: "routes.accounts",
+    },
+  },
+  {
+    path: "/accounting/accounts/:id(\\d+)",
+    name: "account-statement",
+    component: () => import("../pages/AccountStatementPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "accounting.read",
+      titleKey: "routes.accountStatement",
+    },
+  },
+  {
+    path: "/accounting/journal",
+    name: "journal",
+    component: () => import("../pages/JournalPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "accounting.read",
+      titleKey: "routes.journal",
+    },
+  },
+  {
+    path: "/accounting/journal/:id(\\d+)",
+    name: "journal-entry",
+    component: () => import("../pages/JournalEntryPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "accounting.read",
+      titleKey: "routes.journal",
     },
   },
   // المهام والمتابعات: تكفي أي صلاحية قراءة متابعات؛ القائمة تعرض ما تسمح به.

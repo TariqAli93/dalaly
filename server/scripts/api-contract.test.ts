@@ -89,6 +89,8 @@ test("API responses match the renderer's types", async (t) => {
     let agreementId = 0;
     let activityId = 0;
     let dealId = 0;
+    let journalId = 0;
+    let cashAccountId = 0;
 
     {
       // Records created the way the renderer creates them.
@@ -201,6 +203,24 @@ test("API responses match the renderer's types", async (t) => {
         is_postable: true,
       });
       await api("PUT", `/api/accounting/accounts/${officeAccount.id}`, { ...officeAccount, description: "إيجار شهري" });
+      // The journal: a draft, posted on its update, reversed; a deleted draft;
+      // a month closed and reopened.
+      cashAccountId = chart.find((row: { system_key: string | null }) => row.system_key === "cash.IQD").id;
+      const entryLines = [
+        { account_id: officeAccount.id, debit: "750000", credit: null, person_id: person.id, deal_id: deal.id, memo: "إيجار" },
+        { account_id: cashAccountId, debit: null, credit: "750000", person_id: null, deal_id: null, memo: null },
+      ];
+      const entry = await api("POST", "/api/accounting/journal", { entry_date: "2026-10-01", currency: "IQD", description: "إيجار المكتب", lines: entryLines, post: false });
+      const posted = await api("PUT", `/api/accounting/journal/${entry.id}`, { entry_date: "2026-10-01", currency: "IQD", description: "إيجار المكتب", lines: entryLines, post: true });
+      journalId = posted.id;
+      await api("POST", `/api/accounting/journal/${posted.id}/reverse`, { entry_date: "2026-10-02", reason: "فحص" });
+      const draft = await api("POST", "/api/accounting/journal", { entry_date: "2026-10-03", currency: "IQD", description: "مسودة", lines: entryLines, post: false });
+      await api("POST", `/api/accounting/journal/${draft.id}/post`);
+      const extra = await api("POST", "/api/accounting/journal", { entry_date: "2026-10-04", currency: "IQD", description: "تُحذف", lines: entryLines, post: false });
+      await api("DELETE", `/api/accounting/journal/${extra.id}`);
+      await api("POST", "/api/accounting/periods", { period: "2026-07", notes: null });
+      await api("DELETE", "/api/accounting/periods/2026-07");
+      await api("POST", "/api/accounting/periods", { period: "2026-06", notes: "فحص" });
       // An audited change to the customer, for /people/:id/audit.
       const current = await api("GET", `/api/people/${person.id}`);
       await api("PUT", `/api/people/${person.id}`, { ...current, notes: "زبون الفحص" });
@@ -311,6 +331,10 @@ test("API responses match the renderer's types", async (t) => {
         "/api/deals/pipeline",
         `/api/deals/${dealId}`,
         "/api/accounting/accounts",
+        "/api/accounting/journal/paged?page=1&page_size=10&sort_by=entry_date&sort_order=desc",
+        `/api/accounting/journal/${journalId}`,
+        `/api/accounting/accounts/${cashAccountId}/statement?from=2026-10-01`,
+        "/api/accounting/periods",
       ];
       for (const url of urls) await api("GET", url);
     }
