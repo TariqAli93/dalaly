@@ -517,6 +517,37 @@ added together.
     - `:id/reverse` needs `accounting.journal.reverse`.
     - `periods` close and reopen need `accounting.periods.manage`.
   - Everything is audited (`journal_entry`, `accounting_period`).
+- **Receipts and payments** (`vouchers`, migration `0010_vouchers`;
+  `vouchers.rules.ts`, `vouchers.service.ts`). A receipt (`RC-000001`) or
+  payment (`PV-000001`) moves money into or out of a cash or bank account.
+  It is posted to the ledger through `writeEntry` in the same transaction,
+  with the idempotency key `voucher:<id>`.
+  - The purpose picks the other side and the types it may have:
+    - a commission is income;
+    - money collected for a landlord or seller is client funds (a
+      liability), never income;
+    - also receivables, other income, capital; for payments, expenses,
+      employee commissions, payables and drawings.
+  - A payment never takes more than the cash or bank account holds, or
+    more client funds than were collected for that person. Payments from
+    one account take turns (`FOR NO KEY UPDATE` on its row), so two cannot
+    both spend one balance.
+  - A voucher never changes. Voiding posts the reversing entry and marks it
+    voided, with a reason. The `vouchers_guard` trigger (SQLSTATE `DL001`)
+    allows only that change, refuses deletes and keeps the customer and deal
+    it names.
+  - A voucher's entry is reversed only by voiding the voucher: the journal
+    refuses a manual reversal of an entry a document posted
+    (`ENTRY_FROM_DOCUMENT`).
+  - `decimalAmountInWords` (shared document module) writes the amount in
+    words from its digits, for the printed receipt.
+  - API `/api/vouchers`:
+    - `vouchers.read`: `paged`, `:id`, `money-accounts` (with balances),
+      `client-funds?person_id=`.
+    - `vouchers.receipt` or `vouchers.payment` to issue, by kind.
+    - `vouchers.void` to void.
+  - Deleting a user who issued vouchers or posted entries is refused with
+    "deactivate instead": `0010` replaces `journal_entries_guard` to say so.
 - In the renderer, `pages/AccountsPage.vue` is the chart, a tree with
   filters by currency and text. `components/accounting/AccountDialog.vue`
   adds and edits accounts: a child takes its parent's type and currency, and

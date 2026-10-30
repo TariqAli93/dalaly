@@ -239,14 +239,29 @@ export async function reverseJournalEntry(
   input: { entry_date?: string; reason: string },
   userId?: number,
 ) {
-  const reversalId = await db.transaction((tx) =>
-    reverseEntry(
+  const reversalId = await db.transaction(async (tx) => {
+    // An entry a document posted (a receipt, a payment) is undone by voiding
+    // the document, which keeps the two in step.
+    const [source] = await tx
+      .select({
+        code: journalEntries.code,
+        sourceType: journalEntries.sourceType,
+      })
+      .from(journalEntries)
+      .where(eq(journalEntries.id, id));
+    if (source && !["manual", "reversal"].includes(source.sourceType))
+      throw new DomainError(
+        409,
+        `القيد ${source.code} قيد مستند؛ يُلغى المستند نفسه فيُعكس قيده.`,
+        "ENTRY_FROM_DOCUMENT",
+      );
+    return reverseEntry(
       tx,
       id,
       { entryDate: input.entry_date, reason: input.reason },
       userId,
-    ),
-  );
+    );
+  });
   if (!reversalId) return null;
   return audit(reversalId, "posted", userId, {
     reversal_of_id: id,

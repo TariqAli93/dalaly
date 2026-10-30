@@ -5,6 +5,7 @@ import {
   TEMPLATE_KEYS,
   amountInWords,
   arabicOrdinal,
+  decimalAmountInWords,
   clauseNumbers,
   emptyTerms,
   findIssues,
@@ -64,6 +65,14 @@ test("amounts in Arabic words and clause ordinals", () => {
   assert.equal(numberToArabicWords(1_500_000), "مليون وخمسمئة ألف");
   assert.equal(numberToArabicWords(350_000_000), "ثلاثمئة وخمسون مليوناً");
   assert.equal(amountInWords(250_000, "IQD"), "فقط مئتان وخمسون ألفاً دينار عراقي لا غير");
+  assert.equal(decimalAmountInWords("1500000.50", "IQD"), "فقط مليون وخمسمئة ألف دينار عراقي وخمسون فلساً لا غير");
+  assert.equal(decimalAmountInWords("250.05", "USD"), "فقط مئتان وخمسون دولار أمريكي وخمسة سنتات لا غير");
+  assert.equal(decimalAmountInWords("750000.00", "IQD"), "فقط سبعمئة وخمسون ألفاً دينار عراقي لا غير");
+  // Past 2^53, where a number would lose units: read from the digits.
+  assert.equal(
+    decimalAmountInWords("9007199254740993.00", "IQD"),
+    "فقط تسعة كوادريليونات وسبعة ترليونات ومئة وتسعة وتسعون ملياراً ومئتان وأربعة وخمسون مليوناً وسبعمئة وأربعون ألفاً وتسعمئة وثلاثة وتسعون دينار عراقي لا غير",
+  );
   assert.equal(arabicOrdinal(1), "الأول");
   assert.equal(arabicOrdinal(11), "الحادي عشر");
   assert.equal(arabicOrdinal(21), "الحادي والعشرون");

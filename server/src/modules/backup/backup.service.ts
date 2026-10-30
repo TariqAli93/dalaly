@@ -49,6 +49,7 @@ import {
   identityDocuments,
   journalEntries,
   journalLines,
+  vouchers,
   officeProfiles,
   auditLogs,
   appSettings,
@@ -255,6 +256,13 @@ const TABLE_SPECS = [
     dates: ["closedAt"],
     optional: true,
   },
+  // Receipts and payments (Phase 4c), after the entries they posted.
+  {
+    name: "vouchers",
+    table: vouchers,
+    dates: ["voidedAt", "createdAt"],
+    optional: true,
+  },
   // Added after backup version 3, like the contract tables above.
   {
     name: "activities",
@@ -348,6 +356,7 @@ const SERIAL_TABLES = new Set<TableName>([
   "accounts",
   "journal_entries",
   "journal_lines",
+  "vouchers",
   "document_types",
   "identity_documents",
   "audit_logs",
@@ -881,6 +890,8 @@ const KEPT_LINKS = [
   { table: "agreements", column: "rental_id", target: "rentals" },
   { table: "journal_lines", column: "person_id", target: "people" },
   { table: "journal_lines", column: "deal_id", target: "deals" },
+  { table: "vouchers", column: "person_id", target: "people" },
+  { table: "vouchers", column: "deal_id", target: "deals" },
 ] as const;
 
 function keptLinks(restoring: readonly string[]) {
