@@ -30,8 +30,8 @@ Do not rely on this file alone.
 | 4d — commissions UI | `feat/phase-04d-commissions-ui` | [#43](https://github.com/TariqAli93/dalaly/pull/43), merged `ca695f6` | `test:contract` 123, percent preview vs server; renderer checks; web demo; CI pass | Completed |
 | 4e — expenses and cash (server) | `feat/phase-04e-expenses-cash` | [#44](https://github.com/TariqAli93/dalaly/pull/44), merged `18781c7` | `test:cash` 9/9, cash rules 4/4, money 5/5, backup round trip 44 tables; CI pass | Completed |
 | 4e — expenses and cash UI | `feat/phase-04e-cash-ui` | [#45](https://github.com/TariqAli93/dalaly/pull/45), merged `11c3b0e` | `test:contract` 133; renderer checks; web demo; CI pass | Completed |
-| 4f — financial integration (server) | `feat/phase-04f-financial-integration` | — | `test:finance` 9/9, voucher and deal rules 12/12, `test:contract` 135; affected suites | In review |
-| 4f — financial integration UI | — | — | — | Pending |
+| 4f — financial integration (server) | `feat/phase-04f-financial-integration` | [#46](https://github.com/TariqAli93/dalaly/pull/46), merged `a4fd3ac` | `test:finance` 9/9, voucher and deal rules 12/12, `test:contract` 135; affected suites; CI pass | Completed |
+| 4f — financial integration UI | `feat/phase-04f-financial-ui` | — | renderer checks; `test:contract` 135; web demo | In review |
 | 5a — leases | `feat/phase-05a-leases` | — | — | Pending |
 | 5b — lease payments | `feat/phase-05b-lease-payments` | — | — | Pending |
 | 6a — financial reports | `feat/phase-06a-financial-reports` | — | — | Pending |
@@ -646,7 +646,45 @@ below.
   - restores.
   Rules: `heldFor` and the closing rule (unit tests). `test:contract` 135.
 - The screens (who the funds are for on the voucher form, the money on the
-  deal and customer pages) follow in their own PR.
+  deal and customer pages) came in the next PR, "4f — financial integration
+  UI".
+
+### 4f — financial integration UI
+
+- The voucher form has "الأمانة لحساب" on client-funds vouchers. Its hint
+  says who it defaults to. A payment shows what is held for that owner and
+  warns before an amount above it.
+- The voucher page and the printed copy name the owner when someone else
+  paid in or took out the money.
+- The deal page has an "المال" section:
+  - the commission recorded (and expected), what the customer still owes,
+    the employees' shares, the client funds held (received, handed over),
+    and the office's net (income less costs);
+  - the linked contract's commission, deposit and down payment, flagged
+    when its commission differs from the recorded one;
+  - the last vouchers on the deal;
+  - "قبض أمانة" (from the client, for the owner), "تسليم أمانة" and
+    "مصروف", each opening the voucher form with the deal filled in.
+- The customer page has an "المال" tab: what they owe the office, the funds
+  held for them, their commissions and their vouchers. A receipt into their
+  funds from someone else reads "لحسابه، من …"; a payment out of them to
+  someone else reads "من أمانته، إلى …".
+- Checked in the web demo, on deal `D-0002` (buyer سارة محمد, seller أحمد
+  عبد الرزاق set for the check):
+  - the deal's "قبض أمانة" issued `RC-000003` for 10,000,000 from the buyer,
+    held for the seller. Held funds read 10,000,000 and the net 0: a
+    deposit is not income;
+  - "تسليم أمانة" warned at 10,000,001, then `PV-000003` handed 6,000,000 to
+    the seller;
+  - a 1,000,000 refund to the buyer out of the seller's funds (`PV-000004`)
+    shows "الأمانة لحساب أحمد عبد الرزاق" on its page;
+  - marking the deal lost was refused in the stage dialog: 3,000,000 still
+    held;
+  - the seller's "المال" tab: 3,000,000 held, with the four vouchers;
+  - no console errors besides the two expected refusals. The money section
+    fits at 375 px. The deal page still scrolls sideways there because of
+    its existing form fields, which this PR does not change.
+
 
 ## Database migrations
 

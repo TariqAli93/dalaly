@@ -22,6 +22,8 @@ import type {
  * الدافع، و«تحصيل» يصدر سند قبض يسدد الذمة.
  */
 const props = defineProps<{ deal: DealRecord }>();
+/** A commission was recorded or collected: the deal's money changed. */
+const emit = defineEmits<{ changed: [] }>();
 const { can } = usePermissions();
 const { notifySuccess } = useSnackbar();
 
@@ -63,6 +65,7 @@ const dialog = ref(false);
 function onRecorded(commission: CommissionDetail) {
   notifySuccess(`سُجّلت العمولة ${commission.code}.`);
   void load();
+  emit("changed");
 }
 
 const collectDialog = ref(false);
@@ -82,6 +85,7 @@ function collect(commission: CommissionRecord) {
 function onCollected(voucher: VoucherDetail) {
   notifySuccess(`صدر سند القبض ${voucher.code}.`);
   void load();
+  emit("changed");
 }
 </script>
 

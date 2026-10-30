@@ -697,6 +697,19 @@ added together.
   - In `VoucherDialog.vue`, an expense payment picks a category (only those
     with an account in the voucher's currency). The category then decides
     the account, so the other-account field is hidden.
+- Deal and customer money in the renderer:
+  - `components/deals/DealMoney.vue` on the deal page (`vouchers.read`)
+    shows `GET /api/finance/deals/:id`, the linked contract's money terms,
+    and the deal's last vouchers. It opens `VoucherDialog` preset for client
+    funds in (from the client, held for the owner), client funds out, and an
+    expense on the deal. `DealCommissions` emits `changed` so it reloads.
+  - `components/people/PersonMoney.vue` is the customer page's "المال" tab
+    (`vouchers.read`): `GET /api/finance/people/:id`, their commissions and
+    vouchers.
+  - `VoucherDialog` takes `held_for_person_id` (preset or picked) on client
+    funds, checks a payment against what is held for that owner, and shows
+    `allocationNote` whenever it is given (a deal's context too, not only an
+    allocation).
 
 ## Contracts (`modules/agreements`)
 
