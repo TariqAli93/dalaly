@@ -34,6 +34,7 @@ import {
   propertyImages,
   propertyFollowups,
   accounts,
+  accountingPeriods,
   activities,
   deals,
   dealOffers,
@@ -46,6 +47,8 @@ import {
   purchaseRequests,
   documentTypes,
   identityDocuments,
+  journalEntries,
+  journalLines,
   officeProfiles,
   auditLogs,
   appSettings,
@@ -236,6 +239,22 @@ const TABLE_SPECS = [
     dates: ["createdAt", "updatedAt"],
     optional: true,
   },
+  // The ledger (Phase 4b), after the accounts, customers and deals its lines
+  // name. Its triggers refuse changes to posted entries; a restore passes them
+  // (dalaly.ledger_restore) because it replaces the tables whole.
+  {
+    name: "journal_entries",
+    table: journalEntries,
+    dates: ["postedAt", "createdAt", "updatedAt"],
+    optional: true,
+  },
+  { name: "journal_lines", table: journalLines, dates: [], optional: true },
+  {
+    name: "accounting_periods",
+    table: accountingPeriods,
+    dates: ["closedAt"],
+    optional: true,
+  },
   // Added after backup version 3, like the contract tables above.
   {
     name: "activities",
@@ -327,6 +346,8 @@ const SERIAL_TABLES = new Set<TableName>([
   "deal_offers",
   "activities",
   "accounts",
+  "journal_entries",
+  "journal_lines",
   "document_types",
   "identity_documents",
   "audit_logs",
@@ -858,6 +879,8 @@ const KEPT_LINKS = [
   { table: "deals", column: "rental_id", target: "rentals" },
   { table: "agreements", column: "property_id", target: "properties" },
   { table: "agreements", column: "rental_id", target: "rentals" },
+  { table: "journal_lines", column: "person_id", target: "people" },
+  { table: "journal_lines", column: "deal_id", target: "deals" },
 ] as const;
 
 function keptLinks(restoring: readonly string[]) {
@@ -1116,6 +1139,11 @@ async function restoreArchive(
     await db.transaction(async (tx) => {
       // Rewriting whole tables may take longer than a request is allowed.
       await tx.execute(sql`SET LOCAL statement_timeout = 0`);
+      // The ledger's triggers let this transaction replace posted entries
+      // and clear the customer and deal links it puts back below.
+      await tx.execute(
+        sql`SELECT set_config('dalaly.ledger_restore', 'on', true)`,
+      );
       // Replacing a table sets links to it from tables outside the scope to
       // null (ON DELETE SET NULL); keep those links to put them back.
       await saveKeptLinks(tx, tablesToRestore);
@@ -1132,6 +1160,8 @@ async function restoreArchive(
           upgradeRow(name, coerceRow(row, spec.dates)),
         );
         if (name === "accounts") rows = parentsFirst(rows, "parentId");
+        if (name === "journal_entries")
+          rows = parentsFirst(rows, "reversalOfId");
         await dropDanglingLinks(tx, name, rows, tablesToRestore, existingIds);
         if (rows.length) {
           if (scope === "users" && name === "users") {

@@ -4,6 +4,7 @@ import {
   bigserial,
   check,
   boolean,
+  date,
   index,
   integer,
   jsonb,
@@ -1241,6 +1242,132 @@ export const accounts = pgTable(
   ],
 );
 
+/**
+ * The general ledger. An entry is in one currency and is written as a draft,
+ * its lines added, then posted: from then on neither it nor its lines change
+ * (triggers in 0009 refuse it), and a mistake is undone by a reversing entry.
+ * `idempotency_key` lets a receipt or payment post its entry once however
+ * often it is retried.
+ */
+export const journalEntries = pgTable(
+  "journal_entries",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    code: text("code").notNull().unique(),
+    entryDate: date("entry_date", { mode: "string" }).notNull(),
+    description: text("description").notNull(),
+    currency: text("currency").notNull(),
+    status: text("status").notNull().default("draft"),
+    sourceType: text("source_type").notNull().default("manual"),
+    sourceId: bigint("source_id", { mode: "number" }),
+    idempotencyKey: text("idempotency_key").unique(),
+    reversalOfId: bigint("reversal_of_id", { mode: "number" })
+      .unique()
+      .references((): AnyPgColumn => journalEntries.id, {
+        onDelete: "restrict",
+      }),
+    postedAt: timestamp("posted_at", { withTimezone: true }),
+    postedBy: bigint("posted_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    createdBy: bigint("created_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    updatedBy: bigint("updated_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_journal_entries_date").on(table.entryDate, table.id),
+    index("idx_journal_entries_source").on(table.sourceType, table.sourceId),
+    check(
+      "journal_entries_status",
+      sql`${table.status} in ('draft', 'posted')`,
+    ),
+    check("journal_entries_currency", sql`${table.currency} in ('IQD', 'USD')`),
+    check(
+      "journal_entries_source",
+      sql`${table.sourceType} in ('manual', 'reversal', 'receipt', 'payment', 'commission', 'expense', 'transfer', 'lease')`,
+    ),
+    check(
+      "journal_entries_reversal",
+      sql`(${table.reversalOfId} is null) = (${table.sourceType} <> 'reversal')`,
+    ),
+    check(
+      "journal_entries_posted",
+      sql`(${table.status} = 'posted') = (${table.postedAt} is not null)`,
+    ),
+  ],
+);
+
+export const journalLines = pgTable(
+  "journal_lines",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    entryId: bigint("entry_id", { mode: "number" })
+      .notNull()
+      .references(() => journalEntries.id, { onDelete: "cascade" }),
+    lineNo: integer("line_no").notNull(),
+    accountId: bigint("account_id", { mode: "number" })
+      .notNull()
+      .references(() => accounts.id, { onDelete: "restrict" }),
+    debit: numeric("debit", { precision: 18, scale: 2 }).notNull().default("0"),
+    credit: numeric("credit", { precision: 18, scale: 2 })
+      .notNull()
+      .default("0"),
+    /** Set null only by a scoped restore, which puts the link back. */
+    personId: bigint("person_id", { mode: "number" }).references(
+      () => people.id,
+      { onDelete: "set null" },
+    ),
+    dealId: bigint("deal_id", { mode: "number" }).references(() => deals.id, {
+      onDelete: "set null",
+    }),
+    memo: text("memo"),
+  },
+  (table) => [
+    uniqueIndex("uq_journal_lines_entry_line").on(table.entryId, table.lineNo),
+    index("idx_journal_lines_account").on(table.accountId),
+    index("idx_journal_lines_person").on(table.personId),
+    index("idx_journal_lines_deal").on(table.dealId),
+    check(
+      "journal_lines_amounts",
+      sql`${table.debit} >= 0 and ${table.credit} >= 0 and (${table.debit} > 0) <> (${table.credit} > 0)`,
+    ),
+  ],
+);
+
+/** A closed month ("2026-10") takes no postings until it is reopened. */
+export const accountingPeriods = pgTable(
+  "accounting_periods",
+  {
+    period: text("period").primaryKey(),
+    closedAt: timestamp("closed_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    closedBy: bigint("closed_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    notes: text("notes"),
+  },
+  (table) => [
+    check(
+      "accounting_periods_period",
+      sql`${table.period} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`,
+    ),
+  ],
+);
+
 export const officeProfiles = pgTable("office_profiles", {
   id: integer("id").primaryKey().default(1),
   companyName: text("company_name").notNull().default(""),
@@ -1344,3 +1471,5 @@ export type Deal = typeof deals.$inferSelect;
 export type DealOffer = typeof dealOffers.$inferSelect;
 export type AppSetting = typeof appSettings.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
+export type JournalEntry = typeof journalEntries.$inferSelect;
+export type JournalLine = typeof journalLines.$inferSelect;

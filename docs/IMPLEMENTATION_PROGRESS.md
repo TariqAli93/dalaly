@@ -21,8 +21,9 @@ Do not rely on this file alone.
 | 3a — deals core | `feat/phase-03a-deals-core` | [#33](https://github.com/TariqAli93/dalaly/pull/33), merged `1b54f56` | `test:deals` 10/10, deal rules 5/5, money 4/4, `test:contract` 97; all suites; CI pass | Completed |
 | 3b — deals UI | `feat/phase-03b-deals-ui` | [#35](https://github.com/TariqAli93/dalaly/pull/35), merged `eed0dcc` | renderer typecheck, lint, build; `formatAmount` tests; web demo; CI pass | Completed |
 | 3c — deal integration | `feat/phase-03c-deal-integration` | [#36](https://github.com/TariqAli93/dalaly/pull/36), merged `8364e11` | `test:deals` 15/15; all suites; web demo; CI pass | Completed |
-| 4a — chart of accounts | `feat/phase-04a-chart-of-accounts` | — | `test:accounting` 9/9, account rules 7/7, `test:contract` 100, backup round trip 35 tables; web demo | In review |
-| 4b — general ledger | `feat/phase-04b-general-ledger` | — | — | Pending |
+| 4a — chart of accounts | `feat/phase-04a-chart-of-accounts` | [#37](https://github.com/TariqAli93/dalaly/pull/37), merged `d71806f` | `test:accounting` 9/9, account rules 7/7, `test:contract` 100, backup round trip 35 tables; web demo; CI pass | Completed |
+| 4b — general ledger (server) | `feat/phase-04b-general-ledger` | — | `test:ledger` 13/13, journal rules 6/6, backup round trip 38 tables | In review |
+| 4b — journal UI | — | — | — | Pending |
 | 4c — receipts and payments | `feat/phase-04c-receipts-payments` | — | — | Pending |
 | 4d — commissions | `feat/phase-04d-commissions` | — | — | Pending |
 | 4e — expenses and cash | `feat/phase-04e-expenses-cash` | — | — | Pending |
@@ -353,6 +354,40 @@ below.
   - a taken code showed the server's message in the dialog;
   - a default account's dialog allows only its name and description.
 
+### 4b — general ledger (server)
+
+- `journal_entries`, `journal_lines` and `accounting_periods` (`0009`).
+  Entries are written as drafts and posted when they balance, in active
+  posting accounts of their one currency, outside a closed month. Posted
+  entries never change; a reversing entry undoes one, once.
+- The database enforces the same with triggers (SQLSTATE `DL001`, a 409
+  `LEDGER_LOCKED` with an Arabic message). It also refuses deleting a
+  customer or deal a posted line names, and changing the type or currency
+  of an account with posted lines. A restore passes the triggers for its
+  own transaction only.
+- `writeEntry` is the posting gateway for 4c–4f, with idempotency keys.
+- API: the journal (paged list, entry, drafts, post, reverse), account
+  statements with running balances, and closed months. Four new permissions
+  (`accounting.journal.create`, `.post`, `.reverse`,
+  `accounting.periods.manage`), all audited.
+- `test:ledger` (13):
+  - an upgrade from `0008` with data;
+  - drafts posting only once balanced;
+  - currency, heading, one-sided and two-line rules;
+  - each trigger, in raw SQL;
+  - customers, deals and used accounts kept;
+  - reversals (once, not of a reversal or draft, dated today by default);
+  - statements with opening and running balances;
+  - idempotency;
+  - closed months, in the API and in SQL;
+  - the four permissions and the audit;
+  - a customers restore keeping line links, a full restore, and the
+    triggers active again after it.
+  The journal rules have 6 unit tests. `test:removal:backup` covers 38
+  tables, with a posted entry and a closed month.
+- The journal pages (list, entry editor, reversal, statements, closing
+  months) are not in this PR. They follow in their own, like 3a/3b.
+
 ## Database migrations
 
 | Migration | Phase | What it adds |
@@ -362,6 +397,7 @@ below.
 | `0006_customer_crm` | 2b | `people.roles` (checked `text[]`, GIN index), `source` (checked), `assigned_user_id` (FK users, set null, indexed) |
 | `0007_deals` | 3a | `deals` (checked type, stage, priority, currency, listing kind, distinct parties, ISO close date), `deal_stage_history`, `deal_offers`, `activities.deal_id` |
 | `0008_chart_of_accounts` | 4a | `accounts` (checked type, currency, code digits, posting accounts with a currency, no self-parent; unique code and `system_key`; parent FK restrict). The default accounts are added at startup, not by the migration. |
+| `0009_general_ledger` | 4b | `journal_entries` (checked status, currency, source, reversal link, posted time; unique code, idempotency key and reversal), `journal_lines` (one positive side; FK accounts restrict, people and deals set null for restores), `accounting_periods`; triggers `journal_entries_guard`, `journal_lines_guard`, `accounts_ledger_guard` |
 
 ## Decisions that need the owner
 

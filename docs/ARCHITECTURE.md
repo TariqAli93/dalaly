@@ -481,6 +481,42 @@ added together.
   Changes are audited (`entity_type` `account`).
 - **Backup.** `accounts` is in a full restore only. Rows go in parents
   first, since the table refers to itself.
+- **General ledger** (`journal_entries`, `journal_lines`,
+  `accounting_periods`; migration `0009_general_ledger`).
+  - An entry is in one currency. It is written as a draft, its lines added,
+    then posted. Each line debits or credits one active posting account of
+    the entry's currency with a positive amount, and the debits equal the
+    credits (`journal.rules.ts`, unit tested; sums in `bigint` minor units).
+  - A posted entry never changes and is never deleted. A mistake is undone
+    by a reversing entry, which posts the same lines with the sides swapped,
+    once per entry.
+  - A closed month ("YYYY-MM") takes no postings until it is reopened.
+    Closing takes a `SHARE` lock on `journal_entries`, so postings in flight
+    finish first.
+  - `ledger.service.ts` (`writeEntry`) is the only way into the ledger.
+    Receipts, payments and commissions write their entries through it inside
+    their own transaction, with an idempotency key so a retry never posts
+    twice.
+  - The triggers of `0009` refuse the same again in the database, with
+    SQLSTATE `DL001` and an Arabic message (answered as a 409
+    `LEDGER_LOCKED`):
+    - changes to posted entries or lines;
+    - posting an unbalanced or wrong-currency entry, or into a closed month;
+    - deleting a customer or deal a posted line names;
+    - changing the type, currency or kind of an account with posted lines.
+  - A restore replaces the tables whole and passes the triggers by setting
+    `dalaly.ledger_restore` for its own transaction only. A customers
+    restore keeps the lines' customer and deal links (`KEPT_LINKS`).
+  - API under `/accounting`:
+    - `journal/paged` and `journal/:id`, and `accounts/:id/statement`
+      (opening balance and a running balance on the account's normal side),
+      need `accounting.read`.
+    - `journal` create, update and delete of drafts need
+      `accounting.journal.create`.
+    - `:id/post`, or `post: true` on a save, needs `accounting.journal.post`.
+    - `:id/reverse` needs `accounting.journal.reverse`.
+    - `periods` close and reopen need `accounting.periods.manage`.
+  - Everything is audited (`journal_entry`, `accounting_period`).
 - In the renderer, `pages/AccountsPage.vue` is the chart, a tree with
   filters by currency and text. `components/accounting/AccountDialog.vue`
   adds and edits accounts: a child takes its parent's type and currency, and

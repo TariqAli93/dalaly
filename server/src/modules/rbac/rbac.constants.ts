@@ -145,4 +145,24 @@ export const SYSTEM_PERMISSIONS = [
     name: "إدارة دليل الحسابات",
     module: "accounting",
   },
+  {
+    key: "accounting.journal.create",
+    name: "إنشاء القيود اليدوية وتعديل مسوداتها",
+    module: "accounting",
+  },
+  {
+    key: "accounting.journal.post",
+    name: "ترحيل القيود",
+    module: "accounting",
+  },
+  {
+    key: "accounting.journal.reverse",
+    name: "عكس القيود المرحَّلة",
+    module: "accounting",
+  },
+  {
+    key: "accounting.periods.manage",
+    name: "إقفال الأشهر المحاسبية وإعادة فتحها",
+    module: "accounting",
+  },
 ] as const;

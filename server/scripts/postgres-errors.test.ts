@@ -6,8 +6,15 @@ const uniqueViolation = (constraint: string) =>
   Object.assign(new Error("Failed query"), { cause: Object.assign(new Error("duplicate key"), { code: "23505", constraint }) });
 
 test("SQLSTATE is read directly and through Drizzle's cause", () => {
-  assert.deepEqual(postgresError({ code: "23503", constraint: "fk" }), { code: "23503", constraint: "fk" });
-  assert.deepEqual(postgresError(uniqueViolation("people_code_unique")), { code: "23505", constraint: "people_code_unique" });
+  assert.deepEqual(postgresError({ code: "23503", constraint: "fk" }), { code: "23503", constraint: "fk", message: undefined });
+  assert.deepEqual(postgresError(uniqueViolation("people_code_unique")), {
+    code: "23505",
+    constraint: "people_code_unique",
+    message: "duplicate key",
+  });
+  // A ledger trigger's own message (SQLSTATE DL001) is passed on to the user.
+  const ledger = Object.assign(new Error("Failed query"), { cause: Object.assign(new Error("القيد JE-000001 مرحَّل"), { code: "DL001" }) });
+  assert.equal(postgresError(ledger)?.message, "القيد JE-000001 مرحَّل");
   // Fastify and Node error codes are not SQLSTATEs.
   assert.equal(postgresError({ code: "FST_ERR_CTP_BODY_TOO_LARGE" }), null);
   assert.equal(postgresError({ code: "ECONNREFUSED" }), null);

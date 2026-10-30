@@ -64,6 +64,13 @@
       "when": 1793288141984,
       "tag": "0008_chart_of_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793289544128,
+      "tag": "0009_general_ledger",
+      "breakpoints": true
     }
   ]
 }

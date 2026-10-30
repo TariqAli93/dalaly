@@ -1,7 +1,11 @@
-import { asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import type { Transaction } from "../../infrastructure/database/record-codes.js";
-import { accounts } from "../../infrastructure/database/schema.js";
+import {
+  accounts,
+  journalEntries,
+  journalLines,
+} from "../../infrastructure/database/schema.js";
 import { DomainError } from "../../shared/errors.js";
 import { toApiObject } from "../../shared/utils/case.js";
 import { recordAudit } from "../audit/audit.service.js";
@@ -99,11 +103,22 @@ export async function updateAccount(
     const before = chart.find((account) => account.id === id);
     if (!before) return null;
     checkCode(chart, next.code, id);
-    // Journal lines, which also fix an account's kind, come with the ledger.
+    const [lines] = await tx
+      .select({ id: journalLines.id })
+      .from(journalLines)
+      .innerJoin(journalEntries, eq(journalLines.entryId, journalEntries.id))
+      .where(
+        and(
+          eq(journalLines.accountId, id),
+          eq(journalEntries.status, "posted"),
+        ),
+      )
+      .limit(1);
     const error = accountChangeError(
       asChart(chart),
       before as ChartAccount,
       next,
+      { hasLines: Boolean(lines) },
     );
     if (error) throw new DomainError(400, error, "ACCOUNT_RULE");
     const [updated] = await tx

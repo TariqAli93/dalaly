@@ -19,9 +19,14 @@ export function withRecordCodeLock<T>(
   work: (tx: Transaction) => Promise<T>,
 ): Promise<T> {
   return db.transaction(async (tx) => {
-    await tx.execute(
-      sql`select pg_advisory_xact_lock(${CODE_LOCK_NAMESPACE}, hashtext(${table}))`,
-    );
+    await lockRecordCodes(tx, table);
     return work(tx);
   });
+}
+
+/** The same lock inside a transaction the caller already has. */
+export async function lockRecordCodes(tx: Transaction, table: string) {
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(${CODE_LOCK_NAMESPACE}, hashtext(${table}))`,
+  );
 }

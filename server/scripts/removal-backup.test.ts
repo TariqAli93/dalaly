@@ -181,10 +181,22 @@ test("shared backup v3 survives full restore and rejects incompatible data befor
     });
     // An office account under a default heading, next to the default chart.
     const [expensesHeading] = await db.select().from(schema.accounts).where(eq(schema.accounts.systemKey, "expenses"));
-    await db.insert(schema.accounts).values({
+    const [officeRent] = await db.insert(schema.accounts).values({
       code: "5301", name: "إيجار المكتب", accountType: "expense", parentId: expensesHeading.id,
       currency: "IQD", description: "حساب محفوظ", createdBy: ctx.adminId,
-    });
+    }).returning();
+    // A posted entry (written as a draft, then posted, as the triggers ask)
+    // naming a customer and the deal, and a closed month.
+    const [cashIqd] = await db.select().from(schema.accounts).where(eq(schema.accounts.systemKey, "cash.IQD"));
+    const [entry] = await db.insert(schema.journalEntries).values({
+      code: "JE-000001", entryDate: "2026-09-15", description: "إيجار أيلول", currency: "IQD", createdBy: ctx.adminId,
+    }).returning();
+    await db.insert(schema.journalLines).values([
+      { entryId: entry.id, lineNo: 1, accountId: officeRent.id, debit: "750000.00", personId: ctx.people[0].id, dealId: deal.id },
+      { entryId: entry.id, lineNo: 2, accountId: cashIqd.id, credit: "750000.00", memo: "نقداً" },
+    ]);
+    await db.update(schema.journalEntries).set({ status: "posted", postedAt: new Date(), postedBy: ctx.adminId }).where(eq(schema.journalEntries.id, entry.id));
+    await db.insert(schema.accountingPeriods).values({ period: "2026-08", closedBy: ctx.adminId, notes: "شهر مقفل" });
     // Contract tables: a customised template with its history, and an issued
     // contract with its parties, revision and an export.
     const [agreementTemplate] = await db.insert(schema.agreementTemplates).values({ templateKey: "sale", version: 1, definition: { schema: 1 } }).returning();
@@ -245,14 +257,14 @@ test("shared backup v3 survives full restore and rejects incompatible data befor
     const manifest = JSON.parse(zip.readAsText("manifest.json"));
     const data = JSON.parse(zip.readAsText("data.json")) as Record<string, Record<string, unknown>[]>;
     assert.equal(manifest.version, 3);
-    assert.equal(Object.keys(data).length, 35);
+    assert.equal(Object.keys(data).length, 38);
     assert.ok(data.permissions.some((row) => row.id === customPermissionId && row.key === "reports.custom.review"));
     assert.ok(data.role_permissions.some((row) => row.permissionId === customPermissionId));
     assert.ok(data.app_settings.some((row) => row.key === "reports.custom.preferences"));
     assert.ok(Object.values(data).every((rows) => rows.length > 0), "representative data in every exported table");
     assert.equal(zip.getEntries().filter((entry) => !entry.isDirectory && /^(documents|images)\//.test(entry.entryName)).length, 4);
 
-    await t.test("all 35 shared tables and four managed files round trip", async () => {
+    await t.test("all 38 shared tables and four managed files round trip", async () => {
       await db.update(schema.people).set({ fullName: "اسم تغير بعد النسخ" });
       await db.update(schema.properties).set({ totalPrice: "1.00" });
       await db.update(schema.rentals).set({ rentPrice: "1.00" });

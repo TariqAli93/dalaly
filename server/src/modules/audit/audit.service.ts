@@ -11,7 +11,11 @@ export type AuditAction =
   | "restored"
   | "deleted"
   | "image_added"
-  | "image_removed";
+  | "image_removed"
+  // The ledger: an entry posted, a month closed or reopened.
+  | "posted"
+  | "closed"
+  | "reopened";
 
 type RecordAuditInput = {
   entityType: string;
