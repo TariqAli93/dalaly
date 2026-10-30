@@ -88,3 +88,54 @@ export function payerRoleLabel(role: string, dealType: string) {
   if (dealType === "rent") return role === "owner" ? "المؤجر" : "المستأجر";
   return role === "owner" ? "البائع" : "المشتري";
 }
+
+/** تقارير العمل: كل تقرير بصلاحية عرض مجاله فوق reports.operations. */
+export type OperationsReportKey =
+  "deals" | "customers" | "sale-listings" | "rental-listings" | "leases";
+
+export const OPERATIONS_REPORTS: Array<{
+  value: OperationsReportKey;
+  title: string;
+  icon: string;
+  permission: string;
+}> = [
+  {
+    value: "deals",
+    title: "الصفقات",
+    icon: "mdi-handshake-outline",
+    permission: "deals.read",
+  },
+  {
+    value: "customers",
+    title: "الزبائن",
+    icon: "mdi-account-group-outline",
+    permission: "people.read",
+  },
+  {
+    value: "sale-listings",
+    title: "عروض البيع",
+    icon: "mdi-home-city-outline",
+    permission: "properties.read",
+  },
+  {
+    value: "rental-listings",
+    title: "عروض الإيجار",
+    icon: "mdi-key-chain",
+    permission: "rentals.read",
+  },
+  {
+    value: "leases",
+    title: "الإيجارات السارية",
+    icon: "mdi-home-clock-outline",
+    permission: "leases.read",
+  },
+];
+
+/** عمر العرض المتاح بالأيام منذ إضافته. */
+export const LISTING_AGE_LABELS: Record<string, string> = {
+  days_0_30: "حتى 30 يوماً",
+  days_31_90: "31–90 يوماً",
+  days_91_180: "91–180 يوماً",
+  days_181_365: "181–365 يوماً",
+  over_365: "أكثر من سنة",
+};

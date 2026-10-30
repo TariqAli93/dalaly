@@ -252,6 +252,9 @@ Rental bands start at 0, 500 thousand, 1, 1.5, 2 and 3 million.
 
 - `/reports/financial` has a tab per report. Its filters (period or day,
   currency, month by month, employee, account) are in the address.
+- `/reports/operations` has a tab per operational report the user may
+  see (deals, customers, sale and rental listings, leases). Its filters
+  (period, employee, deal type, days) are in the address too.
 - Each response is mapped once to a table model, which the screen, the
   Excel file, the PDF and the printout all show. They cannot disagree.
 - Sorting compares amounts exactly, as hundredths.

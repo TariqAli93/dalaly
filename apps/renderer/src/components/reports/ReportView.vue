@@ -3,7 +3,8 @@ import { computed } from "vue";
 import {
   cellText,
   compareCells,
-  currencyTitle,
+  numericKind,
+  sectionTitle,
   type ReportCell,
   type ReportColumn,
   type ReportDocument,
@@ -29,9 +30,7 @@ const headersOf = (table: ReportTable) =>
   table.columns.map((column) => ({
     key: column.key,
     title: column.title,
-    align: (column.kind === "money" || column.kind === "number"
-      ? "end"
-      : "start") as "end" | "start",
+    align: (numericKind(column.kind) ? "end" : "start") as "end" | "start",
     sortable: true,
     sort: (a: ReportCell, b: ReportCell) => compareCells(a, b, column.kind),
   }));
@@ -39,8 +38,7 @@ const itemsOf = (table: ReportTable): Item[] =>
   table.rows.map(
     (row, index) => ({ ...row.cells, __row: row, __key: index }) as Item,
   );
-const numeric = (column: ReportColumn) =>
-  column.kind === "money" || column.kind === "number";
+const numeric = (column: ReportColumn) => numericKind(column.kind);
 const negative = (value: ReportCell, column: ReportColumn) =>
   column.kind === "money" && String(value ?? "").startsWith("-");
 
@@ -55,12 +53,12 @@ const text = (value: ReportCell, column: ReportColumn, currency: Currency) =>
     <p v-if="empty" class="report__empty">لا بيانات في هذه المدة.</p>
     <section
       v-for="section in report.sections"
-      :key="section.currency"
+      :key="sectionTitle(section)"
       class="report__section"
-      :aria-label="currencyTitle(section.currency)"
+      :aria-label="sectionTitle(section)"
     >
       <h2 v-if="multi" class="report__currency">
-        {{ currencyTitle(section.currency) }}
+        {{ sectionTitle(section) }}
       </h2>
       <v-alert
         v-if="section.warning"
@@ -120,7 +118,13 @@ const text = (value: ReportCell, column: ReportColumn, currency: Currency) =>
               :to="(item as Item).__row.links![column.key]!"
               :class="{ report__num: numeric(column) }"
               >{{
-                text((item as Item)[column.key], column, section.currency)
+                text(
+                  (item as Item)[column.key],
+                  column,
+                  column.currency ??
+                    (item as Item).__row.currency ??
+                    section.currency,
+                )
               }}</router-link
             >
             <bdi
@@ -132,7 +136,13 @@ const text = (value: ReportCell, column: ReportColumn, currency: Currency) =>
                 'font-weight-bold': (item as Item).__row.tone === 'strong',
               }"
               >{{
-                text((item as Item)[column.key], column, section.currency)
+                text(
+                  (item as Item)[column.key],
+                  column,
+                  column.currency ??
+                    (item as Item).__row.currency ??
+                    section.currency,
+                )
               }}</bdi
             >
             <span
@@ -142,7 +152,13 @@ const text = (value: ReportCell, column: ReportColumn, currency: Currency) =>
                 'font-weight-bold': (item as Item).__row.tone === 'strong',
               }"
               >{{
-                text((item as Item)[column.key], column, section.currency)
+                text(
+                  (item as Item)[column.key],
+                  column,
+                  column.currency ??
+                    (item as Item).__row.currency ??
+                    section.currency,
+                )
               }}</span
             >
           </template>

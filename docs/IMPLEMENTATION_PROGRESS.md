@@ -8,42 +8,42 @@ Do not rely on this file alone.
 
 ## Phases
 
-| Phase                               | Branch                                 | Pull request                                                          | Tests                                                                                                                 | Status    |
-| ----------------------------------- | -------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------- |
-| 0 — audit and plan                  | `docs/phase-00-audit`                  | [#26](https://github.com/TariqAli93/dalaly/pull/26), merged `115d525` | docs only; CI pass                                                                                                    | Completed |
-| 1a — file integrity                 | `fix/phase-01a-file-integrity`         | [#27](https://github.com/TariqAli93/dalaly/pull/27), merged `f0761b0` | `test:files` 14/14; all database suites; CI pass                                                                      | Completed |
-| 1b — media tokens                   | `fix/phase-01b-media-tokens`           | [#28](https://github.com/TariqAli93/dalaly/pull/28), merged `fb3512d` | `test:media-tokens` 8/8; affected suites; CI pass                                                                     | Completed |
-| 1c — hardening                      | `fix/phase-01c-hardening`              | [#29](https://github.com/TariqAli93/dalaly/pull/29), merged `8ac6385` | `test:hardening` 5/5, lifecycle 6/6; all suites; CI pass                                                              | Completed |
-| 2a — activities and tasks           | `feat/phase-02a-activities`            | [#30](https://github.com/TariqAli93/dalaly/pull/30), merged `2d82389` | `test:tasks` 13/13, `test:contract` 87; all suites; CI pass                                                           | Completed |
-| 2b — customer CRM                   | `feat/phase-02b-customer-crm`          | [#31](https://github.com/TariqAli93/dalaly/pull/31), merged `6ec058d` | `test:customers` 8/8, `test:contract` 90; all suites; CI pass                                                         | Completed |
-| 2c — tasks UI                       | `feat/phase-02c-tasks-ui`              | [#32](https://github.com/TariqAli93/dalaly/pull/32), merged `c1a02b3` | renderer typecheck, lint, build; web demo; CI pass                                                                    | Completed |
-| 2d — customer UI                    | `feat/phase-02d-customer-ui`           | [#34](https://github.com/TariqAli93/dalaly/pull/34), merged `1a361ac` | renderer typecheck, lint, build; web demo; CI pass                                                                    | Completed |
-| 3a — deals core                     | `feat/phase-03a-deals-core`            | [#33](https://github.com/TariqAli93/dalaly/pull/33), merged `1b54f56` | `test:deals` 10/10, deal rules 5/5, money 4/4, `test:contract` 97; all suites; CI pass                                | Completed |
-| 3b — deals UI                       | `feat/phase-03b-deals-ui`              | [#35](https://github.com/TariqAli93/dalaly/pull/35), merged `eed0dcc` | renderer typecheck, lint, build; `formatAmount` tests; web demo; CI pass                                              | Completed |
-| 3c — deal integration               | `feat/phase-03c-deal-integration`      | [#36](https://github.com/TariqAli93/dalaly/pull/36), merged `8364e11` | `test:deals` 15/15; all suites; web demo; CI pass                                                                     | Completed |
-| 4a — chart of accounts              | `feat/phase-04a-chart-of-accounts`     | [#37](https://github.com/TariqAli93/dalaly/pull/37), merged `d71806f` | `test:accounting` 9/9, account rules 7/7, `test:contract` 100, backup round trip 35 tables; web demo; CI pass         | Completed |
-| 4b — general ledger (server)        | `feat/phase-04b-general-ledger`        | [#38](https://github.com/TariqAli93/dalaly/pull/38), merged `edb4caf` | `test:ledger` 13/13, journal rules 6/6, backup round trip 38 tables; CI pass                                          | Completed |
-| 4b — journal UI                     | `feat/phase-04b-journal-ui`            | [#39](https://github.com/TariqAli93/dalaly/pull/39), merged `fef0787` | `test:contract` 111, editor sums 1 test; renderer checks; web demo; CI pass                                           | Completed |
-| 4c — receipts and payments (server) | `feat/phase-04c-receipts-payments`     | [#40](https://github.com/TariqAli93/dalaly/pull/40), merged `90adba2` | `test:vouchers` 10/10, voucher rules 5/5, backup round trip 39 tables; CI pass                                        | Completed |
-| 4c — vouchers UI                    | `feat/phase-04c-vouchers-ui`           | [#41](https://github.com/TariqAli93/dalaly/pull/41), merged `27dce5a` | `test:contract` 117; renderer checks; web demo; CI pass                                                               | Completed |
-| 4d — commissions (server)           | `feat/phase-04d-commissions`           | [#42](https://github.com/TariqAli93/dalaly/pull/42), merged `2782a16` | `test:commissions` 10/10, commission rules 4/4, backup round trip 41 tables; all suites; CI pass                      | Completed |
-| 4d — commissions UI                 | `feat/phase-04d-commissions-ui`        | [#43](https://github.com/TariqAli93/dalaly/pull/43), merged `ca695f6` | `test:contract` 123, percent preview vs server; renderer checks; web demo; CI pass                                    | Completed |
-| 4e — expenses and cash (server)     | `feat/phase-04e-expenses-cash`         | [#44](https://github.com/TariqAli93/dalaly/pull/44), merged `18781c7` | `test:cash` 9/9, cash rules 4/4, money 5/5, backup round trip 44 tables; CI pass                                      | Completed |
-| 4e — expenses and cash UI           | `feat/phase-04e-cash-ui`               | [#45](https://github.com/TariqAli93/dalaly/pull/45), merged `11c3b0e` | `test:contract` 133; renderer checks; web demo; CI pass                                                               | Completed |
-| 4f — financial integration (server) | `feat/phase-04f-financial-integration` | [#46](https://github.com/TariqAli93/dalaly/pull/46), merged `a4fd3ac` | `test:finance` 9/9, voucher and deal rules 12/12, `test:contract` 135; affected suites; CI pass                       | Completed |
-| 4f — financial integration UI       | `feat/phase-04f-financial-ui`          | [#47](https://github.com/TariqAli93/dalaly/pull/47), merged `391845a` | renderer checks; `test:contract` 135; web demo; CI pass                                                               | Completed |
-| 5a — leases (server)                | `feat/phase-05a-leases`                | [#48](https://github.com/TariqAli93/dalaly/pull/48), merged `06d5b9f` | `test:leases` 9/9, lease rules 7/7, `test:contract` 142, backup round trip 46 tables; affected suites; CI pass        | Completed |
-| 5a — leases UI                      | `feat/phase-05a-leases-ui`             | [#49](https://github.com/TariqAli93/dalaly/pull/49), merged `5381863` | renderer checks; `test:contract` 142; web demo; CI pass                                                               | Completed |
-| 5b — lease payments (server)        | `feat/phase-05b-lease-payments`        | [#50](https://github.com/TariqAli93/dalaly/pull/50), merged `10c00f1` | `test:lease-payments` 11/11, lease rules 9/9, `test:contract` 145; affected suites; CI pass                           | Completed |
-| 5b — lease payments UI              | `feat/phase-05b-lease-payments-ui`     | [#51](https://github.com/TariqAli93/dalaly/pull/51), merged `139075a` | renderer checks; `test:contract` 145; web demo; CI pass                                                               | Completed |
-| 6a — financial reports (server)     | `feat/phase-06a-financial-reports`     | [#52](https://github.com/TariqAli93/dalaly/pull/52), merged `c0f6fc4` | `test:reports` 1/1 (a known year, every report), report rules 4/4, `test:contract` 153; timings under 500 ms; CI pass | Completed |
-| 6a — financial reports UI           | `feat/phase-06a-financial-reports-ui`  | [#53](https://github.com/TariqAli93/dalaly/pull/53), merged `55d841c` | renderer checks; renderer utils 8/8; web demo; CI pass                                                                | Completed |
-| 6b — operational reports (server)   | `feat/phase-06b-operational-reports`   | —                                                                     | `test:reports` 2/2 (operational: every figure), report rules 5/5, `test:contract` 157                                 | In review |
-| 6b — operational reports UI         | —                                      | —                                                                     | —                                                                                                                     | Pending   |
-| 7a — navigation                     | `feat/phase-07a-navigation`            | —                                                                     | —                                                                                                                     | Pending   |
-| 7b — dashboard                      | `feat/phase-07b-dashboard`             | —                                                                     | —                                                                                                                     | Pending   |
-| 8 — refactoring and performance     | `refactor/phase-08-*`                  | —                                                                     | —                                                                                                                     | Pending   |
-| 9 — final verification              | `test/phase-09-*`                      | —                                                                     | —                                                                                                                     | Pending   |
+| Phase                               | Branch                                  | Pull request                                                          | Tests                                                                                                                 | Status    |
+| ----------------------------------- | --------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------- |
+| 0 — audit and plan                  | `docs/phase-00-audit`                   | [#26](https://github.com/TariqAli93/dalaly/pull/26), merged `115d525` | docs only; CI pass                                                                                                    | Completed |
+| 1a — file integrity                 | `fix/phase-01a-file-integrity`          | [#27](https://github.com/TariqAli93/dalaly/pull/27), merged `f0761b0` | `test:files` 14/14; all database suites; CI pass                                                                      | Completed |
+| 1b — media tokens                   | `fix/phase-01b-media-tokens`            | [#28](https://github.com/TariqAli93/dalaly/pull/28), merged `fb3512d` | `test:media-tokens` 8/8; affected suites; CI pass                                                                     | Completed |
+| 1c — hardening                      | `fix/phase-01c-hardening`               | [#29](https://github.com/TariqAli93/dalaly/pull/29), merged `8ac6385` | `test:hardening` 5/5, lifecycle 6/6; all suites; CI pass                                                              | Completed |
+| 2a — activities and tasks           | `feat/phase-02a-activities`             | [#30](https://github.com/TariqAli93/dalaly/pull/30), merged `2d82389` | `test:tasks` 13/13, `test:contract` 87; all suites; CI pass                                                           | Completed |
+| 2b — customer CRM                   | `feat/phase-02b-customer-crm`           | [#31](https://github.com/TariqAli93/dalaly/pull/31), merged `6ec058d` | `test:customers` 8/8, `test:contract` 90; all suites; CI pass                                                         | Completed |
+| 2c — tasks UI                       | `feat/phase-02c-tasks-ui`               | [#32](https://github.com/TariqAli93/dalaly/pull/32), merged `c1a02b3` | renderer typecheck, lint, build; web demo; CI pass                                                                    | Completed |
+| 2d — customer UI                    | `feat/phase-02d-customer-ui`            | [#34](https://github.com/TariqAli93/dalaly/pull/34), merged `1a361ac` | renderer typecheck, lint, build; web demo; CI pass                                                                    | Completed |
+| 3a — deals core                     | `feat/phase-03a-deals-core`             | [#33](https://github.com/TariqAli93/dalaly/pull/33), merged `1b54f56` | `test:deals` 10/10, deal rules 5/5, money 4/4, `test:contract` 97; all suites; CI pass                                | Completed |
+| 3b — deals UI                       | `feat/phase-03b-deals-ui`               | [#35](https://github.com/TariqAli93/dalaly/pull/35), merged `eed0dcc` | renderer typecheck, lint, build; `formatAmount` tests; web demo; CI pass                                              | Completed |
+| 3c — deal integration               | `feat/phase-03c-deal-integration`       | [#36](https://github.com/TariqAli93/dalaly/pull/36), merged `8364e11` | `test:deals` 15/15; all suites; web demo; CI pass                                                                     | Completed |
+| 4a — chart of accounts              | `feat/phase-04a-chart-of-accounts`      | [#37](https://github.com/TariqAli93/dalaly/pull/37), merged `d71806f` | `test:accounting` 9/9, account rules 7/7, `test:contract` 100, backup round trip 35 tables; web demo; CI pass         | Completed |
+| 4b — general ledger (server)        | `feat/phase-04b-general-ledger`         | [#38](https://github.com/TariqAli93/dalaly/pull/38), merged `edb4caf` | `test:ledger` 13/13, journal rules 6/6, backup round trip 38 tables; CI pass                                          | Completed |
+| 4b — journal UI                     | `feat/phase-04b-journal-ui`             | [#39](https://github.com/TariqAli93/dalaly/pull/39), merged `fef0787` | `test:contract` 111, editor sums 1 test; renderer checks; web demo; CI pass                                           | Completed |
+| 4c — receipts and payments (server) | `feat/phase-04c-receipts-payments`      | [#40](https://github.com/TariqAli93/dalaly/pull/40), merged `90adba2` | `test:vouchers` 10/10, voucher rules 5/5, backup round trip 39 tables; CI pass                                        | Completed |
+| 4c — vouchers UI                    | `feat/phase-04c-vouchers-ui`            | [#41](https://github.com/TariqAli93/dalaly/pull/41), merged `27dce5a` | `test:contract` 117; renderer checks; web demo; CI pass                                                               | Completed |
+| 4d — commissions (server)           | `feat/phase-04d-commissions`            | [#42](https://github.com/TariqAli93/dalaly/pull/42), merged `2782a16` | `test:commissions` 10/10, commission rules 4/4, backup round trip 41 tables; all suites; CI pass                      | Completed |
+| 4d — commissions UI                 | `feat/phase-04d-commissions-ui`         | [#43](https://github.com/TariqAli93/dalaly/pull/43), merged `ca695f6` | `test:contract` 123, percent preview vs server; renderer checks; web demo; CI pass                                    | Completed |
+| 4e — expenses and cash (server)     | `feat/phase-04e-expenses-cash`          | [#44](https://github.com/TariqAli93/dalaly/pull/44), merged `18781c7` | `test:cash` 9/9, cash rules 4/4, money 5/5, backup round trip 44 tables; CI pass                                      | Completed |
+| 4e — expenses and cash UI           | `feat/phase-04e-cash-ui`                | [#45](https://github.com/TariqAli93/dalaly/pull/45), merged `11c3b0e` | `test:contract` 133; renderer checks; web demo; CI pass                                                               | Completed |
+| 4f — financial integration (server) | `feat/phase-04f-financial-integration`  | [#46](https://github.com/TariqAli93/dalaly/pull/46), merged `a4fd3ac` | `test:finance` 9/9, voucher and deal rules 12/12, `test:contract` 135; affected suites; CI pass                       | Completed |
+| 4f — financial integration UI       | `feat/phase-04f-financial-ui`           | [#47](https://github.com/TariqAli93/dalaly/pull/47), merged `391845a` | renderer checks; `test:contract` 135; web demo; CI pass                                                               | Completed |
+| 5a — leases (server)                | `feat/phase-05a-leases`                 | [#48](https://github.com/TariqAli93/dalaly/pull/48), merged `06d5b9f` | `test:leases` 9/9, lease rules 7/7, `test:contract` 142, backup round trip 46 tables; affected suites; CI pass        | Completed |
+| 5a — leases UI                      | `feat/phase-05a-leases-ui`              | [#49](https://github.com/TariqAli93/dalaly/pull/49), merged `5381863` | renderer checks; `test:contract` 142; web demo; CI pass                                                               | Completed |
+| 5b — lease payments (server)        | `feat/phase-05b-lease-payments`         | [#50](https://github.com/TariqAli93/dalaly/pull/50), merged `10c00f1` | `test:lease-payments` 11/11, lease rules 9/9, `test:contract` 145; affected suites; CI pass                           | Completed |
+| 5b — lease payments UI              | `feat/phase-05b-lease-payments-ui`      | [#51](https://github.com/TariqAli93/dalaly/pull/51), merged `139075a` | renderer checks; `test:contract` 145; web demo; CI pass                                                               | Completed |
+| 6a — financial reports (server)     | `feat/phase-06a-financial-reports`      | [#52](https://github.com/TariqAli93/dalaly/pull/52), merged `c0f6fc4` | `test:reports` 1/1 (a known year, every report), report rules 4/4, `test:contract` 153; timings under 500 ms; CI pass | Completed |
+| 6a — financial reports UI           | `feat/phase-06a-financial-reports-ui`   | [#53](https://github.com/TariqAli93/dalaly/pull/53), merged `55d841c` | renderer checks; renderer utils 8/8; web demo; CI pass                                                                | Completed |
+| 6b — operational reports (server)   | `feat/phase-06b-operational-reports`    | [#54](https://github.com/TariqAli93/dalaly/pull/54), merged `9bebe63` | `test:reports` 2/2 (operational: every figure), report rules 5/5, `test:contract` 157; CI pass                        | Completed |
+| 6b — operational reports UI         | `feat/phase-06b-operational-reports-ui` | —                                                                     | renderer checks; renderer utils 9/9; web demo                                                                         | In review |
+| 7a — navigation                     | `feat/phase-07a-navigation`             | —                                                                     | —                                                                                                                     | Pending   |
+| 7b — dashboard                      | `feat/phase-07b-dashboard`              | —                                                                     | —                                                                                                                     | Pending   |
+| 8 — refactoring and performance     | `refactor/phase-08-*`                   | —                                                                     | —                                                                                                                     | Pending   |
+| 9 — final verification              | `test/phase-09-*`                       | —                                                                     | —                                                                                                                     | Pending   |
 
 ## Baseline evidence (Phase 0, `main` at `3e01f9f`)
 
@@ -1010,6 +1010,53 @@ below.
     suite does not age.
 - Report rules: 5 unit tests (rates, medians, age buckets, price bands).
   `test:contract` 157 (5 operational endpoints).
+
+### 6b — operational reports UI
+
+- «تقارير العمل» (`/reports/operations`) sits under الصفقات والعقود in the
+  navigation, behind `reports.operations`. It has a tab per report:
+  - deals;
+  - customers;
+  - sale listings;
+  - rental listings;
+  - leases in force.
+    A tab shows only to users with its area's read permission. The filters
+    are in the address:
+  - the period;
+  - the employee (deals, customers);
+  - the deal type;
+  - the days (uncontacted customers, or leases ending).
+- `utils/operationsReports.ts` maps each response to the report model from
+  6a. The screen, Excel, PDF and print come with it.
+- The model gains a `percent` column kind, a currency per row (tables that
+  list dinars and dollars), a currency per column (an employee's dinar and
+  dollar commissions), and a section title other than a currency's.
+- Links to deals, customers, requests, listings and leases show only to
+  those who may open them. Columns of request figures are left out without
+  `requests.read`.
+- Web demo, after adding deals: one lost with a reason, one negotiating,
+  one won.
+  - **Deals:** 4 created, 1 won, 1 lost, a 50% win rate, 25% of the
+    period's deals won. The reason grouped at 100%. Each employee had a
+    row, and the unassigned deal carried its 7,500,000 commission.
+  - **Customers:** 3 with something open and no contact in 30 days, and
+    the requests' conversion.
+  - **Sale and rental listings:**
+    - status, age and type;
+    - price bands («1,000,000 – 1,500,000 شهرياً»);
+    - demand by area;
+    - the requests nothing matches.
+  - **Leases:** 500,000 collected of the 3,400,000 dinars due (14.7%),
+    2,900,000 overdue for 122 days, and the dollar lease apart.
+  - **Excel:** a sheet named for the report, with counts and rates as
+    numbers. The PDF showed the rates and the dollar column.
+- `scripts/renderer-utils.test.ts`:
+  - links follow permissions;
+  - an unassigned employee row;
+  - dollar columns and rows;
+  - rental types in Arabic;
+  - price band labels;
+  - request columns are left out without the requests.
 
 ## Database migrations
 

@@ -12,12 +12,19 @@ import { signedAmountToMinor } from "./money";
 import type { Currency } from "../types";
 
 export type ReportCell = string | number | null;
-export type ReportColumnKind = "text" | "money" | "number" | "date";
+/** percent: a share already in percent (33.3), shown «33.3%». */
+export type ReportColumnKind = "text" | "money" | "number" | "percent" | "date";
+
+/** Columns lined up at the end, as figures. */
+export const numericKind = (kind?: ReportColumnKind) =>
+  kind === "money" || kind === "number" || kind === "percent";
 
 export interface ReportColumn {
   key: string;
   title: string;
   kind?: ReportColumnKind;
+  /** Its amounts' currency, where columns of one row differ. */
+  currency?: Currency;
 }
 
 /** A row's cells by column key, and where some of them lead. */
@@ -27,6 +34,8 @@ export interface ReportRow {
   links?: Record<string, string>;
   /** A row that reads apart: a heading's subtotal, a cancelled document. */
   tone?: "muted" | "strong";
+  /** Its amounts' currency, where a table mixes them. */
+  currency?: Currency;
 }
 
 export interface ReportTable {
@@ -47,7 +56,10 @@ export interface ReportFigure {
 }
 
 export interface ReportSection {
+  /** Its amounts' currency. */
   currency: Currency;
+  /** A heading other than the currency's (an operational report). */
+  title?: string;
   figures: ReportFigure[];
   tables: ReportTable[];
   /** A check that failed (an unbalanced trial balance): never expected. */
@@ -66,6 +78,8 @@ export interface ReportDocument {
 
 export const currencyTitle = (currency: Currency) =>
   currency === "USD" ? "بالدولار" : "بالدينار";
+export const sectionTitle = (section: ReportSection) =>
+  section.title ?? currencyTitle(section.currency);
 
 /** A cell as the screen and the printout show it. */
 export function cellText(
@@ -76,6 +90,7 @@ export function cellText(
   if (value === null || value === undefined || value === "") return "";
   if (kind === "money") return formatAmount(String(value), currency);
   if (kind === "date") return formatDate(String(value));
+  if (kind === "percent") return `${value}%`;
   return String(value);
 }
 
@@ -86,7 +101,8 @@ export function compareCells(a: ReportCell, b: ReportCell, kind?: string) {
       (signedAmountToMinor(a) ?? 0n) - (signedAmountToMinor(b) ?? 0n);
     return difference === 0n ? 0 : difference < 0n ? -1 : 1;
   }
-  if (kind === "number") return Number(a ?? 0) - Number(b ?? 0);
+  if (kind === "number" || kind === "percent")
+    return Number(a ?? -Infinity) - Number(b ?? -Infinity) || 0;
   return String(a ?? "").localeCompare(String(b ?? ""), "ar");
 }
 
@@ -105,8 +121,7 @@ export async function reportHtml(report: ReportDocument) {
     fontFacesFor(["IBM Plex Sans Arabic"]),
     officeLogoDataUrl(),
   ]);
-  const align = (kind?: ReportColumnKind) =>
-    kind === "money" || kind === "number" ? "num" : "";
+  const align = (kind?: ReportColumnKind) => (numericKind(kind) ? "num" : "");
   const table = (item: ReportTable, currency: Currency) => {
     const head = item.columns
       .map(
@@ -121,7 +136,7 @@ export async function reportHtml(report: ReportDocument) {
               `<tr class="${row.tone ?? ""}">${item.columns
                 .map(
                   (column) =>
-                    `<td class="${align(column.kind)}">${escapeHtml(cellText(row.cells[column.key] ?? null, column.kind, currency))}</td>`,
+                    `<td class="${align(column.kind)}">${escapeHtml(cellText(row.cells[column.key] ?? null, column.kind, column.currency ?? row.currency ?? currency))}</td>`,
                 )
                 .join("")}</tr>`,
           )
@@ -140,7 +155,7 @@ export async function reportHtml(report: ReportDocument) {
   const sections = report.sections
     .map(
       (section) => `<section>
-  <h2>${escapeHtml(currencyTitle(section.currency))}</h2>
+  <h2>${escapeHtml(sectionTitle(section))}</h2>
   ${section.warning ? `<p class="warning">${escapeHtml(section.warning)}</p>` : ""}
   <div class="figures">${section.figures
     .map(
@@ -222,11 +237,24 @@ export async function exportReportPdf(report: ReportDocument) {
  */
 function sheetCell(value: ReportCell, kind?: ReportColumnKind) {
   if (value === null || value === "") return null;
-  if (kind === "money" || kind === "number") {
+  if (numericKind(kind)) {
     const number = Number(value);
     if (Number.isFinite(number) && Math.abs(number) < 9e13) return number;
   }
   return kind === "date" ? formatDate(String(value)) : value;
+}
+
+/** A sheet's name: the section's title, else its currency; 31 characters, unique. */
+function sheetName(section: ReportSection, book: { SheetNames: string[] }) {
+  const base = (
+    section.title ?? (section.currency === "USD" ? "دولار" : "دينار")
+  )
+    .replace(/[\\/?*[\]:]/g, " ")
+    .slice(0, 28);
+  let name = base;
+  for (let index = 2; book.SheetNames.includes(name); index++)
+    name = `${base} ${index}`;
+  return name;
 }
 
 /** One sheet per currency, its tables one under another, right to left. */
@@ -270,11 +298,7 @@ export async function exportReportExcel(report: ReportDocument) {
       const cell = sheet[XLSX.utils.encode_cell({ r, c })];
       if (cell && cell.t === "n") cell.z = "#,##0.00";
     }
-    XLSX.utils.book_append_sheet(
-      book,
-      sheet,
-      section.currency === "USD" ? "دولار" : "دينار",
-    );
+    XLSX.utils.book_append_sheet(book, sheet, sheetName(section, book));
   }
   if (!report.sections.length)
     XLSX.utils.book_append_sheet(
