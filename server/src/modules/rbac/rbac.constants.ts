@@ -200,4 +200,9 @@ export const SYSTEM_PERMISSIONS = [
     name: "تفعيل عقود الإيجار وإلغاؤها",
     module: "leases",
   },
+  {
+    key: "reports.financial",
+    name: "عرض التقارير المالية: الأرباح والميزانية والتدفق النقدي والعمولات والذمم",
+    module: "reports",
+  },
 ] as const;

@@ -35,8 +35,9 @@ Do not rely on this file alone.
 | 5a — leases (server) | `feat/phase-05a-leases` | [#48](https://github.com/TariqAli93/dalaly/pull/48), merged `06d5b9f` | `test:leases` 9/9, lease rules 7/7, `test:contract` 142, backup round trip 46 tables; affected suites; CI pass | Completed |
 | 5a — leases UI | `feat/phase-05a-leases-ui` | [#49](https://github.com/TariqAli93/dalaly/pull/49), merged `5381863` | renderer checks; `test:contract` 142; web demo; CI pass | Completed |
 | 5b — lease payments (server) | `feat/phase-05b-lease-payments` | [#50](https://github.com/TariqAli93/dalaly/pull/50), merged `10c00f1` | `test:lease-payments` 11/11, lease rules 9/9, `test:contract` 145; affected suites; CI pass | Completed |
-| 5b — lease payments UI | `feat/phase-05b-lease-payments-ui` | — | renderer checks; `test:contract` 145; web demo | In review |
-| 6a — financial reports | `feat/phase-06a-financial-reports` | — | — | Pending |
+| 5b — lease payments UI | `feat/phase-05b-lease-payments-ui` | [#51](https://github.com/TariqAli93/dalaly/pull/51), merged `139075a` | renderer checks; `test:contract` 145; web demo; CI pass | Completed |
+| 6a — financial reports (server) | `feat/phase-06a-financial-reports` | — | `test:reports` 1/1 (a known year, every report), report rules 4/4, `test:contract` 153; timings under 500 ms | In review |
+| 6a — financial reports UI | — | — | — | Pending |
 | 6b — operational reports | `feat/phase-06b-operational-reports` | — | — | Pending |
 | 7a — navigation | `feat/phase-07a-navigation` | — | — | Pending |
 | 7b — dashboard | `feat/phase-07b-dashboard` | — | — | Pending |
@@ -881,6 +882,47 @@ below.
   - At 1024 px (the window's minimum) nothing scrolls sideways. At 375 px
     the web demo's command bar is wider than the screen on any page with a
     parent link, as on the deal page; that is the shell, not this page.
+
+### 6a — financial reports (server)
+
+- New module `modules/reports`, at `/api/reports/financial/*`, behind the
+  new permission `reports.financial` (Super Admin by default). Its reports:
+  - trial balance;
+  - income and expenses, optionally by month, with expenses by voucher
+    category;
+  - balance sheet, with the earnings not yet closed;
+  - cash flow, by the heading of the other side, with each cash and bank
+    account's movement;
+  - commissions: collected, outstanding, employees' shares, by deal type
+    and by employee, optionally for one employee;
+  - receivables, aged oldest charge first;
+  - payables: client funds by customer, other payables, employees' shares
+    owed beside the ledger's;
+  - one account's ledger.
+- They read the posted journal (plus commissions, splits and vouchers for
+  the shares), so they agree with the trial balance. One section per
+  currency; exact money throughout.
+- Each formula is in `docs/REPORTS.md`. No migration and no new table.
+- `test:reports` posts a known year and checks every report's figures. It
+  also checks them against each other and against the journal:
+  - the trial balance's debits are every posted line;
+  - the balance sheet's earnings are the income statement's net;
+  - receivables add up to the receivable account;
+  - cash flow closes at cash plus bank;
+  - recorded commissions are the brokerage income.
+  It covers period edges, the currency filter, validation and the
+  permission.
+- Report rules: 4 unit tests (period defaults and Baghdad's date, months,
+  aging edges, overpayment). `test:contract` 153 (8 report endpoints).
+- Timing on a generated year of 40,000 posted entries (80,000 lines),
+  medians:
+  - trial balance 67 ms;
+  - income statement 92 ms;
+  - balance sheet 169 ms;
+  - cash flow 233 ms;
+  - receivables 140 ms;
+  - payables 37 ms.
+  All are under the plan's 500 ms.
 
 
 ## Database migrations

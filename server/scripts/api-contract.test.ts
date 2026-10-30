@@ -467,6 +467,14 @@ test("API responses match the renderer's types", async (t) => {
         `/api/leases/agreement/${agreementId}`,
         "/api/leases/installments/overdue?page=1&page_size=10",
         `/api/vouchers/paged?page=1&page_size=10&sort_by=voucher_date&sort_order=desc&lease_id=${leaseId}`,
+        "/api/reports/financial/trial-balance?from=2020-01-01",
+        "/api/reports/financial/income-statement?from=2020-01-01&group=month",
+        "/api/reports/financial/balance-sheet",
+        "/api/reports/financial/cash-flow?from=2020-01-01",
+        "/api/reports/financial/commissions?from=2020-01-01",
+        "/api/reports/financial/receivables",
+        "/api/reports/financial/payables",
+        `/api/reports/financial/ledger/${cashAccountId}?from=2026-10-01`,
       ];
       for (const url of urls) await api("GET", url);
     }
