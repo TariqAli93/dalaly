@@ -32,8 +32,8 @@ Do not rely on this file alone.
 | 4e — expenses and cash UI | `feat/phase-04e-cash-ui` | [#45](https://github.com/TariqAli93/dalaly/pull/45), merged `11c3b0e` | `test:contract` 133; renderer checks; web demo; CI pass | Completed |
 | 4f — financial integration (server) | `feat/phase-04f-financial-integration` | [#46](https://github.com/TariqAli93/dalaly/pull/46), merged `a4fd3ac` | `test:finance` 9/9, voucher and deal rules 12/12, `test:contract` 135; affected suites; CI pass | Completed |
 | 4f — financial integration UI | `feat/phase-04f-financial-ui` | [#47](https://github.com/TariqAli93/dalaly/pull/47), merged `391845a` | renderer checks; `test:contract` 135; web demo; CI pass | Completed |
-| 5a — leases (server) | `feat/phase-05a-leases` | — | `test:leases` 9/9, lease rules 7/7, `test:contract` 142, backup round trip 46 tables; affected suites | In review |
-| 5a — leases UI | — | — | — | Pending |
+| 5a — leases (server) | `feat/phase-05a-leases` | [#48](https://github.com/TariqAli93/dalaly/pull/48), merged `06d5b9f` | `test:leases` 9/9, lease rules 7/7, `test:contract` 142, backup round trip 46 tables; affected suites; CI pass | Completed |
+| 5a — leases UI | `feat/phase-05a-leases-ui` | — | renderer checks; `test:contract` 142; web demo | In review |
 | 5b — lease payments | `feat/phase-05b-lease-payments` | — | — | Pending |
 | 6a — financial reports | `feat/phase-06a-financial-reports` | — | — | Pending |
 | 6b — operational reports | `feat/phase-06b-operational-reports` | — | — | Pending |
@@ -730,8 +730,40 @@ below.
   Lease rules: 7 unit tests. `test:contract` 142. `test:removal:backup`
   covers 46 tables.
 - Collecting the rent against the schedule, overdue installments, landlord
-  payouts, renewal and termination are Phase 5b. The screens follow in
-  their own PR.
+  payouts, renewal and termination are Phase 5b. The screens came in the
+  next PR, "5a — leases UI".
+
+### 5a — leases UI
+
+- "الإيجارات" > "الإيجارات السارية" (`leases.read`): each lease's tenant,
+  landlord, listing, rent per period, dates and next due installment, with
+  filters by where it stands (current, upcoming, ended, cancelled) and by
+  text.
+- The lease page:
+  - its parties, listing and contract (with the revision);
+  - rent, frequency, dates, deposit, and who collects the rent;
+  - the schedule as written, each installment "قادم" or "حلّ موعده";
+  - "إلغاء الإيجار" with a reason.
+- An issued rent contract's page has "تفعيل الإيجار". The dialog shows the
+  terms it takes, the parties and the schedule. A contract already in force
+  links to its lease instead.
+- "إيجار بلا عقد في النظام" enters one by hand:
+  - choosing the listing fills its landlord, rent and frequency;
+  - the schedule is previewed as the terms are typed, with a cut period
+    marked and a date error shown.
+- The rental page lists its leases. The customer page has a "الإيجارات" tab
+  ("مؤجر لـ …" or "مستأجر من …").
+- Checked in the web demo:
+  - `CT-0002` (residential, 850,000 a month, 1/11/2026 to 31/10/2027) was
+    issued and activated as `LS-000001`. It has 12 installments
+    (10,200,000) and the office collects the rent; the listing `R-9001` is
+    now rented;
+  - the contract's dialog then links to `LS-000001`;
+  - `LS-000002` was entered by hand on `R-9003` (2,400,000 every six
+    months for 2026, two installments). A 31/10 end previewed a cut second
+    period of 1,604,347.83, and an end before the start showed the error;
+  - cancelling `LS-000002` put `R-9003` back to available;
+  - the lease page fits at 375 px.
 
 
 ## Database migrations

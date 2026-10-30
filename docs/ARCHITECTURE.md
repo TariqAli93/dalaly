@@ -744,6 +744,19 @@ period, from when to when (migration `0014_leases`).
   - `leases.read`: `paged` (state, customer, listing, text), `:id` with its
     schedule, `agreement/:id`, `POST schedule`;
   - `leases.manage`: `POST /` by hand, `POST activate`, `POST /:id/cancel`.
+- In the renderer:
+  - `pages/LeasesPage.vue` lists leases; `pages/LeasePage.vue` shows one
+    with its schedule and cancels it.
+  - `components/leases/LeaseActivateDialog.vue` is opened from an issued
+    rent contract's page (`ContractWorkspacePage`). It shows
+    `agreement/:id`, or the lease already live.
+  - `LeaseDialog.vue` enters one by hand and previews `POST schedule` as
+    the terms change. Its listing search keeps the picked listing among the
+    options.
+  - Both dialogs use `LeaseScheduleSummary.vue`. `LeaseList.vue` lists a
+    listing's or a customer's leases on their pages.
+  - Labels and per-period wording are in `constants/leases.ts`, with
+    `installmentCount` for Arabic number agreement.
 
 ## Contracts (`modules/agreements`)
 

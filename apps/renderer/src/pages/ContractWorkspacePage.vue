@@ -35,6 +35,7 @@ import AgreementTermsStep from "../components/contracts/AgreementTermsStep.vue";
 import AgreementReviewStep from "../components/contracts/AgreementReviewStep.vue";
 import AgreementRevisionsDialog from "../components/contracts/AgreementRevisionsDialog.vue";
 import ReasonDialog from "../components/contracts/ReasonDialog.vue";
+import LeaseActivateDialog from "../components/leases/LeaseActivateDialog.vue";
 import DraftNotice from "../components/shared/DraftNotice.vue";
 import * as agreementsService from "../services/agreements.service";
 import * as peopleService from "../services/people.service";
@@ -71,6 +72,7 @@ import type {
   AgreementRevisionRecord,
   AgreementSavePayload,
   AgreementTemplateRecord,
+  LeaseDetail,
 } from "../types";
 
 /**
@@ -115,6 +117,12 @@ const localDraft = shallowRef<LocalDraft<EditState> | null>(null);
 const busy = ref(false);
 const revisionsOpen = ref(false);
 const reasonMode = ref<"amend" | "cancel" | null>(null);
+// An issued rent contract is put in force as a lease from here.
+const leaseOpen = ref(false);
+function onLeaseActivated(lease: LeaseDetail) {
+  notifySuccess(`فُعّل الإيجار ${lease.code}.`);
+  void router.push(`/leases/${lease.id}`);
+}
 let savedParts: Record<string, string> = {};
 
 const step = computed<AgreementStepKey>({
@@ -772,6 +780,19 @@ watch(template, () => step.value === "content" && void loadReference());
         @click="reasonMode = 'amend'"
         >مراجعة جديدة</v-btn
       >
+      <v-btn
+        v-if="
+          record.status === 'issued' &&
+          record.kind === 'rent' &&
+          can('leases.manage')
+        "
+        variant="tonal"
+        color="primary"
+        prepend-icon="mdi-home-clock-outline"
+        :disabled="busy"
+        @click="leaseOpen = true"
+        >تفعيل الإيجار</v-btn
+      >
       <v-menu location="bottom end">
         <template #activator="{ props: menu }">
           <v-btn
@@ -1075,6 +1096,13 @@ watch(template, () => step.value === "content" && void loadReference());
       v-if="record && revisionsOpen"
       v-model="revisionsOpen"
       :agreement-id="record.id"
+    />
+    <LeaseActivateDialog
+      v-if="record"
+      v-model="leaseOpen"
+      :agreement-id="record.id"
+      :parties="record.parties"
+      @activated="onLeaseActivated"
     />
   </AppPage>
 </template>

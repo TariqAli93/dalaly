@@ -6,6 +6,7 @@ import PersonEditor from "../components/people/PersonEditor.vue";
 import PersonActivity from "../components/people/PersonActivity.vue";
 import PersonDeals from "../components/deals/PersonDeals.vue";
 import PersonMoney from "../components/people/PersonMoney.vue";
+import LeaseList from "../components/leases/LeaseList.vue";
 import DealDialog from "../components/deals/DealDialog.vue";
 import DocumentViewer from "../components/documents/DocumentViewer.vue";
 import RecordNotes from "../components/shared/RecordNotes.vue";
@@ -509,6 +510,7 @@ const listLabel = (count: number, label: string) =>
         <v-tabs v-model="tab" color="primary" show-arrows>
           <v-tab v-if="canSeeActivity" value="activity">النشاط</v-tab>
           <v-tab v-if="can('deals.read')" value="deals">الصفقات</v-tab>
+          <v-tab v-if="can('leases.read')" value="leases">الإيجارات</v-tab>
           <v-tab v-if="can('vouchers.read')" value="money">المال</v-tab>
           <v-tab v-if="can('requests.read')" value="requests">{{
             listLabel(requestsCount, "الطلبات")
@@ -534,6 +536,12 @@ const listLabel = (count: number, label: string) =>
           </v-window-item>
           <v-window-item v-if="can('deals.read')" value="deals">
             <PersonDeals :person-id="person.id" />
+          </v-window-item>
+          <v-window-item v-if="can('leases.read')" value="leases">
+            <LeaseList
+              :filters="{ person_id: person.id }"
+              :person-id="person.id"
+            />
           </v-window-item>
           <v-window-item v-if="can('vouchers.read')" value="money">
             <PersonMoney

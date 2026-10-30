@@ -193,6 +193,12 @@ export const NAV_SECTIONS: NavSection[] = [
         permission: "rentals.read",
       },
       {
+        title: "الإيجارات السارية",
+        to: "/leases",
+        icon: "mdi-home-clock-outline",
+        permission: "leases.read",
+      },
+      {
         title: "مفضلة الإيجارات",
         to: "/rental-favorites",
         icon: "mdi-heart-multiple-outline",
