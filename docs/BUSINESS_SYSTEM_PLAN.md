@@ -235,7 +235,9 @@ on `bigint` minor units (`shared/money.ts`) and never on `number`.
   money collected for a landlord or seller is a liability (client funds),
   not income.
 - `expense_categories` (mapped to expense accounts), `expenses`, transfers
-  between cash and bank, and reconciliation records.
+  between cash and bank, and reconciliation records. (Built in 4e: an
+  expense is a payment voucher naming its category, which picks the expense
+  account of the voucher's currency; there is no second expense document.)
 
 ### 6.4 Leases (Phase 5)
 

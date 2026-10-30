@@ -85,6 +85,13 @@
       "when": 1793356232075,
       "tag": "0011_commissions",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793359999916,
+      "tag": "0012_expenses_cash",
+      "breakpoints": true
     }
   ]
 }

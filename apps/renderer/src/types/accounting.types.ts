@@ -191,6 +191,9 @@ export interface VoucherRecord {
   commission_id: number | null;
   commission_code: string | null;
   commission_split_id: number | null;
+  /** What an expense payment was for. */
+  expense_category_id: number | null;
+  expense_category_name: string | null;
   status: VoucherStatus;
   journal_entry_id: number;
   journal_entry_code: string;

@@ -12,6 +12,7 @@ export const JOURNAL_SOURCES = [
   "expense",
   "transfer",
   "lease",
+  "reconciliation",
 ] as const;
 export type JournalSource = (typeof JOURNAL_SOURCES)[number];
 

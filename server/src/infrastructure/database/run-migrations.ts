@@ -7,6 +7,7 @@ import { withMigrationPool } from "./pool.js";
 import { bootstrapDefaultAdmin } from "../../modules/auth/auth.service.js";
 import { seedSystemRbac } from "../../modules/rbac/rbac.service.js";
 import { ensureDefaultChart } from "../../modules/accounting/default-chart.js";
+import { ensureDefaultExpenseCategories } from "../../modules/accounting/cash.service.js";
 import {
   ensureSetupMarker,
   installationInitialized,
@@ -88,6 +89,7 @@ export async function applyMigrations(
     if (options.initialize) {
       await seedSystemRbac(startupDb);
       await ensureDefaultChart(startupDb);
+      await ensureDefaultExpenseCategories(startupDb);
       await ensureSetupMarker(startupPool);
     }
   });

@@ -5,7 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "test": "tsx --test scripts/startup.test.ts scripts/setup-security.test.ts scripts/login-throttle.test.ts scripts/remote-access-lifecycle.test.ts scripts/postgres-errors.test.ts scripts/error-shape.test.ts scripts/json-file.test.ts scripts/location.test.ts scripts/renderer-utils.test.ts scripts/contract-document.test.ts scripts/money.test.ts scripts/deal-rules.test.ts scripts/accounting-rules.test.ts scripts/journal-rules.test.ts scripts/voucher-rules.test.ts scripts/commission-rules.test.ts",
+    "test": "tsx --test scripts/startup.test.ts scripts/setup-security.test.ts scripts/login-throttle.test.ts scripts/remote-access-lifecycle.test.ts scripts/postgres-errors.test.ts scripts/error-shape.test.ts scripts/json-file.test.ts scripts/location.test.ts scripts/renderer-utils.test.ts scripts/contract-document.test.ts scripts/money.test.ts scripts/deal-rules.test.ts scripts/accounting-rules.test.ts scripts/journal-rules.test.ts scripts/voucher-rules.test.ts scripts/commission-rules.test.ts scripts/cash-rules.test.ts",
     "test:startup": "tsx --test scripts/startup.test.ts scripts/setup-security.test.ts",
     "test:startup:electron": "node scripts/startup-electron.mjs",
     "dev": "tsx watch src/index.ts",
@@ -52,6 +52,7 @@
     "test:ledger": "tsx --test scripts/ledger.test.ts",
     "test:vouchers": "tsx --test scripts/vouchers.test.ts",
     "test:commissions": "tsx --test scripts/commissions.test.ts",
+    "test:cash": "tsx --test scripts/cash.test.ts",
     "test:import": "tsx --test scripts/import-commit.test.ts",
     "test:queries": "tsx --test scripts/list-queries.test.ts",
     "test:dashboard": "tsx --test scripts/dashboard-summary.test.ts",

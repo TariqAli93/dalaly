@@ -1296,7 +1296,7 @@ export const journalEntries = pgTable(
     check("journal_entries_currency", sql`${table.currency} in ('IQD', 'USD')`),
     check(
       "journal_entries_source",
-      sql`${table.sourceType} in ('manual', 'reversal', 'receipt', 'payment', 'commission', 'expense', 'transfer', 'lease')`,
+      sql`${table.sourceType} in ('manual', 'reversal', 'receipt', 'payment', 'commission', 'expense', 'transfer', 'lease', 'reconciliation')`,
     ),
     check(
       "journal_entries_reversal",
@@ -1364,6 +1364,144 @@ export const accountingPeriods = pgTable(
     check(
       "accounting_periods_period",
       sql`${table.period} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`,
+    ),
+  ],
+);
+
+/**
+ * What an expense is for (rent, salaries, generator…), with the expense
+ * account it goes to in each currency. A payment voucher of purpose
+ * "expense" names its category (`vouchers.expense_category_id`).
+ */
+export const expenseCategories = pgTable(
+  "expense_categories",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    name: text("name").notNull().unique(),
+    iqdAccountId: bigint("iqd_account_id", { mode: "number" }).references(
+      () => accounts.id,
+    ),
+    usdAccountId: bigint("usd_account_id", { mode: "number" }).references(
+      () => accounts.id,
+    ),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    check(
+      "expense_categories_account",
+      sql`${table.iqdAccountId} is not null or ${table.usdAccountId} is not null`,
+    ),
+  ],
+);
+
+/**
+ * Money moved between two cash or bank accounts of one currency
+ * (TR-000001), posted with its entry. Voiding posts the reversing entry; a
+ * transfer never changes otherwise (trigger in 0012).
+ */
+export const cashTransfers = pgTable(
+  "cash_transfers",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    code: text("code").notNull().unique(),
+    transferDate: date("transfer_date", { mode: "string" }).notNull(),
+    currency: text("currency").notNull(),
+    fromAccountId: bigint("from_account_id", { mode: "number" })
+      .notNull()
+      .references(() => accounts.id, { onDelete: "restrict" }),
+    toAccountId: bigint("to_account_id", { mode: "number" })
+      .notNull()
+      .references(() => accounts.id, { onDelete: "restrict" }),
+    amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+    description: text("description").notNull(),
+    reference: text("reference"),
+    status: text("status").notNull().default("posted"),
+    journalEntryId: bigint("journal_entry_id", { mode: "number" })
+      .notNull()
+      .references(() => journalEntries.id, { onDelete: "restrict" }),
+    voidEntryId: bigint("void_entry_id", { mode: "number" }).references(
+      () => journalEntries.id,
+      { onDelete: "restrict" },
+    ),
+    voidReason: text("void_reason"),
+    voidedAt: timestamp("voided_at", { withTimezone: true }),
+    voidedBy: bigint("voided_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    createdBy: bigint("created_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_cash_transfers_date").on(table.transferDate, table.id),
+    check("cash_transfers_currency", sql`${table.currency} in ('IQD', 'USD')`),
+    check("cash_transfers_amount", sql`${table.amount} > 0`),
+    check(
+      "cash_transfers_accounts",
+      sql`${table.fromAccountId} <> ${table.toAccountId}`,
+    ),
+    check(
+      "cash_transfers_status",
+      sql`${table.status} in ('posted', 'voided')`,
+    ),
+    check(
+      "cash_transfers_void",
+      sql`(${table.status} = 'voided') = (${table.voidEntryId} is not null and ${table.voidedAt} is not null and ${table.voidReason} is not null)`,
+    ),
+  ],
+);
+
+/**
+ * A count of a cash box or a bank statement against the books on a date
+ * (RN-000001): the balance seen, the books' balance, the difference, and
+ * the entry that adjusted the books when one was asked for. Never changes.
+ */
+export const cashReconciliations = pgTable(
+  "cash_reconciliations",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    code: text("code").notNull().unique(),
+    accountId: bigint("account_id", { mode: "number" })
+      .notNull()
+      .references(() => accounts.id, { onDelete: "restrict" }),
+    statementDate: date("statement_date", { mode: "string" }).notNull(),
+    statementBalance: numeric("statement_balance", {
+      precision: 18,
+      scale: 2,
+    }).notNull(),
+    bookBalance: numeric("book_balance", { precision: 18, scale: 2 }).notNull(),
+    difference: numeric("difference", { precision: 18, scale: 2 }).notNull(),
+    adjustmentEntryId: bigint("adjustment_entry_id", {
+      mode: "number",
+    }).references(() => journalEntries.id, { onDelete: "restrict" }),
+    notes: text("notes"),
+    createdBy: bigint("created_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_cash_reconciliations_account").on(
+      table.accountId,
+      table.statementDate,
+    ),
+    check(
+      "cash_reconciliations_difference",
+      sql`${table.difference} = ${table.statementBalance} - ${table.bookBalance}`,
     ),
   ],
 );
@@ -1531,6 +1669,10 @@ export const vouchers = pgTable(
     commissionSplitId: bigint("commission_split_id", {
       mode: "number",
     }).references(() => commissionSplits.id),
+    /** What an expense payment was for. */
+    expenseCategoryId: bigint("expense_category_id", {
+      mode: "number",
+    }).references(() => expenseCategories.id),
     status: text("status").notNull().default("posted"),
     journalEntryId: bigint("journal_entry_id", { mode: "number" })
       .notNull()
@@ -1560,6 +1702,11 @@ export const vouchers = pgTable(
     index("idx_vouchers_money_account").on(table.moneyAccountId),
     index("idx_vouchers_commission").on(table.commissionId),
     index("idx_vouchers_commission_split").on(table.commissionSplitId),
+    index("idx_vouchers_expense_category").on(table.expenseCategoryId),
+    check(
+      "vouchers_expense_category",
+      sql`${table.expenseCategoryId} is null or (${table.kind} = 'payment' and ${table.purpose} = 'expense')`,
+    ),
     check(
       "vouchers_allocation",
       sql`(${table.commissionId} is null or ${table.kind} = 'receipt') and (${table.commissionSplitId} is null or ${table.kind} = 'payment')`,
@@ -1686,3 +1833,4 @@ export type JournalEntry = typeof journalEntries.$inferSelect;
 export type JournalLine = typeof journalLines.$inferSelect;
 export type Voucher = typeof vouchers.$inferSelect;
 export type Commission = typeof commissions.$inferSelect;
+export type CashTransfer = typeof cashTransfers.$inferSelect;

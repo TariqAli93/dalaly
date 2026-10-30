@@ -37,6 +37,17 @@ test("arithmetic is exact in minor units", () => {
   assert.equal(compareMoney("10", "10.00"), 0);
 });
 
+test("balances and differences may be negative; typed amounts may not", () => {
+  assert.equal(toMinor("-250.50"), -25050n);
+  assert.equal(fromMinor(toMinor("-0.05")), "-0.05");
+  assert.equal(compareMoney("1.00", "-500.00"), 1, "a payment against an overdrawn balance");
+  assert.equal(compareMoney("-0.01", "0.00"), -1);
+  assert.equal(subtractMoney("-100.00", "-250.50"), "150.50");
+  assert.equal(parseMoney("-250.50"), null);
+  assert.throws(() => toMinor("--1"));
+  assert.throws(() => toMinor("-"));
+});
+
 test("a percentage rounds half up to the hundredth", () => {
   assert.equal(percentOf("150000000.00", "2.5"), "3750000.00");
   assert.equal(percentOf("100.00", "0.125"), "0.13");

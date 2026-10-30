@@ -15,6 +15,10 @@ import { registerAuthHook } from "./modules/auth/auth.hooks.js";
 import { accountingRoutes } from "./modules/accounting/accounting.routes.js";
 import { vouchersRoutes } from "./modules/accounting/vouchers.routes.js";
 import { commissionsRoutes } from "./modules/accounting/commissions.routes.js";
+import {
+  cashRoutes,
+  expenseCategoriesRoutes,
+} from "./modules/accounting/cash.routes.js";
 import { activitiesRoutes } from "./modules/activities/activities.routes.js";
 import { agreementsRoutes } from "./modules/agreements/agreements.routes.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
@@ -244,6 +248,10 @@ export async function buildServer(options: { logger?: boolean } = {}) {
   await app.register(accountingRoutes, { prefix: "/api/accounting" });
   await app.register(vouchersRoutes, { prefix: "/api/vouchers" });
   await app.register(commissionsRoutes, { prefix: "/api/commissions" });
+  await app.register(cashRoutes, { prefix: "/api/cash" });
+  await app.register(expenseCategoriesRoutes, {
+    prefix: "/api/expense-categories",
+  });
   await app.register(rentalRequestsRoutes, { prefix: "/api/rental-requests" });
   await app.register(purchaseRequestsRoutes, {
     prefix: "/api/purchase-requests",

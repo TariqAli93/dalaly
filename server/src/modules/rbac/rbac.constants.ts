@@ -179,4 +179,15 @@ export const SYSTEM_PERMISSIONS = [
     name: "تسجيل العمولات وإلغاؤها",
     module: "commissions",
   },
+  {
+    key: "cash.read",
+    name: "عرض أرصدة الصناديق والمصارف وتحويلاتها",
+    module: "cash",
+  },
+  {
+    key: "cash.manage",
+    name: "التحويل بين الصناديق والمصارف ومطابقتها",
+    module: "cash",
+  },
+  { key: "expenses.manage", name: "إدارة تصنيفات المصروفات", module: "cash" },
 ] as const;

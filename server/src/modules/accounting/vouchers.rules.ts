@@ -66,7 +66,8 @@ export type VoucherAccount = {
   headingKeys: string[];
 };
 
-const isMoneyAccount = (account: VoucherAccount) =>
+/** Under the default "cash" or "bank" heading. */
+export const isMoneyAccount = (account: VoucherAccount) =>
   account.headingKeys.includes("cash") || account.headingKeys.includes("bank");
 
 export type VoucherDraft = {

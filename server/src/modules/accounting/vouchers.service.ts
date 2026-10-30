@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, lte, sql } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import {
   lockRecordCodes,
@@ -7,6 +7,7 @@ import {
 import {
   accounts,
   deals,
+  expenseCategories,
   journalEntries,
   journalLines,
   people,
@@ -46,7 +47,7 @@ const KIND_PREFIX: Record<VoucherKind, string> = {
 };
 
 /** Every account, with the system keys of the headings above each. */
-async function chartWithHeadings(tx: Transaction) {
+export async function chartWithHeadings(tx: Transaction) {
   const rows = await tx.select().from(accounts);
   const byId = new Map(rows.map((row) => [row.id, row]));
   const headingKeys = (id: number) => {
@@ -81,13 +82,14 @@ async function chartWithHeadings(tx: Transaction) {
 /**
  * An account's posted balance on one side: debits less credits for "debit"
  * (cash, bank), credits less debits for "credit" (client funds), optionally
- * only the lines that name a person.
+ * only the lines that name a person, or only entries up to a date.
  */
-async function postedBalance(
+export async function postedBalance(
   tx: Transaction,
   accountId: number,
   side: "debit" | "credit",
   personId?: number,
+  asOf?: string,
 ) {
   const net =
     side === "debit"
@@ -106,6 +108,7 @@ async function postedBalance(
         personId === undefined
           ? undefined
           : eq(journalLines.personId, personId),
+        asOf ? lte(journalEntries.entryDate, asOf) : undefined,
       ),
     );
   return row?.balance ?? "0.00";
@@ -194,6 +197,36 @@ async function resolveAllocation(
   return null;
 }
 
+/**
+ * An expense payment's category picks its expense account in the voucher's
+ * currency. A different account chosen as well is refused.
+ */
+async function expenseCategoryAccount(
+  tx: Transaction,
+  payload: VoucherPayload,
+) {
+  if (!payload.expense_category_id) return null;
+  const rule = (message: string) =>
+    new DomainError(400, message, "VOUCHER_RULE");
+  if (payload.kind !== "payment" || payload.purpose !== "expense")
+    throw rule("تصنيف المصروف لسند صرف غرضه مصروف.");
+  const [category] = await tx
+    .select()
+    .from(expenseCategories)
+    .where(eq(expenseCategories.id, payload.expense_category_id));
+  if (!category) throw rule("تصنيف المصروف غير موجود.");
+  if (!category.isActive) throw rule(`التصنيف ${category.name} موقوف.`);
+  const accountId =
+    payload.currency === "IQD" ? category.iqdAccountId : category.usdAccountId;
+  if (!accountId)
+    throw rule(
+      `لا حساب للتصنيف ${category.name} بعملة ${payload.currency === "IQD" ? "الدينار" : "الدولار"}.`,
+    );
+  if (payload.other_account_id && payload.other_account_id !== accountId)
+    throw rule(`للتصنيف ${category.name} حسابه؛ لا يُختار حساب آخر معه.`);
+  return accountId;
+}
+
 export async function issueVoucher(payload: VoucherPayload, userId?: number) {
   const id = await db.transaction(async (tx) => {
     const kind = payload.kind;
@@ -210,9 +243,11 @@ export async function issueVoucher(payload: VoucherPayload, userId?: number) {
     const allocation = await resolveAllocation(tx, payload);
     const personId = allocation?.personId ?? payload.person_id ?? null;
     const dealId = allocation?.dealId ?? payload.deal_id ?? null;
+    const categoryAccountId = await expenseCategoryAccount(tx, payload);
     const otherId = allocation
       ? chart.bySystemKey(`${allocation.otherKey}.${payload.currency}`)
-      : (payload.other_account_id ??
+      : (categoryAccountId ??
+        payload.other_account_id ??
         chart.bySystemKey(`${purpose.key}.${payload.currency}`));
     const money = chart.asVoucherAccount(payload.money_account_id);
     const other = chart.asVoucherAccount(otherId);
@@ -347,6 +382,7 @@ export async function issueVoucher(payload: VoucherPayload, userId?: number) {
       reference: payload.reference,
       commissionId: payload.commission_id ?? null,
       commissionSplitId: payload.commission_split_id ?? null,
+      expenseCategoryId: payload.expense_category_id ?? null,
       journalEntryId: entryId,
       createdBy: userId ?? null,
     });
