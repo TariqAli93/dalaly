@@ -17,6 +17,7 @@ import {
   accounts,
   deals,
   journalEntries,
+  officeProfiles,
   users,
   vouchers,
 } from "../../infrastructure/database/schema.js";
@@ -124,13 +125,28 @@ export async function listVouchersPage(query: VoucherPageQuery) {
   return { items, total, page: query.page, page_size: query.page_size };
 }
 
-/** A voucher as its page and its printed copy show it. */
+/**
+ * A voucher as its page and its printed copy show it, with the office's
+ * header for the printout (whoever may read vouchers may print them, without
+ * the settings permission).
+ */
 export async function getVoucher(id: number) {
   const [row] = await selectVouchers().where(eq(vouchers.id, id));
   if (!row) return null;
+  const [office] = await db
+    .select({
+      company_name: officeProfiles.companyName,
+      phone_primary: officeProfiles.phonePrimary,
+      phone_secondary: officeProfiles.phoneSecondary,
+      address: officeProfiles.address,
+      license_number: officeProfiles.licenseNumber,
+    })
+    .from(officeProfiles)
+    .limit(1);
   return {
     ...row,
     amount_in_words: decimalAmountInWords(row.amount, row.currency as Currency),
+    office: office ?? null,
   };
 }
 

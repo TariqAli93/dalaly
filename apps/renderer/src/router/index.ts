@@ -240,6 +240,26 @@ const appPages: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/accounting/vouchers",
+    name: "vouchers",
+    component: () => import("../pages/VouchersPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "vouchers.read",
+      titleKey: "routes.vouchers",
+    },
+  },
+  {
+    path: "/accounting/vouchers/:id(\\d+)",
+    name: "voucher",
+    component: () => import("../pages/VoucherPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "vouchers.read",
+      titleKey: "routes.vouchers",
+    },
+  },
+  {
     path: "/accounting/journal",
     name: "journal",
     component: () => import("../pages/JournalPage.vue"),

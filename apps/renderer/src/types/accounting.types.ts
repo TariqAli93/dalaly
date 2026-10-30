@@ -157,3 +157,101 @@ export interface AccountingPeriod {
   closed_by_name: string | null;
   notes: string | null;
 }
+
+export type VoucherKind = "receipt" | "payment";
+export type VoucherStatus = "posted" | "voided";
+export type VoucherSortKey = "voucher_date" | "code" | "amount" | "created_at";
+
+/**
+ * A receipt (RC-) or payment (PV-): money into or out of a cash or bank
+ * account, posted with its journal entry. It never changes; voiding posts
+ * the reversing entry and keeps the voucher, marked voided.
+ */
+export interface VoucherRecord {
+  id: number;
+  code: string;
+  kind: VoucherKind;
+  voucher_date: string;
+  currency: Currency;
+  amount: string;
+  purpose: string;
+  money_account_id: number;
+  money_account_code: string;
+  money_account_name: string;
+  other_account_id: number;
+  other_account_code: string;
+  other_account_name: string;
+  person_id: number | null;
+  party_name: string;
+  deal_id: number | null;
+  deal_code: string | null;
+  description: string;
+  reference: string | null;
+  status: VoucherStatus;
+  journal_entry_id: number;
+  journal_entry_code: string;
+  void_entry_id: number | null;
+  void_entry_code: string | null;
+  void_reason: string | null;
+  voided_at: string | null;
+  voided_by_name: string | null;
+  created_by_name: string | null;
+  created_at: string;
+}
+
+export interface VoucherDetail extends VoucherRecord {
+  /** "فقط ... لا غير", for the printed copy. */
+  amount_in_words: string;
+  office: {
+    company_name: string;
+    phone_primary: string | null;
+    phone_secondary: string | null;
+    address: string | null;
+    license_number: string | null;
+  } | null;
+}
+
+export interface VoucherPayload {
+  kind: VoucherKind;
+  voucher_date: string;
+  currency: Currency;
+  amount: string;
+  purpose: string;
+  money_account_id: number;
+  /** Empty: the purpose's default account in the voucher's currency. */
+  other_account_id: number | null;
+  person_id: number | null;
+  party_name: string | null;
+  deal_id: number | null;
+  description: string;
+  reference: string | null;
+}
+
+export interface VoucherFilters {
+  kind?: VoucherKind;
+  currency?: Currency;
+  status?: VoucherStatus;
+  purpose?: string;
+  person_id?: number;
+  deal_id?: number;
+  money_account_id?: number;
+  from?: string;
+  to?: string;
+  q?: string;
+}
+
+/** A cash or bank posting account with its posted balance. */
+export interface MoneyAccount {
+  id: number;
+  code: string;
+  name: string;
+  currency: Currency;
+  kind: "cash" | "bank";
+  balance: string;
+}
+
+/** Client funds held for a person, per currency. */
+export interface ClientFundsHeld {
+  currency: Currency;
+  held: string;
+}

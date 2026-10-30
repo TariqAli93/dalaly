@@ -90,6 +90,8 @@ test("API responses match the renderer's types", async (t) => {
     let activityId = 0;
     let dealId = 0;
     let journalId = 0;
+    let voucherId = 0;
+    let voucherPersonId = 0;
     let cashAccountId = 0;
 
     {
@@ -221,6 +223,25 @@ test("API responses match the renderer's types", async (t) => {
       await api("POST", "/api/accounting/periods", { period: "2026-07", notes: null });
       await api("DELETE", "/api/accounting/periods/2026-07");
       await api("POST", "/api/accounting/periods", { period: "2026-06", notes: "فحص" });
+      // Vouchers: a client-funds receipt, part of it paid out, a voided one.
+      const held = await api("POST", "/api/vouchers", {
+        kind: "receipt", voucher_date: "2026-10-05", currency: "IQD", amount: "1000000", purpose: "client_funds",
+        money_account_id: cashAccountId, other_account_id: null, person_id: person.id, party_name: null, deal_id: deal.id,
+        description: "عربون", reference: "صك 12",
+      });
+      voucherId = held.id;
+      voucherPersonId = person.id;
+      await api("POST", "/api/vouchers", {
+        kind: "payment", voucher_date: "2026-10-06", currency: "IQD", amount: "200000", purpose: "client_funds",
+        money_account_id: cashAccountId, other_account_id: null, person_id: person.id, party_name: null, deal_id: null,
+        description: "تسليم جزء من العربون", reference: null,
+      });
+      const mistaken = await api("POST", "/api/vouchers", {
+        kind: "receipt", voucher_date: "2026-10-07", currency: "IQD", amount: "5000", purpose: "other_income",
+        money_account_id: cashAccountId, other_account_id: null, person_id: null, party_name: "مراجع", deal_id: null,
+        description: "خطأ", reference: null,
+      });
+      await api("POST", `/api/vouchers/${mistaken.id}/void`, { void_date: "2026-10-08", reason: "فحص" });
       // An audited change to the customer, for /people/:id/audit.
       const current = await api("GET", `/api/people/${person.id}`);
       await api("PUT", `/api/people/${person.id}`, { ...current, notes: "زبون الفحص" });
@@ -335,6 +356,10 @@ test("API responses match the renderer's types", async (t) => {
         `/api/accounting/journal/${journalId}`,
         `/api/accounting/accounts/${cashAccountId}/statement?from=2026-10-01`,
         "/api/accounting/periods",
+        "/api/vouchers/paged?page=1&page_size=10&sort_by=voucher_date&sort_order=desc",
+        `/api/vouchers/${voucherId}`,
+        "/api/vouchers/money-accounts",
+        `/api/vouchers/client-funds?person_id=${voucherPersonId}`,
       ];
       for (const url of urls) await api("GET", url);
     }

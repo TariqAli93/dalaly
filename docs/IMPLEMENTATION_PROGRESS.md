@@ -24,8 +24,8 @@ Do not rely on this file alone.
 | 4a — chart of accounts | `feat/phase-04a-chart-of-accounts` | [#37](https://github.com/TariqAli93/dalaly/pull/37), merged `d71806f` | `test:accounting` 9/9, account rules 7/7, `test:contract` 100, backup round trip 35 tables; web demo; CI pass | Completed |
 | 4b — general ledger (server) | `feat/phase-04b-general-ledger` | [#38](https://github.com/TariqAli93/dalaly/pull/38), merged `edb4caf` | `test:ledger` 13/13, journal rules 6/6, backup round trip 38 tables; CI pass | Completed |
 | 4b — journal UI | `feat/phase-04b-journal-ui` | [#39](https://github.com/TariqAli93/dalaly/pull/39), merged `fef0787` | `test:contract` 111, editor sums 1 test; renderer checks; web demo; CI pass | Completed |
-| 4c — receipts and payments (server) | `feat/phase-04c-receipts-payments` | — | `test:vouchers` 10/10, voucher rules 5/5, backup round trip 39 tables | In review |
-| 4c — vouchers UI | — | — | — | Pending |
+| 4c — receipts and payments (server) | `feat/phase-04c-receipts-payments` | [#40](https://github.com/TariqAli93/dalaly/pull/40), merged `90adba2` | `test:vouchers` 10/10, voucher rules 5/5, backup round trip 39 tables; CI pass | Completed |
+| 4c — vouchers UI | `feat/phase-04c-vouchers-ui` | — | `test:contract` 117; renderer checks; web demo | In review |
 | 4d — commissions | `feat/phase-04d-commissions` | — | — | Pending |
 | 4e — expenses and cash | `feat/phase-04e-expenses-cash` | — | — | Pending |
 | 4f — financial integration | `feat/phase-04f-financial-integration` | — | — | Pending |
@@ -450,7 +450,38 @@ below.
   - listing, filters and audit;
   - a customers restore keeping links, and a full restore.
   Voucher rules: 5 unit tests. `test:removal:backup` covers 39 tables.
-- The vouchers screens (issue, list, print, void) follow in their own PR.
+- The vouchers screens (issue, list, print, void) came in the next PR,
+  "4c — vouchers UI".
+
+### 4c — vouchers UI
+
+- "المالية" > "سندات القبض والصرف" lists vouchers, filtered by kind,
+  currency, status, dates and text. Payments show as negative amounts.
+- "سند قبض" and "سند صرف" open the issue dialog:
+  - the purpose, with what it means;
+  - date, currency and amount;
+  - the cash or bank account, each with its balance;
+  - the customer, or a name for someone who is not one; for a payment of
+    client funds, what is held for them;
+  - the description, a reference, and (for users who may read the chart)
+    another account the purpose allows.
+  A payment above the account's balance, or above what is held for the
+  customer, is flagged before it is sent; the server refuses it anyway.
+- The voucher page shows the amount in words, both accounts, the deal and
+  the journal entry, and offers print, PDF and "إلغاء السند" (a date and a
+  reason). A voided voucher shows who voided it, when, why, and its
+  reversing entry.
+- The printed copy is A5 with the office header, which the voucher detail
+  now carries (`office`). A cashier with `vouchers.read` but not
+  `settings.read` can then print it.
+- `test:contract` checks every voucher call (117).
+- Checked in the web demo:
+  - receipt `RC-000001` of 50,000,000 for a seller as client funds (account
+    2101, not income), with "فقط خمسون مليوناً دينار عراقي لا غير";
+  - its printed copy rendered;
+  - a 60,000,000 payment flagged against the 50,000,000 cash balance, then
+    refused by the server with its message in the dialog;
+  - the receipt voided, with reversing entry `JE-000004`.
 
 ## Database migrations
 

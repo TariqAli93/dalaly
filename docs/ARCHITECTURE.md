@@ -563,6 +563,18 @@ added together.
     Its balance uses `utils/money.ts` (bigint hundredths, as on the server),
     so "متوازن" there means the server will accept the post.
   - `PeriodsDialog.vue` closes and reopens months.
+- The vouchers pages are under "المالية" too:
+  - `VouchersPage.vue` lists receipts and payments.
+  - `VoucherPage.vue` shows one, prints it or saves it as PDF, and voids it.
+  - `components/accounting/VoucherDialog.vue` issues one. It shows each
+    cash or bank account's balance, the client funds held for the chosen
+    person, and the purpose's hint, and warns before an amount the server
+    would refuse.
+  - The printed copy is `utils/voucherPrint.ts`: A5, the office header (sent
+    with the voucher, so a cashier without the settings permission can print
+    it), the amount in figures and words, signature lines, and "ملغى" across
+    a voided one. It goes through the platform's `printHtml` and
+    `exportPdf`, with the bundled font embedded (`fontFacesFor`).
 
 ## Contracts (`modules/agreements`)
 

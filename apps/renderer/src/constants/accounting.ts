@@ -3,6 +3,7 @@ import type {
   Currency,
   JournalSource,
   JournalStatus,
+  VoucherKind,
 } from "../types";
 
 /** أنواع الحسابات بترتيب الدليل، وجهة رصيدها المعتادة. */
@@ -70,5 +71,93 @@ export function journalStatusColor(value: string) {
   return (
     JOURNAL_STATUSES.find((status) => status.value === value)?.color ??
     "default"
+  );
+}
+
+export const VOUCHER_KINDS: Array<{ value: VoucherKind; title: string }> = [
+  { value: "receipt", title: "سند قبض" },
+  { value: "payment", title: "سند صرف" },
+];
+export function voucherKindLabel(value: string) {
+  return VOUCHER_KINDS.find((kind) => kind.value === value)?.title ?? value;
+}
+
+/**
+ * أغراض السندات كما يعرّفها الخادم (vouchers.rules.ts): الغرض يحدد الحساب
+ * المقابل. مال البائع أو المؤجر أمانة لا إيراد؛ العمولة وحدها إيراد المكتب.
+ */
+export const VOUCHER_PURPOSES: Record<
+  VoucherKind,
+  Array<{ value: string; title: string; hint: string; types: AccountType[] }>
+> = {
+  receipt: [
+    {
+      value: "commission",
+      title: "عمولة المكتب",
+      hint: "إيراد المكتب من الصفقة.",
+      types: ["revenue"],
+    },
+    {
+      value: "client_funds",
+      title: "أمانة لحساب مالك أو بائع",
+      hint: "عربون أو إيجار أو ثمن يُحفظ لصاحبه؛ ليس إيراداً للمكتب.",
+      types: ["liability"],
+    },
+    {
+      value: "receivable",
+      title: "تسديد دين زبون",
+      hint: "زبون يسدد ما عليه للمكتب.",
+      types: ["asset"],
+    },
+    {
+      value: "other_income",
+      title: "إيراد آخر",
+      hint: "إيراد لا علاقة له بالعمولات.",
+      types: ["revenue"],
+    },
+    {
+      value: "capital",
+      title: "رأس مال",
+      hint: "مال يضعه صاحب المكتب.",
+      types: ["equity"],
+    },
+  ],
+  payment: [
+    {
+      value: "client_funds",
+      title: "تسليم أمانة لمالك أو بائع",
+      hint: "بحدود ما قُبض لحسابه فقط.",
+      types: ["liability"],
+    },
+    {
+      value: "commission",
+      title: "عمولة موظف",
+      hint: "حصة موظف من العمولة.",
+      types: ["expense", "liability"],
+    },
+    {
+      value: "expense",
+      title: "مصروف",
+      hint: "إيجار المكتب ورواتب وخدمات وغيرها.",
+      types: ["expense"],
+    },
+    {
+      value: "payable",
+      title: "تسديد دين على المكتب",
+      hint: "مبلغ مستحق على المكتب.",
+      types: ["liability"],
+    },
+    {
+      value: "drawing",
+      title: "سحب شخصي",
+      hint: "مال يأخذه صاحب المكتب.",
+      types: ["equity"],
+    },
+  ],
+};
+export function voucherPurposeLabel(kind: string, value: string) {
+  return (
+    VOUCHER_PURPOSES[kind as VoucherKind]?.find((item) => item.value === value)
+      ?.title ?? value
   );
 }
