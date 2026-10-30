@@ -16,6 +16,7 @@ import { accountingRoutes } from "./modules/accounting/accounting.routes.js";
 import { vouchersRoutes } from "./modules/accounting/vouchers.routes.js";
 import { commissionsRoutes } from "./modules/accounting/commissions.routes.js";
 import { financeRoutes } from "./modules/accounting/finance.routes.js";
+import { leasesRoutes } from "./modules/leases/leases.routes.js";
 import {
   cashRoutes,
   expenseCategoriesRoutes,
@@ -250,6 +251,7 @@ export async function buildServer(options: { logger?: boolean } = {}) {
   await app.register(vouchersRoutes, { prefix: "/api/vouchers" });
   await app.register(commissionsRoutes, { prefix: "/api/commissions" });
   await app.register(financeRoutes, { prefix: "/api/finance" });
+  await app.register(leasesRoutes, { prefix: "/api/leases" });
   await app.register(cashRoutes, { prefix: "/api/cash" });
   await app.register(expenseCategoriesRoutes, {
     prefix: "/api/expense-categories",

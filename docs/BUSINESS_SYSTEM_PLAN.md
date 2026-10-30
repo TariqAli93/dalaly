@@ -252,6 +252,11 @@ on `bigint` minor units (`shared/money.ts`) and never on `number`.
   allocations, status. An installment is overdue once its due date passes
   unpaid. Rent the office collects posts to client funds, and handing it to
   the landlord clears them. Any fee the office earns on it is revenue.
+- (Built in 5a: a lease's status is active or cancelled. Expired is read
+  from its dates, and termination and renewal come with 5b. The schedule is
+  written at activation and never changed: installments are due on their
+  period's first day, and a period the end date cuts short pays its days'
+  share.)
 
 ### 6.5 Reports (Phase 6)
 

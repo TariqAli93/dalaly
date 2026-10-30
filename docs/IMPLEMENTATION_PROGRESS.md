@@ -31,8 +31,9 @@ Do not rely on this file alone.
 | 4e — expenses and cash (server) | `feat/phase-04e-expenses-cash` | [#44](https://github.com/TariqAli93/dalaly/pull/44), merged `18781c7` | `test:cash` 9/9, cash rules 4/4, money 5/5, backup round trip 44 tables; CI pass | Completed |
 | 4e — expenses and cash UI | `feat/phase-04e-cash-ui` | [#45](https://github.com/TariqAli93/dalaly/pull/45), merged `11c3b0e` | `test:contract` 133; renderer checks; web demo; CI pass | Completed |
 | 4f — financial integration (server) | `feat/phase-04f-financial-integration` | [#46](https://github.com/TariqAli93/dalaly/pull/46), merged `a4fd3ac` | `test:finance` 9/9, voucher and deal rules 12/12, `test:contract` 135; affected suites; CI pass | Completed |
-| 4f — financial integration UI | `feat/phase-04f-financial-ui` | — | renderer checks; `test:contract` 135; web demo | In review |
-| 5a — leases | `feat/phase-05a-leases` | — | — | Pending |
+| 4f — financial integration UI | `feat/phase-04f-financial-ui` | [#47](https://github.com/TariqAli93/dalaly/pull/47), merged `391845a` | renderer checks; `test:contract` 135; web demo; CI pass | Completed |
+| 5a — leases (server) | `feat/phase-05a-leases` | — | `test:leases` 9/9, lease rules 7/7, `test:contract` 142, backup round trip 46 tables; affected suites | In review |
+| 5a — leases UI | — | — | — | Pending |
 | 5b — lease payments | `feat/phase-05b-lease-payments` | — | — | Pending |
 | 6a — financial reports | `feat/phase-06a-financial-reports` | — | — | Pending |
 | 6b — operational reports | `feat/phase-06b-operational-reports` | — | — | Pending |
@@ -685,6 +686,53 @@ below.
     fits at 375 px. The deal page still scrolls sideways there because of
     its existing form fields, which this PR does not change.
 
+### 5a — leases (server)
+
+- `leases` and `lease_installments` (migration `0014_leases`).
+- A lease is activated from an issued residential or commercial rent
+  contract (`POST /api/leases/activate`):
+  - it takes the terms of the contract's current issued revision (rent,
+    period, dates, deposit, currency), its landlord and tenant, and its
+    listing, and keeps the revision number;
+  - one live lease per contract, also when two activations race (the
+    contract row is locked; a partial unique index backs it);
+  - `GET /api/leases/agreement/:id` shows what activating would put in
+    force, or why it cannot: not issued, not a rent contract, missing rent
+    or dates, a lease already live.
+- A lease in force without a contract in the system is entered by hand
+  (`POST /api/leases`), quarterly too. `POST /api/leases/schedule` shows its
+  schedule first.
+- The schedule (`leases.rules.ts`):
+  - one installment per period, counted from the start date and due on the
+    period's first day (rent is paid in advance);
+  - a period the end date cuts short pays its days' share, half up;
+  - an end date on an anniversary of the start closes the last period
+    ("from 1/1 to 1/1" is one year, not a year and a day);
+  - at most 360 installments.
+- The listing is marked rented on activation, and back to available when
+  its only live lease is cancelled; both are audited.
+- A lease's terms and schedule never change (triggers `leases_guard`,
+  `lease_installments_guard`); a mistake is cancelled. A customer, listing
+  or contract with a lease is not deleted. Where a lease stands (upcoming,
+  current, ended, cancelled) is read from its dates.
+- Permissions `leases.read` and `leases.manage`.
+- `test:leases` (9):
+  - an upgrade from `0013`;
+  - a residential contract issued and put in force (12 installments,
+    9,000,000), once;
+  - refusals: unissued, sale, missing;
+  - by hand, quarterly, with a cut period;
+  - list filters;
+  - cancelling and activating again;
+  - triggers;
+  - permissions;
+  - customers, rentals and full restores keeping the links.
+  Lease rules: 7 unit tests. `test:contract` 142. `test:removal:backup`
+  covers 46 tables.
+- Collecting the rent against the schedule, overdue installments, landlord
+  payouts, renewal and termination are Phase 5b. The screens follow in
+  their own PR.
+
 
 ## Database migrations
 
@@ -700,6 +748,7 @@ below.
 | `0011_commissions` | 4d | `commissions` (checked payer role, currency, basis with rate and base, positive amount, cancel fields together; one active per deal and payer), `commission_splits` (one per user, positive), `vouchers.commission_id` and `commission_split_id` with a kind check; triggers `commissions_guard`, `commission_splits_guard`; `vouchers_guard` replaced |
 | `0012_expenses_cash` | 4e | `expense_categories` (an account at least), `cash_transfers` (positive, distinct accounts, void fields together), `cash_reconciliations` (difference = statement − book), `vouchers.expense_category_id` with a check; journal source `reconciliation`; triggers `cash_transfers_guard`, `cash_reconciliations_guard`; `vouchers_guard` replaced (whole rows) |
 | `0013_client_funds_held_for` | 4f | `vouchers.held_for_person_id` (FK people, set null, indexed; only on client funds, checked); `vouchers_guard` replaced to refuse clearing it |
+| `0014_leases` | 5a | `leases` (contract and revision, listing, landlord and tenant set null for restores; positive rent, frequency, end after start, cancel fields together; one live lease per contract) and `lease_installments` (period, due date, positive amount; unique per lease and number); triggers `leases_guard`, `lease_installments_guard` |
 
 ## Decisions that need the owner
 

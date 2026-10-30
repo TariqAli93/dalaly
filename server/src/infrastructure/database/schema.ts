@@ -1789,6 +1789,135 @@ export const appSettings = pgTable("app_settings", {
     .defaultNow(),
 });
 
+export const LEASE_FREQUENCIES = [
+  "monthly",
+  "quarterly",
+  "semi_annual",
+  "annual",
+] as const;
+export const LEASE_STATUSES = ["active", "cancelled"] as const;
+
+/**
+ * A lease in force (Phase 5a): who rents what from whom, for how much per
+ * period, from when to when. Activated from an issued rent contract (its
+ * revision is kept) or entered by hand. The terms never change: a mistake
+ * is cancelled. Links to customers, the listing and the contract are set
+ * null only by a restore, which puts them back.
+ */
+export const leases = pgTable(
+  "leases",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    code: text("code").notNull().unique(),
+    agreementId: bigint("agreement_id", { mode: "number" }).references(
+      () => agreements.id,
+      { onDelete: "set null" },
+    ),
+    /** The issued revision whose terms it took. */
+    agreementRevision: integer("agreement_revision"),
+    rentalId: bigint("rental_id", { mode: "number" }).references(
+      () => rentals.id,
+      { onDelete: "set null" },
+    ),
+    landlordPersonId: bigint("landlord_person_id", {
+      mode: "number",
+    }).references(() => people.id, { onDelete: "set null" }),
+    tenantPersonId: bigint("tenant_person_id", { mode: "number" }).references(
+      () => people.id,
+      { onDelete: "set null" },
+    ),
+    currency: text("currency").notNull(),
+    /** The rent of one period of `frequency`. */
+    rentAmount: numeric("rent_amount", { precision: 18, scale: 2 }).notNull(),
+    frequency: text("frequency").notNull(),
+    startDate: date("start_date", { mode: "string" }).notNull(),
+    /** The last day of the lease. */
+    endDate: date("end_date", { mode: "string" }).notNull(),
+    deposit: numeric("deposit", { precision: 18, scale: 2 }),
+    /** Whether the office collects the rent for the landlord. */
+    officeCollects: boolean("office_collects").notNull().default(false),
+    status: text("status").notNull().default("active"),
+    notes: text("notes"),
+    cancelReason: text("cancel_reason"),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    cancelledBy: bigint("cancelled_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    createdBy: bigint("created_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_leases_rental").on(table.rentalId),
+    index("idx_leases_landlord").on(table.landlordPersonId),
+    index("idx_leases_tenant").on(table.tenantPersonId),
+    index("idx_leases_dates").on(table.startDate, table.endDate),
+    // A contract is in force through one lease at a time.
+    uniqueIndex("uq_leases_agreement_live")
+      .on(table.agreementId)
+      .where(sql`${table.status} <> 'cancelled'`),
+    check("leases_currency", sql`${table.currency} in ('IQD', 'USD')`),
+    check("leases_rent", sql`${table.rentAmount} > 0`),
+    check(
+      "leases_deposit",
+      sql`${table.deposit} is null or ${table.deposit} >= 0`,
+    ),
+    check(
+      "leases_frequency",
+      sql`${table.frequency} in ('monthly', 'quarterly', 'semi_annual', 'annual')`,
+    ),
+    check("leases_dates", sql`${table.endDate} > ${table.startDate}`),
+    check("leases_status", sql`${table.status} in ('active', 'cancelled')`),
+    check(
+      "leases_cancel",
+      sql`(${table.status} = 'cancelled') = (${table.cancelledAt} is not null and ${table.cancelReason} is not null)`,
+    ),
+    // From a contract, with its revision (a restore may clear the link alone).
+    check(
+      "leases_agreement_revision",
+      sql`${table.agreementId} is null or ${table.agreementRevision} is not null`,
+    ),
+    check(
+      "leases_parties",
+      sql`${table.landlordPersonId} is null or ${table.tenantPersonId} is null or ${table.landlordPersonId} <> ${table.tenantPersonId}`,
+    ),
+  ],
+);
+
+/**
+ * A lease's schedule, written when it is activated and never changed: each
+ * period it covers, the rent due for it and when.
+ */
+export const leaseInstallments = pgTable(
+  "lease_installments",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    leaseId: bigint("lease_id", { mode: "number" })
+      .notNull()
+      .references(() => leases.id, { onDelete: "restrict" }),
+    seq: integer("seq").notNull(),
+    dueDate: date("due_date", { mode: "string" }).notNull(),
+    periodStart: date("period_start", { mode: "string" }).notNull(),
+    periodEnd: date("period_end", { mode: "string" }).notNull(),
+    amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_lease_installments_seq").on(table.leaseId, table.seq),
+    index("idx_lease_installments_due").on(table.dueDate),
+    check("lease_installments_amount", sql`${table.amount} > 0`),
+    check("lease_installments_seq", sql`${table.seq} > 0`),
+    check(
+      "lease_installments_period",
+      sql`${table.periodEnd} >= ${table.periodStart}`,
+    ),
+  ],
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Person = typeof people.$inferSelect;
@@ -1846,3 +1975,5 @@ export type JournalLine = typeof journalLines.$inferSelect;
 export type Voucher = typeof vouchers.$inferSelect;
 export type Commission = typeof commissions.$inferSelect;
 export type CashTransfer = typeof cashTransfers.$inferSelect;
+export type Lease = typeof leases.$inferSelect;
+export type LeaseInstallment = typeof leaseInstallments.$inferSelect;
