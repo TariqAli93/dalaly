@@ -10,6 +10,7 @@ export * from "./task.types";
 export * from "./deal.types";
 export * from "./accounting.types";
 export * from "./lease.types";
+export * from "./report.types";
 
 export * from "./rental.types";
 export * from "./paging.types";

@@ -797,6 +797,29 @@ period, from when to when (migration `0014_leases`).
   - A follow-up on an overdue installment is an activity on the tenant
     (`POST /api/activities`), so it shows with the tasks.
 
+## Reports (`modules/reports`)
+
+- Read-only. Each report's formula is in `docs/REPORTS.md`.
+- The financial reports are under `/api/reports/financial/` and need
+  `reports.financial`:
+  - `trial-balance`, `income-statement`, `balance-sheet`, `cash-flow`,
+    `commissions`, `receivables` and `payables`;
+  - `ledger/:id`, which reuses the account statement.
+- They read posted journal lines. Commissions and employees' shares also
+  read commissions, splits and vouchers.
+- `TREE` in `reports.repository.ts` gives every account the system heading
+  it falls under (the nearest one at or above it), so an account an office
+  adds under a heading counts with it.
+- Every report returns one section per currency. Totals are summed in SQL
+  `numeric` or bigint minor units (`sumOf`, `shared/money.ts`), never in
+  floating point.
+- `reports.rules.ts` is pure:
+  - the period defaults (the year to date, ending on the office's today in
+    Baghdad);
+  - the months of a period;
+  - FIFO aging of receivables.
+- Renderer: `types/report.types.ts` and `services/reports.service.ts`.
+
 ## Contracts (`modules/agreements`)
 
 Contract Studio: sale, installment sale, residential and commercial lease

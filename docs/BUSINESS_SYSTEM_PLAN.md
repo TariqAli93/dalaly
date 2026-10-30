@@ -271,6 +271,12 @@ written down in `docs/REPORTS.md`, the way `OPERATIONS_DASHBOARD.md` does
 for the dashboard. Totals are checked against the journal. A report can be
 exported to Excel (the existing lazy `xlsx`) and PDF (Electron's engine).
 
+- (Built in 6a, server: trial balance, income and expenses, balance sheet,
+  cash flow, commissions, receivables (aged), payables and account ledgers
+  under `reports.financial`, from the posted journal. Formulas are in
+  `docs/REPORTS.md`. The balance sheet shows unclosed earnings, because no
+  year-end closing entry is posted.)
+
 ## 7. Performance targets
 
 Measured with the existing `pnpm perf` and `perf:*` harnesses on the
