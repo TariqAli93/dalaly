@@ -44,6 +44,48 @@ export type CommissionsReportQuery = z.infer<
   typeof commissionsReportQuerySchema
 >;
 
+// ─── Operational reports ───────────────────────────────────────────────
+
+const periodOnly = {
+  from: isoDate.optional(),
+  to: isoDate.optional(),
+};
+
+/** Deals in a period: one employee's (assigned to them), one kind. */
+export const dealsReportQuerySchema = z
+  .object({
+    ...periodOnly,
+    user_id: optionalId,
+    deal_type: z.enum(["sale", "rent"]).optional(),
+  })
+  .refine(orderedPeriod, ORDER_MESSAGE);
+export type DealsReportQuery = z.infer<typeof dealsReportQuerySchema>;
+
+/** Customers in a period; uncontacted for `days` days before its end. */
+export const customersReportQuerySchema = z
+  .object({
+    ...periodOnly,
+    user_id: optionalId,
+    days: z.coerce.number().int().min(1).max(365).default(30),
+  })
+  .refine(orderedPeriod, ORDER_MESSAGE);
+export type CustomersReportQuery = z.infer<typeof customersReportQuerySchema>;
+
+/** Sale or rental listings, and the requests for them. */
+export const listingsReportQuerySchema = z
+  .object({ ...periodOnly, kind: z.enum(["sale", "rental"]).default("sale") })
+  .refine(orderedPeriod, ORDER_MESSAGE);
+export type ListingsReportQuery = z.infer<typeof listingsReportQuerySchema>;
+
+/** Leases in a period; those ending within `days` days of today. */
+export const leasesReportQuerySchema = z
+  .object({
+    ...periodOnly,
+    days: z.coerce.number().int().min(1).max(365).default(60),
+  })
+  .refine(orderedPeriod, ORDER_MESSAGE);
+export type LeasesReportQuery = z.infer<typeof leasesReportQuerySchema>;
+
 /** A position on a day (defaults to the office's today). */
 export const asOfQuerySchema = z.object({
   as_of: isoDate.optional(),

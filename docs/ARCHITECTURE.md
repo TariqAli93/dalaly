@@ -89,18 +89,18 @@ main-process calls such as setup proxying and the scheduled backup run.
 
 ## Electron main (`apps/desktop/src`)
 
-| File                                | Responsibility                                                                             |
-| ----------------------------------- | ------------------------------------------------------------------------------------------ |
-| `main.js`                           | lifecycle, main window, API child process, startup sequence, setup/startup/maps/config IPC |
-| `splash.js`                         | splash window, progress stages, `splash:*` IPC                                             |
+| File                                | Responsibility                                                                                                           |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `main.js`                           | lifecycle, main window, API child process, startup sequence, setup/startup/maps/config IPC                               |
+| `splash.js`                         | splash window, progress stages, `splash:*` IPC                                                                           |
 | `document-export.js`                | `export:save-pdf` (offscreen print), `export:print-html` (system print dialog), `export:save-file`, `export:save-folder` |
-| `backup.js`                         | backup file/folder dialogs, schedule IPC, scheduler emailing the encrypted database copy   |
-| `backup-schedule.js`                | pure due-time check (unit tested)                                                          |
-| `app-config.js`                     | read/write `userData/config.json`                                                          |
-| `json-file.js`                      | atomic JSON write with `.bak` copy; read falls back to it (unit tested)                    |
-| `ipc-guard.js`                      | `isMainWindowSender`: privileged channels accept only the main window's top frame          |
-| `external-links.js`, `startup.js`   | pure helpers (unit tested from `server/scripts`)                                           |
-| `preload.cjs`, `splash-preload.cjs` | the only APIs exposed to the renderers                                                     |
+| `backup.js`                         | backup file/folder dialogs, schedule IPC, scheduler emailing the encrypted database copy                                 |
+| `backup-schedule.js`                | pure due-time check (unit tested)                                                                                        |
+| `app-config.js`                     | read/write `userData/config.json`                                                                                        |
+| `json-file.js`                      | atomic JSON write with `.bak` copy; read falls back to it (unit tested)                                                  |
+| `ipc-guard.js`                      | `isMainWindowSender`: privileged channels accept only the main window's top frame                                        |
+| `external-links.js`, `startup.js`   | pure helpers (unit tested from `server/scripts`)                                                                         |
+| `preload.cjs`, `splash-preload.cjs` | the only APIs exposed to the renderers                                                                                   |
 
 Windows run with `contextIsolation`, `sandbox` and no `nodeIntegration`. The
 built `index.html` and `splash.html` carry a Content-Security-Policy `<meta>`
@@ -436,8 +436,7 @@ price when the payload leaves them empty.
 - **Contract.** `POST /deals/:id/agreement` (`deals.service.ts`) drafts a
   contract from a template of the deal's kind with the deal's parties,
   listing, currency, price and commission, links it, and moves a deal before
-  `contract_preparation` there; a deal whose contract is not cancelled gets a
-  409. When a linked contract is issued, the agreements route calls
+  `contract_preparation` there; a deal whose contract is not cancelled gets a 409. When a linked contract is issued, the agreements route calls
   `onAgreementIssued`, which moves its open deal to `contract_issued`.
 - Deals start from a request's match, a listing's page or a customer's page
   (`DealDialog` with a `preset`); a new deal sent without an owner takes the
@@ -465,7 +464,7 @@ added together.
     - a heading with children stays a heading and keeps its type;
     - a heading stops only after its children.
   - Chart edits lock the table against other chart edits (`SHARE ROW
-    EXCLUSIVE`; reads continue), so two saves cannot make a cycle or reuse a
+EXCLUSIVE`; reads continue), so two saves cannot make a cycle or reuse a
     code.
 - **Default accounts** (`default-chart.ts`). Each has a `system_key`: a
   heading key (`cash`) or the posting account of one currency
@@ -729,7 +728,7 @@ period, from when to when (migration `0014_leases`).
   - a period the end date cuts short pays its days' share (bigint, half up);
   - an end date on an anniversary of the start ends the last period;
   - at most 360 installments.
-  It is written with the lease and never changed.
+    It is written with the lease and never changed.
 - **The listing** is marked rented on activation, and back to available when
   its only live lease is cancelled; both are audited as rental changes.
 - **Never rewritten.** `leases_guard` allows only cancelling (status and the
@@ -748,10 +747,10 @@ period, from when to when (migration `0014_leases`).
     office collects;
   - the deposit, held for the tenant;
   - payouts, each taking no more than the lease holds for that person.
-  `leases.service.ts` `leaseLink` locks the lease (`FOR NO KEY UPDATE`) and
-  the installment for the voucher's transaction. `leaseHeld` sums a lease's
-  funds for one person. Each installment's state (`installmentState`) is
-  paid, upcoming, due, overdue or released.
+    `leases.service.ts` `leaseLink` locks the lease (`FOR NO KEY UPDATE`) and
+    the installment for the voucher's transaction. `leaseHeld` sums a lease's
+    funds for one person. Each installment's state (`installmentState`) is
+    paid, upcoming, due, overdue or released.
 - **Termination** releases the installments due after its date. Arrears stay
   collectible. It is refused while a later installment is paid.
 - **Renewal** writes a new lease from the day after the old one ends
@@ -818,6 +817,13 @@ period, from when to when (migration `0014_leases`).
     Baghdad);
   - the months of a period;
   - FIFO aging of receivables.
+- The operational reports are under `/api/reports/operations/`:
+  - `deals`, `customers`, `listings` and `leases`, each needing
+    `reports.operations` and its area's read permission;
+  - request figures are null without `requests.read`.
+    They are in `operations.repository.ts`, which reuses the dashboard's
+    listing and matching definitions (`requestMatchSummaries`). The pure
+    rates, medians and buckets are in `operations.rules.ts`.
 - Renderer: `types/report.types.ts` and `services/reports.service.ts`.
   - `pages/FinancialReportsPage.vue` (`/reports/financial`) has a tab per
     report, with its filters in the query.

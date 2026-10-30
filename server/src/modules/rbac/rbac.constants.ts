@@ -205,4 +205,9 @@ export const SYSTEM_PERMISSIONS = [
     name: "عرض التقارير المالية: الأرباح والميزانية والتدفق النقدي والعمولات والذمم",
     module: "reports",
   },
+  {
+    key: "reports.operations",
+    name: "عرض تقارير العمل: الصفقات والزبائن والعروض والإيجارات (مع صلاحية عرض كل منها)",
+    module: "reports",
+  },
 ] as const;

@@ -8,41 +8,42 @@ Do not rely on this file alone.
 
 ## Phases
 
-| Phase | Branch | Pull request | Tests | Status |
-| --- | --- | --- | --- | --- |
-| 0 — audit and plan | `docs/phase-00-audit` | [#26](https://github.com/TariqAli93/dalaly/pull/26), merged `115d525` | docs only; CI pass | Completed |
-| 1a — file integrity | `fix/phase-01a-file-integrity` | [#27](https://github.com/TariqAli93/dalaly/pull/27), merged `f0761b0` | `test:files` 14/14; all database suites; CI pass | Completed |
-| 1b — media tokens | `fix/phase-01b-media-tokens` | [#28](https://github.com/TariqAli93/dalaly/pull/28), merged `fb3512d` | `test:media-tokens` 8/8; affected suites; CI pass | Completed |
-| 1c — hardening | `fix/phase-01c-hardening` | [#29](https://github.com/TariqAli93/dalaly/pull/29), merged `8ac6385` | `test:hardening` 5/5, lifecycle 6/6; all suites; CI pass | Completed |
-| 2a — activities and tasks | `feat/phase-02a-activities` | [#30](https://github.com/TariqAli93/dalaly/pull/30), merged `2d82389` | `test:tasks` 13/13, `test:contract` 87; all suites; CI pass | Completed |
-| 2b — customer CRM | `feat/phase-02b-customer-crm` | [#31](https://github.com/TariqAli93/dalaly/pull/31), merged `6ec058d` | `test:customers` 8/8, `test:contract` 90; all suites; CI pass | Completed |
-| 2c — tasks UI | `feat/phase-02c-tasks-ui` | [#32](https://github.com/TariqAli93/dalaly/pull/32), merged `c1a02b3` | renderer typecheck, lint, build; web demo; CI pass | Completed |
-| 2d — customer UI | `feat/phase-02d-customer-ui` | [#34](https://github.com/TariqAli93/dalaly/pull/34), merged `1a361ac` | renderer typecheck, lint, build; web demo; CI pass | Completed |
-| 3a — deals core | `feat/phase-03a-deals-core` | [#33](https://github.com/TariqAli93/dalaly/pull/33), merged `1b54f56` | `test:deals` 10/10, deal rules 5/5, money 4/4, `test:contract` 97; all suites; CI pass | Completed |
-| 3b — deals UI | `feat/phase-03b-deals-ui` | [#35](https://github.com/TariqAli93/dalaly/pull/35), merged `eed0dcc` | renderer typecheck, lint, build; `formatAmount` tests; web demo; CI pass | Completed |
-| 3c — deal integration | `feat/phase-03c-deal-integration` | [#36](https://github.com/TariqAli93/dalaly/pull/36), merged `8364e11` | `test:deals` 15/15; all suites; web demo; CI pass | Completed |
-| 4a — chart of accounts | `feat/phase-04a-chart-of-accounts` | [#37](https://github.com/TariqAli93/dalaly/pull/37), merged `d71806f` | `test:accounting` 9/9, account rules 7/7, `test:contract` 100, backup round trip 35 tables; web demo; CI pass | Completed |
-| 4b — general ledger (server) | `feat/phase-04b-general-ledger` | [#38](https://github.com/TariqAli93/dalaly/pull/38), merged `edb4caf` | `test:ledger` 13/13, journal rules 6/6, backup round trip 38 tables; CI pass | Completed |
-| 4b — journal UI | `feat/phase-04b-journal-ui` | [#39](https://github.com/TariqAli93/dalaly/pull/39), merged `fef0787` | `test:contract` 111, editor sums 1 test; renderer checks; web demo; CI pass | Completed |
-| 4c — receipts and payments (server) | `feat/phase-04c-receipts-payments` | [#40](https://github.com/TariqAli93/dalaly/pull/40), merged `90adba2` | `test:vouchers` 10/10, voucher rules 5/5, backup round trip 39 tables; CI pass | Completed |
-| 4c — vouchers UI | `feat/phase-04c-vouchers-ui` | [#41](https://github.com/TariqAli93/dalaly/pull/41), merged `27dce5a` | `test:contract` 117; renderer checks; web demo; CI pass | Completed |
-| 4d — commissions (server) | `feat/phase-04d-commissions` | [#42](https://github.com/TariqAli93/dalaly/pull/42), merged `2782a16` | `test:commissions` 10/10, commission rules 4/4, backup round trip 41 tables; all suites; CI pass | Completed |
-| 4d — commissions UI | `feat/phase-04d-commissions-ui` | [#43](https://github.com/TariqAli93/dalaly/pull/43), merged `ca695f6` | `test:contract` 123, percent preview vs server; renderer checks; web demo; CI pass | Completed |
-| 4e — expenses and cash (server) | `feat/phase-04e-expenses-cash` | [#44](https://github.com/TariqAli93/dalaly/pull/44), merged `18781c7` | `test:cash` 9/9, cash rules 4/4, money 5/5, backup round trip 44 tables; CI pass | Completed |
-| 4e — expenses and cash UI | `feat/phase-04e-cash-ui` | [#45](https://github.com/TariqAli93/dalaly/pull/45), merged `11c3b0e` | `test:contract` 133; renderer checks; web demo; CI pass | Completed |
-| 4f — financial integration (server) | `feat/phase-04f-financial-integration` | [#46](https://github.com/TariqAli93/dalaly/pull/46), merged `a4fd3ac` | `test:finance` 9/9, voucher and deal rules 12/12, `test:contract` 135; affected suites; CI pass | Completed |
-| 4f — financial integration UI | `feat/phase-04f-financial-ui` | [#47](https://github.com/TariqAli93/dalaly/pull/47), merged `391845a` | renderer checks; `test:contract` 135; web demo; CI pass | Completed |
-| 5a — leases (server) | `feat/phase-05a-leases` | [#48](https://github.com/TariqAli93/dalaly/pull/48), merged `06d5b9f` | `test:leases` 9/9, lease rules 7/7, `test:contract` 142, backup round trip 46 tables; affected suites; CI pass | Completed |
-| 5a — leases UI | `feat/phase-05a-leases-ui` | [#49](https://github.com/TariqAli93/dalaly/pull/49), merged `5381863` | renderer checks; `test:contract` 142; web demo; CI pass | Completed |
-| 5b — lease payments (server) | `feat/phase-05b-lease-payments` | [#50](https://github.com/TariqAli93/dalaly/pull/50), merged `10c00f1` | `test:lease-payments` 11/11, lease rules 9/9, `test:contract` 145; affected suites; CI pass | Completed |
-| 5b — lease payments UI | `feat/phase-05b-lease-payments-ui` | [#51](https://github.com/TariqAli93/dalaly/pull/51), merged `139075a` | renderer checks; `test:contract` 145; web demo; CI pass | Completed |
-| 6a — financial reports (server) | `feat/phase-06a-financial-reports` | [#52](https://github.com/TariqAli93/dalaly/pull/52), merged `c0f6fc4` | `test:reports` 1/1 (a known year, every report), report rules 4/4, `test:contract` 153; timings under 500 ms; CI pass | Completed |
-| 6a — financial reports UI | `feat/phase-06a-financial-reports-ui` | — | renderer checks; renderer utils 8/8; web demo | In review |
-| 6b — operational reports | `feat/phase-06b-operational-reports` | — | — | Pending |
-| 7a — navigation | `feat/phase-07a-navigation` | — | — | Pending |
-| 7b — dashboard | `feat/phase-07b-dashboard` | — | — | Pending |
-| 8 — refactoring and performance | `refactor/phase-08-*` | — | — | Pending |
-| 9 — final verification | `test/phase-09-*` | — | — | Pending |
+| Phase                               | Branch                                 | Pull request                                                          | Tests                                                                                                                 | Status    |
+| ----------------------------------- | -------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------- |
+| 0 — audit and plan                  | `docs/phase-00-audit`                  | [#26](https://github.com/TariqAli93/dalaly/pull/26), merged `115d525` | docs only; CI pass                                                                                                    | Completed |
+| 1a — file integrity                 | `fix/phase-01a-file-integrity`         | [#27](https://github.com/TariqAli93/dalaly/pull/27), merged `f0761b0` | `test:files` 14/14; all database suites; CI pass                                                                      | Completed |
+| 1b — media tokens                   | `fix/phase-01b-media-tokens`           | [#28](https://github.com/TariqAli93/dalaly/pull/28), merged `fb3512d` | `test:media-tokens` 8/8; affected suites; CI pass                                                                     | Completed |
+| 1c — hardening                      | `fix/phase-01c-hardening`              | [#29](https://github.com/TariqAli93/dalaly/pull/29), merged `8ac6385` | `test:hardening` 5/5, lifecycle 6/6; all suites; CI pass                                                              | Completed |
+| 2a — activities and tasks           | `feat/phase-02a-activities`            | [#30](https://github.com/TariqAli93/dalaly/pull/30), merged `2d82389` | `test:tasks` 13/13, `test:contract` 87; all suites; CI pass                                                           | Completed |
+| 2b — customer CRM                   | `feat/phase-02b-customer-crm`          | [#31](https://github.com/TariqAli93/dalaly/pull/31), merged `6ec058d` | `test:customers` 8/8, `test:contract` 90; all suites; CI pass                                                         | Completed |
+| 2c — tasks UI                       | `feat/phase-02c-tasks-ui`              | [#32](https://github.com/TariqAli93/dalaly/pull/32), merged `c1a02b3` | renderer typecheck, lint, build; web demo; CI pass                                                                    | Completed |
+| 2d — customer UI                    | `feat/phase-02d-customer-ui`           | [#34](https://github.com/TariqAli93/dalaly/pull/34), merged `1a361ac` | renderer typecheck, lint, build; web demo; CI pass                                                                    | Completed |
+| 3a — deals core                     | `feat/phase-03a-deals-core`            | [#33](https://github.com/TariqAli93/dalaly/pull/33), merged `1b54f56` | `test:deals` 10/10, deal rules 5/5, money 4/4, `test:contract` 97; all suites; CI pass                                | Completed |
+| 3b — deals UI                       | `feat/phase-03b-deals-ui`              | [#35](https://github.com/TariqAli93/dalaly/pull/35), merged `eed0dcc` | renderer typecheck, lint, build; `formatAmount` tests; web demo; CI pass                                              | Completed |
+| 3c — deal integration               | `feat/phase-03c-deal-integration`      | [#36](https://github.com/TariqAli93/dalaly/pull/36), merged `8364e11` | `test:deals` 15/15; all suites; web demo; CI pass                                                                     | Completed |
+| 4a — chart of accounts              | `feat/phase-04a-chart-of-accounts`     | [#37](https://github.com/TariqAli93/dalaly/pull/37), merged `d71806f` | `test:accounting` 9/9, account rules 7/7, `test:contract` 100, backup round trip 35 tables; web demo; CI pass         | Completed |
+| 4b — general ledger (server)        | `feat/phase-04b-general-ledger`        | [#38](https://github.com/TariqAli93/dalaly/pull/38), merged `edb4caf` | `test:ledger` 13/13, journal rules 6/6, backup round trip 38 tables; CI pass                                          | Completed |
+| 4b — journal UI                     | `feat/phase-04b-journal-ui`            | [#39](https://github.com/TariqAli93/dalaly/pull/39), merged `fef0787` | `test:contract` 111, editor sums 1 test; renderer checks; web demo; CI pass                                           | Completed |
+| 4c — receipts and payments (server) | `feat/phase-04c-receipts-payments`     | [#40](https://github.com/TariqAli93/dalaly/pull/40), merged `90adba2` | `test:vouchers` 10/10, voucher rules 5/5, backup round trip 39 tables; CI pass                                        | Completed |
+| 4c — vouchers UI                    | `feat/phase-04c-vouchers-ui`           | [#41](https://github.com/TariqAli93/dalaly/pull/41), merged `27dce5a` | `test:contract` 117; renderer checks; web demo; CI pass                                                               | Completed |
+| 4d — commissions (server)           | `feat/phase-04d-commissions`           | [#42](https://github.com/TariqAli93/dalaly/pull/42), merged `2782a16` | `test:commissions` 10/10, commission rules 4/4, backup round trip 41 tables; all suites; CI pass                      | Completed |
+| 4d — commissions UI                 | `feat/phase-04d-commissions-ui`        | [#43](https://github.com/TariqAli93/dalaly/pull/43), merged `ca695f6` | `test:contract` 123, percent preview vs server; renderer checks; web demo; CI pass                                    | Completed |
+| 4e — expenses and cash (server)     | `feat/phase-04e-expenses-cash`         | [#44](https://github.com/TariqAli93/dalaly/pull/44), merged `18781c7` | `test:cash` 9/9, cash rules 4/4, money 5/5, backup round trip 44 tables; CI pass                                      | Completed |
+| 4e — expenses and cash UI           | `feat/phase-04e-cash-ui`               | [#45](https://github.com/TariqAli93/dalaly/pull/45), merged `11c3b0e` | `test:contract` 133; renderer checks; web demo; CI pass                                                               | Completed |
+| 4f — financial integration (server) | `feat/phase-04f-financial-integration` | [#46](https://github.com/TariqAli93/dalaly/pull/46), merged `a4fd3ac` | `test:finance` 9/9, voucher and deal rules 12/12, `test:contract` 135; affected suites; CI pass                       | Completed |
+| 4f — financial integration UI       | `feat/phase-04f-financial-ui`          | [#47](https://github.com/TariqAli93/dalaly/pull/47), merged `391845a` | renderer checks; `test:contract` 135; web demo; CI pass                                                               | Completed |
+| 5a — leases (server)                | `feat/phase-05a-leases`                | [#48](https://github.com/TariqAli93/dalaly/pull/48), merged `06d5b9f` | `test:leases` 9/9, lease rules 7/7, `test:contract` 142, backup round trip 46 tables; affected suites; CI pass        | Completed |
+| 5a — leases UI                      | `feat/phase-05a-leases-ui`             | [#49](https://github.com/TariqAli93/dalaly/pull/49), merged `5381863` | renderer checks; `test:contract` 142; web demo; CI pass                                                               | Completed |
+| 5b — lease payments (server)        | `feat/phase-05b-lease-payments`        | [#50](https://github.com/TariqAli93/dalaly/pull/50), merged `10c00f1` | `test:lease-payments` 11/11, lease rules 9/9, `test:contract` 145; affected suites; CI pass                           | Completed |
+| 5b — lease payments UI              | `feat/phase-05b-lease-payments-ui`     | [#51](https://github.com/TariqAli93/dalaly/pull/51), merged `139075a` | renderer checks; `test:contract` 145; web demo; CI pass                                                               | Completed |
+| 6a — financial reports (server)     | `feat/phase-06a-financial-reports`     | [#52](https://github.com/TariqAli93/dalaly/pull/52), merged `c0f6fc4` | `test:reports` 1/1 (a known year, every report), report rules 4/4, `test:contract` 153; timings under 500 ms; CI pass | Completed |
+| 6a — financial reports UI           | `feat/phase-06a-financial-reports-ui`  | [#53](https://github.com/TariqAli93/dalaly/pull/53), merged `55d841c` | renderer checks; renderer utils 8/8; web demo; CI pass                                                                | Completed |
+| 6b — operational reports (server)   | `feat/phase-06b-operational-reports`   | —                                                                     | `test:reports` 2/2 (operational: every figure), report rules 5/5, `test:contract` 157                                 | In review |
+| 6b — operational reports UI         | —                                      | —                                                                     | —                                                                                                                     | Pending   |
+| 7a — navigation                     | `feat/phase-07a-navigation`            | —                                                                     | —                                                                                                                     | Pending   |
+| 7b — dashboard                      | `feat/phase-07b-dashboard`             | —                                                                     | —                                                                                                                     | Pending   |
+| 8 — refactoring and performance     | `refactor/phase-08-*`                  | —                                                                     | —                                                                                                                     | Pending   |
+| 9 — final verification              | `test/phase-09-*`                      | —                                                                     | —                                                                                                                     | Pending   |
 
 ## Baseline evidence (Phase 0, `main` at `3e01f9f`)
 
@@ -350,8 +351,8 @@ below.
   - both permissions and the audit;
   - a full restore (moved accounts, later accounts gone, sequences);
   - an archive from before the chart getting the default accounts.
-  `test:removal:backup` now covers 35 tables. `test:contract` checks the
-  three new calls (100).
+    `test:removal:backup` now covers 35 tables. `test:contract` checks the
+    three new calls (100).
 - `ensureDefaultChart` skips a database whose migrations end before `0008`,
   which the 0005 upgrade test exercises.
 - Checked in the web demo:
@@ -390,8 +391,8 @@ below.
   - the four permissions and the audit;
   - a customers restore keeping line links, a full restore, and the
     triggers active again after it.
-  The journal rules have 6 unit tests. `test:removal:backup` covers 38
-  tables, with a posted entry and a closed month.
+    The journal rules have 6 unit tests. `test:removal:backup` covers 38
+    tables, with a posted entry and a closed month.
 - The journal pages (list, entry editor, reversal, statements, closing
   months) came in the next PR, "4b — journal UI".
 
@@ -403,14 +404,14 @@ below.
   entry's status and the user's permissions allow:
   - for a draft: edit, post, delete;
   - for a posted entry: "قيد عكسي" (a date and a reason).
-  A reversal and its original link to each other.
+    A reversal and its original link to each other.
 - The editor dialog:
   - lists only active posting accounts of the entry's currency, picked by
     typing a code and Enter;
   - takes each line on one side;
   - shows exact totals and the difference.
-  "حفظ مسودة" keeps an unbalanced entry; "ترحيل" is enabled only once the
-  entry balances.
+    "حفظ مسودة" keeps an unbalanced entry; "ترحيل" is enabled only once the
+    entry balances.
 - An account statement (from the chart, or from a line's account) shows the
   opening balance, a running balance on the account's side, and the closing
   balance.
@@ -438,7 +439,7 @@ below.
 - Payments are capped:
   - by the cash or bank balance;
   - for client funds, by what was collected for that person.
-  Two racing payments that together would overdraw: one is refused.
+    Two racing payments that together would overdraw: one is refused.
 - Voiding posts the reversing entry. The `vouchers_guard` trigger allows
   only that change; a voucher's entry cannot be reversed by hand.
 - Amount in words from the digits (`decimalAmountInWords`), exact past 2^53.
@@ -455,7 +456,7 @@ below.
   - the three permissions and the user-deletion message;
   - listing, filters and audit;
   - a customers restore keeping links, and a full restore.
-  Voucher rules: 5 unit tests. `test:removal:backup` covers 39 tables.
+    Voucher rules: 5 unit tests. `test:removal:backup` covers 39 tables.
 - The vouchers screens (issue, list, print, void) came in the next PR,
   "4c — vouchers UI".
 
@@ -471,8 +472,8 @@ below.
     client funds, what is held for them;
   - the description, a reference, and (for users who may read the chart)
     another account the purpose allows.
-  A payment above the account's balance, or above what is held for the
-  customer, is flagged before it is sent; the server refuses it anyway.
+    A payment above the account's balance, or above what is held for the
+    customer, is flagged before it is sent; the server refuses it anyway.
 - The voucher page shows the amount in words, both accounts, the deal and
   the journal entry, and offers print, PDF and "إلغاء السند" (a date and a
   reason). A voided voucher shows who voided it, when, why, and its
@@ -501,8 +502,8 @@ below.
 - Allocated vouchers settle commissions:
   - receipts with `commission_id` credit the receivable;
   - payments with `commission_split_id` debit the payable.
-  Never beyond what is left; two receipts racing for the rest, one is
-  refused. Income is counted once: the receipt does not credit income again.
+    Never beyond what is left; two receipts racing for the rest, one is
+    refused. Income is counted once: the receipt does not credit income again.
 - Cancelling reverses the entry, and only while nothing is settled.
 - Triggers keep commissions and shares unchanged, and voucher allocations
   fixed (`vouchers_guard` replaced).
@@ -518,8 +519,8 @@ below.
   - the triggers in SQL;
   - permissions and audit;
   - a customers restore keeping links, and a full restore.
-  Commission rules: 4 unit tests (half-up rounding, rates, shares).
-  `test:removal:backup` covers 41 tables.
+    Commission rules: 4 unit tests (half-up rounding, rates, shares).
+    `test:removal:backup` covers 41 tables.
 - The commissions screens (on the deal page, the list, shares and payouts)
   came in the next PR, "4d — commissions UI".
 
@@ -582,7 +583,7 @@ below.
   - the triggers;
   - permissions;
   - full and old-archive restores.
-  Cash rules: 4 unit tests. `test:removal:backup` covers 44 tables.
+    Cash rules: 4 unit tests. `test:removal:backup` covers 44 tables.
 - The screens (balances, transfers, reconciliations, categories, the category
   on an expense payment) came in the next PR, "4e — expenses and cash UI".
 
@@ -647,7 +648,7 @@ below.
   - the trigger and deleting a person;
   - permissions;
   - restores.
-  Rules: `heldFor` and the closing rule (unit tests). `test:contract` 135.
+    Rules: `heldFor` and the closing rule (unit tests). `test:contract` 135.
 - The screens (who the funds are for on the voucher form, the money on the
   deal and customer pages) came in the next PR, "4f — financial integration
   UI".
@@ -729,8 +730,8 @@ below.
   - triggers;
   - permissions;
   - customers, rentals and full restores keeping the links.
-  Lease rules: 7 unit tests. `test:contract` 142. `test:removal:backup`
-  covers 46 tables.
+    Lease rules: 7 unit tests. `test:contract` 142. `test:removal:backup`
+    covers 46 tables.
 - Collecting the rent against the schedule, overdue installments, landlord
   payouts, renewal and termination are Phase 5b. The screens came in the
   next PR, "5a — leases UI".
@@ -779,8 +780,8 @@ below.
 - A voucher with `lease_id` alone moves the lease's other client funds:
   - the deposit, held for the tenant;
   - a payout to the landlord, or the deposit back to the tenant.
-  A payout takes no more than the lease holds for that person (its receipts
-  less its payouts), besides the customer-wide limit.
+    A payout takes no more than the lease holds for that person (its receipts
+    less its payouts), besides the customer-wide limit.
 - Voiding a rent receipt whose money was handed over is refused until the
   payout is voided.
 - Each installment carries what was paid, what is left and its state: paid,
@@ -790,8 +791,8 @@ below.
   - the rent due so far, collected and outstanding, and the overdue count;
   - what it holds for the landlord, and the deposit held for the tenant;
   - its renewal chain (its history).
-  `GET /api/leases/installments/overdue` lists overdue installments across
-  leases, oldest first.
+    `GET /api/leases/installments/overdue` lists overdue installments across
+    leases, oldest first.
 - `POST /api/leases/:id/terminate` ends a lease early.
   - Installments due after the date are released; arrears stay owed and
     collectible.
@@ -824,7 +825,7 @@ below.
   - triggers;
   - permissions;
   - a full restore.
-  Lease rules: 9 unit tests. `test:contract` 145.
+    Lease rules: 9 unit tests. `test:contract` 145.
 
 ### 5b — lease payments UI
 
@@ -842,7 +843,7 @@ below.
   - it locks the fund owner on rent;
   - a payout's limit is the lower of what the lease holds for that person
     and what the office holds for them.
-  The voucher page and its print name the lease and the installment.
+    The voucher page and its print name the lease and the installment.
 - «إنهاء مبكر» (`LeaseTerminateDialog.vue`):
   - it shows which installments the date releases, the arrears that stay,
     and the deposit to return;
@@ -852,15 +853,15 @@ below.
     terms for a year;
   - it previews the new schedule, then opens the new lease;
   - it says the old lease's deposit stays held on it.
-  Each lease of a renewal chain lists the chain with each link's state.
+    Each lease of a renewal chain lists the chain with each link's state.
 - The leases list has two tabs:
   - its leases, with an arrears column;
   - «الأقساط المتأخرة» (`?view=overdue`, `OverdueInstallments.vue`), with a
     count on the tab.
-  Each overdue row can be collected, or followed up. A follow-up is a call
-  task on the tenant, dated tomorrow 10:00, with the installment and amount
-  in its notes; it is listed with the tasks. A customer's and a listing's
-  lease lists show arrears too.
+    Each overdue row can be collected, or followed up. A follow-up is a call
+    task on the tenant, dated tomorrow 10:00, with the installment and amount
+    in its notes; it is listed with the tasks. A customer's and a listing's
+    lease lists show arrears too.
 - Fixed: the lease page's next due date was wrapped in `<bdi>`, which
   scrambled the right-to-left marks the Arabic date format adds.
 - Web demo (`pnpm demo:reset`):
@@ -910,8 +911,8 @@ below.
   - receivables add up to the receivable account;
   - cash flow closes at cash plus bank;
   - recorded commissions are the brokerage income.
-  It covers period edges, the currency filter, validation and the
-  permission.
+    It covers period edges, the currency filter, validation and the
+    permission.
 - Report rules: 4 unit tests (period defaults and Baghdad's date, months,
   aging edges, overpayment). `test:contract` 153 (8 report endpoints).
 - Timing on a generated year of 40,000 posted entries (80,000 lines),
@@ -922,7 +923,7 @@ below.
   - cash flow 233 ms;
   - receivables 140 ms;
   - payables 37 ms.
-  All are under the plan's 500 ms.
+    All are under the plan's 500 ms.
 
 ### 6a — financial reports UI
 
@@ -975,23 +976,57 @@ below.
 - `scripts/renderer-utils.test.ts`: signed amounts; mapping with and
   without permissions (links, cancelled rows, warnings); Iraqi month names.
 
+### 6b — operational reports (server)
+
+- Four reports at `/api/reports/operations/`, each behind the new
+  `reports.operations` and its area's read permission:
+  - **deals**: created, won, lost, cancelled and open now; win rate and the
+    period's conversion; cycle days; the pipeline by stage and expected
+    commission; lost reasons; each employee's results and commissions;
+    commissions by deal type; the closed deals;
+  - **customers**: active, new, contacted; uncontacted with something open;
+    repeat; new customers converted; contacts by type and employee; request
+    conversion;
+  - **listings** (sale or rental): statuses; sold or rented in the period;
+    age; listings without activity; supply against demand by type, price
+    band and location; requests nothing matches;
+  - **leases**: in force with their monthly rent; expiring; due and
+    collected; overdue; ended and renewed; rental brokerage.
+- Request figures are null without `requests.read`. Where the dashboard
+  already defines a figure, the report uses that definition:
+  - listings without activity;
+  - listings sold or rented, from the change log;
+  - matching.
+- No migration. Formulas are in `docs/REPORTS.md`.
+- `operational-reports.test.ts` (in `test:reports`) writes the data for
+  each figure and checks it:
+  - seven deals across stages, employees and reasons;
+  - customers with contacts, requests, open and won deals;
+  - listings of three ages, a sale in the change log, an unmatched request;
+  - leases collected in part, expiring, renewed, in two currencies.
+    It also checks the filters (employee, deal type, days), validation and
+    each report's permissions, with request figures left out without
+    `requests.read`. Lease dates are relative to the office's today, so the
+    suite does not age.
+- Report rules: 5 unit tests (rates, medians, age buckets, price bands).
+  `test:contract` 157 (5 operational endpoints).
 
 ## Database migrations
 
-| Migration | Phase | What it adds |
-| --- | --- | --- |
-| `0000`–`0004` | before this plan | baseline schema, document types, property indexes, search text, agreements |
-| `0005_crm_tasks` | 2a | task columns on both follow-up tables (customer, assignee, status, priority, completion, outcome, `updated_at`), `activities`, their indexes and checks; existing follow-ups without a date or already past become `done` |
-| `0006_customer_crm` | 2b | `people.roles` (checked `text[]`, GIN index), `source` (checked), `assigned_user_id` (FK users, set null, indexed) |
-| `0007_deals` | 3a | `deals` (checked type, stage, priority, currency, listing kind, distinct parties, ISO close date), `deal_stage_history`, `deal_offers`, `activities.deal_id` |
-| `0008_chart_of_accounts` | 4a | `accounts` (checked type, currency, code digits, posting accounts with a currency, no self-parent; unique code and `system_key`; parent FK restrict). The default accounts are added at startup, not by the migration. |
-| `0009_general_ledger` | 4b | `journal_entries` (checked status, currency, source, reversal link, posted time; unique code, idempotency key and reversal), `journal_lines` (one positive side; FK accounts restrict, people and deals set null for restores), `accounting_periods`; triggers `journal_entries_guard`, `journal_lines_guard`, `accounts_ledger_guard` |
-| `0010_vouchers` | 4c | `vouchers` (checked kind, currency, positive amount, status and void fields together, distinct accounts; FK accounts and entries restrict, people and deals set null for restores); trigger `vouchers_guard`; `journal_entries_guard` replaced to refuse deleting a user with posted entries |
-| `0011_commissions` | 4d | `commissions` (checked payer role, currency, basis with rate and base, positive amount, cancel fields together; one active per deal and payer), `commission_splits` (one per user, positive), `vouchers.commission_id` and `commission_split_id` with a kind check; triggers `commissions_guard`, `commission_splits_guard`; `vouchers_guard` replaced |
-| `0012_expenses_cash` | 4e | `expense_categories` (an account at least), `cash_transfers` (positive, distinct accounts, void fields together), `cash_reconciliations` (difference = statement − book), `vouchers.expense_category_id` with a check; journal source `reconciliation`; triggers `cash_transfers_guard`, `cash_reconciliations_guard`; `vouchers_guard` replaced (whole rows) |
-| `0013_client_funds_held_for` | 4f | `vouchers.held_for_person_id` (FK people, set null, indexed; only on client funds, checked); `vouchers_guard` replaced to refuse clearing it |
-| `0014_leases` | 5a | `leases` (contract and revision, listing, landlord and tenant set null for restores; positive rent, frequency, end after start, cancel fields together; one live lease per contract) and `lease_installments` (period, due date, positive amount; unique per lease and number); triggers `leases_guard`, `lease_installments_guard` |
-| `0015_lease_payments` | 5b | `vouchers.lease_id`, `vouchers.lease_installment_id` (only on client funds; an installment only on a receipt; indexed); `leases` termination fields and `renewed_from_id` (one live renewal per lease), status check widened to terminated and renewed; `leases_guard` replaced |
+| Migration                    | Phase            | What it adds                                                                                                                                                                                                                                                                                                                                                  |
+| ---------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0000`–`0004`                | before this plan | baseline schema, document types, property indexes, search text, agreements                                                                                                                                                                                                                                                                                    |
+| `0005_crm_tasks`             | 2a               | task columns on both follow-up tables (customer, assignee, status, priority, completion, outcome, `updated_at`), `activities`, their indexes and checks; existing follow-ups without a date or already past become `done`                                                                                                                                     |
+| `0006_customer_crm`          | 2b               | `people.roles` (checked `text[]`, GIN index), `source` (checked), `assigned_user_id` (FK users, set null, indexed)                                                                                                                                                                                                                                            |
+| `0007_deals`                 | 3a               | `deals` (checked type, stage, priority, currency, listing kind, distinct parties, ISO close date), `deal_stage_history`, `deal_offers`, `activities.deal_id`                                                                                                                                                                                                  |
+| `0008_chart_of_accounts`     | 4a               | `accounts` (checked type, currency, code digits, posting accounts with a currency, no self-parent; unique code and `system_key`; parent FK restrict). The default accounts are added at startup, not by the migration.                                                                                                                                        |
+| `0009_general_ledger`        | 4b               | `journal_entries` (checked status, currency, source, reversal link, posted time; unique code, idempotency key and reversal), `journal_lines` (one positive side; FK accounts restrict, people and deals set null for restores), `accounting_periods`; triggers `journal_entries_guard`, `journal_lines_guard`, `accounts_ledger_guard`                        |
+| `0010_vouchers`              | 4c               | `vouchers` (checked kind, currency, positive amount, status and void fields together, distinct accounts; FK accounts and entries restrict, people and deals set null for restores); trigger `vouchers_guard`; `journal_entries_guard` replaced to refuse deleting a user with posted entries                                                                  |
+| `0011_commissions`           | 4d               | `commissions` (checked payer role, currency, basis with rate and base, positive amount, cancel fields together; one active per deal and payer), `commission_splits` (one per user, positive), `vouchers.commission_id` and `commission_split_id` with a kind check; triggers `commissions_guard`, `commission_splits_guard`; `vouchers_guard` replaced        |
+| `0012_expenses_cash`         | 4e               | `expense_categories` (an account at least), `cash_transfers` (positive, distinct accounts, void fields together), `cash_reconciliations` (difference = statement − book), `vouchers.expense_category_id` with a check; journal source `reconciliation`; triggers `cash_transfers_guard`, `cash_reconciliations_guard`; `vouchers_guard` replaced (whole rows) |
+| `0013_client_funds_held_for` | 4f               | `vouchers.held_for_person_id` (FK people, set null, indexed; only on client funds, checked); `vouchers_guard` replaced to refuse clearing it                                                                                                                                                                                                                  |
+| `0014_leases`                | 5a               | `leases` (contract and revision, listing, landlord and tenant set null for restores; positive rent, frequency, end after start, cancel fields together; one live lease per contract) and `lease_installments` (period, due date, positive amount; unique per lease and number); triggers `leases_guard`, `lease_installments_guard`                           |
+| `0015_lease_payments`        | 5b               | `vouchers.lease_id`, `vouchers.lease_installment_id` (only on client funds; an installment only on a receipt; indexed); `leases` termination fields and `renewed_from_id` (one live renewal per lease), status check widened to terminated and renewed; `leases_guard` replaced                                                                               |
 
 ## Decisions that need the owner
 

@@ -250,3 +250,244 @@ export interface PayablesReport {
   as_of: string;
   sections: PayablesSection[];
 }
+
+// ─── Operational reports (/api/reports/operations) ───────────────────────
+
+export interface OperationsPeriodQuery {
+  from?: string;
+  to?: string;
+}
+
+export interface DealsReport {
+  from: string;
+  to: string;
+  user_id: number | null;
+  deal_type: string | null;
+  totals: {
+    created: number;
+    won: number;
+    lost: number;
+    cancelled: number;
+    open_now: number;
+    /** Won ÷ (won + lost) closed in the period, %; null when none closed. */
+    win_rate: number | null;
+    cohort_won: number;
+    /** Of deals created in the period, the share won by now, %. */
+    cohort_conversion: number | null;
+    cycle_days_average: number | null;
+    cycle_days_median: number | null;
+  };
+  stages: Array<{ stage: string; deals: number; days_in_stage: number | null }>;
+  pipeline: Array<{
+    currency: Currency;
+    deals: number;
+    expected_commission: string;
+  }>;
+  lost_reasons: Array<{ reason: string; deals: number; share: number | null }>;
+  employees: Array<{
+    user_id: number | null;
+    display_name: string | null;
+    open_now: number;
+    created: number;
+    won: number;
+    lost: number;
+    win_rate: number | null;
+    cycle_days: number | null;
+    commission_iqd: string;
+    commission_usd: string;
+  }>;
+  commissions: Array<{
+    currency: Currency;
+    deal_type: string;
+    commissions: number;
+    amount: string;
+  }>;
+  closed: Array<{
+    id: number;
+    code: string;
+    deal_type: string;
+    stage: string;
+    currency: Currency;
+    agreed_price: string | null;
+    lost_reason: string | null;
+    client_person_id: number | null;
+    client_name: string | null;
+    user_name: string | null;
+    created_on: string;
+    closed_on: string;
+    cycle_days: number | null;
+  }>;
+  closed_truncated: boolean;
+}
+export interface DealsReportQuery extends OperationsPeriodQuery {
+  user_id?: number;
+  deal_type?: "sale" | "rent";
+}
+
+export interface CustomersReport {
+  from: string;
+  to: string;
+  days: number;
+  user_id: number | null;
+  totals: {
+    active: number;
+    new: number;
+    contacted: number;
+    uncontacted: number;
+    repeat: number;
+    new_converted: number;
+    new_conversion: number | null;
+  };
+  uncontacted: Array<{
+    person_id: number;
+    person_name: string;
+    phone: string | null;
+    user_name: string | null;
+    open_requests: number;
+    open_deals: number;
+    last_contact: string | null;
+  }>;
+  repeat: Array<{
+    person_id: number;
+    person_name: string;
+    phone: string | null;
+    won_deals: number;
+    last_won: string | null;
+  }>;
+  contacts_by_type: Array<{
+    type: string;
+    contacts: number;
+    customers: number;
+  }>;
+  contacts_by_user: Array<{
+    user_id: number | null;
+    display_name: string | null;
+    contacts: number;
+    customers: number;
+  }>;
+  /** Null without requests.read. */
+  requests: Array<{
+    kind: "sale" | "rental";
+    open: number;
+    created: number;
+    with_deal: number;
+    won: number;
+    conversion: number | null;
+  }> | null;
+}
+export interface CustomersReportQuery extends OperationsPeriodQuery {
+  user_id?: number;
+  days?: number;
+}
+
+export interface ListingsReport {
+  kind: "sale" | "rental";
+  from: string;
+  to: string;
+  statuses: Array<{ status: string; listings: number }>;
+  totals: {
+    available: number;
+    closed: number;
+    stale: number;
+    age_median: number | null;
+    open_requests: number | null;
+    unmatched_requests: number | null;
+  };
+  age: Array<{ bucket: string; listings: number }>;
+  closed: Array<{
+    id: number;
+    code: string;
+    name: string;
+    property_type: string;
+    price: string | null;
+    closed_on: string;
+  }>;
+  types: Array<{
+    property_type: string;
+    available: number;
+    requests: number | null;
+  }>;
+  price_bands: Array<{
+    from: number | null;
+    to: number | null;
+    available: number;
+    requests: number | null;
+  }>;
+  demand: Array<{
+    governorate: string;
+    district: string;
+    requests: number;
+    available: number;
+  }> | null;
+  unmatched: Array<{
+    id: number;
+    code: string;
+    person_id: number;
+    person_name: string;
+    phone: string | null;
+    property_type: string;
+    budget_max: string | null;
+    governorate: string | null;
+    district: string | null;
+    created_at: string;
+  }> | null;
+}
+export interface ListingsReportQuery extends OperationsPeriodQuery {
+  kind: "sale" | "rental";
+}
+
+export interface LeasesReport {
+  from: string;
+  to: string;
+  days: number;
+  in_force: Array<{
+    currency: Currency;
+    current: number;
+    upcoming: number;
+    monthly_rent: string;
+  }>;
+  expiring: Array<{
+    id: number;
+    code: string;
+    currency: Currency;
+    rent_amount: string;
+    frequency: string;
+    end_date: string;
+    days_left: number;
+    tenant_person_id: number | null;
+    tenant_name: string | null;
+    landlord_name: string | null;
+  }>;
+  due: Array<{
+    currency: Currency;
+    installments: number;
+    amount: string;
+    paid: string;
+    collection_rate: number | null;
+  }>;
+  overdue: Array<{
+    currency: Currency;
+    installments: number;
+    left: string;
+    oldest_days: number;
+  }>;
+  ended: {
+    ended: number;
+    renewed: number;
+    terminated: number;
+    renewal_rate: number | null;
+  };
+  brokerage: {
+    activated: number;
+    renewals: number;
+    rent_deals_won: number;
+    commissions: Array<{
+      currency: Currency;
+      commissions: number;
+      amount: string;
+    }>;
+  };
+}
+export interface LeasesReportQuery extends OperationsPeriodQuery {
+  days?: number;
+}
