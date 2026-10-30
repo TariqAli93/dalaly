@@ -263,6 +263,12 @@ export const NAV_SECTIONS: NavSection[] = [
     title: "المالية",
     items: [
       {
+        title: "الصناديق والمصارف",
+        to: "/accounting/cash",
+        icon: "mdi-safe-square-outline",
+        permission: "cash.read",
+      },
+      {
         title: "العمولات",
         to: "/accounting/commissions",
         icon: "mdi-percent-circle-outline",

@@ -240,6 +240,16 @@ const appPages: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/accounting/cash",
+    name: "cash",
+    component: () => import("../pages/CashPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "cash.read",
+      titleKey: "routes.cash",
+    },
+  },
+  {
     path: "/accounting/commissions",
     name: "commissions",
     component: () => import("../pages/CommissionsPage.vue"),
