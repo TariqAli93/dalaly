@@ -199,7 +199,8 @@ or rent deals.
 ### Customers — `GET /api/reports/operations/customers?from&to&user_id&days`
 
 **A contact** is an activity, or a sale or rental follow-up, that names the
-customer.
+customer and took place (marked done). It is dated by when it was done, else
+when it was recorded. An open task is a plan, not a contact.
 
 `user_id` keeps:
 

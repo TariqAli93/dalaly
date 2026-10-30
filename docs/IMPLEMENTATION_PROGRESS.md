@@ -40,8 +40,9 @@ Do not rely on this file alone.
 | 6a — financial reports UI           | `feat/phase-06a-financial-reports-ui`   | [#53](https://github.com/TariqAli93/dalaly/pull/53), merged `55d841c` | renderer checks; renderer utils 8/8; web demo; CI pass                                                                | Completed |
 | 6b — operational reports (server)   | `feat/phase-06b-operational-reports`    | [#54](https://github.com/TariqAli93/dalaly/pull/54), merged `9bebe63` | `test:reports` 2/2 (operational: every figure), report rules 5/5, `test:contract` 157; CI pass                        | Completed |
 | 6b — operational reports UI         | `feat/phase-06b-operational-reports-ui` | [#55](https://github.com/TariqAli93/dalaly/pull/55), merged `a687d08` | renderer checks; renderer utils 9/9; web demo; CI pass                                                                | Completed |
-| 7a — navigation and quick add       | `feat/phase-07a-navigation`             | —                                                                     | renderer checks; web demo (every quick-add item)                                                                      | In review |
-| 7b — dashboard                      | `feat/phase-07b-dashboard`              | —                                                                     | —                                                                                                                     | Pending   |
+| 7a — navigation and quick add       | `feat/phase-07a-navigation`             | [#56](https://github.com/TariqAli93/dalaly/pull/56), merged `2d5cfd9` | renderer checks; web demo (every quick-add item); CI pass                                                             | Completed |
+| 7b — dashboard (server)             | `feat/phase-07b-dashboard`              | —                                                                     | `test:dashboard-business` 1/1, `test:reports` 2/2, `test:contract` 159                                                | In review |
+| 7b — dashboard UI                   | —                                       | —                                                                     | —                                                                                                                     | Pending   |
 | 8 — refactoring and performance     | `refactor/phase-08-*`                   | —                                                                     | —                                                                                                                     | Pending   |
 | 9 — final verification              | `test/phase-09-*`                       | —                                                                     | —                                                                                                                     | Pending   |
 
@@ -1100,6 +1101,40 @@ below.
     payment, customer, task, purchase request, document, lease.
     The dev server reloaded the page a few times while optimising
     dependencies; that is Vite in development only.
+
+### 7b — dashboard (server)
+
+- `GET /dashboard/business` gives what needs attention:
+  - tasks due today, this week and overdue;
+  - deals negotiating, stalled 14 days and won in 30 days;
+  - customers needing contact;
+  - leases expiring in 30 days and installments overdue;
+  - the month's money: commissions collected and outstanding, revenue,
+    expenses, net.
+    `GET /dashboard/alerts` gives the notification center's counts of the
+    same. Each section follows its read permission. Definitions are in
+    `docs/OPERATIONS_DASHBOARD.md`.
+- Each figure reuses an existing definition:
+  - the tasks list's `due` filters;
+  - the operational reports' uncontacted customers
+    (`uncontactedCustomers`, now shared);
+  - the overdue installments list;
+  - the income statement.
+- Changed: a customer's **contact** is now an activity or follow-up that
+  took place (done), dated by when it was done. A task still open is a
+  plan. This applies to the operational reports too, whose suite now has
+  a planned call that does not count. `docs/REPORTS.md` is updated.
+- The summary runs two sections at a time, one query each at a time
+  (`inParallel`, now exported), like the dashboard summary before it.
+- `test:dashboard-business` (in CI) checks each figure and the alerts
+  against data written relative to today. That data is:
+  - tasks late, today and in three days;
+  - deals negotiating, stalled, won lately and long ago;
+  - a commission partly collected and an expense;
+  - leases ending and overdue.
+    The month's money is checked against the income statement for the same
+    days. It also checks each section's permission and the empty summary of
+    a user without any.
 
 ## Database migrations
 

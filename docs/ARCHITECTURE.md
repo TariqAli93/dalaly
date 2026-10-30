@@ -304,6 +304,11 @@ Conventions:
   longer calls it; it reads `/dashboard/overview` and `/dashboard/matching`
   (`dashboard.operations.repository.ts`), which need only a signed-in user
   and return `null` for each section whose read permission is missing.
+  `/dashboard/business` and `/dashboard/alerts`
+  (`dashboard.business.repository.ts`) add tasks, deals, customers needing
+  contact, leases and the month's money, and the notification center's
+  counts. They reuse the tasks list, the operational and financial
+  reports, and the overdue installments, two sections at a time.
   Every figure is defined in `docs/OPERATIONS_DASHBOARD.md`.
 - Matching rules live in `modules/matching/matching.rules.ts`, once as
   `evaluateMatch` (one pair, with reasons) and once as SQL builders (every

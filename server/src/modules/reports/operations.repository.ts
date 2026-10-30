@@ -236,6 +236,70 @@ export async function dealsReport(query: DealsReportQuery) {
 // ─── Customers ─────────────────────────────────────────────────────────
 
 /**
+ * Every contact made with a customer: an activity or a follow-up naming
+ * them that took place (done), when it was done (else when it was
+ * recorded). A task still open is a plan, not a contact.
+ */
+const CONTACTS = sql`(
+    SELECT person_id, user_id, type, coalesce(completed_at, created_at) AS created_at FROM activities
+      WHERE person_id IS NOT NULL AND status = 'done'
+    UNION ALL SELECT person_id, user_id, type, coalesce(completed_at, created_at) FROM property_followups
+      WHERE person_id IS NOT NULL AND status = 'done'
+    UNION ALL SELECT person_id, user_id, type, coalesce(completed_at, created_at) FROM rental_followups
+      WHERE person_id IS NOT NULL AND status = 'done'
+  )`;
+const OPEN_REQUESTS = sql`(
+    SELECT person_id FROM purchase_requests WHERE status = 'open'
+    UNION ALL SELECT person_id FROM rental_requests WHERE status = 'open'
+  )`;
+const OPEN_DEAL = sql`EXISTS (SELECT 1 FROM deals d WHERE (d.client_person_id = p.id OR d.owner_person_id = p.id)
+    AND d.stage NOT IN ('won', 'lost', 'cancelled'))`;
+
+/**
+ * Active customers with something open (an open deal as client or owner,
+ * or with `requests` an open request) whose last contact is more than
+ * `days` days before `to`, or who were never contacted: never contacted
+ * first. The reports' and the dashboard's «customers needing contact».
+ */
+export async function uncontactedCustomers(input: {
+  to: string;
+  days: number;
+  userId?: number | null;
+  requests: boolean;
+  limit: number;
+}) {
+  const assigned = input.userId
+    ? sql`p.assigned_user_id = ${input.userId}`
+    : sql`true`;
+  const rows = await rawRows(sql`SELECT p.id, p.full_name, p.phone_primary, u.display_name AS user_name,
+      ${input.requests ? sql`(SELECT count(*) FROM ${OPEN_REQUESTS} r WHERE r.person_id = p.id)` : sql`0`}::int AS open_requests,
+      (SELECT count(*) FROM deals d WHERE (d.client_person_id = p.id OR d.owner_person_id = p.id)
+        AND d.stage NOT IN ('won', 'lost', 'cancelled'))::int AS open_deals,
+      ${DAY(sql`lc.last_contact`)}::text AS last_contact,
+      count(*) OVER () AS total
+    FROM people p
+    LEFT JOIN users u ON u.id = p.assigned_user_id
+    LEFT JOIN LATERAL (SELECT max(c.created_at) AS last_contact FROM ${CONTACTS} c WHERE c.person_id = p.id) lc ON true
+    WHERE p.status = 'active' AND ${assigned}
+      AND (${OPEN_DEAL} ${input.requests ? sql`OR EXISTS (SELECT 1 FROM ${OPEN_REQUESTS} r WHERE r.person_id = p.id)` : sql``})
+      AND (lc.last_contact IS NULL OR ${DAY(sql`lc.last_contact`)} < ${input.to}::date - ${input.days}::int)
+    ORDER BY lc.last_contact NULLS FIRST, p.id
+    LIMIT ${input.limit}`);
+  return {
+    total: count(rows[0]?.total),
+    rows: rows.map((item) => ({
+      person_id: Number(item.id),
+      person_name: item.full_name as string,
+      phone: text(item.phone_primary),
+      user_name: text(item.user_name),
+      open_requests: count(item.open_requests),
+      open_deals: count(item.open_deals),
+      last_contact: text(item.last_contact),
+    })),
+  };
+}
+
+/**
  * Customers: how many are active and new, who was contacted (an activity
  * or a follow-up naming them), who has something open and has not been
  * contacted for `days` days, customers with more than one won deal, and
@@ -254,18 +318,6 @@ export async function customersReport(
     : sql`true`;
   const byUser = (column: SQL) =>
     query.user_id ? sql`${column} = ${query.user_id}` : sql`true`;
-  // Every recorded contact with a customer: activities and follow-ups.
-  const CONTACTS = sql`(
-    SELECT person_id, user_id, type, created_at FROM activities WHERE person_id IS NOT NULL
-    UNION ALL SELECT person_id, user_id, type, created_at FROM property_followups WHERE person_id IS NOT NULL
-    UNION ALL SELECT person_id, user_id, type, created_at FROM rental_followups WHERE person_id IS NOT NULL
-  )`;
-  const OPEN_REQUESTS = sql`(
-    SELECT person_id FROM purchase_requests WHERE status = 'open'
-    UNION ALL SELECT person_id FROM rental_requests WHERE status = 'open'
-  )`;
-  const openDeal = sql`EXISTS (SELECT 1 FROM deals d WHERE (d.client_person_id = p.id OR d.owner_person_id = p.id)
-    AND d.stage NOT IN ('won', 'lost', 'cancelled'))`;
   const wonDeals = sql`(SELECT count(*) FROM deals d WHERE (d.client_person_id = p.id OR d.owner_person_id = p.id)
     AND d.stage = 'won' AND ${DAY(sql`d.closed_at`)} <= ${to})`;
 
@@ -279,20 +331,13 @@ export async function customersReport(
             JOIN people cp ON cp.id = c.person_id
             WHERE ${DAY(sql`c.created_at`)} BETWEEN ${from} AND ${to} AND ${byUser(sql`c.user_id`)}) AS contacted
         FROM people p WHERE ${assigned}`),
-      rawRows(sql`SELECT p.id, p.full_name, p.phone_primary, u.display_name AS user_name,
-          ${access.requests ? sql`(SELECT count(*) FROM ${OPEN_REQUESTS} r WHERE r.person_id = p.id)` : sql`0`}::int AS open_requests,
-          (SELECT count(*) FROM deals d WHERE (d.client_person_id = p.id OR d.owner_person_id = p.id)
-            AND d.stage NOT IN ('won', 'lost', 'cancelled'))::int AS open_deals,
-          ${DAY(sql`lc.last_contact`)}::text AS last_contact,
-          count(*) OVER () AS total
-        FROM people p
-        LEFT JOIN users u ON u.id = p.assigned_user_id
-        LEFT JOIN LATERAL (SELECT max(c.created_at) AS last_contact FROM ${CONTACTS} c WHERE c.person_id = p.id) lc ON true
-        WHERE p.status = 'active' AND ${assigned}
-          AND (${openDeal} ${access.requests ? sql`OR EXISTS (SELECT 1 FROM ${OPEN_REQUESTS} r WHERE r.person_id = p.id)` : sql``})
-          AND (lc.last_contact IS NULL OR ${DAY(sql`lc.last_contact`)} < ${to}::date - ${stale}::int)
-        ORDER BY lc.last_contact NULLS FIRST, p.id
-        LIMIT 500`),
+      uncontactedCustomers({
+        to,
+        days: stale,
+        userId: query.user_id,
+        requests: access.requests,
+        limit: 500,
+      }),
       rawRows(sql`SELECT p.id, p.full_name, p.phone_primary, ${wonDeals}::int AS won_deals,
           (SELECT max(${DAY(sql`d.closed_at`)})::text FROM deals d WHERE (d.client_person_id = p.id OR d.owner_person_id = p.id)
             AND d.stage = 'won' AND ${DAY(sql`d.closed_at`)} <= ${to}) AS last_won
@@ -345,20 +390,12 @@ export async function customersReport(
       active: count(row.active),
       new: created,
       contacted: count(row.contacted),
-      uncontacted: count(uncontacted[0]?.total),
+      uncontacted: uncontacted.total,
       repeat: repeat.length,
       new_converted: count(row.new_converted),
       new_conversion: rate(count(row.new_converted), created),
     },
-    uncontacted: uncontacted.map((item) => ({
-      person_id: Number(item.id),
-      person_name: item.full_name as string,
-      phone: text(item.phone_primary),
-      user_name: text(item.user_name),
-      open_requests: count(item.open_requests),
-      open_deals: count(item.open_deals),
-      last_contact: text(item.last_contact),
-    })),
+    uncontacted: uncontacted.rows,
     repeat: repeat.map((item) => ({
       person_id: Number(item.id),
       person_name: item.full_name as string,

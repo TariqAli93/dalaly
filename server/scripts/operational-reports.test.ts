@@ -97,8 +97,10 @@ test("operational reports count what the records say", async () => {
     // ─── Customers ──────────────────────────────────────────────────────
     await q("INSERT INTO purchase_requests(code, person_id, property_type, budget_max, governorate, district, status, created_at) VALUES('PR-2', $1, 'أرض', 160000000, 'بغداد', 'الكرادة', 'open', '2026-02-02T09:00:00+03:00')", [fresh]);
     await q("INSERT INTO rental_requests(code, person_id, property_type, status, created_at) VALUES('RR-1', $1, 'شقة', 'open', '2026-03-02T09:00:00+03:00')", [followed]);
-    await q("INSERT INTO activities(user_id, type, notes, person_id, created_at) VALUES($1, 'phone_call', 'متابعة', $2, '2026-12-20T09:00:00+03:00')", [agentA, followed]);
-    await q("INSERT INTO rental_followups(rental_id, user_id, type, notes, person_id, created_at) VALUES($1, $2, 'visit', 'معاينة', $3, '2026-03-05T09:00:00+03:00')", [ctx.rental.id, agentA, buyer.id]);
+    await q("INSERT INTO activities(user_id, type, notes, person_id, status, created_at) VALUES($1, 'phone_call', 'متابعة', $2, 'done', '2026-12-20T09:00:00+03:00')", [agentA, followed]);
+    // A call planned (still open) is not a contact.
+    await q("INSERT INTO activities(user_id, type, notes, person_id, status, scheduled_at) VALUES($1, 'phone_call', 'اتصال مقرر', $2, 'open', '2026-12-30T09:00:00+03:00')", [agentA, fresh]);
+    await q("INSERT INTO rental_followups(rental_id, user_id, type, notes, person_id, status, created_at) VALUES($1, $2, 'visit', 'معاينة', $3, 'done', '2026-03-05T09:00:00+03:00')", [ctx.rental.id, agentA, buyer.id]);
     const customers = await ok("GET", `/api/reports/operations/customers?${year}`);
     assert.deepEqual(customers.totals, { active: 4, new: 3, contacted: 2, uncontacted: 3, repeat: 2, new_converted: 1, new_conversion: 33.3 });
     assert.deepEqual(
