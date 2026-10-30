@@ -46,6 +46,10 @@ export const voucherPayloadSchema = z.object({
   commission_split_id: optionalId,
   /** What an expense payment was for: picks its expense account. */
   expense_category_id: optionalId,
+  /** A lease's client funds: its deposit or a payout to its landlord. */
+  lease_id: optionalId,
+  /** A receipt collecting this installment of a lease's rent. */
+  lease_installment_id: optionalId,
   description: z
     .string()
     .trim()
@@ -75,6 +79,7 @@ export const voucherPageQuerySchema = z.object({
   money_account_id: optionalId,
   commission_id: optionalId,
   expense_category_id: optionalId,
+  lease_id: optionalId,
   from: isoDate.optional(),
   to: isoDate.optional(),
   q: z.string().trim().max(100).optional(),

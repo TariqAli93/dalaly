@@ -20,6 +20,8 @@ import {
   deals,
   expenseCategories,
   journalEntries,
+  leaseInstallments,
+  leases,
   officeProfiles,
   people,
   users,
@@ -68,6 +70,10 @@ function selectVouchers() {
       commission_split_id: vouchers.commissionSplitId,
       expense_category_id: vouchers.expenseCategoryId,
       expense_category_name: expenseCategories.name,
+      lease_id: vouchers.leaseId,
+      lease_code: leases.code,
+      lease_installment_id: vouchers.leaseInstallmentId,
+      lease_installment_seq: leaseInstallments.seq,
       status: vouchers.status,
       journal_entry_id: vouchers.journalEntryId,
       journal_entry_code: entry.code,
@@ -94,6 +100,11 @@ function selectVouchers() {
       expenseCategories,
       eq(vouchers.expenseCategoryId, expenseCategories.id),
     )
+    .leftJoin(leases, eq(vouchers.leaseId, leases.id))
+    .leftJoin(
+      leaseInstallments,
+      eq(vouchers.leaseInstallmentId, leaseInstallments.id),
+    )
     .leftJoin(creator, eq(vouchers.createdBy, creator.id))
     .leftJoin(voider, eq(vouchers.voidedBy, voider.id));
 }
@@ -119,6 +130,7 @@ function conditions(query: VoucherPageQuery): SQL | undefined {
     where.push(eq(vouchers.commissionId, query.commission_id));
   if (query.expense_category_id)
     where.push(eq(vouchers.expenseCategoryId, query.expense_category_id));
+  if (query.lease_id) where.push(eq(vouchers.leaseId, query.lease_id));
   if (query.from) where.push(gte(vouchers.voucherDate, query.from));
   if (query.to) where.push(lte(vouchers.voucherDate, query.to));
   if (query.q) {

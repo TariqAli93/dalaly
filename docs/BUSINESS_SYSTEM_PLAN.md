@@ -257,6 +257,12 @@ on `bigint` minor units (`shared/money.ts`) and never on `number`.
   written at activation and never changed: installments are due on their
   period's first day, and a period the end date cuts short pays its days'
   share.)
+- (Built in 5b: an installment's paid amount comes from receipts naming it,
+  which are client funds held for the landlord. A deposit is held for the
+  tenant. Payouts name the lease and take no more than it holds for the
+  person. A termination releases later installments, and a renewal is a new
+  lease naming the old one. An office fee on rent is still recorded as a
+  commission or other income; no separate fee document is built.)
 
 ### 6.5 Reports (Phase 6)
 

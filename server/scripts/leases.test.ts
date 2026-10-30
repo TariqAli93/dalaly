@@ -135,7 +135,7 @@ test("leases: from an issued rent contract or by hand, with a schedule that neve
         [lease.rent_amount, lease.frequency, lease.deposit, lease.office_collects, lease.state, lease.installment_count, lease.total_rent, lease.next_due_date],
         ["750000.00", "monthly", "750000.00", true, "upcoming", 12, "9000000.00", "2090-01-01"],
       );
-      assert.deepEqual(lease.installments[0], { id: lease.installments[0].id, seq: 1, due_date: "2090-01-01", period_start: "2090-01-01", period_end: "2090-01-31", amount: "750000.00", state: "upcoming" });
+      assert.deepEqual(lease.installments[0], { id: lease.installments[0].id, seq: 1, due_date: "2090-01-01", period_start: "2090-01-01", period_end: "2090-01-31", amount: "750000.00", paid: "0.00", left: "750000.00", state: "upcoming" });
       assert.equal(await rentalStatus(), "rented", "the listing is now rented");
       const audits = (await pool.query("SELECT entity_type, action FROM audit_logs WHERE entity_type IN ('lease', 'rental') ORDER BY id")).rows.map((row) => `${row.entity_type}:${row.action}`);
       assert.deepEqual(audits.slice(-2), ["lease:created", "rental:status_changed"]);

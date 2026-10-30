@@ -2,10 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   addMonths,
+  installmentLeft,
+  installmentState,
   leaseSchedule,
   leaseState,
   leaseTermsOf,
   MAX_INSTALLMENTS,
+  renewalStart,
+  terminationError,
   type Installment,
 } from "../src/modules/leases/leases.rules.js";
 
@@ -95,4 +99,37 @@ test("a lease is upcoming, current or ended by its dates; cancelled stays cancel
   assert.equal(leaseState(lease, "2027-10-31"), "current");
   assert.equal(leaseState(lease, "2027-11-01"), "ended");
   assert.equal(leaseState({ ...lease, status: "cancelled" }, "2026-12-01"), "cancelled");
+  assert.equal(leaseState({ ...lease, status: "terminated" }, "2026-12-01"), "terminated");
+  assert.equal(leaseState({ ...lease, status: "renewed" }, "2026-12-01"), "renewed");
+});
+
+test("an installment is paid, upcoming, due or overdue; one after a termination is released", () => {
+  const row = (patch: Partial<Parameters<typeof installmentState>[0]> = {}) =>
+    installmentState({ dueDate: "2026-11-01", amount: "750000.00", paid: "0.00", officeCollects: true, terminationDate: null, ...patch }, "2026-11-10");
+  assert.equal(row(), "overdue");
+  assert.equal(row({ paid: "300000.00" }), "overdue", "partly paid and past its day");
+  assert.equal(row({ paid: "750000.00" }), "paid");
+  assert.equal(row({ dueDate: "2026-11-10" }), "due");
+  assert.equal(row({ dueDate: "2026-12-01" }), "upcoming");
+  assert.equal(row({ dueDate: "2026-12-01", paid: "750000.00" }), "paid", "paid in advance");
+  assert.equal(row({ terminationDate: "2026-10-31" }), "released");
+  assert.equal(row({ terminationDate: "2026-11-01" }), "overdue", "due on the last day: still owed");
+  // Where the tenant pays the landlord directly, the office tracks no payments.
+  assert.equal(row({ officeCollects: false }), "due");
+  assert.equal(row({ officeCollects: false, paid: "750000.00" }), "due");
+  assert.equal(installmentLeft("750000.00", "300000.00"), "450000.00");
+  assert.equal(installmentLeft("750000.00", "800000.00"), "0.00");
+});
+
+test("a lease in force ends early inside its term, unless rent after that day was paid", () => {
+  const lease = { status: "active", startDate: "2026-01-01", endDate: "2026-12-31" };
+  assert.equal(terminationError(lease, "2026-06-30", 0), null);
+  assert.equal(terminationError(lease, "2026-01-01", 0), null);
+  assert.match(terminationError(lease, "2026-12-31", 0)!, /قبل آخر يوم/);
+  assert.match(terminationError(lease, "2025-12-31", 0)!, /بين بدء الإيجار/);
+  assert.match(terminationError(lease, "2026-06-30", 1)!, /قُبض قسط يُستحق بعد تاريخ الإنهاء/);
+  assert.match(terminationError({ ...lease, status: "renewed" }, "2026-06-30", 0)!, /الإيجار الساري فقط/);
+  assert.match(terminationError(lease, "30/06/2026", 0)!, /YYYY-MM-DD/);
+  assert.equal(renewalStart("2026-12-31"), "2027-01-01");
+  assert.equal(renewalStart("2028-02-28"), "2028-02-29");
 });

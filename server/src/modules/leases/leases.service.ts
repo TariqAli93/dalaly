@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { db } from "../../infrastructure/database/db.js";
 import {
   lockRecordCodes,
@@ -12,28 +12,37 @@ import {
   leases,
   people,
   rentals,
+  vouchers,
 } from "../../infrastructure/database/schema.js";
 import { DomainError } from "../../shared/errors.js";
 import { addMoney } from "../../shared/money.js";
 import { recordAudit } from "../audit/audit.service.js";
 import {
+  installmentLeft,
   leaseSchedule,
   leaseTermsOf,
+  renewalStart,
+  terminationError,
   type Installment,
   type LeaseFrequency,
   type RentTerms,
 } from "./leases.rules.js";
-import type { LeasePayload } from "./leases.schema.js";
+import type { LeasePayload, LeaseRenewPayload } from "./leases.schema.js";
 
 /**
- * Putting leases in force and cancelling them. A lease and its schedule are
- * written in one transaction; the listing it rents is marked rented, and
- * back to available when its only lease is cancelled. Collecting the rent
- * against the schedule comes with Phase 5b.
+ * Putting leases in force, ending, renewing and cancelling them. A lease and
+ * its schedule are written in one transaction; the listing it rents is
+ * marked rented, and back to available when no lease in force rents it.
+ * Rent collected against the schedule, the deposit and the landlord's
+ * payouts are client-funds vouchers naming the lease (vouchers.service.ts,
+ * through leaseLink and leaseHeld below).
  */
 
 const RENT_TEMPLATES = ["residential_rent", "commercial_rent"];
 const rule = (message: string) => new DomainError(400, message, "LEASE_RULE");
+/** A voucher naming a lease that does not fit it. */
+const voucherRule = (message: string) =>
+  new DomainError(400, message, "VOUCHER_RULE");
 
 type LeaseValues = {
   agreementId: number | null;
@@ -105,6 +114,7 @@ async function insertLease(
   values: LeaseValues,
   installments: Installment[],
   userId?: number,
+  renewedFromId: number | null = null,
 ) {
   const code = await nextCode(tx);
   const [row] = await tx
@@ -124,6 +134,7 @@ async function insertLease(
       deposit: values.deposit,
       officeCollects: values.officeCollects,
       notes: values.notes,
+      renewedFromId,
       createdBy: userId ?? null,
     })
     .returning({ id: leases.id, code: leases.code });
@@ -388,22 +399,96 @@ export async function activateLease(
 }
 
 /**
- * Cancels a lease entered by mistake. Its listing goes back to available
- * if it was rented and no other live lease rents it.
+ * Frees a lease's listing when no other lease in force rents it: back to
+ * available if it was rented. Returns whether it changed.
+ */
+async function freeRental(
+  tx: Transaction,
+  rentalId: number | null,
+  leaseId: number,
+) {
+  if (!rentalId) return false;
+  const [other] = await tx
+    .select({ id: leases.id })
+    .from(leases)
+    .where(
+      and(
+        eq(leases.rentalId, rentalId),
+        eq(leases.status, "active"),
+        ne(leases.id, leaseId),
+      ),
+    )
+    .limit(1);
+  if (other) return false;
+  const freed = await tx
+    .update(rentals)
+    .set({ status: "available", updatedAt: new Date() })
+    .where(and(eq(rentals.id, rentalId), eq(rentals.status, "rented")))
+    .returning({ id: rentals.id });
+  return freed.length > 0;
+}
+
+async function auditRentalFreed(
+  rentalId: number | null,
+  leaseCode: string,
+  freed: boolean,
+  userId?: number,
+) {
+  if (freed && rentalId)
+    await recordAudit({
+      entityType: "rental",
+      entityId: rentalId,
+      action: "status_changed",
+      oldValue: { status: "rented" },
+      newValue: { status: "available", lease_code: leaseCode },
+      userId,
+    });
+}
+
+async function lockLease(tx: Transaction, id: number) {
+  const [row] = await tx
+    .select()
+    .from(leases)
+    .where(eq(leases.id, id))
+    .for("update");
+  return row ?? null;
+}
+
+/** Posted vouchers naming a lease (its rent, deposit or payouts). */
+async function leaseVoucherCount(tx: Transaction, leaseId: number) {
+  const [row] = await tx
+    .select({ count: sql<number>`count(*)::int` })
+    .from(vouchers)
+    .where(and(eq(vouchers.leaseId, leaseId), eq(vouchers.status, "posted")));
+  return row?.count ?? 0;
+}
+
+/**
+ * Cancels a lease entered by mistake, while no voucher names it. Its
+ * listing goes back to available if no other lease in force rents it; the
+ * lease it renewed (if any) is in force again.
  */
 export async function cancelLease(id: number, reason: string, userId?: number) {
   const done = await db.transaction(async (tx) => {
-    const [row] = await tx
-      .select()
-      .from(leases)
-      .where(eq(leases.id, id))
-      .for("update");
+    const row = await lockLease(tx, id);
     if (!row) return null;
     if (row.status === "cancelled")
       throw new DomainError(
         409,
         `الإيجار ${row.code} ملغى أصلاً.`,
         "LEASE_CANCELLED",
+      );
+    if (row.status !== "active")
+      throw new DomainError(
+        409,
+        `الإيجار ${row.code} منتهٍ أو مجدَّد؛ يُلغى الإيجار الساري فقط.`,
+        "LEASE_RULE",
+      );
+    if (await leaseVoucherCount(tx, id))
+      throw new DomainError(
+        409,
+        `على الإيجار ${row.code} سندات قبض أو صرف؛ ألغها أولاً.`,
+        "LEASE_HAS_VOUCHERS",
       );
     await tx
       .update(leases)
@@ -414,31 +499,22 @@ export async function cancelLease(id: number, reason: string, userId?: number) {
         cancelledBy: userId ?? null,
       })
       .where(eq(leases.id, id));
-    let rentalFreed = false;
-    if (row.rentalId) {
-      const [other] = await tx
-        .select({ id: leases.id })
-        .from(leases)
+    let restored: { id: number; code: string } | null = null;
+    if (row.renewedFromId) {
+      const [renewed] = await tx
+        .update(leases)
+        .set({ status: "active" })
         .where(
-          and(
-            eq(leases.rentalId, row.rentalId),
-            ne(leases.status, "cancelled"),
-            ne(leases.id, id),
-          ),
+          and(eq(leases.id, row.renewedFromId), eq(leases.status, "renewed")),
         )
-        .limit(1);
-      if (!other) {
-        const freed = await tx
-          .update(rentals)
-          .set({ status: "available", updatedAt: new Date() })
-          .where(
-            and(eq(rentals.id, row.rentalId), eq(rentals.status, "rented")),
-          )
-          .returning({ id: rentals.id });
-        rentalFreed = freed.length > 0;
-      }
+        .returning({ id: leases.id, code: leases.code });
+      restored = renewed ?? null;
     }
-    return { row, rentalFreed };
+    // The renewed lease is in force again and still rents the listing.
+    const rentalFreed = restored
+      ? false
+      : await freeRental(tx, row.rentalId, id);
+    return { row, rentalFreed, restored };
   });
   if (!done) return null;
   await recordAudit({
@@ -449,14 +525,263 @@ export async function cancelLease(id: number, reason: string, userId?: number) {
     newValue: { status: "cancelled", reason },
     userId,
   });
-  if (done.rentalFreed)
+  if (done.restored)
     await recordAudit({
-      entityType: "rental",
-      entityId: done.row.rentalId!,
+      entityType: "lease",
+      entityId: done.restored.id,
       action: "status_changed",
-      oldValue: { status: "rented" },
-      newValue: { status: "available", lease_code: done.row.code },
+      oldValue: { status: "renewed" },
+      newValue: { status: "active", cancelled_renewal: done.row.code },
       userId,
     });
+  await auditRentalFreed(
+    done.row.rentalId,
+    done.row.code,
+    done.rentalFreed,
+    userId,
+  );
   return id;
+}
+
+/**
+ * Ends a lease early: installments due after `termination_date` are
+ * released. Refused while one due after that day is paid. Its listing goes
+ * back to available.
+ */
+export async function terminateLease(
+  id: number,
+  input: { termination_date: string; reason: string },
+  userId?: number,
+) {
+  const done = await db.transaction(async (tx) => {
+    const row = await lockLease(tx, id);
+    if (!row) return null;
+    const [paidAfter] = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(vouchers)
+      .innerJoin(
+        leaseInstallments,
+        eq(vouchers.leaseInstallmentId, leaseInstallments.id),
+      )
+      .where(
+        and(
+          eq(leaseInstallments.leaseId, id),
+          eq(vouchers.status, "posted"),
+          sql`${leaseInstallments.dueDate} > ${input.termination_date}`,
+        ),
+      );
+    const error = terminationError(
+      row,
+      input.termination_date,
+      paidAfter?.count ?? 0,
+    );
+    if (error) throw new DomainError(409, error, "LEASE_RULE");
+    await tx
+      .update(leases)
+      .set({
+        status: "terminated",
+        terminationDate: input.termination_date,
+        terminationReason: input.reason,
+        terminatedAt: new Date(),
+        terminatedBy: userId ?? null,
+      })
+      .where(eq(leases.id, id));
+    return { row, rentalFreed: await freeRental(tx, row.rentalId, id) };
+  });
+  if (!done) return null;
+  await recordAudit({
+    entityType: "lease",
+    entityId: id,
+    action: "status_changed",
+    oldValue: { status: "active" },
+    newValue: {
+      status: "terminated",
+      termination_date: input.termination_date,
+      reason: input.reason,
+    },
+    userId,
+  });
+  await auditRentalFreed(
+    done.row.rentalId,
+    done.row.code,
+    done.rentalFreed,
+    userId,
+  );
+  return id;
+}
+
+/**
+ * Renews a lease: a new one with the same parties, listing and currency
+ * from the day after it ends, with the new terms and schedule. The old
+ * lease is marked renewed; its installments are still owed.
+ */
+export async function renewLease(
+  id: number,
+  input: LeaseRenewPayload,
+  userId?: number,
+) {
+  let values: LeaseValues | null = null;
+  const created = await db.transaction(async (tx) => {
+    const row = await lockLease(tx, id);
+    if (!row) return null;
+    if (row.status !== "active")
+      throw new DomainError(
+        409,
+        `الإيجار ${row.code} ملغى أو منتهٍ أو مجدَّد أصلاً؛ يُجدَّد الإيجار الساري فقط.`,
+        "LEASE_RULE",
+      );
+    if (!row.landlordPersonId || !row.tenantPersonId)
+      throw rule("الإيجار بلا مؤجر أو مستأجر.");
+    values = {
+      agreementId: null,
+      agreementRevision: null,
+      rentalId: row.rentalId,
+      landlordPersonId: row.landlordPersonId,
+      tenantPersonId: row.tenantPersonId,
+      currency: row.currency as "IQD" | "USD",
+      rent: input.rent_amount,
+      frequency: input.frequency,
+      startDate: renewalStart(row.endDate),
+      endDate: input.end_date,
+      deposit:
+        input.deposit === undefined ? row.deposit : (input.deposit ?? null),
+      officeCollects: input.office_collects ?? row.officeCollects,
+      notes: input.notes,
+    };
+    const { installments } = scheduleOf(values);
+    const inserted = await insertLease(
+      tx,
+      values,
+      installments,
+      userId,
+      row.id,
+    );
+    await tx
+      .update(leases)
+      .set({ status: "renewed" })
+      .where(eq(leases.id, row.id));
+    return inserted;
+  });
+  if (!created) return null;
+  await auditCreated(created, values!, userId);
+  await recordAudit({
+    entityType: "lease",
+    entityId: id,
+    action: "status_changed",
+    oldValue: { status: "active" },
+    newValue: { status: "renewed", renewal_code: created.code },
+    userId,
+  });
+  return created.id;
+}
+
+export type LeaseLink = {
+  lease: {
+    id: number;
+    code: string;
+    currency: string;
+    landlordPersonId: number | null;
+    tenantPersonId: number | null;
+  };
+  installment: { id: number; seq: number; left: string } | null;
+};
+
+/**
+ * The lease (and installment) a voucher names, locked to the end of the
+ * caller's transaction: receipts and payouts of one lease take turns, and a
+ * termination waits for them. Rent is collected only where the office
+ * collects it, on an installment a termination has not released.
+ */
+export async function leaseLink(
+  tx: Transaction,
+  input: { leaseId: number | null; installmentId: number | null },
+): Promise<LeaseLink> {
+  let leaseId = input.leaseId;
+  let installment: typeof leaseInstallments.$inferSelect | null = null;
+  if (input.installmentId) {
+    const [found] = await tx
+      .select()
+      .from(leaseInstallments)
+      .where(eq(leaseInstallments.id, input.installmentId));
+    if (!found) throw voucherRule("قسط الإيجار غير موجود.");
+    if (leaseId && leaseId !== found.leaseId)
+      throw voucherRule("القسط ليس من أقساط هذا الإيجار.");
+    installment = found;
+    leaseId = found.leaseId;
+  }
+  const [lease] = await tx
+    .select()
+    .from(leases)
+    .where(eq(leases.id, leaseId!))
+    .for("no key update");
+  if (!lease) throw voucherRule("الإيجار غير موجود.");
+  if (lease.status === "cancelled")
+    throw voucherRule(`الإيجار ${lease.code} ملغى.`);
+  let left: string | null = null;
+  if (installment) {
+    if (!lease.officeCollects)
+      throw voucherRule(
+        `المكتب لا يقبض إيجار ${lease.code}؛ يدفعه المستأجر للمؤجر مباشرة.`,
+      );
+    if (
+      lease.status === "terminated" &&
+      lease.terminationDate &&
+      installment.dueDate > lease.terminationDate
+    )
+      throw voucherRule(
+        `القسط ${installment.seq} بعد تاريخ إنهاء الإيجار ${lease.code}.`,
+      );
+    // The installment row is locked too: two receipts cannot both take
+    // what is left on it.
+    await tx
+      .select({ id: leaseInstallments.id })
+      .from(leaseInstallments)
+      .where(eq(leaseInstallments.id, installment.id))
+      .for("update");
+    const [paid] = await tx
+      .select({
+        total: sql<string>`coalesce(sum(${vouchers.amount}), 0)::numeric(18,2)::text`,
+      })
+      .from(vouchers)
+      .where(
+        and(
+          eq(vouchers.leaseInstallmentId, installment.id),
+          eq(vouchers.status, "posted"),
+        ),
+      );
+    left = installmentLeft(installment.amount, paid?.total ?? "0.00");
+  }
+  return {
+    lease: {
+      id: lease.id,
+      code: lease.code,
+      currency: lease.currency,
+      landlordPersonId: lease.landlordPersonId,
+      tenantPersonId: lease.tenantPersonId,
+    },
+    installment: installment
+      ? { id: installment.id, seq: installment.seq, left: left! }
+      : null,
+  };
+}
+
+/** Client funds held on a lease for one person: its receipts less payouts. */
+export async function leaseHeld(
+  tx: Transaction,
+  leaseId: number,
+  personId: number,
+) {
+  const [row] = await tx
+    .select({
+      held: sql<string>`coalesce(sum(CASE WHEN ${vouchers.kind} = 'receipt' THEN ${vouchers.amount} ELSE -${vouchers.amount} END), 0)::numeric(18,2)::text`,
+    })
+    .from(vouchers)
+    .where(
+      and(
+        eq(vouchers.leaseId, leaseId),
+        eq(vouchers.status, "posted"),
+        eq(vouchers.heldForPersonId, personId),
+      ),
+    );
+  return row?.held ?? "0.00";
 }

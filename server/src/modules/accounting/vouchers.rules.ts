@@ -121,7 +121,10 @@ export function heldFor(input: {
   purpose: string;
   personId: number | null;
   heldForId: number | null;
+  /** A deal's or a lease's two sides. */
   deal: DealParties | null;
+  /** What the two sides are of, for the message. */
+  subject?: string;
 }): { personId: number | null } | { error: string } {
   if (input.purpose !== "client_funds")
     return input.heldForId
@@ -144,7 +147,9 @@ export function heldFor(input: {
     id !== input.deal.clientPersonId &&
     id !== input.deal.ownerPersonId
   )
-    return { error: "أمانة الصفقة تُحفظ لأحد طرفيها." };
+    return {
+      error: `أمانة ${input.subject ?? "الصفقة"} تُحفظ لأحد طرفيها.`,
+    };
   return { personId: id };
 }
 

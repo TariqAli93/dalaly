@@ -168,15 +168,91 @@ export function leaseTermsOf(terms: RentTerms):
   };
 }
 
-export type LeaseState = "upcoming" | "current" | "ended" | "cancelled";
+export type LeaseState =
+  "upcoming" | "current" | "ended" | "terminated" | "renewed" | "cancelled";
 
-/** Where a lease stands on `today`: before, during or after its dates. */
+/**
+ * Where a lease stands on `today`: cancelled, ended early or renewed as its
+ * status says, else before, during or after its dates.
+ */
 export function leaseState(
   lease: { status: string; startDate: string; endDate: string },
   today: string,
 ): LeaseState {
-  if (lease.status === "cancelled") return "cancelled";
+  if (
+    lease.status === "cancelled" ||
+    lease.status === "terminated" ||
+    lease.status === "renewed"
+  )
+    return lease.status;
   if (dayOf(today) < dayOf(lease.startDate)) return "upcoming";
   if (dayOf(today) > dayOf(lease.endDate)) return "ended";
   return "current";
 }
+
+export type InstallmentState =
+  "upcoming" | "due" | "overdue" | "paid" | "released";
+
+/**
+ * Where an installment stands on `today`. One due after a termination date
+ * is released. Payments are tracked only where the office collects the
+ * rent; otherwise an installment is upcoming or due by its date alone. A
+ * partly paid installment past its day is overdue for what is left.
+ */
+export function installmentState(
+  installment: {
+    dueDate: string;
+    amount: string;
+    paid: string;
+    officeCollects: boolean;
+    terminationDate: string | null;
+  },
+  today: string,
+): InstallmentState {
+  if (
+    installment.terminationDate &&
+    dayOf(installment.dueDate) > dayOf(installment.terminationDate)
+  )
+    return "released";
+  if (
+    installment.officeCollects &&
+    toMinor(installment.paid) >= toMinor(installment.amount)
+  )
+    return "paid";
+  const due = dayOf(installment.dueDate);
+  if (due > dayOf(today)) return "upcoming";
+  if (!installment.officeCollects || due === dayOf(today)) return "due";
+  return "overdue";
+}
+
+/** What is left on an installment, never below zero. */
+export function installmentLeft(amount: string, paid: string) {
+  const left = toMinor(amount) - toMinor(paid);
+  return fromMinor(left > 0n ? left : 0n);
+}
+
+/**
+ * Why a lease cannot be ended early on `date`, or null: it must be in force
+ * (not cancelled, terminated or renewed), the date inside its term, and no
+ * installment due after that day already paid (that money is returned first).
+ */
+export function terminationError(
+  lease: { status: string; startDate: string; endDate: string },
+  date: string,
+  paidAfter: number,
+): string | null {
+  if (lease.status !== "active")
+    return "يُنهى الإيجار الساري فقط؛ هذا الإيجار ملغى أو منتهٍ أو مجدَّد.";
+  if (!isIsoDate(date)) return "التاريخ بصيغة YYYY-MM-DD.";
+  if (
+    dayOf(date) < dayOf(lease.startDate) ||
+    dayOf(date) >= dayOf(lease.endDate)
+  )
+    return "تاريخ الإنهاء بين بدء الإيجار وقبل آخر يوم فيه.";
+  if (paidAfter > 0)
+    return "قُبض قسط يُستحق بعد تاريخ الإنهاء؛ ألغِ سنده أو أعِد المبلغ أولاً.";
+  return null;
+}
+
+/** A renewal starts the day after the lease it renews ends. */
+export const renewalStart = (endDate: string) => addDays(endDate, 1);

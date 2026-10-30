@@ -1680,6 +1680,12 @@ export const vouchers = pgTable(
     expenseCategoryId: bigint("expense_category_id", {
       mode: "number",
     }).references(() => expenseCategories.id),
+    /** Client funds of a lease: its rent, its deposit, or a payout (5b). */
+    leaseId: bigint("lease_id", { mode: "number" }).references(() => leases.id),
+    /** A receipt collecting this installment of the lease's rent. */
+    leaseInstallmentId: bigint("lease_installment_id", {
+      mode: "number",
+    }).references(() => leaseInstallments.id),
     status: text("status").notNull().default("posted"),
     journalEntryId: bigint("journal_entry_id", { mode: "number" })
       .notNull()
@@ -1711,6 +1717,12 @@ export const vouchers = pgTable(
     index("idx_vouchers_commission_split").on(table.commissionSplitId),
     index("idx_vouchers_expense_category").on(table.expenseCategoryId),
     index("idx_vouchers_held_for").on(table.heldForPersonId),
+    index("idx_vouchers_lease").on(table.leaseId),
+    index("idx_vouchers_lease_installment").on(table.leaseInstallmentId),
+    check(
+      "vouchers_lease",
+      sql`(${table.leaseId} is null or ${table.purpose} = 'client_funds') and (${table.leaseInstallmentId} is null or (${table.leaseId} is not null and ${table.kind} = 'receipt'))`,
+    ),
     check(
       "vouchers_held_for",
       sql`${table.heldForPersonId} is null or ${table.purpose} = 'client_funds'`,
@@ -1795,7 +1807,12 @@ export const LEASE_FREQUENCIES = [
   "semi_annual",
   "annual",
 ] as const;
-export const LEASE_STATUSES = ["active", "cancelled"] as const;
+export const LEASE_STATUSES = [
+  "active",
+  "terminated",
+  "renewed",
+  "cancelled",
+] as const;
 
 /**
  * A lease in force (Phase 5a): who rents what from whom, for how much per
@@ -1844,6 +1861,18 @@ export const leases = pgTable(
       () => users.id,
       { onDelete: "set null" },
     ),
+    /** Ended early (Phase 5b): installments due after this day are released. */
+    terminationDate: date("termination_date", { mode: "string" }),
+    terminationReason: text("termination_reason"),
+    terminatedAt: timestamp("terminated_at", { withTimezone: true }),
+    terminatedBy: bigint("terminated_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    /** The lease this one renews (Phase 5b). */
+    renewedFromId: bigint("renewed_from_id", { mode: "number" }).references(
+      (): AnyPgColumn => leases.id,
+    ),
     createdBy: bigint("created_by", { mode: "number" }).references(
       () => users.id,
       { onDelete: "set null" },
@@ -1854,6 +1883,10 @@ export const leases = pgTable(
   },
   (table) => [
     index("idx_leases_rental").on(table.rentalId),
+    // A lease is renewed once (cancelling the renewal frees it again).
+    uniqueIndex("uq_leases_renewed_from")
+      .on(table.renewedFromId)
+      .where(sql`${table.status} <> 'cancelled'`),
     index("idx_leases_landlord").on(table.landlordPersonId),
     index("idx_leases_tenant").on(table.tenantPersonId),
     index("idx_leases_dates").on(table.startDate, table.endDate),
@@ -1872,7 +1905,18 @@ export const leases = pgTable(
       sql`${table.frequency} in ('monthly', 'quarterly', 'semi_annual', 'annual')`,
     ),
     check("leases_dates", sql`${table.endDate} > ${table.startDate}`),
-    check("leases_status", sql`${table.status} in ('active', 'cancelled')`),
+    check(
+      "leases_status",
+      sql`${table.status} in ('active', 'terminated', 'renewed', 'cancelled')`,
+    ),
+    check(
+      "leases_termination",
+      sql`(${table.status} = 'terminated') = (${table.terminationDate} is not null and ${table.terminationReason} is not null and ${table.terminatedAt} is not null)`,
+    ),
+    check(
+      "leases_renewal",
+      sql`${table.renewedFromId} is null or ${table.renewedFromId} <> ${table.id}`,
+    ),
     check(
       "leases_cancel",
       sql`(${table.status} = 'cancelled') = (${table.cancelledAt} is not null and ${table.cancelReason} is not null)`,
