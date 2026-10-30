@@ -13,6 +13,7 @@ export const PERMISSION_MODULES: Array<{ key: string; title: string }> = [
   { key: "agreements", title: "العقود وقوالبها" },
   { key: "accounting", title: "المالية" },
   { key: "vouchers", title: "سندات القبض والصرف" },
+  { key: "commissions", title: "العمولات" },
   { key: "locations", title: "المحافظات والمناطق" },
   { key: "users", title: "المستخدمون" },
   { key: "roles", title: "الأدوار والصلاحيات" },

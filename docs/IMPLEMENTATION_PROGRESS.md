@@ -25,8 +25,9 @@ Do not rely on this file alone.
 | 4b — general ledger (server) | `feat/phase-04b-general-ledger` | [#38](https://github.com/TariqAli93/dalaly/pull/38), merged `edb4caf` | `test:ledger` 13/13, journal rules 6/6, backup round trip 38 tables; CI pass | Completed |
 | 4b — journal UI | `feat/phase-04b-journal-ui` | [#39](https://github.com/TariqAli93/dalaly/pull/39), merged `fef0787` | `test:contract` 111, editor sums 1 test; renderer checks; web demo; CI pass | Completed |
 | 4c — receipts and payments (server) | `feat/phase-04c-receipts-payments` | [#40](https://github.com/TariqAli93/dalaly/pull/40), merged `90adba2` | `test:vouchers` 10/10, voucher rules 5/5, backup round trip 39 tables; CI pass | Completed |
-| 4c — vouchers UI | `feat/phase-04c-vouchers-ui` | — | `test:contract` 117; renderer checks; web demo | In review |
-| 4d — commissions | `feat/phase-04d-commissions` | — | — | Pending |
+| 4c — vouchers UI | `feat/phase-04c-vouchers-ui` | [#41](https://github.com/TariqAli93/dalaly/pull/41), merged `27dce5a` | `test:contract` 117; renderer checks; web demo; CI pass | Completed |
+| 4d — commissions (server) | `feat/phase-04d-commissions` | — | `test:commissions` 10/10, commission rules 4/4, backup round trip 41 tables | In review |
+| 4d — commissions UI | — | — | — | Pending |
 | 4e — expenses and cash | `feat/phase-04e-expenses-cash` | — | — | Pending |
 | 4f — financial integration | `feat/phase-04f-financial-integration` | — | — | Pending |
 | 5a — leases | `feat/phase-05a-leases` | — | — | Pending |
@@ -483,6 +484,40 @@ below.
     refused by the server with its message in the dialog;
   - the receipt voided, with reversing entry `JE-000004`.
 
+### 4d — commissions (server)
+
+- `commissions` and `commission_splits` (`0011`).
+  - A commission is fixed or a percentage of the deal's agreed price, owed
+    by the client or the owner, with one live commission per payer.
+  - Employees' shares come out of it; the office keeps the rest.
+- Recording posts one entry:
+  - the payer's receivable against brokerage income;
+  - the shares as commission expense against commissions payable.
+- Allocated vouchers settle commissions:
+  - receipts with `commission_id` credit the receivable;
+  - payments with `commission_split_id` debit the payable.
+  Never beyond what is left; two receipts racing for the rest, one is
+  refused. Income is counted once: the receipt does not credit income again.
+- Cancelling reverses the entry, and only while nothing is settled.
+- Triggers keep commissions and shares unchanged, and voucher allocations
+  fixed (`vouchers_guard` replaced).
+- `test:commissions` (10):
+  - an upgrade from `0010`;
+  - the accrual entry line by line;
+  - one live commission per payer, and the deal, price, payer, share and
+    employee rules;
+  - collection to zero, with the receivable cleared, income once, and a
+    race;
+  - share payouts and their limits, and a voided payout no longer counting;
+  - cancelling;
+  - the triggers in SQL;
+  - permissions and audit;
+  - a customers restore keeping links, and a full restore.
+  Commission rules: 4 unit tests (half-up rounding, rates, shares).
+  `test:removal:backup` covers 41 tables.
+- The commissions screens (on the deal page, the list, shares and payouts)
+  follow in their own PR.
+
 ## Database migrations
 
 | Migration | Phase | What it adds |
@@ -494,6 +529,7 @@ below.
 | `0008_chart_of_accounts` | 4a | `accounts` (checked type, currency, code digits, posting accounts with a currency, no self-parent; unique code and `system_key`; parent FK restrict). The default accounts are added at startup, not by the migration. |
 | `0009_general_ledger` | 4b | `journal_entries` (checked status, currency, source, reversal link, posted time; unique code, idempotency key and reversal), `journal_lines` (one positive side; FK accounts restrict, people and deals set null for restores), `accounting_periods`; triggers `journal_entries_guard`, `journal_lines_guard`, `accounts_ledger_guard` |
 | `0010_vouchers` | 4c | `vouchers` (checked kind, currency, positive amount, status and void fields together, distinct accounts; FK accounts and entries restrict, people and deals set null for restores); trigger `vouchers_guard`; `journal_entries_guard` replaced to refuse deleting a user with posted entries |
+| `0011_commissions` | 4d | `commissions` (checked payer role, currency, basis with rate and base, positive amount, cancel fields together; one active per deal and payer), `commission_splits` (one per user, positive), `vouchers.commission_id` and `commission_split_id` with a kind check; triggers `commissions_guard`, `commission_splits_guard`; `vouchers_guard` replaced |
 
 ## Decisions that need the owner
 

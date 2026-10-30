@@ -49,6 +49,8 @@ import {
   identityDocuments,
   journalEntries,
   journalLines,
+  commissions,
+  commissionSplits,
   vouchers,
   officeProfiles,
   auditLogs,
@@ -256,6 +258,19 @@ const TABLE_SPECS = [
     dates: ["closedAt"],
     optional: true,
   },
+  // Commissions (Phase 4d), after their entries; vouchers name them.
+  {
+    name: "commissions",
+    table: commissions,
+    dates: ["cancelledAt", "createdAt"],
+    optional: true,
+  },
+  {
+    name: "commission_splits",
+    table: commissionSplits,
+    dates: ["createdAt"],
+    optional: true,
+  },
   // Receipts and payments (Phase 4c), after the entries they posted.
   {
     name: "vouchers",
@@ -356,6 +371,8 @@ const SERIAL_TABLES = new Set<TableName>([
   "accounts",
   "journal_entries",
   "journal_lines",
+  "commissions",
+  "commission_splits",
   "vouchers",
   "document_types",
   "identity_documents",
@@ -892,6 +909,8 @@ const KEPT_LINKS = [
   { table: "journal_lines", column: "deal_id", target: "deals" },
   { table: "vouchers", column: "person_id", target: "people" },
   { table: "vouchers", column: "deal_id", target: "deals" },
+  { table: "commissions", column: "payer_person_id", target: "people" },
+  { table: "commissions", column: "deal_id", target: "deals" },
 ] as const;
 
 function keptLinks(restoring: readonly string[]) {

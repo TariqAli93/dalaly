@@ -187,6 +187,10 @@ export interface VoucherRecord {
   deal_code: string | null;
   description: string;
   reference: string | null;
+  /** The commission a receipt collects, or whose share a payment pays. */
+  commission_id: number | null;
+  commission_code: string | null;
+  commission_split_id: number | null;
   status: VoucherStatus;
   journal_entry_id: number;
   journal_entry_code: string;

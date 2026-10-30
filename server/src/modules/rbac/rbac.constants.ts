@@ -169,4 +169,14 @@ export const SYSTEM_PERMISSIONS = [
   { key: "vouchers.receipt", name: "إصدار سندات القبض", module: "vouchers" },
   { key: "vouchers.payment", name: "إصدار سندات الصرف", module: "vouchers" },
   { key: "vouchers.void", name: "إلغاء السندات", module: "vouchers" },
+  {
+    key: "commissions.read",
+    name: "عرض العمولات وحصص الموظفين",
+    module: "commissions",
+  },
+  {
+    key: "commissions.manage",
+    name: "تسجيل العمولات وإلغاؤها",
+    module: "commissions",
+  },
 ] as const;

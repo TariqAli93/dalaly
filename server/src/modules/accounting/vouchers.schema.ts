@@ -35,6 +35,10 @@ export const voucherPayloadSchema = z.object({
   person_id: optionalId,
   party_name: optionalText,
   deal_id: optionalId,
+  /** A receipt that collects this commission. */
+  commission_id: optionalId,
+  /** A payment of this employee's share of a commission. */
+  commission_split_id: optionalId,
   description: z
     .string()
     .trim()
@@ -62,6 +66,7 @@ export const voucherPageQuerySchema = z.object({
   person_id: optionalId,
   deal_id: optionalId,
   money_account_id: optionalId,
+  commission_id: optionalId,
   from: isoDate.optional(),
   to: isoDate.optional(),
   q: z.string().trim().max(100).optional(),

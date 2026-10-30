@@ -197,7 +197,24 @@ test("shared backup v3 survives full restore and rejects incompatible data befor
     ]);
     await db.update(schema.journalEntries).set({ status: "posted", postedAt: new Date(), postedBy: ctx.adminId }).where(eq(schema.journalEntries.id, entry.id));
     await db.insert(schema.accountingPeriods).values({ period: "2026-08", closedBy: ctx.adminId, notes: "شهر مقفل" });
-    // The payment voucher that entry stands for.
+    // A commission on the deal with an employee's share (its own entry).
+    const [commissionEntry] = await db.insert(schema.journalEntries).values({
+      code: "JE-000002", entryDate: "2026-09-10", description: "عمولة", currency: "IQD", sourceType: "commission", createdBy: ctx.adminId,
+    }).returning();
+    const [receivables] = await db.select().from(schema.accounts).where(eq(schema.accounts.systemKey, "receivables.IQD"));
+    const [income] = await db.select().from(schema.accounts).where(eq(schema.accounts.systemKey, "brokerage_income.IQD"));
+    await db.insert(schema.journalLines).values([
+      { entryId: commissionEntry.id, lineNo: 1, accountId: receivables.id, debit: "3000000.00", personId: ctx.people[1].id, dealId: deal.id },
+      { entryId: commissionEntry.id, lineNo: 2, accountId: income.id, credit: "3000000.00", dealId: deal.id },
+    ]);
+    await db.update(schema.journalEntries).set({ status: "posted", postedAt: new Date() }).where(eq(schema.journalEntries.id, commissionEntry.id));
+    const [commission] = await db.insert(schema.commissions).values({
+      code: "CM-000001", dealId: deal.id, payerRole: "client", payerPersonId: ctx.people[1].id, currency: "IQD",
+      basis: "percent", rate: "2.0000", baseAmount: "150000000.00", amount: "3000000.00", commissionDate: "2026-09-10",
+      journalEntryId: commissionEntry.id, createdBy: ctx.adminId,
+    }).returning();
+    await db.insert(schema.commissionSplits).values({ commissionId: commission.id, userId: ctx.adminId, basis: "fixed", amount: "750000.00" });
+    // The payment voucher the rent entry stands for.
     await db.insert(schema.vouchers).values({
       code: "PV-000001", kind: "payment", voucherDate: "2026-09-15", currency: "IQD", amount: "750000.00",
       purpose: "expense", moneyAccountId: cashIqd.id, otherAccountId: officeRent.id, personId: ctx.people[0].id,
@@ -263,14 +280,14 @@ test("shared backup v3 survives full restore and rejects incompatible data befor
     const manifest = JSON.parse(zip.readAsText("manifest.json"));
     const data = JSON.parse(zip.readAsText("data.json")) as Record<string, Record<string, unknown>[]>;
     assert.equal(manifest.version, 3);
-    assert.equal(Object.keys(data).length, 39);
+    assert.equal(Object.keys(data).length, 41);
     assert.ok(data.permissions.some((row) => row.id === customPermissionId && row.key === "reports.custom.review"));
     assert.ok(data.role_permissions.some((row) => row.permissionId === customPermissionId));
     assert.ok(data.app_settings.some((row) => row.key === "reports.custom.preferences"));
     assert.ok(Object.values(data).every((rows) => rows.length > 0), "representative data in every exported table");
     assert.equal(zip.getEntries().filter((entry) => !entry.isDirectory && /^(documents|images)\//.test(entry.entryName)).length, 4);
 
-    await t.test("all 39 shared tables and four managed files round trip", async () => {
+    await t.test("all 41 shared tables and four managed files round trip", async () => {
       await db.update(schema.people).set({ fullName: "اسم تغير بعد النسخ" });
       await db.update(schema.properties).set({ totalPrice: "1.00" });
       await db.update(schema.rentals).set({ rentPrice: "1.00" });

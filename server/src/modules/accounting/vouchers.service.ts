@@ -25,6 +25,8 @@ import {
   type VoucherKind,
 } from "./vouchers.rules.js";
 import type { VoucherPayload } from "./vouchers.schema.js";
+import { allocationError } from "./commissions.rules.js";
+import { commissionLeft, splitLeft } from "./commissions.service.js";
 
 /**
  * Issuing and voiding receipts and payments. A voucher and its journal entry
@@ -121,6 +123,77 @@ async function nextCode(tx: Transaction, kind: VoucherKind) {
   return `${KIND_PREFIX[kind]}-${String(next).padStart(6, "0")}`;
 }
 
+type Allocation = {
+  /** The other side's default account key. */
+  otherKey: string;
+  /** The purpose the accounts are checked as. */
+  checkAs: string;
+  personId: number | null;
+  dealId: number | null;
+  partyName: string | null;
+  left: string;
+  what: string;
+};
+
+/**
+ * A receipt collecting a commission credits its payer's receivable; a
+ * payment of an employee's share debits commissions payable. Either takes
+ * the commission's currency, customer and deal, and no more than is left.
+ * The commission or share row stays locked to the end of the transaction,
+ * so two allocations cannot both take what is left.
+ */
+async function resolveAllocation(
+  tx: Transaction,
+  payload: VoucherPayload,
+): Promise<Allocation | null> {
+  const rule = (message: string) =>
+    new DomainError(400, message, "VOUCHER_RULE");
+  if (payload.commission_id && payload.commission_split_id)
+    throw rule("السند يُخصَّص لعمولة أو لحصة موظف، لا لكليهما.");
+  if (payload.commission_id) {
+    if (payload.kind !== "receipt" || payload.purpose !== "commission")
+      throw rule("تُحصَّل العمولة بسند قبض غرضه عمولة المكتب.");
+    const found = await commissionLeft(tx, payload.commission_id);
+    if (!found) throw rule("العمولة غير موجودة.");
+    const { row, left } = found;
+    if (row.status !== "active") throw rule(`العمولة ${row.code} ملغاة.`);
+    if (row.currency !== payload.currency)
+      throw rule(`العمولة ${row.code} بعملة غير عملة السند.`);
+    if (payload.person_id && payload.person_id !== row.payerPersonId)
+      throw rule(`دافع العمولة ${row.code} هو صاحبها في الصفقة.`);
+    return {
+      otherKey: "receivables",
+      checkAs: "receivable",
+      personId: row.payerPersonId,
+      dealId: row.dealId,
+      partyName: null,
+      left,
+      what: `العمولة ${row.code}`,
+    };
+  }
+  if (payload.commission_split_id) {
+    if (payload.kind !== "payment" || payload.purpose !== "commission")
+      throw rule("حصة الموظف تُدفع بسند صرف غرضه عمولة موظف.");
+    const found = await splitLeft(tx, payload.commission_split_id);
+    if (!found) throw rule("حصة الموظف غير موجودة.");
+    const { commission, userName, left } = found;
+    if (commission.status !== "active")
+      throw rule(`العمولة ${commission.code} ملغاة.`);
+    if (commission.currency !== payload.currency)
+      throw rule(`العمولة ${commission.code} بعملة غير عملة السند.`);
+    return {
+      otherKey: "commissions_payable",
+      checkAs: "commission",
+      personId: payload.person_id ?? null,
+      dealId: commission.dealId,
+      partyName: userName,
+      left,
+      what: `حصة ${userName} من العمولة ${commission.code}`,
+    };
+  }
+  return null;
+}
+
 export async function issueVoucher(payload: VoucherPayload, userId?: number) {
   const id = await db.transaction(async (tx) => {
     const kind = payload.kind;
@@ -134,26 +207,39 @@ export async function issueVoucher(payload: VoucherPayload, userId?: number) {
         "VOUCHER_RULE",
       );
     const chart = await chartWithHeadings(tx);
-    const otherId =
-      payload.other_account_id ??
-      chart.bySystemKey(`${purpose.key}.${payload.currency}`);
+    const allocation = await resolveAllocation(tx, payload);
+    const personId = allocation?.personId ?? payload.person_id ?? null;
+    const dealId = allocation?.dealId ?? payload.deal_id ?? null;
+    const otherId = allocation
+      ? chart.bySystemKey(`${allocation.otherKey}.${payload.currency}`)
+      : (payload.other_account_id ??
+        chart.bySystemKey(`${purpose.key}.${payload.currency}`));
     const money = chart.asVoucherAccount(payload.money_account_id);
     const other = chart.asVoucherAccount(otherId);
     const error = voucherAccountsError({
       kind,
-      purpose: payload.purpose,
+      // A collected commission settles a receivable; a paid share, a payable.
+      purpose: allocation?.checkAs ?? payload.purpose,
       currency: payload.currency,
       money,
       other,
     });
     if (error) throw new DomainError(400, error, "VOUCHER_RULE");
+    if (allocation) {
+      const over = allocationError(
+        payload.amount,
+        allocation.left,
+        allocation.what,
+      );
+      if (over) throw new DomainError(409, over, "VOUCHER_ALLOCATION");
+    }
 
-    let partyName = payload.party_name;
-    if (payload.person_id) {
+    let partyName = payload.party_name ?? allocation?.partyName ?? null;
+    if (personId) {
       const [person] = await tx
         .select({ fullName: people.fullName })
         .from(people)
-        .where(eq(people.id, payload.person_id));
+        .where(eq(people.id, personId));
       if (!person)
         throw new DomainError(400, "الزبون غير موجود.", "VOUCHER_RULE");
       partyName ??= person.fullName;
@@ -166,20 +252,16 @@ export async function issueVoucher(payload: VoucherPayload, userId?: number) {
           : "اختر الزبون المستلم أو اكتب اسمه.",
         "VOUCHER_RULE",
       );
-    if (payload.deal_id) {
+    if (dealId) {
       const [deal] = await tx
         .select({ id: deals.id })
         .from(deals)
-        .where(eq(deals.id, payload.deal_id));
+        .where(eq(deals.id, dealId));
       if (!deal)
         throw new DomainError(400, "الصفقة غير موجودة.", "VOUCHER_RULE");
     }
 
-    if (
-      kind === "payment" &&
-      payload.purpose === "client_funds" &&
-      !payload.person_id
-    )
+    if (kind === "payment" && payload.purpose === "client_funds" && !personId)
       throw new DomainError(
         400,
         "أمانات العملاء تُصرف لزبون بعينه: اختر المالك أو البائع.",
@@ -212,7 +294,7 @@ export async function issueVoucher(payload: VoucherPayload, userId?: number) {
           other!.id,
           "credit",
           // Required above for a client-funds payment.
-          payload.person_id!,
+          personId!,
         );
         if (compareMoney(payload.amount, held) > 0)
           throw new DomainError(
@@ -232,13 +314,8 @@ export async function issueVoucher(payload: VoucherPayload, userId?: number) {
     const lines = voucherLines(kind, payload.amount, money!.id, other!.id).map(
       (line) =>
         line.accountId === other!.id
-          ? {
-              ...line,
-              personId: payload.person_id ?? null,
-              dealId: payload.deal_id ?? null,
-              memo: partyName,
-            }
-          : { ...line, dealId: payload.deal_id ?? null },
+          ? { ...line, personId, dealId, memo: partyName }
+          : { ...line, dealId },
     );
     const entryId = await writeEntry(
       tx,
@@ -263,11 +340,13 @@ export async function issueVoucher(payload: VoucherPayload, userId?: number) {
       purpose: payload.purpose,
       moneyAccountId: money!.id,
       otherAccountId: other!.id,
-      personId: payload.person_id ?? null,
+      personId,
       partyName,
-      dealId: payload.deal_id ?? null,
+      dealId,
       description: payload.description,
       reference: payload.reference,
+      commissionId: payload.commission_id ?? null,
+      commissionSplitId: payload.commission_split_id ?? null,
       journalEntryId: entryId,
       createdBy: userId ?? null,
     });
