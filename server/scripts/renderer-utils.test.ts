@@ -62,3 +62,68 @@ test("the commission preview rounds a percentage as the server does", async () =
   assert.equal(percentOfAmount("100", "abc"), null);
   assert.equal(percentOfAmount("x", "2"), null);
 });
+
+test("balances keep their sign as exact hundredths", async () => {
+  const { signedAmountToMinor } = await import("../../apps/renderer/src/utils/money.js");
+  assert.equal(signedAmountToMinor("-1250.50"), -125050n);
+  assert.equal(signedAmountToMinor("300.00"), 30000n);
+  assert.equal(signedAmountToMinor("-0.01"), -1n);
+  assert.equal(signedAmountToMinor("--1"), null);
+});
+
+test("financial reports map to tables, with links only the viewer may open", async () => {
+  const { trialBalanceDocument, commissionsDocument, monthLabel } = await import("../../apps/renderer/src/utils/financialReports.js");
+  const links = (allowed: string[]) => ({
+    can: (permission: string) => allowed.includes(permission),
+    ledger: (id: number, range: { from?: string; to: string }) => `/ledger/${id}?${range.from ?? ""}..${range.to}`,
+  });
+  const account = { account_id: 3, code: "1101", name: "الصندوق", account_type: "asset", heading: "cash", heading_name: "الصندوق" };
+  const tb = trialBalanceDocument(
+    {
+      from: "2026-01-01",
+      to: "2026-10-31",
+      sections: [
+        {
+          currency: "IQD",
+          rows: [{ ...account, opening: "0.00", debit: "500.00", credit: "200.00", closing_debit: "300.00", closing_credit: "0.00" }],
+          totals: { opening: "0.00", debit: "500.00", credit: "500.00", closing_debit: "300.00", closing_credit: "300.00" },
+          balanced: false,
+        },
+      ],
+    },
+    links([]),
+  );
+  const [section] = tb.sections;
+  assert.match(section.warning ?? "", /لا يساوي/);
+  assert.equal(section.tables[0].rows[0].links?.name, "/ledger/3?2026-01-01..2026-10-31", "an account opens its ledger in the reports");
+  assert.equal(section.tables[0].total?.debit, "500.00");
+
+  const commission = {
+    from: "2026-01-01",
+    to: "2026-10-31",
+    user_id: null,
+    truncated: false,
+    sections: [
+      {
+        currency: "IQD" as const,
+        rows: [
+          { id: 7, code: "CM-000007", commission_date: "2026-09-14", currency: "IQD" as const, status: "active", payer_role: "owner", payer_person_id: 4, payer_name: "أحمد", deal_id: 9, deal_code: "D-0009", deal_type: "rent", amount: "100.00", collected: "40.00", outstanding: "60.00", shares: "10.00", shares_paid: "0.00" },
+          { id: 8, code: "CM-000008", commission_date: "2026-09-15", currency: "IQD" as const, status: "cancelled", payer_role: "client", payer_person_id: null, payer_name: null, deal_id: 9, deal_code: "D-0009", deal_type: "rent", amount: "50.00", collected: "0.00", outstanding: "0.00", shares: "0.00", shares_paid: "0.00" },
+        ],
+        totals: { count: 1, recorded: "100.00", collected: "40.00", outstanding: "60.00", shares: "10.00", shares_paid: "0.00", shares_owed: "10.00", office_net: "90.00", cancelled_count: 1, cancelled_amount: "50.00" },
+        by_deal_type: [],
+        employees: [],
+      },
+    ],
+  };
+  const everything = commissionsDocument(commission, links(["commissions.read", "deals.read", "people.read"]));
+  const [first, cancelled] = everything.sections[0].tables[0].rows;
+  assert.deepEqual(first.links, { code: "/accounting/commissions/7", deal: "/deals/9", payer: "/clients/4" });
+  assert.equal(first.cells.payer, "المؤجر: أحمد");
+  assert.equal(cancelled.tone, "muted");
+  assert.match(String(cancelled.cells.code), /ملغاة/);
+  assert.ok(everything.sections[0].figures.some((figure) => figure.label === "ملغاة (1)"));
+  const nothing = commissionsDocument(commission, links([]));
+  assert.equal(nothing.sections[0].tables[0].rows[0].links, undefined, "no links without the permissions");
+  assert.equal(monthLabel("2026-10"), "تشرين الأول 2026");
+});

@@ -161,6 +161,19 @@ normal side, after its opening balance. This is the cash and bank ledgers.
 It is the same statement as `/api/accounting/accounts/:id/statement` (at
 most 2000 lines), behind `reports.financial`.
 
+## Screens and exports
+
+- `/reports/financial` has a tab per report. Its filters (period or day,
+  currency, month by month, employee, account) are in the address.
+- Each response is mapped once to a table model, which the screen, the
+  Excel file, the PDF and the printout all show. They cannot disagree.
+- Sorting compares amounts exactly, as hundredths.
+- In the Excel file, amounts are numbers so they can be summed. An amount
+  too large for a double to hold to the fils stays text.
+- Links lead to records the viewer may open: a customer (`people.read`),
+  a deal (`deals.read`), a commission (`commissions.read`), a journal entry
+  (`accounting.read`). An account opens its ledger inside the reports.
+
 ## Checks
 
 - `test:reports` (`scripts/financial-reports.test.ts`) posts a known year:

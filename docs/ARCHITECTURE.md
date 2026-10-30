@@ -819,6 +819,19 @@ period, from when to when (migration `0014_leases`).
   - the months of a period;
   - FIFO aging of receivables.
 - Renderer: `types/report.types.ts` and `services/reports.service.ts`.
+  - `pages/FinancialReportsPage.vue` (`/reports/financial`) has a tab per
+    report, with its filters in the query.
+  - `utils/financialReports.ts` maps each response to a `ReportDocument`
+    (`utils/reportDocument.ts`): figures and tables per currency, plus
+    links to records the viewer may open (`can`). An account's link opens
+    the ledger tab.
+  - `components/reports/ReportView.vue` renders that model.
+  - `reportHtml` / `exportReportExcel` turn the same model into the
+    printout and PDF (A4 landscape, via `platform.printHtml` /
+    `exportPdf`) and the Excel file (lazy `xlsx`, one right-to-left sheet
+    per currency).
+  - A new report needs a service call and a mapping function. The screen,
+    exports and printing then come with it.
 
 ## Contracts (`modules/agreements`)
 

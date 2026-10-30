@@ -287,6 +287,12 @@ export const NAV_SECTIONS: NavSection[] = [
         permission: "vouchers.read",
       },
       {
+        title: "التقارير المالية",
+        to: "/reports/financial",
+        icon: "mdi-chart-box-outline",
+        permission: "reports.financial",
+      },
+      {
         title: "القيود",
         to: "/accounting/journal",
         icon: "mdi-book-open-variant",
