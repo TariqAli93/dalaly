@@ -13,6 +13,7 @@ import { getErrorMessage } from "../services/api.service";
 import { usePermissions } from "../composables/usePermissions";
 import { useSnackbar } from "../composables/useSnackbar";
 import { useRefresh } from "../composables/useRefresh";
+import { useNewFromQuery } from "../composables/useNewFromQuery";
 import { useAssignees } from "../composables/useAssignees";
 import { createPagedList } from "../composables/usePagedList";
 import {
@@ -196,6 +197,9 @@ function openCreate() {
   completing.value = false;
   dialog.value = true;
 }
+useNewFromQuery(() => {
+  if (can("followups.create") && can("people.read")) openCreate();
+});
 async function saveTask(value: TaskFieldsPayload) {
   const task = editing.value;
   if (!task) {

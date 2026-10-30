@@ -15,6 +15,7 @@ import * as leasesService from "../services/leases.service";
 import { createPagedList } from "../composables/usePagedList";
 import { usePermissions } from "../composables/usePermissions";
 import { useRefresh } from "../composables/useRefresh";
+import { useNewFromQuery } from "../composables/useNewFromQuery";
 import { useSnackbar } from "../composables/useSnackbar";
 import {
   LEASE_STATES,
@@ -125,6 +126,9 @@ function openLease(lease: LeaseRecord) {
 }
 
 const dialog = ref(false);
+useNewFromQuery(() => {
+  if (can("leases.manage")) dialog.value = true;
+});
 function onCreated(lease: LeaseDetail) {
   notifySuccess(`سُجّل الإيجار ${lease.code}.`);
   void router.push(`/leases/${lease.id}`);

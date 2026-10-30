@@ -6,6 +6,7 @@ import { usePageTitle } from "../../composables/usePageTitle";
 import { formatNumber } from "../../utils/format";
 import ThemeToggle from "./ThemeToggle.vue";
 import GlobalSearch from "./GlobalSearch.vue";
+import QuickAdd from "./QuickAdd.vue";
 
 // شريط الأوامر: عنوان الصفحة (h1) وسياقها وأوامرها على الحافة الأمامية، ثم
 // الأدوات العامة. الصفحة تكتب العنوان والسياق عبر AppPage، وترسل أوامرها
@@ -67,6 +68,7 @@ async function onLogout() {
 
     <v-spacer />
 
+    <QuickAdd />
     <GlobalSearch />
     <ThemeToggle />
     <v-btn

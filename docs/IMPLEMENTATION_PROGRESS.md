@@ -39,8 +39,8 @@ Do not rely on this file alone.
 | 6a — financial reports (server)     | `feat/phase-06a-financial-reports`      | [#52](https://github.com/TariqAli93/dalaly/pull/52), merged `c0f6fc4` | `test:reports` 1/1 (a known year, every report), report rules 4/4, `test:contract` 153; timings under 500 ms; CI pass | Completed |
 | 6a — financial reports UI           | `feat/phase-06a-financial-reports-ui`   | [#53](https://github.com/TariqAli93/dalaly/pull/53), merged `55d841c` | renderer checks; renderer utils 8/8; web demo; CI pass                                                                | Completed |
 | 6b — operational reports (server)   | `feat/phase-06b-operational-reports`    | [#54](https://github.com/TariqAli93/dalaly/pull/54), merged `9bebe63` | `test:reports` 2/2 (operational: every figure), report rules 5/5, `test:contract` 157; CI pass                        | Completed |
-| 6b — operational reports UI         | `feat/phase-06b-operational-reports-ui` | —                                                                     | renderer checks; renderer utils 9/9; web demo                                                                         | In review |
-| 7a — navigation                     | `feat/phase-07a-navigation`             | —                                                                     | —                                                                                                                     | Pending   |
+| 6b — operational reports UI         | `feat/phase-06b-operational-reports-ui` | [#55](https://github.com/TariqAli93/dalaly/pull/55), merged `a687d08` | renderer checks; renderer utils 9/9; web demo; CI pass                                                                | Completed |
+| 7a — navigation and quick add       | `feat/phase-07a-navigation`             | —                                                                     | renderer checks; web demo (every quick-add item)                                                                      | In review |
 | 7b — dashboard                      | `feat/phase-07b-dashboard`              | —                                                                     | —                                                                                                                     | Pending   |
 | 8 — refactoring and performance     | `refactor/phase-08-*`                   | —                                                                     | —                                                                                                                     | Pending   |
 | 9 — final verification              | `test/phase-09-*`                       | —                                                                     | —                                                                                                                     | Pending   |
@@ -1057,6 +1057,49 @@ below.
   - rental types in Arabic;
   - price band labels;
   - request columns are left out without the requests.
+
+### 7a — navigation and quick add
+
+- The sidebar is grouped by business area (`NAV_SECTIONS`):
+  - daily work first: لوحة التحكم and المهام والمتابعات;
+  - العقارات: sale and rental listings and their favourites;
+  - الزبائن والطلبات: customers, both kinds of request, documents;
+  - الصفقات والعقود: deals, contracts, leases in force, templates;
+  - الحسابات;
+  - التقارير: financial and operational;
+  - الإعدادات والإدارة.
+    The brief's areas are all there. Tasks sit at the top because they are
+    daily work. Leases in force sit with deals and contracts because they
+    come from them. Documents sit with customers because they are customers'
+    papers.
+- «إضافة» in the command bar (`components/app/QuickAdd.vue`, list in
+  `QUICK_ADD`) opens a new record from any page:
+  - a sale or rental listing;
+  - a customer;
+  - a purchase or rental request;
+  - a task for a customer;
+  - a document;
+  - a deal;
+  - a lease entered by hand;
+  - a receipt or payment voucher.
+    Each item shows only to users with every permission it needs, and items
+    are grouped with dividers. The dashboard's own add menu is gone, since
+    the command bar's replaces it.
+- `composables/useNewFromQuery.ts` opens a page's add dialog when `?new=`
+  reaches it, also when the page is already open, then drops `new` (and
+  `person`) from the address. It is used by the customers, deals, leases,
+  vouchers (`?new=receipt` / `?new=payment`), tasks, requests and
+  documents pages. The last two used to handle `?new=1` only on mount.
+- Ctrl+N stays each page's own add shortcut. Quick add has no shortcut of
+  its own.
+- Web demo:
+  - the sidebar showed the new order;
+  - from the deals page, «صفقة» opened «صفقة جديدة» and the address went
+    back to `/deals`;
+  - from other pages, each item opened its page and its dialog: receipt,
+    payment, customer, task, purchase request, document, lease.
+    The dev server reloaded the page a few times while optimising
+    dependencies; that is Vite in development only.
 
 ## Database migrations
 

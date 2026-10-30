@@ -11,6 +11,7 @@ import { getErrorMessage } from "../services/api.service";
 import { usePermissions } from "../composables/usePermissions";
 import { useSnackbar } from "../composables/useSnackbar";
 import { useRefresh } from "../composables/useRefresh";
+import { useNewFromQuery } from "../composables/useNewFromQuery";
 import { useAssignees } from "../composables/useAssignees";
 import { createPagedList } from "../composables/usePagedList";
 import {
@@ -179,6 +180,9 @@ watch(q, () => {
 
 // ─── الأوامر ───────────────────────────────────────────────────────────
 const dealDialog = ref(false);
+useNewFromQuery(() => {
+  if (can("deals.create")) dealDialog.value = true;
+});
 const stageDialog = ref(false);
 const moving = ref<DealRecord | null>(null);
 const movingTo = ref<DealStage | null>(null);

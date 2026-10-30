@@ -156,18 +156,26 @@ export type NavItem = {
 export type NavSection = { title: string | null; items: NavItem[] };
 
 /**
- * التنقّل الجانبي بمجموعاته وترتيبه. صفحات الإنشاء ليست هنا: تُفتح من زر
- * "إضافة" في صفحتها أو في لوحة التحكم. تُخفى العناصر بلا صلاحية.
+ * التنقّل الجانبي بمجالات العمل: العمل اليومي أولاً (لوحة التحكم والمهام)،
+ * ثم العقارات، فالزبائن وطلباتهم، فالصفقات والعقود والإيجارات السارية،
+ * فالحسابات، فالتقارير، فالإعدادات والإدارة. صفحات الإنشاء ليست هنا: تُفتح
+ * من «إضافة» في شريط الأوامر أو من صفحتها. تُخفى العناصر بلا صلاحية.
  */
 export const NAV_SECTIONS: NavSection[] = [
   {
     title: null,
     items: [
       { title: "لوحة التحكم", to: "/", icon: "mdi-view-dashboard-outline" },
+      {
+        title: "المهام والمتابعات",
+        to: "/tasks",
+        icon: "mdi-clipboard-check-outline",
+        permission: ["followups.read", "rentals.followups.read"],
+      },
     ],
   },
   {
-    title: "العقارات والعروض",
+    title: "العقارات",
     items: [
       {
         title: "عروض البيع",
@@ -176,27 +184,16 @@ export const NAV_SECTIONS: NavSection[] = [
         permission: "properties.read",
       },
       {
-        title: "المفضلة",
-        to: "/favorites",
-        icon: "mdi-heart-outline",
-        permission: "properties.read",
-      },
-    ],
-  },
-  {
-    title: "الإيجارات",
-    items: [
-      {
         title: "عروض الإيجار",
         to: "/rentals",
         icon: "mdi-key-chain",
         permission: "rentals.read",
       },
       {
-        title: "الإيجارات السارية",
-        to: "/leases",
-        icon: "mdi-home-clock-outline",
-        permission: "leases.read",
+        title: "المفضلة",
+        to: "/favorites",
+        icon: "mdi-heart-outline",
+        permission: "properties.read",
       },
       {
         title: "مفضلة الإيجارات",
@@ -216,12 +213,6 @@ export const NAV_SECTIONS: NavSection[] = [
         permission: "people.read",
       },
       {
-        title: "المهام والمتابعات",
-        to: "/tasks",
-        icon: "mdi-clipboard-check-outline",
-        permission: ["followups.read", "rentals.followups.read"],
-      },
-      {
         title: "طلبات الشراء",
         to: "/purchase-requests",
         icon: "mdi-home-search-outline",
@@ -233,7 +224,6 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: "mdi-text-box-search-outline",
         permission: "requests.read",
       },
-      // المستمسكات مستمسكات الزبائن، فمكانها معهم لا قسم بعنصر واحد.
       {
         title: "المستمسكات",
         to: "/documents",
@@ -258,21 +248,21 @@ export const NAV_SECTIONS: NavSection[] = [
         permission: "agreements.read",
       },
       {
+        title: "الإيجارات السارية",
+        to: "/leases",
+        icon: "mdi-home-clock-outline",
+        permission: "leases.read",
+      },
+      {
         title: "قوالب العقود",
         to: "/contracts/templates",
         icon: "mdi-file-document-edit-outline",
         permission: "agreements.templates",
       },
-      {
-        title: "تقارير العمل",
-        to: "/reports/operations",
-        icon: "mdi-chart-timeline-variant",
-        permission: "reports.operations",
-      },
     ],
   },
   {
-    title: "المالية",
+    title: "الحسابات",
     items: [
       {
         title: "الصناديق والمصارف",
@@ -281,22 +271,16 @@ export const NAV_SECTIONS: NavSection[] = [
         permission: "cash.read",
       },
       {
-        title: "العمولات",
-        to: "/accounting/commissions",
-        icon: "mdi-percent-circle-outline",
-        permission: "commissions.read",
-      },
-      {
         title: "سندات القبض والصرف",
         to: "/accounting/vouchers",
         icon: "mdi-cash-register",
         permission: "vouchers.read",
       },
       {
-        title: "التقارير المالية",
-        to: "/reports/financial",
-        icon: "mdi-chart-box-outline",
-        permission: "reports.financial",
+        title: "العمولات",
+        to: "/accounting/commissions",
+        icon: "mdi-percent-circle-outline",
+        permission: "commissions.read",
       },
       {
         title: "القيود",
@@ -313,7 +297,24 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: "إدارة النظام",
+    title: "التقارير",
+    items: [
+      {
+        title: "التقارير المالية",
+        to: "/reports/financial",
+        icon: "mdi-chart-box-outline",
+        permission: "reports.financial",
+      },
+      {
+        title: "تقارير العمل",
+        to: "/reports/operations",
+        icon: "mdi-chart-timeline-variant",
+        permission: "reports.operations",
+      },
+    ],
+  },
+  {
+    title: "الإعدادات والإدارة",
     items: [
       {
         title: "المستخدمون",
@@ -342,6 +343,95 @@ export const NAV_SECTIONS: NavSection[] = [
       { title: "المساعدة", to: "/help", icon: "mdi-help-circle-outline" },
     ],
   },
+];
+
+/** A record started from «إضافة»: shown only with every one of its keys. */
+export type QuickAddItem = {
+  title: string;
+  to: string;
+  icon: string;
+  permissions: string[];
+};
+
+/**
+ * «إضافة» في شريط الأوامر، من أي صفحة: كل بند يفتح صفحته وحوار الإضافة فيها
+ * (?new=)، أو نموذجه. مجموعات بفواصل بينها، وتُخفى البنود بلا صلاحية.
+ */
+export const QUICK_ADD: QuickAddItem[][] = [
+  [
+    {
+      title: "عرض بيع",
+      to: "/properties/new",
+      icon: "mdi-home-plus-outline",
+      permissions: ["properties.create"],
+    },
+    {
+      title: "عرض إيجار",
+      to: "/rentals/new",
+      icon: "mdi-key-plus",
+      permissions: ["rentals.create"],
+    },
+  ],
+  [
+    {
+      title: "زبون",
+      to: "/people?new=1",
+      icon: "mdi-account-plus-outline",
+      permissions: ["people.create"],
+    },
+    {
+      title: "طلب شراء",
+      to: "/purchase-requests?new=1",
+      icon: "mdi-home-search-outline",
+      permissions: ["requests.create"],
+    },
+    {
+      title: "طلب إيجار",
+      to: "/rental-requests?new=1",
+      icon: "mdi-text-box-search-outline",
+      permissions: ["requests.create"],
+    },
+    {
+      title: "مهمة لزبون",
+      to: "/tasks?new=1",
+      icon: "mdi-clipboard-plus-outline",
+      permissions: ["followups.create", "people.read"],
+    },
+    {
+      title: "مستمسك",
+      to: "/documents?new=1",
+      icon: "mdi-file-document-plus-outline",
+      permissions: ["documents.manage"],
+    },
+  ],
+  [
+    {
+      title: "صفقة",
+      to: "/deals?new=1",
+      icon: "mdi-handshake-outline",
+      permissions: ["deals.create"],
+    },
+    {
+      title: "إيجار بلا عقد في النظام",
+      to: "/leases?new=1",
+      icon: "mdi-home-clock-outline",
+      permissions: ["leases.manage"],
+    },
+  ],
+  [
+    {
+      title: "سند قبض",
+      to: "/accounting/vouchers?new=receipt",
+      icon: "mdi-cash-plus",
+      permissions: ["vouchers.receipt"],
+    },
+    {
+      title: "سند صرف",
+      to: "/accounting/vouchers?new=payment",
+      icon: "mdi-cash-minus",
+      permissions: ["vouchers.payment"],
+    },
+  ],
 ];
 
 /** هل المسار الحالي داخل قسم العنصر (القائمة نفسها أو تفاصيلها أو نموذجها). */

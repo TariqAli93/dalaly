@@ -18,6 +18,7 @@ import { usePermissions } from "../composables/usePermissions";
 import { useSnackbar } from "../composables/useSnackbar";
 import { useConfirm } from "../composables/useConfirm";
 import { useRefresh } from "../composables/useRefresh";
+import { useNewFromQuery } from "../composables/useNewFromQuery";
 import { usePeople } from "../composables/usePeople";
 import { isDialogOpen } from "../utils/dialog";
 import {
@@ -106,6 +107,9 @@ function openCreate() {
   editing.value = null;
   dialog.value = true;
 }
+useNewFromQuery(() => {
+  if (can("people.create")) openCreate();
+});
 function openEdit(person: PersonRecord) {
   editing.value = person;
   dialog.value = true;
