@@ -423,6 +423,8 @@ test("API responses match the renderer's types", async (t) => {
         `/api/cash/transfers/${transferId}`,
         "/api/cash/reconciliations",
         "/api/expense-categories",
+        `/api/finance/deals/${dealId}`,
+        `/api/finance/people/${voucherPersonId}`,
       ];
       for (const url of urls) await api("GET", url);
     }

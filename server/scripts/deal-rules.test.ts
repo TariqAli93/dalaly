@@ -46,6 +46,26 @@ test("losing and cancelling need a reason; a closed deal is reopened before clos
   assert.equal(stageMoveError(deal({ stage: "lost" }), "negotiating", { reason: "عاد الزبون" }), null);
 });
 
+test("a deal is lost or cancelled only with no commission standing and no funds held", () => {
+  const open = (liveCommissions: string[], fundsHeld: Array<{ currency: string; held: string }>) =>
+    deal({ openMoney: { liveCommissions, fundsHeld } });
+  assert.match(
+    stageMoveError(open(["CM-000001"], []), "lost", { lost_reason: "تراجع" })!,
+    /العمولة CM-000001؛ ألغها/,
+  );
+  assert.match(
+    stageMoveError(open([], [{ currency: "IQD", held: "500000.00" }]), "cancelled", { reason: "x" })!,
+    /أمانات محتفظ بها \(500000.00 دينار\)/,
+  );
+  // The reason is asked for first; winning ignores what is open.
+  assert.match(stageMoveError(open(["CM-000001"], []), "cancelled")!, /سبب إلغاء/);
+  assert.equal(
+    stageMoveError({ ...open(["CM-000001"], []), stage: "agreed", agreedPrice: "1.00" }, "won"),
+    null,
+  );
+  assert.equal(stageMoveError(open([], []), "lost", { lost_reason: "تراجع" }), null);
+});
+
 test("closing and reopening need the close permission; other moves do not", () => {
   assert.equal(needsClosePermission("new", "negotiating"), false);
   assert.equal(needsClosePermission("agreed", "won"), true);

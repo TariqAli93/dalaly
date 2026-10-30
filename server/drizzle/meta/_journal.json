@@ -92,6 +92,13 @@
       "when": 1793359999916,
       "tag": "0012_expenses_cash",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793362700117,
+      "tag": "0013_client_funds_held_for",
+      "breakpoints": true
     }
   ]
 }

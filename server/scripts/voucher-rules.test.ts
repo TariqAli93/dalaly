@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   PAYMENT_PURPOSES,
   RECEIPT_PURPOSES,
+  heldFor,
   purposeOf,
   voucherAccountsError,
   voucherLines,
@@ -75,4 +76,24 @@ test("a receipt debits the money; a payment credits it", () => {
     { accountId: 5, debit: "100.00", credit: "0.00" },
     { accountId: 1, debit: "0.00", credit: "100.00" },
   ]);
+});
+
+test("client funds are held for the landlord or seller, not whoever paid them", () => {
+  const deal = { clientPersonId: 7, ownerPersonId: 9 };
+  const funds = (patch: Partial<Parameters<typeof heldFor>[0]>) =>
+    heldFor({ kind: "receipt", purpose: "client_funds", personId: null, heldForId: null, deal: null, ...patch });
+  // A tenant's rent on a deal is held for its landlord; the one named wins.
+  assert.deepEqual(funds({ personId: 7, deal }), { personId: 9 });
+  assert.deepEqual(funds({ personId: 7, heldForId: 7, deal }), { personId: 7 });
+  // Without a deal the payer's own money is held for them, as before.
+  assert.deepEqual(funds({ personId: 4 }), { personId: 4 });
+  assert.match((funds({}) as { error: string }).error, /لمن تُحفظ/);
+  assert.match((funds({ personId: 7, heldForId: 3, deal }) as { error: string }).error, /أحد طرفيها/);
+  // A payment hands out of the payee's funds, or of the one named (a refund).
+  assert.deepEqual(funds({ kind: "payment", personId: 9, deal }), { personId: 9 });
+  assert.deepEqual(funds({ kind: "payment", personId: 7, heldForId: 9, deal }), { personId: 9 });
+  assert.match((funds({ kind: "payment" }) as { error: string }).error, /لزبون بعينه/);
+  // Other purposes name no one.
+  assert.deepEqual(funds({ purpose: "commission", personId: 7 }), { personId: null });
+  assert.match((funds({ purpose: "commission", heldForId: 7 }) as { error: string }).error, /أمانات العملاء فقط/);
 });

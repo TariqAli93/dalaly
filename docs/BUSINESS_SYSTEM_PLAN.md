@@ -233,7 +233,9 @@ on `bigint` minor units (`shared/money.ts`) and never on `number`.
   price, amount, currency, status) and `commission_splits` (employee share).
   A commission is office revenue. The listing's price is never revenue, and
   money collected for a landlord or seller is a liability (client funds),
-  not income.
+  not income. (From 4f, a client-funds voucher names whose money it is, apart
+  from who paid it: a tenant's rent is the landlord's, a buyer's deposit the
+  seller's.)
 - `expense_categories` (mapped to expense accounts), `expenses`, transfers
   between cash and bank, and reconciliation records. (Built in 4e: an
   expense is a payment voucher naming its category, which picks the expense

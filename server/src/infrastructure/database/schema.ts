@@ -1656,6 +1656,13 @@ export const vouchers = pgTable(
     ),
     /** The name as printed, kept even if the customer record changes. */
     partyName: text("party_name").notNull(),
+    /**
+     * Client funds only: whose money it is (the landlord or seller), which
+     * may differ from who paid it in or took it out.
+     */
+    heldForPersonId: bigint("held_for_person_id", {
+      mode: "number",
+    }).references(() => people.id, { onDelete: "set null" }),
     dealId: bigint("deal_id", { mode: "number" }).references(() => deals.id, {
       onDelete: "set null",
     }),
@@ -1703,6 +1710,11 @@ export const vouchers = pgTable(
     index("idx_vouchers_commission").on(table.commissionId),
     index("idx_vouchers_commission_split").on(table.commissionSplitId),
     index("idx_vouchers_expense_category").on(table.expenseCategoryId),
+    index("idx_vouchers_held_for").on(table.heldForPersonId),
+    check(
+      "vouchers_held_for",
+      sql`${table.heldForPersonId} is null or ${table.purpose} = 'client_funds'`,
+    ),
     check(
       "vouchers_expense_category",
       sql`${table.expenseCategoryId} is null or (${table.kind} = 'payment' and ${table.purpose} = 'expense')`,

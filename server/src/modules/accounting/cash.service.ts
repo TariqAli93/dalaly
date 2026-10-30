@@ -216,13 +216,9 @@ export async function createReconciliation(
         "RECONCILIATION_RULE",
       );
     await lockMoney(tx, account.id);
-    const book = await postedBalance(
-      tx,
-      account.id,
-      "debit",
-      undefined,
-      payload.statement_date,
-    );
+    const book = await postedBalance(tx, account.id, "debit", {
+      asOf: payload.statement_date,
+    });
     const difference = reconciliationDifference(
       payload.statement_balance,
       book,

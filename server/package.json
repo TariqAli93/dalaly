@@ -53,6 +53,7 @@
     "test:vouchers": "tsx --test scripts/vouchers.test.ts",
     "test:commissions": "tsx --test scripts/commissions.test.ts",
     "test:cash": "tsx --test scripts/cash.test.ts",
+    "test:finance": "tsx --test scripts/finance.test.ts",
     "test:import": "tsx --test scripts/import-commit.test.ts",
     "test:queries": "tsx --test scripts/list-queries.test.ts",
     "test:dashboard": "tsx --test scripts/dashboard-summary.test.ts",

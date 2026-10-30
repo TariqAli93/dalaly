@@ -183,6 +183,9 @@ export interface VoucherRecord {
   other_account_name: string;
   person_id: number | null;
   party_name: string;
+  /** Client funds: whose money it is (the landlord or seller). */
+  held_for_person_id: number | null;
+  held_for_name: string | null;
   deal_id: number | null;
   deal_code: string | null;
   description: string;
@@ -229,6 +232,11 @@ export interface VoucherPayload {
   other_account_id: number | null;
   person_id: number | null;
   party_name: string | null;
+  /**
+   * Client funds: whose money it is. Empty: the deal's owner on a receipt
+   * (else the payer), the payee on a payment.
+   */
+  held_for_person_id?: number | null;
   deal_id: number | null;
   description: string;
   reference: string | null;
@@ -251,6 +259,79 @@ export interface VoucherFilters {
   from?: string;
   to?: string;
   q?: string;
+}
+
+/**
+ * A deal's money in one currency, from the posted journal (lines naming the
+ * deal) beside its commissions and client-funds vouchers.
+ */
+export interface DealFinanceTotals {
+  currency: Currency;
+  /** The deal's own estimate, in its currency only. */
+  expected_commission: string | null;
+  commission_recorded: string;
+  commission_collected: string;
+  commission_outstanding: string;
+  shares_owed: string;
+  shares_paid: string;
+  shares_outstanding: string;
+  client_funds_received: string;
+  client_funds_paid_out: string;
+  /** Still held for the deal's landlord or seller (a liability). */
+  client_funds_held: string;
+  receivable: string;
+  commissions_payable: string;
+  /** Office income and costs on the deal; never its price. */
+  income: string;
+  expenses: string;
+  net: string;
+}
+
+export interface DealFinance {
+  deal_id: number;
+  deal_code: string;
+  totals: DealFinanceTotals[];
+  /** The linked contract's money terms, as its working copy states them. */
+  contract: {
+    id: number;
+    code: string;
+    status: string;
+    currency: Currency;
+    commission: string | null;
+    deposit: string | null;
+    down_payment: string | null;
+  } | null;
+}
+
+export interface PersonFinanceTotals {
+  currency: Currency;
+  commission_recorded: string;
+  commission_collected: string;
+  commission_outstanding: string;
+  /** What they owe the office, from the ledger. */
+  owed_to_office: string;
+  /** What the office holds for them. */
+  client_funds_held: string;
+}
+
+export interface PersonCommissionRow {
+  id: number;
+  code: string;
+  deal_id: number;
+  deal_code: string;
+  currency: Currency;
+  amount: string;
+  collected: string;
+  outstanding: string;
+  status: "active" | "cancelled";
+  commission_date: string;
+}
+
+export interface PersonFinance {
+  person_id: number;
+  totals: PersonFinanceTotals[];
+  /** Commissions they owe, newest first (the latest 50). */
+  commissions: PersonCommissionRow[];
 }
 
 /** A cash or bank posting account with its posted balance. */

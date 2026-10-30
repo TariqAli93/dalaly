@@ -19,9 +19,11 @@ import { recordAudit } from "../audit/audit.service.js";
 import type { AccountType } from "./accounting.rules.js";
 import { reverseEntry, writeEntry } from "./ledger.service.js";
 import {
+  heldFor,
   purposeOf,
   voucherAccountsError,
   voucherLines,
+  type DealParties,
   type VoucherAccount,
   type VoucherKind,
 } from "./vouchers.rules.js";
@@ -82,14 +84,17 @@ export async function chartWithHeadings(tx: Transaction) {
 /**
  * An account's posted balance on one side: debits less credits for "debit"
  * (cash, bank), credits less debits for "credit" (client funds), optionally
- * only the lines that name a person, or only entries up to a date.
+ * only the lines that name a person or a deal, or only entries up to a date.
  */
 export async function postedBalance(
   tx: Transaction,
   accountId: number,
   side: "debit" | "credit",
-  personId?: number,
-  asOf?: string,
+  {
+    personId,
+    dealId,
+    asOf,
+  }: { personId?: number; dealId?: number; asOf?: string } = {},
 ) {
   const net =
     side === "debit"
@@ -108,6 +113,7 @@ export async function postedBalance(
         personId === undefined
           ? undefined
           : eq(journalLines.personId, personId),
+        dealId === undefined ? undefined : eq(journalLines.dealId, dealId),
         asOf ? lte(journalEntries.entryDate, asOf) : undefined,
       ),
     );
@@ -287,21 +293,37 @@ export async function issueVoucher(payload: VoucherPayload, userId?: number) {
           : "اختر الزبون المستلم أو اكتب اسمه.",
         "VOUCHER_RULE",
       );
+    let parties: DealParties | null = null;
     if (dealId) {
       const [deal] = await tx
-        .select({ id: deals.id })
+        .select({
+          clientPersonId: deals.clientPersonId,
+          ownerPersonId: deals.ownerPersonId,
+        })
         .from(deals)
         .where(eq(deals.id, dealId));
       if (!deal)
         throw new DomainError(400, "الصفقة غير موجودة.", "VOUCHER_RULE");
+      parties = deal;
     }
 
-    if (kind === "payment" && payload.purpose === "client_funds" && !personId)
-      throw new DomainError(
-        400,
-        "أمانات العملاء تُصرف لزبون بعينه: اختر المالك أو البائع.",
-        "VOUCHER_RULE",
-      );
+    const held = heldFor({
+      kind,
+      purpose: payload.purpose,
+      personId,
+      heldForId: payload.held_for_person_id ?? null,
+      deal: parties,
+    });
+    if ("error" in held) throw new DomainError(400, held.error, "VOUCHER_RULE");
+    const heldForId = held.personId;
+    if (heldForId && heldForId !== personId) {
+      const [owner] = await tx
+        .select({ id: people.id })
+        .from(people)
+        .where(eq(people.id, heldForId));
+      if (!owner)
+        throw new DomainError(400, "صاحب الأمانة غير موجود.", "VOUCHER_RULE");
+    }
 
     if (kind === "payment") {
       // Payments from one account take turns, so two cannot both spend
@@ -324,19 +346,29 @@ export async function issueVoucher(payload: VoucherPayload, userId?: number) {
           .from(accounts)
           .where(eq(accounts.id, other!.id))
           .for("no key update");
-        const held = await postedBalance(
-          tx,
-          other!.id,
-          "credit",
-          // Required above for a client-funds payment.
-          personId!,
-        );
-        if (compareMoney(payload.amount, held) > 0)
+        // heldFor() names someone for every client-funds voucher.
+        const forPerson = await postedBalance(tx, other!.id, "credit", {
+          personId: heldForId!,
+        });
+        if (compareMoney(payload.amount, forPerson) > 0)
           throw new DomainError(
             409,
-            `المحتفظ به لهذا الزبون في ${other!.code} هو ${held} فقط.`,
+            `المحتفظ به لهذا الزبون في ${other!.code} هو ${forPerson} فقط.`,
             "VOUCHER_CLIENT_FUNDS",
           );
+        // Paid out on a deal: out of what was collected on that deal.
+        if (dealId) {
+          const onDeal = await postedBalance(tx, other!.id, "credit", {
+            personId: heldForId!,
+            dealId,
+          });
+          if (compareMoney(payload.amount, onDeal) > 0)
+            throw new DomainError(
+              409,
+              `المحتفظ به لهذا الزبون على هذه الصفقة في ${other!.code} هو ${onDeal} فقط.`,
+              "VOUCHER_CLIENT_FUNDS",
+            );
+        }
       }
     }
 
@@ -346,10 +378,17 @@ export async function issueVoucher(payload: VoucherPayload, userId?: number) {
       )
     ).rows.map((row) => ({ id: Number(row.id) }));
     const code = await nextCode(tx, kind);
+    // Client funds are booked to whom they are held for; the memo keeps who
+    // paid them in or took them out.
     const lines = voucherLines(kind, payload.amount, money!.id, other!.id).map(
       (line) =>
         line.accountId === other!.id
-          ? { ...line, personId, dealId, memo: partyName }
+          ? {
+              ...line,
+              personId: heldForId ?? personId,
+              dealId,
+              memo: partyName,
+            }
           : { ...line, dealId },
     );
     const entryId = await writeEntry(
@@ -377,6 +416,7 @@ export async function issueVoucher(payload: VoucherPayload, userId?: number) {
       otherAccountId: other!.id,
       personId,
       partyName,
+      heldForPersonId: heldForId,
       dealId,
       description: payload.description,
       reference: payload.reference,
@@ -427,6 +467,26 @@ export async function voidVoucher(
         `السند ${row.code} ملغى أصلاً.`,
         "VOUCHER_VOIDED",
       );
+    // Client funds already handed over cannot be un-received: the payment
+    // is voided first. Older receipts booked the payer as the owner.
+    const owner = row.heldForPersonId ?? row.personId;
+    if (row.kind === "receipt" && row.purpose === "client_funds" && owner) {
+      await tx
+        .select({ id: accounts.id })
+        .from(accounts)
+        .where(eq(accounts.id, row.otherAccountId))
+        .for("no key update");
+      const left = await postedBalance(tx, row.otherAccountId, "credit", {
+        personId: owner,
+        dealId: row.dealId ?? undefined,
+      });
+      if (compareMoney(row.amount, left) > 0)
+        throw new DomainError(
+          409,
+          `سُلِّم من أمانة السند ${row.code} والباقي منها ${left}؛ ألغِ سند التسليم أولاً.`,
+          "VOUCHER_CLIENT_FUNDS",
+        );
+    }
     const voidEntryId = await reverseEntry(
       tx,
       row.journalEntryId,

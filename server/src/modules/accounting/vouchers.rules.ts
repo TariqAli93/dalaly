@@ -102,6 +102,52 @@ export function voucherAccountsError(draft: VoucherDraft): string | null {
   return null;
 }
 
+/** A deal's two sides, for whom its client funds may be held. */
+export type DealParties = {
+  clientPersonId: number;
+  ownerPersonId: number | null;
+};
+
+/**
+ * Whose money a client-funds voucher moves. A receipt holds it for the
+ * landlord or seller: the one named, else the deal's owner, else the payer.
+ * A payment hands out of what is held for the one named, else for the payee,
+ * so a deposit can go back to a buyer out of what is held for the seller.
+ * On a deal it is held for one of the deal's two sides. Other purposes name
+ * no one. Returns the person (or null), or why it does not fit.
+ */
+export function heldFor(input: {
+  kind: VoucherKind;
+  purpose: string;
+  personId: number | null;
+  heldForId: number | null;
+  deal: DealParties | null;
+}): { personId: number | null } | { error: string } {
+  if (input.purpose !== "client_funds")
+    return input.heldForId
+      ? { error: "صاحب الأمانة يُحدَّد في سندات أمانات العملاء فقط." }
+      : { personId: null };
+  const id =
+    input.heldForId ??
+    (input.kind === "receipt"
+      ? (input.deal?.ownerPersonId ?? input.personId)
+      : input.personId);
+  if (!id)
+    return {
+      error:
+        input.kind === "receipt"
+          ? "حدد لمن تُحفظ الأمانة: المالك أو البائع."
+          : "أمانات العملاء تُصرف لزبون بعينه: اختر المالك أو البائع.",
+    };
+  if (
+    input.deal &&
+    id !== input.deal.clientPersonId &&
+    id !== input.deal.ownerPersonId
+  )
+    return { error: "أمانة الصفقة تُحفظ لأحد طرفيها." };
+  return { personId: id };
+}
+
 /** The journal lines of a voucher: the money side and the other side. */
 export function voucherLines(
   kind: VoucherKind,

@@ -529,7 +529,8 @@ added together.
     - also receivables, other income, capital; for payments, expenses,
       employee commissions, payables and drawings.
   - A payment never takes more than the cash or bank account holds, or
-    more client funds than were collected for that person. Payments from
+    more client funds than are held for their owner (see "Financial
+    integration" below). Payments from
     one account take turns (`FOR NO KEY UPDATE` on its row), so two cannot
     both spend one balance.
   - A voucher never changes. Voiding posts the reversing entry and marks it
@@ -604,6 +605,38 @@ added together.
     with shares and vouchers, `payable` (unpaid shares), `POST /`,
     `POST /:id/cancel`. Permissions `commissions.read` and
     `commissions.manage`.
+- **Financial integration** (migration `0013_client_funds_held_for`;
+  `vouchers.rules.ts` `heldFor`, `finance.repository.ts`).
+  - Client funds name whose money they are (`vouchers.held_for_person_id`),
+    apart from who paid them in or took them out:
+    - A receipt holds them for the one named, else the deal's owner (the
+      landlord or seller), else the payer. A tenant's rent or a buyer's
+      deposit is then the owner's.
+    - A payment hands out of what is held for the one named, else for the
+      payee. A deposit returned to a buyer comes out of the seller's funds.
+    - On a deal, the funds are held for one of its two sides. A payment on a
+      deal takes no more than was collected for that person on that deal.
+    - The client-funds journal line names the owner, and its memo the payer.
+      Rows from before `0013` keep null: their lines already name the payer
+      as the owner.
+    - Voiding a receipt whose money was partly handed over is refused until
+      the payment is voided.
+  - `finance.repository.ts` reads a deal's or a customer's money from the
+    posted journal, so it always agrees with the ledger. It sits beside the
+    commission and client-funds documents:
+    - for a deal: income, costs and net; receivable and payable; funds
+      held. Also the commissions (recorded, collected, shares), the
+      client-funds vouchers, and the linked contract's commission, deposit
+      and down payment;
+    - for a customer: what they owe the office, the funds held for them,
+      and their commissions.
+    - API `/api/finance/deals/:id` and `/api/finance/people/:id`, both with
+      `vouchers.read`. The vouchers list's `person_id` filter also matches
+      the funds held for that person.
+  - A deal is not lost or cancelled while it has a standing commission or
+    client funds held on it (`stageMoveError`'s `openMoney`, read under the
+    deal's lock, which recording a commission also takes). Winning does not
+    ask.
 - In the renderer, `pages/AccountsPage.vue` is the chart, a tree with
   filters by currency and text. `components/accounting/AccountDialog.vue`
   adds and edits accounts: a child takes its parent's type and currency, and
