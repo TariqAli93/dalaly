@@ -480,6 +480,8 @@ test("API responses match the renderer's types", async (t) => {
         "/api/reports/operations/listings?kind=sale&from=2020-01-01",
         "/api/reports/operations/listings?kind=rental&from=2020-01-01",
         "/api/reports/operations/leases?from=2020-01-01",
+        "/api/dashboard/business",
+        "/api/dashboard/alerts",
       ];
       for (const url of urls) await api("GET", url);
     }

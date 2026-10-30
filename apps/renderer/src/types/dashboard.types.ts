@@ -1,4 +1,7 @@
 import type { MatchReason } from "./crm.types";
+import type { Currency } from "./deal.types";
+import type { OverdueInstallmentRecord } from "./lease.types";
+import type { TaskRecord } from "./task.types";
 
 /** نوع المعاملة في لوحة العمليات: بيع (عروض وطلبات شراء) أو إيجار. */
 export type OperationsKind = "sale" | "rental";
@@ -199,4 +202,110 @@ export type DashboardMatchingQuery = {
   q: string;
   page: number;
   page_size: number;
+};
+
+// ─── Business summary and notification center (/dashboard/business, /alerts)
+
+/** A deal as the dashboard lists it. */
+export type BusinessDeal = {
+  id: number;
+  code: string;
+  title: string | null;
+  deal_type: string;
+  stage: string;
+  currency: Currency;
+  agreed_price: string | null;
+  client_person_id: number | null;
+  client_name: string | null;
+  user_name: string | null;
+  stage_changed_at: string;
+  closed_at: string | null;
+};
+type Listed<T> = { total: number; items: T[] };
+
+/** Each section is null without its domain's read permission. */
+export type BusinessSummary = {
+  generated_at: string;
+  tasks: {
+    today: Listed<TaskRecord>;
+    week: Listed<TaskRecord>;
+    overdue: Listed<TaskRecord>;
+  } | null;
+  deals: {
+    stalled_days: number;
+    recent_days: number;
+    negotiating: Listed<BusinessDeal>;
+    stalled: Listed<BusinessDeal>;
+    recently_won: Listed<BusinessDeal>;
+  } | null;
+  customers: {
+    contact_days: number;
+    needing_contact: {
+      total: number;
+      rows: Array<{
+        person_id: number;
+        person_name: string;
+        phone: string | null;
+        user_name: string | null;
+        open_requests: number;
+        open_deals: number;
+        last_contact: string | null;
+      }>;
+    };
+  } | null;
+  leases: {
+    expiring_days: number;
+    expiring: Listed<{
+      id: number;
+      code: string;
+      currency: Currency;
+      rent_amount: string;
+      frequency: string;
+      end_date: string;
+      days_left: number;
+      tenant_person_id: number | null;
+      tenant_name: string | null;
+    }>;
+    overdue: {
+      total: number;
+      by_currency: Array<{
+        currency: Currency;
+        installments: number;
+        left: string;
+      }>;
+      items: OverdueInstallmentRecord[];
+    };
+  } | null;
+  /** This month's money; with reports.financial. */
+  money: {
+    from: string;
+    to: string;
+    currencies: Array<{
+      currency: Currency;
+      commissions_collected: string;
+      commissions_outstanding: string;
+      commissions_open: number;
+      revenue: string;
+      expenses: string;
+      net: string;
+    }>;
+  } | null;
+};
+
+export type BusinessAlertKey =
+  | "tasks_overdue"
+  | "installments_overdue"
+  | "tasks_today"
+  | "deals_stalled"
+  | "leases_expiring"
+  | "customers_needing_contact";
+
+/** The notification center: only what has a count. */
+export type BusinessAlerts = {
+  generated_at: string;
+  alerts: Array<{
+    key: BusinessAlertKey;
+    severity: "error" | "warning" | "info";
+    count: number;
+  }>;
 };

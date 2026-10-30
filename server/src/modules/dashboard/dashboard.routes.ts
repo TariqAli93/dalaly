@@ -2,6 +2,11 @@ import { type FastifyPluginAsync, type FastifyRequest } from "fastify";
 import { requirePermission } from "../auth/auth.hooks.js";
 import { getDashboard } from "./dashboard.repository.js";
 import {
+  businessAlerts,
+  businessSummary,
+  type BusinessAccess,
+} from "./dashboard.business.repository.js";
+import {
   getOperationsMatching,
   getOperationsOverview,
   type OperationsAccess,
@@ -30,6 +35,19 @@ function operationsAccess(request: FastifyRequest): OperationsAccess {
   };
 }
 
+/** The business summary's sections, each by its domain's read permission. */
+function businessAccess(request: FastifyRequest): BusinessAccess {
+  const keys = granted(request);
+  return {
+    tasks: keys.has("followups.read") || keys.has("rentals.followups.read"),
+    deals: keys.has("deals.read"),
+    people: keys.has("people.read"),
+    requests: keys.has("requests.read"),
+    leases: keys.has("leases.read"),
+    money: keys.has("reports.financial"),
+  };
+}
+
 export const dashboardRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     "/summary",
@@ -48,6 +66,14 @@ export const dashboardRoutes: FastifyPluginAsync = async (app) => {
       operationsAccess(request),
       overviewQuerySchema.parse(request.query),
     ),
+  );
+  /** Tasks, deals, customers, leases and money needing attention. */
+  app.get("/business", async (request) =>
+    businessSummary(request.user!, businessAccess(request)),
+  );
+  /** The notification center: counts of the same, without records. */
+  app.get("/alerts", async (request) =>
+    businessAlerts(request.user!, businessAccess(request)),
   );
   app.get("/matching", async (request) =>
     getOperationsMatching(

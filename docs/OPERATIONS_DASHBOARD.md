@@ -212,6 +212,43 @@ Not measured: the packaged app's startup and login-to-dashboard marks
 for overview and matching on builds that have them, and still for the
 summary on older ones).
 
+## Business summary and notification center (Phase 7b)
+
+`GET /dashboard/business` and `GET /dashboard/alerts` need only a signed-in
+user. Each section follows its domain's read permission and is `null`
+without it. Each figure reuses an existing definition, so the dashboard
+and the page it opens agree. Lists hold the first 5 records.
+
+| Section | Figure | Definition |
+| --- | --- | --- |
+| tasks (any follow-up read) | today, this week, overdue | The tasks list's `due=today`, `due=week` (today to 7 days on) and `due=overdue` (open, past due), over every task the user may read (`listTasksPage`) |
+| deals (`deals.read`) | negotiating | open deals in negotiation, agreed, contract preparation or contract issued; latest stage change first |
+| | stalled | open deals whose stage has not changed for 14 days; oldest first |
+| | recently won | won in the last 30 days |
+| customers (`people.read`) | needing contact | the operational reports' uncontacted customers over the last 30 days (`uncontactedCustomers`); open requests count with `requests.read` |
+| leases (`leases.read`) | expiring | leases in force whose last day is within 30 days |
+| | overdue | the installments of `leases/installments/overdue`, counted and summed per currency |
+| money (`reports.financial`) | per currency, the month to date | commissions collected (receipts allocated to commissions); commissions outstanding now (active commissions less what was collected on them); revenue, expenses and net from the income statement for the same days |
+
+**Alerts.** `alerts` holds those counts with a severity, and only the ones
+above zero:
+- overdue tasks, error;
+- overdue installments, error;
+- tasks today, info;
+- stalled deals, warning;
+- expiring leases, warning;
+- customers needing contact, info.
+The renderer turns each key into a title and a link.
+
+**A contact.** For "needing contact" (and the operational reports), a
+contact is an activity or follow-up naming the customer that took place:
+marked done, dated by when it was done. A task still open is a plan, not a
+contact.
+
+**Load.** The summary runs two sections at a time, each section one query
+at a time (`inParallel`, `QUERY_WIDTH`). Every running query holds a pool
+connection.
+
 ## Not done
 
 The brief's other phases are not in this change: unified list/detail
@@ -219,5 +256,6 @@ layouts for sale and rental listings, the request form as a page, the
 documents page split, locations, settings, users and roles, the
 authentication and error pages, keyboard row navigation and `Ctrl+S`.
 Customer interaction logging, rental contracts and payments, and
-commissions need new tables (and backup coverage) and an owner decision on
-what they record.
+commissions were later built: tasks and activities (Phase 2), leases
+(Phase 5) and accounting (Phase 4). The business summary above reads
+them.

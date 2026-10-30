@@ -1,4 +1,6 @@
 import type {
+  BusinessAlerts,
+  BusinessSummary,
   DashboardMatching,
   DashboardMatchingQuery,
   DashboardOverview,
@@ -30,4 +32,14 @@ export function fetchOperationsMatching(
   return request<DashboardMatching>(`/dashboard/matching?${params}`, {
     signal,
   });
+}
+
+/** ما يحتاج انتباهاً: المهام والصفقات والزبائن والإيجارات ومال الشهر. */
+export function fetchBusinessSummary(signal?: AbortSignal) {
+  return request<BusinessSummary>("/dashboard/business", { signal });
+}
+
+/** مركز التنبيهات: أعداد ما يحتاج انتباهاً، بلا السجلات. */
+export function fetchAlerts(signal?: AbortSignal) {
+  return request<BusinessAlerts>("/dashboard/alerts", { signal });
 }

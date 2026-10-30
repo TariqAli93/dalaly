@@ -114,13 +114,15 @@ function monthlyActivity(table: PgTable, createdAt: AnyPgColumn, where?: SQL) {
  * which on Windows starts one at a time (docs/PERFORMANCE.md, "Pool,
  * statement timeout and dashboard").
  */
-const QUERY_WIDTH = 2;
+export const QUERY_WIDTH = 2;
 
 /**
  * Runs the tasks at most `width` at a time, in the order given, and returns
  * their results by name. After a failure no further task starts.
  */
-async function inParallel<T extends Record<string, () => PromiseLike<unknown>>>(
+export async function inParallel<
+  T extends Record<string, () => PromiseLike<unknown>>,
+>(
   width: number,
   tasks: T,
 ): Promise<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }> {

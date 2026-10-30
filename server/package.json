@@ -57,6 +57,7 @@
     "test:leases": "tsx --test scripts/leases.test.ts",
     "test:lease-payments": "tsx --test scripts/lease-payments.test.ts",
     "test:reports": "tsx --test scripts/financial-reports.test.ts scripts/operational-reports.test.ts",
+    "test:dashboard-business": "tsx --test scripts/dashboard-business.test.ts",
     "test:import": "tsx --test scripts/import-commit.test.ts",
     "test:queries": "tsx --test scripts/list-queries.test.ts",
     "test:dashboard": "tsx --test scripts/dashboard-summary.test.ts",
