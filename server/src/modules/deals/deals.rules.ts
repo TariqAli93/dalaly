@@ -37,7 +37,17 @@ export type StageMoveDeal = {
   ownerPersonId: number | null;
   /** The linked contract's status, or null without one. */
   agreementStatus: string | null;
+  /**
+   * Money still open on the deal, read when it is to be lost or cancelled:
+   * its standing commissions and the client funds held on it.
+   */
+  openMoney?: {
+    liveCommissions: string[];
+    fundsHeld: Array<{ currency: string; held: string }>;
+  };
 };
+
+const CURRENCY_NAME: Record<string, string> = { IQD: "دينار", USD: "دولار" };
 
 export type StageMoveInput = {
   reason?: string | null;
@@ -72,6 +82,19 @@ export function stageMoveError(
   if (to === "lost" && !input.lost_reason?.trim())
     return "اذكر سبب خسارة الصفقة.";
   if (to === "cancelled" && !reason) return "اذكر سبب إلغاء الصفقة.";
+  // A deal that did not happen earns nothing and holds nothing.
+  if ((to === "lost" || to === "cancelled") && deal.openMoney) {
+    const { liveCommissions, fundsHeld } = deal.openMoney;
+    if (liveCommissions.length)
+      return `على الصفقة العمولة ${liveCommissions.join("، ")}؛ ألغها قبل إغلاق الصفقة بلا بيع.`;
+    if (fundsHeld.length)
+      return `للصفقة أمانات محتفظ بها (${fundsHeld
+        .map(
+          ({ currency, held }) =>
+            `${held} ${CURRENCY_NAME[currency] ?? currency}`,
+        )
+        .join("، ")})؛ سلّمها لصاحبها أو أعدها قبل إغلاق الصفقة.`;
+  }
   return null;
 }
 

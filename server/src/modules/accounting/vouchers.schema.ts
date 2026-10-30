@@ -34,6 +34,11 @@ export const voucherPayloadSchema = z.object({
   other_account_id: optionalId,
   person_id: optionalId,
   party_name: optionalText,
+  /**
+   * Client funds: whose money it is. Defaults to the deal's owner on a
+   * receipt (else the payer), and to the payee on a payment.
+   */
+  held_for_person_id: optionalId,
   deal_id: optionalId,
   /** A receipt that collects this commission. */
   commission_id: optionalId,

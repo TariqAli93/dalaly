@@ -29,8 +29,9 @@ Do not rely on this file alone.
 | 4d — commissions (server) | `feat/phase-04d-commissions` | [#42](https://github.com/TariqAli93/dalaly/pull/42), merged `2782a16` | `test:commissions` 10/10, commission rules 4/4, backup round trip 41 tables; all suites; CI pass | Completed |
 | 4d — commissions UI | `feat/phase-04d-commissions-ui` | [#43](https://github.com/TariqAli93/dalaly/pull/43), merged `ca695f6` | `test:contract` 123, percent preview vs server; renderer checks; web demo; CI pass | Completed |
 | 4e — expenses and cash (server) | `feat/phase-04e-expenses-cash` | [#44](https://github.com/TariqAli93/dalaly/pull/44), merged `18781c7` | `test:cash` 9/9, cash rules 4/4, money 5/5, backup round trip 44 tables; CI pass | Completed |
-| 4e — expenses and cash UI | `feat/phase-04e-cash-ui` | — | `test:contract` 133; renderer checks; web demo | In review |
-| 4f — financial integration | `feat/phase-04f-financial-integration` | — | — | Pending |
+| 4e — expenses and cash UI | `feat/phase-04e-cash-ui` | [#45](https://github.com/TariqAli93/dalaly/pull/45), merged `11c3b0e` | `test:contract` 133; renderer checks; web demo; CI pass | Completed |
+| 4f — financial integration (server) | `feat/phase-04f-financial-integration` | — | `test:finance` 9/9, voucher and deal rules 12/12, `test:contract` 135; affected suites | In review |
+| 4f — financial integration UI | — | — | — | Pending |
 | 5a — leases | `feat/phase-05a-leases` | — | — | Pending |
 | 5b — lease payments | `feat/phase-05b-lease-payments` | — | — | Pending |
 | 6a — financial reports | `feat/phase-06a-financial-reports` | — | — | Pending |
@@ -608,6 +609,45 @@ below.
     posted to `5201` ("مصروف · رسوم حكومية");
   - no console errors, and no horizontal scroll at 375 px.
 
+### 4f — financial integration (server)
+
+- **Found in the audit:** a client-funds receipt booked the money to
+  whoever paid it. A tenant's rent or a buyer's deposit could then not be
+  handed to the landlord or seller: the payout check found nothing held for
+  them. Nor could a deposit go back to the buyer out of the seller's funds.
+- Client-funds vouchers now name whose money it is (`held_for_person_id`,
+  migration `0013`):
+  - a receipt: the one named, else the deal's owner, else the payer;
+  - a payment: the one named, else the payee;
+  - on a deal, one of its two sides, and a payment takes no more than was
+    collected for that person on that deal;
+  - voiding a receipt whose money was partly handed over is refused.
+- `GET /api/finance/deals/:id` and `/api/finance/people/:id` (`vouchers.read`)
+  read the money from the posted journal, beside the commission and
+  client-funds documents. For a deal that is income, costs, net, receivable,
+  payable and funds held, plus the linked contract's money terms; for a
+  customer, what they owe and what is held for them. The test checks the
+  figures against a direct sum of the journal lines.
+- A deal is not lost or cancelled while a commission stands on it or client
+  funds are held on it.
+- `test:finance` (9):
+  - an upgrade from `0012`;
+  - a buyer's deposit and a tenant's rent held for the owner;
+  - payouts and refunds within what is held, per person and per deal;
+  - voiding after a handover;
+  - a deal's and a customer's money against the journal (2,000,000
+    commission with a 25% share, 1,500,000 collected, a 100,000 fee, a
+    5,000,000 deposit: income 2,000,000, costs 600,000, held 1,000,000, the
+    100,000,000 price nowhere);
+  - the closing rule, then cancelling once settled;
+  - an older voucher without `held_for`;
+  - the trigger and deleting a person;
+  - permissions;
+  - restores.
+  Rules: `heldFor` and the closing rule (unit tests). `test:contract` 135.
+- The screens (who the funds are for on the voucher form, the money on the
+  deal and customer pages) follow in their own PR.
+
 ## Database migrations
 
 | Migration | Phase | What it adds |
@@ -621,6 +661,7 @@ below.
 | `0010_vouchers` | 4c | `vouchers` (checked kind, currency, positive amount, status and void fields together, distinct accounts; FK accounts and entries restrict, people and deals set null for restores); trigger `vouchers_guard`; `journal_entries_guard` replaced to refuse deleting a user with posted entries |
 | `0011_commissions` | 4d | `commissions` (checked payer role, currency, basis with rate and base, positive amount, cancel fields together; one active per deal and payer), `commission_splits` (one per user, positive), `vouchers.commission_id` and `commission_split_id` with a kind check; triggers `commissions_guard`, `commission_splits_guard`; `vouchers_guard` replaced |
 | `0012_expenses_cash` | 4e | `expense_categories` (an account at least), `cash_transfers` (positive, distinct accounts, void fields together), `cash_reconciliations` (difference = statement − book), `vouchers.expense_category_id` with a check; journal source `reconciliation`; triggers `cash_transfers_guard`, `cash_reconciliations_guard`; `vouchers_guard` replaced (whole rows) |
+| `0013_client_funds_held_for` | 4f | `vouchers.held_for_person_id` (FK people, set null, indexed; only on client funds, checked); `vouchers_guard` replaced to refuse clearing it |
 
 ## Decisions that need the owner
 

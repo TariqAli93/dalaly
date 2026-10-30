@@ -36,6 +36,10 @@ import {
   type SortOrder,
 } from "../../shared/utils/paging.js";
 import { containsPattern } from "../../shared/utils/search.js";
+import {
+  dealFundsHeld,
+  dealLiveCommissions,
+} from "../accounting/finance.repository.js";
 import { listActivities } from "../activities/activities.repository.js";
 import { recordAudit } from "../audit/audit.service.js";
 import { assertTaskLinks } from "../tasks/tasks.links.js";
@@ -476,12 +480,21 @@ export async function moveDealStageIn(
         .from(agreements)
         .where(eq(agreements.id, deal.agreementId))
     : [];
+  // Recording a commission takes the same deal lock, so none slips in.
+  const openMoney =
+    to === "lost" || to === "cancelled"
+      ? {
+          liveCommissions: await dealLiveCommissions(tx, deal.id),
+          fundsHeld: await dealFundsHeld(tx, deal.id),
+        }
+      : undefined;
   const error = stageMoveError(
     {
       stage: deal.stage,
       agreedPrice: deal.agreedPrice,
       ownerPersonId: deal.ownerPersonId,
       agreementStatus: agreement?.status ?? null,
+      openMoney,
     },
     to,
     input,

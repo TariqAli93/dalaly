@@ -21,6 +21,7 @@ import {
   expenseCategories,
   journalEntries,
   officeProfiles,
+  people,
   users,
   vouchers,
 } from "../../infrastructure/database/schema.js";
@@ -36,6 +37,7 @@ const entry = alias(journalEntries, "entry");
 const voidEntry = alias(journalEntries, "void_entry");
 const creator = alias(users, "creator");
 const voider = alias(users, "voider");
+const heldFor = alias(people, "held_for");
 
 function selectVouchers() {
   return db
@@ -55,6 +57,8 @@ function selectVouchers() {
       other_account_name: otherAccount.name,
       person_id: vouchers.personId,
       party_name: vouchers.partyName,
+      held_for_person_id: vouchers.heldForPersonId,
+      held_for_name: heldFor.fullName,
       deal_id: vouchers.dealId,
       deal_code: deals.code,
       description: vouchers.description,
@@ -81,6 +85,7 @@ function selectVouchers() {
     .innerJoin(entry, eq(vouchers.journalEntryId, entry.id))
     .leftJoin(voidEntry, eq(vouchers.voidEntryId, voidEntry.id))
     .leftJoin(deals, eq(vouchers.dealId, deals.id))
+    .leftJoin(heldFor, eq(vouchers.heldForPersonId, heldFor.id))
     .leftJoin(
       commissions,
       sql`${commissions.id} = coalesce(${vouchers.commissionId}, (select ${commissionSplits.commissionId} from ${commissionSplits} where ${commissionSplits.id} = ${vouchers.commissionSplitId}))`,
@@ -99,7 +104,14 @@ function conditions(query: VoucherPageQuery): SQL | undefined {
   if (query.currency) where.push(eq(vouchers.currency, query.currency));
   if (query.status) where.push(eq(vouchers.status, query.status));
   if (query.purpose) where.push(eq(vouchers.purpose, query.purpose));
-  if (query.person_id) where.push(eq(vouchers.personId, query.person_id));
+  // A customer's vouchers: paid by or to them, or client funds held for them.
+  if (query.person_id)
+    where.push(
+      or(
+        eq(vouchers.personId, query.person_id),
+        eq(vouchers.heldForPersonId, query.person_id),
+      )!,
+    );
   if (query.deal_id) where.push(eq(vouchers.dealId, query.deal_id));
   if (query.money_account_id)
     where.push(eq(vouchers.moneyAccountId, query.money_account_id));

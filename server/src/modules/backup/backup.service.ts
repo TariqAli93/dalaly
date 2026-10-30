@@ -935,6 +935,7 @@ const KEPT_LINKS = [
   { table: "journal_lines", column: "person_id", target: "people" },
   { table: "journal_lines", column: "deal_id", target: "deals" },
   { table: "vouchers", column: "person_id", target: "people" },
+  { table: "vouchers", column: "held_for_person_id", target: "people" },
   { table: "vouchers", column: "deal_id", target: "deals" },
   { table: "commissions", column: "payer_person_id", target: "people" },
   { table: "commissions", column: "deal_id", target: "deals" },
