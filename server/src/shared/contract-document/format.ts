@@ -179,6 +179,7 @@ const SCALES: Array<[string, string, string, string]> = [
   ["مليون", "مليونان", "ملايين", "مليوناً"],
   ["مليار", "ملياران", "مليارات", "ملياراً"],
   ["ترليون", "ترليونان", "ترليونات", "ترليوناً"],
+  ["كوادريليون", "كوادريليونان", "كوادريليونات", "كوادريليوناً"],
 ];
 
 function belowThousand(value: number) {
@@ -220,6 +221,34 @@ export function numberToArabicWords(value: number) {
     scale += 1;
   }
   return groups.join(" و");
+}
+
+const MINOR_UNITS: Record<Currency, [string, string, string]> = {
+  // [one/eleven+, three to ten, accusative eleven+]
+  IQD: ["فلس", "فلوس", "فلساً"],
+  USD: ["سنت", "سنتات", "سنتاً"],
+};
+
+/**
+ * An exact amount ("1500000.50") in words, read from its digits rather than
+ * a JavaScript number, so a sixteen-digit amount keeps every unit:
+ * "فقط مليون وخمسمئة ألف دينار عراقي وخمسون فلساً لا غير". Fils or cents
+ * only when not zero.
+ */
+export function decimalAmountInWords(amount: string, currency: Currency) {
+  const [whole = "0", fraction = ""] = amount.trim().split(".");
+  const digits = whole.replace(/\D/g, "").replace(/^0+(?=\d)/, "") || "0";
+  const groups: string[] = [];
+  for (let end = digits.length, scale = 0; end > 0; end -= 3, scale += 1) {
+    const group = Number(digits.slice(Math.max(0, end - 3), end));
+    if (group) groups.unshift(scaled(group, scale));
+  }
+  const words = groups.length ? groups.join(" و") : "صفر";
+  const minor = Number(`${fraction}00`.slice(0, 2));
+  const [one, few, many] = MINOR_UNITS[currency];
+  const unit = minor >= 3 && minor <= 10 ? few : minor >= 11 ? many : one;
+  const cents = minor ? ` و${belowThousand(minor)} ${unit}` : "";
+  return `فقط ${words} ${CURRENCY_LABELS[currency]}${cents} لا غير`;
 }
 
 /** "فقط مئة وخمسون مليون دينار عراقي لا غير". */

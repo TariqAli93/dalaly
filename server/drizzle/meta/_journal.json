@@ -71,6 +71,13 @@
       "when": 1793289544128,
       "tag": "0009_general_ledger",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793353784145,
+      "tag": "0010_vouchers",
+      "breakpoints": true
     }
   ]
 }

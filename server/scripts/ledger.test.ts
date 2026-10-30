@@ -64,7 +64,7 @@ test("a database at 0008 migrates to the ledger with its data", async () => {
 
     await runDatabaseMigrations(path.resolve("drizzle"));
     assert.equal(Number((await pool.query("SELECT count(*) FROM accounts WHERE code = '9001'")).rows[0].count), 1);
-    const triggers = (await pool.query("SELECT tgname FROM pg_trigger WHERE tgname LIKE '%guard' ORDER BY tgname")).rows.map((row) => row.tgname);
+    const triggers = (await pool.query("SELECT tgname FROM pg_trigger WHERE tgname IN ('accounts_ledger_guard', 'journal_entries_guard', 'journal_lines_guard') ORDER BY tgname")).rows.map((row) => row.tgname);
     assert.deepEqual(triggers, ["accounts_ledger_guard", "journal_entries_guard", "journal_lines_guard"]);
     assert.equal(Number((await pool.query("SELECT count(*) FROM permissions WHERE key LIKE 'accounting.%'")).rows[0].count), 6);
   } finally {

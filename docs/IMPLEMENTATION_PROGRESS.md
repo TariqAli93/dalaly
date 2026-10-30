@@ -23,8 +23,9 @@ Do not rely on this file alone.
 | 3c — deal integration | `feat/phase-03c-deal-integration` | [#36](https://github.com/TariqAli93/dalaly/pull/36), merged `8364e11` | `test:deals` 15/15; all suites; web demo; CI pass | Completed |
 | 4a — chart of accounts | `feat/phase-04a-chart-of-accounts` | [#37](https://github.com/TariqAli93/dalaly/pull/37), merged `d71806f` | `test:accounting` 9/9, account rules 7/7, `test:contract` 100, backup round trip 35 tables; web demo; CI pass | Completed |
 | 4b — general ledger (server) | `feat/phase-04b-general-ledger` | [#38](https://github.com/TariqAli93/dalaly/pull/38), merged `edb4caf` | `test:ledger` 13/13, journal rules 6/6, backup round trip 38 tables; CI pass | Completed |
-| 4b — journal UI | `feat/phase-04b-journal-ui` | — | `test:contract` 111, editor sums 1 test; renderer checks; web demo | In review |
-| 4c — receipts and payments | `feat/phase-04c-receipts-payments` | — | — | Pending |
+| 4b — journal UI | `feat/phase-04b-journal-ui` | [#39](https://github.com/TariqAli93/dalaly/pull/39), merged `fef0787` | `test:contract` 111, editor sums 1 test; renderer checks; web demo; CI pass | Completed |
+| 4c — receipts and payments (server) | `feat/phase-04c-receipts-payments` | — | `test:vouchers` 10/10, voucher rules 5/5, backup round trip 39 tables | In review |
+| 4c — vouchers UI | — | — | — | Pending |
 | 4d — commissions | `feat/phase-04d-commissions` | — | — | Pending |
 | 4e — expenses and cash | `feat/phase-04e-expenses-cash` | — | — | Pending |
 | 4f — financial integration | `feat/phase-04f-financial-integration` | — | — | Pending |
@@ -421,6 +422,36 @@ below.
   - the cash statement going 0 → 1,500,000.50 → 0;
   - September closed from the dialog.
 
+### 4c — receipts and payments (server)
+
+- `vouchers` (`0010`): receipts (`RC-`) and payments (`PV-`) in one table,
+  each posted to the ledger in its own transaction.
+- The purpose sets the other side's account and the types allowed. A
+  seller's or landlord's money is client funds, a liability; a commission is
+  income.
+- Payments are capped:
+  - by the cash or bank balance;
+  - for client funds, by what was collected for that person.
+  Two racing payments that together would overdraw: one is refused.
+- Voiding posts the reversing entry. The `vouchers_guard` trigger allows
+  only that change; a voucher's entry cannot be reversed by hand.
+- Amount in words from the digits (`decimalAmountInWords`), exact past 2^53.
+- **Fixed from 4b:** deleting a user who posted entries failed with "the
+  entry is posted" (the user links are `SET NULL`). `0010` replaces
+  `journal_entries_guard` to refuse it with "deactivate the user instead",
+  so who posted stays known. Vouchers do the same.
+- `test:vouchers` (10):
+  - commission and client-funds receipts with their lines;
+  - client-funds and cash limits, including two racing payments;
+  - account, currency and party rules;
+  - voiding, and no manual reversal of a voucher's entry;
+  - the trigger in raw SQL, including deleting a payer;
+  - the three permissions and the user-deletion message;
+  - listing, filters and audit;
+  - a customers restore keeping links, and a full restore.
+  Voucher rules: 5 unit tests. `test:removal:backup` covers 39 tables.
+- The vouchers screens (issue, list, print, void) follow in their own PR.
+
 ## Database migrations
 
 | Migration | Phase | What it adds |
@@ -431,6 +462,7 @@ below.
 | `0007_deals` | 3a | `deals` (checked type, stage, priority, currency, listing kind, distinct parties, ISO close date), `deal_stage_history`, `deal_offers`, `activities.deal_id` |
 | `0008_chart_of_accounts` | 4a | `accounts` (checked type, currency, code digits, posting accounts with a currency, no self-parent; unique code and `system_key`; parent FK restrict). The default accounts are added at startup, not by the migration. |
 | `0009_general_ledger` | 4b | `journal_entries` (checked status, currency, source, reversal link, posted time; unique code, idempotency key and reversal), `journal_lines` (one positive side; FK accounts restrict, people and deals set null for restores), `accounting_periods`; triggers `journal_entries_guard`, `journal_lines_guard`, `accounts_ledger_guard` |
+| `0010_vouchers` | 4c | `vouchers` (checked kind, currency, positive amount, status and void fields together, distinct accounts; FK accounts and entries restrict, people and deals set null for restores); trigger `vouchers_guard`; `journal_entries_guard` replaced to refuse deleting a user with posted entries |
 
 ## Decisions that need the owner
 

@@ -226,7 +226,9 @@ on `bigint` minor units (`shared/money.ts`) and never on `number`.
 - `receipts` (numbered `RC-000001`, cash or bank, payer, purpose, an
   allocation to a commission or installment, a printable Arabic receipt) and
   `payments` (paid out: to landlords and sellers, to employees, expenses).
-  Voiding a receipt posts a reversal.
+  Voiding a receipt posts a reversal. (Built in 4c as one `vouchers` table
+  with a `kind`, receipt or payment, numbered `RC-` and `PV-` separately:
+  the two share every column, rule and screen.)
 - `commissions` (deal, payer role, fixed or a percentage of the agreed
   price, amount, currency, status) and `commission_splits` (employee share).
   A commission is office revenue. The listing's price is never revenue, and

@@ -68,7 +68,8 @@ const totals = computed(() => {
 const canReverse = computed(
   () =>
     entry.value?.status === "posted" &&
-    entry.value.source_type !== "reversal" &&
+    // Receipts and payments are undone by voiding the voucher itself.
+    entry.value.source_type === "manual" &&
     !entry.value.reversed_by_id &&
     can("accounting.journal.reverse"),
 );

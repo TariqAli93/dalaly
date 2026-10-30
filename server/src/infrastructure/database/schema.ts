@@ -1368,6 +1368,83 @@ export const accountingPeriods = pgTable(
   ],
 );
 
+/**
+ * Receipts (سند قبض, RC-000001) and payments (سند صرف, PV-000001): money into
+ * or out of a cash or bank account, posted to the ledger with the voucher in
+ * one transaction (`journal_entry_id`). A voucher never changes: a mistake is
+ * voided, which posts the reversing entry (`void_entry_id`), and a new one is
+ * issued. Triggers in 0010 allow only that one change.
+ */
+export const vouchers = pgTable(
+  "vouchers",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    code: text("code").notNull().unique(),
+    kind: text("kind").notNull(),
+    voucherDate: date("voucher_date", { mode: "string" }).notNull(),
+    currency: text("currency").notNull(),
+    amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+    purpose: text("purpose").notNull(),
+    moneyAccountId: bigint("money_account_id", { mode: "number" })
+      .notNull()
+      .references(() => accounts.id, { onDelete: "restrict" }),
+    otherAccountId: bigint("other_account_id", { mode: "number" })
+      .notNull()
+      .references(() => accounts.id, { onDelete: "restrict" }),
+    /** The payer of a receipt, the payee of a payment. */
+    personId: bigint("person_id", { mode: "number" }).references(
+      () => people.id,
+      { onDelete: "set null" },
+    ),
+    /** The name as printed, kept even if the customer record changes. */
+    partyName: text("party_name").notNull(),
+    dealId: bigint("deal_id", { mode: "number" }).references(() => deals.id, {
+      onDelete: "set null",
+    }),
+    description: text("description").notNull(),
+    reference: text("reference"),
+    status: text("status").notNull().default("posted"),
+    journalEntryId: bigint("journal_entry_id", { mode: "number" })
+      .notNull()
+      .references(() => journalEntries.id, { onDelete: "restrict" }),
+    voidEntryId: bigint("void_entry_id", { mode: "number" }).references(
+      () => journalEntries.id,
+      { onDelete: "restrict" },
+    ),
+    voidReason: text("void_reason"),
+    voidedAt: timestamp("voided_at", { withTimezone: true }),
+    voidedBy: bigint("voided_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    createdBy: bigint("created_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_vouchers_date").on(table.voucherDate, table.id),
+    index("idx_vouchers_person").on(table.personId),
+    index("idx_vouchers_deal").on(table.dealId),
+    index("idx_vouchers_money_account").on(table.moneyAccountId),
+    check("vouchers_kind", sql`${table.kind} in ('receipt', 'payment')`),
+    check("vouchers_currency", sql`${table.currency} in ('IQD', 'USD')`),
+    check("vouchers_amount", sql`${table.amount} > 0`),
+    check("vouchers_status", sql`${table.status} in ('posted', 'voided')`),
+    check(
+      "vouchers_void",
+      sql`(${table.status} = 'voided') = (${table.voidEntryId} is not null and ${table.voidedAt} is not null and ${table.voidReason} is not null)`,
+    ),
+    check(
+      "vouchers_accounts",
+      sql`${table.moneyAccountId} <> ${table.otherAccountId}`,
+    ),
+  ],
+);
+
 export const officeProfiles = pgTable("office_profiles", {
   id: integer("id").primaryKey().default(1),
   companyName: text("company_name").notNull().default(""),
@@ -1473,3 +1550,4 @@ export type AppSetting = typeof appSettings.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
 export type JournalEntry = typeof journalEntries.$inferSelect;
 export type JournalLine = typeof journalLines.$inferSelect;
+export type Voucher = typeof vouchers.$inferSelect;

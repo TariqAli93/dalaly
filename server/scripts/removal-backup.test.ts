@@ -197,6 +197,12 @@ test("shared backup v3 survives full restore and rejects incompatible data befor
     ]);
     await db.update(schema.journalEntries).set({ status: "posted", postedAt: new Date(), postedBy: ctx.adminId }).where(eq(schema.journalEntries.id, entry.id));
     await db.insert(schema.accountingPeriods).values({ period: "2026-08", closedBy: ctx.adminId, notes: "شهر مقفل" });
+    // The payment voucher that entry stands for.
+    await db.insert(schema.vouchers).values({
+      code: "PV-000001", kind: "payment", voucherDate: "2026-09-15", currency: "IQD", amount: "750000.00",
+      purpose: "expense", moneyAccountId: cashIqd.id, otherAccountId: officeRent.id, personId: ctx.people[0].id,
+      partyName: ctx.people[0].full_name, dealId: deal.id, description: "إيجار أيلول", journalEntryId: entry.id, createdBy: ctx.adminId,
+    });
     // Contract tables: a customised template with its history, and an issued
     // contract with its parties, revision and an export.
     const [agreementTemplate] = await db.insert(schema.agreementTemplates).values({ templateKey: "sale", version: 1, definition: { schema: 1 } }).returning();
@@ -257,14 +263,14 @@ test("shared backup v3 survives full restore and rejects incompatible data befor
     const manifest = JSON.parse(zip.readAsText("manifest.json"));
     const data = JSON.parse(zip.readAsText("data.json")) as Record<string, Record<string, unknown>[]>;
     assert.equal(manifest.version, 3);
-    assert.equal(Object.keys(data).length, 38);
+    assert.equal(Object.keys(data).length, 39);
     assert.ok(data.permissions.some((row) => row.id === customPermissionId && row.key === "reports.custom.review"));
     assert.ok(data.role_permissions.some((row) => row.permissionId === customPermissionId));
     assert.ok(data.app_settings.some((row) => row.key === "reports.custom.preferences"));
     assert.ok(Object.values(data).every((rows) => rows.length > 0), "representative data in every exported table");
     assert.equal(zip.getEntries().filter((entry) => !entry.isDirectory && /^(documents|images)\//.test(entry.entryName)).length, 4);
 
-    await t.test("all 38 shared tables and four managed files round trip", async () => {
+    await t.test("all 39 shared tables and four managed files round trip", async () => {
       await db.update(schema.people).set({ fullName: "اسم تغير بعد النسخ" });
       await db.update(schema.properties).set({ totalPrice: "1.00" });
       await db.update(schema.rentals).set({ rentPrice: "1.00" });

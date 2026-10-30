@@ -165,4 +165,8 @@ export const SYSTEM_PERMISSIONS = [
     name: "إقفال الأشهر المحاسبية وإعادة فتحها",
     module: "accounting",
   },
+  { key: "vouchers.read", name: "عرض سندات القبض والصرف", module: "vouchers" },
+  { key: "vouchers.receipt", name: "إصدار سندات القبض", module: "vouchers" },
+  { key: "vouchers.payment", name: "إصدار سندات الصرف", module: "vouchers" },
+  { key: "vouchers.void", name: "إلغاء السندات", module: "vouchers" },
 ] as const;
