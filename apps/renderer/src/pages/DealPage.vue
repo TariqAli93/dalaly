@@ -12,6 +12,7 @@ import NumberField from "../components/app/NumberField.vue";
 import TaskDialog from "../components/tasks/TaskDialog.vue";
 import DealDialog from "../components/deals/DealDialog.vue";
 import DealStageDialog from "../components/deals/DealStageDialog.vue";
+import DealCommissions from "../components/deals/DealCommissions.vue";
 import type { RecordFact } from "../components/shared/record";
 import * as dealsService from "../services/deals.service";
 import * as activitiesService from "../services/activities.service";
@@ -466,6 +467,8 @@ async function addActivity(value: TaskFieldsPayload) {
             </li>
           </ul>
         </section>
+
+        <DealCommissions v-if="can('commissions.read')" :deal="deal" />
 
         <section class="dal-panel deal-panel" aria-label="نشاطات الصفقة">
           <div class="deal-panel__bar">

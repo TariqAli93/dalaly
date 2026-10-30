@@ -26,8 +26,8 @@ Do not rely on this file alone.
 | 4b — journal UI | `feat/phase-04b-journal-ui` | [#39](https://github.com/TariqAli93/dalaly/pull/39), merged `fef0787` | `test:contract` 111, editor sums 1 test; renderer checks; web demo; CI pass | Completed |
 | 4c — receipts and payments (server) | `feat/phase-04c-receipts-payments` | [#40](https://github.com/TariqAli93/dalaly/pull/40), merged `90adba2` | `test:vouchers` 10/10, voucher rules 5/5, backup round trip 39 tables; CI pass | Completed |
 | 4c — vouchers UI | `feat/phase-04c-vouchers-ui` | [#41](https://github.com/TariqAli93/dalaly/pull/41), merged `27dce5a` | `test:contract` 117; renderer checks; web demo; CI pass | Completed |
-| 4d — commissions (server) | `feat/phase-04d-commissions` | — | `test:commissions` 10/10, commission rules 4/4, backup round trip 41 tables | In review |
-| 4d — commissions UI | — | — | — | Pending |
+| 4d — commissions (server) | `feat/phase-04d-commissions` | [#42](https://github.com/TariqAli93/dalaly/pull/42), merged `2782a16` | `test:commissions` 10/10, commission rules 4/4, backup round trip 41 tables; all suites; CI pass | Completed |
+| 4d — commissions UI | `feat/phase-04d-commissions-ui` | — | `test:contract` 123, percent preview vs server; renderer checks; web demo | In review |
 | 4e — expenses and cash | `feat/phase-04e-expenses-cash` | — | — | Pending |
 | 4f — financial integration | `feat/phase-04f-financial-integration` | — | — | Pending |
 | 5a — leases | `feat/phase-05a-leases` | — | — | Pending |
@@ -516,7 +516,35 @@ below.
   Commission rules: 4 unit tests (half-up rounding, rates, shares).
   `test:removal:backup` covers 41 tables.
 - The commissions screens (on the deal page, the list, shares and payouts)
-  follow in their own PR.
+  came in the next PR, "4d — commissions UI".
+
+### 4d — commissions UI
+
+- The deal page has an "العمولات" section: each commission with its payer,
+  amount, collected and left, plus "تسجيل عمولة" and "تحصيل".
+- The record dialog:
+  - payer (the client, or the owner when the deal has one);
+  - a percentage of the agreed price, or an amount in either currency;
+  - employees' shares, each a percentage or an amount;
+  - a live preview of the commission, each share and the office's part,
+    computed as the server will.
+- "المالية" > "العمولات" lists commissions (open, collected, cancelled), and
+  "حصص الموظفين المستحقة" lists unpaid shares with "دفع".
+- The commission page shows the figures, how it was computed, the deal and
+  entry, the shares with what was paid, and the vouchers. It offers
+  collecting, paying a share, and cancelling (only while nothing is
+  settled).
+- Collecting and paying reuse the voucher dialog with the allocation fixed.
+- Server: `GET /api/commissions/staff` lists active employees for whoever
+  records commissions.
+- `test:contract` checks every commission call (123).
+  `renderer-utils.test.ts` checks the preview's rounding against the
+  server's `percentOf`, past 2^53 too.
+- Checked in the web demo, on deal `D-0001` (agreed 305,000,000):
+  - `CM-000001` of 2% = 6,100,000 recorded with a 25% share for one
+    employee (1,525,000); the office's part is 4,575,000;
+  - 2,000,000 collected by `RC-000002`, leaving 4,100,000;
+  - the share paid by `PV-000001`, after which the payable view is empty.
 
 ## Database migrations
 
