@@ -240,6 +240,26 @@ const appPages: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/leases",
+    name: "leases",
+    component: () => import("../pages/LeasesPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "leases.read",
+      titleKey: "routes.leases",
+    },
+  },
+  {
+    path: "/leases/:id(\\d+)",
+    name: "lease",
+    component: () => import("../pages/LeasePage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "leases.read",
+      titleKey: "routes.leases",
+    },
+  },
+  {
     path: "/accounting/cash",
     name: "cash",
     component: () => import("../pages/CashPage.vue"),

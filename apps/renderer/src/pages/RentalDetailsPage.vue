@@ -8,6 +8,7 @@ import PhoneLink from "../components/shared/PhoneLink.vue";
 import StatusChip from "../components/shared/StatusChip.vue";
 import RecordFollowupDialog from "../components/shared/RecordFollowupDialog.vue";
 import DealDialog from "../components/deals/DealDialog.vue";
+import LeaseList from "../components/leases/LeaseList.vue";
 import type { RecordFact } from "../components/shared/record";
 import * as rentals from "../services/rentals.service";
 import { getErrorMessage } from "../services/api.service";
@@ -293,6 +294,14 @@ const followupTarget = computed<FollowupTarget | null>(() =>
           <PhoneLink :phone="rental.owner_phone" :name="rental.owner_name" />
         </template>
       </RecordFacts>
+      <section
+        v-if="can('leases.read')"
+        class="dal-panel rental-leases"
+        aria-label="إيجارات العرض"
+      >
+        <h2 class="rental-leases__title">الإيجارات</h2>
+        <LeaseList :filters="{ rental_id: rental.id }" />
+      </section>
       <RentalDetailsPanel
         ref="panel"
         :key="rental.id"
@@ -312,3 +321,15 @@ const followupTarget = computed<FollowupTarget | null>(() =>
     />
   </AppPage>
 </template>
+
+<style scoped>
+.rental-leases {
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+.rental-leases__title {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+</style>
