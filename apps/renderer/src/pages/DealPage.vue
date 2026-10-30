@@ -13,6 +13,7 @@ import TaskDialog from "../components/tasks/TaskDialog.vue";
 import DealDialog from "../components/deals/DealDialog.vue";
 import DealStageDialog from "../components/deals/DealStageDialog.vue";
 import DealCommissions from "../components/deals/DealCommissions.vue";
+import DealMoney from "../components/deals/DealMoney.vue";
 import type { RecordFact } from "../components/shared/record";
 import * as dealsService from "../services/deals.service";
 import * as activitiesService from "../services/activities.service";
@@ -55,6 +56,7 @@ const { notifyError, notifySuccess } = useSnackbar();
 const { setRefreshHandler } = useRefresh();
 
 const deal = ref<DealDetail | null>(null);
+const money = ref<InstanceType<typeof DealMoney> | null>(null);
 const loading = ref(false);
 const error = ref("");
 let requestId = 0;
@@ -468,7 +470,12 @@ async function addActivity(value: TaskFieldsPayload) {
           </ul>
         </section>
 
-        <DealCommissions v-if="can('commissions.read')" :deal="deal" />
+        <DealCommissions
+          v-if="can('commissions.read')"
+          :deal="deal"
+          @changed="money?.reload()"
+        />
+        <DealMoney v-if="can('vouchers.read')" ref="money" :deal="deal" />
 
         <section class="dal-panel deal-panel" aria-label="نشاطات الصفقة">
           <div class="deal-panel__bar">

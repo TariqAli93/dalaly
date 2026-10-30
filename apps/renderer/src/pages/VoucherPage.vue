@@ -227,6 +227,19 @@ async function confirmVoid() {
             {{ voucher.other_account_name }}
           </dd>
         </div>
+        <div
+          v-if="
+            voucher.held_for_person_id &&
+            voucher.held_for_person_id !== voucher.person_id
+          "
+        >
+          <dt>الأمانة لحساب</dt>
+          <dd>
+            <router-link :to="`/clients/${voucher.held_for_person_id}`">{{
+              voucher.held_for_name
+            }}</router-link>
+          </dd>
+        </div>
         <div v-if="voucher.deal_id">
           <dt>الصفقة</dt>
           <dd>

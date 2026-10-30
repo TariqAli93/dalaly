@@ -28,9 +28,10 @@ import type {
 
 /**
  * إصدار سند قبض أو صرف. الغرض يحدد الحساب المقابل (عمولة المكتب إيراد، ومال
- * البائع أو المؤجر أمانة). الصرف بحدود رصيد الصندوق أو المصرف، وتسليم
- * الأمانة بحدود ما قُبض للزبون نفسه؛ يُظهر الحوار الرصيدين ويفحصهما الخادم.
- * السند لا يُعدَّل بعد إصداره، بل يُلغى ويُصدر غيره.
+ * البائع أو المؤجر أمانة). الأمانة تُحفظ لصاحبها (المالك أو البائع) لا لمن
+ * دفعها، فإيجار المستأجر للمؤجر وعربون المشتري للبائع. الصرف بحدود رصيد
+ * الصندوق أو المصرف، وتسليم الأمانة بحدود ما يُحفظ لصاحبها؛ يُظهر الحوار
+ * الرصيدين ويفحصهما الخادم. السند لا يُعدَّل بعد إصداره، بل يُلغى ويُصدر غيره.
  */
 const open = defineModel<boolean>({ required: true });
 const props = defineProps<{
@@ -38,8 +39,9 @@ const props = defineProps<{
   /** Filled from where it was opened: a customer, a deal, a commission. */
   preset?: Partial<VoucherPayload> | null;
   /**
-   * Shown when the voucher collects a commission or pays a share: the
-   * server then sets the purpose's account, the customer and the deal.
+   * Where it was opened from, shown on top: a commission collected or a
+   * share paid (the server then sets the account, customer and deal), or
+   * the deal whose client funds it moves.
    */
   allocationNote?: string | null;
 }>();
@@ -70,6 +72,7 @@ function blank() {
     other_account_id: null as number | null,
     person_id: null as number | null,
     party_name: "",
+    held_for_person_id: null as number | null,
     deal_id: null as number | null,
     description: "",
     reference: "",
@@ -140,8 +143,20 @@ const allocated = computed(
     Boolean(props.preset?.commission_id) ||
     Boolean(props.preset?.commission_split_id),
 );
+const clientFunds = computed(() => form.value.purpose === "client_funds");
 const clientFundsPayout = computed(
-  () => props.kind === "payment" && form.value.purpose === "client_funds",
+  () => props.kind === "payment" && clientFunds.value,
+);
+/** Whose held funds a payment draws on: the one named, else the payee. */
+const fundsOwner = computed(
+  () => form.value.held_for_person_id ?? form.value.person_id,
+);
+const heldForHint = computed(() =>
+  props.kind === "receipt"
+    ? form.value.deal_id
+      ? "فارغ: البائع أو المؤجر في الصفقة."
+      : "فارغ: الدافع نفسه."
+    : "فارغ: المستلم نفسه. لإعادة عربون إلى المشتري اختر البائع.",
 );
 
 /** What the typed amount exceeds, if anything, before the server says so. */
@@ -155,11 +170,11 @@ const overLimit = computed(() => {
   const kept = amountToMinor(heldHere.value);
   if (
     clientFundsPayout.value &&
-    form.value.person_id &&
+    fundsOwner.value &&
     kept !== null &&
     amount > kept
   )
-    return `أكبر مما قُبض لهذا الزبون (${formatAmount(heldHere.value, form.value.currency)}).`;
+    return `أكبر مما يُحفظ لصاحب الأمانة (${formatAmount(heldHere.value, form.value.currency)}).`;
   return "";
 });
 
@@ -178,6 +193,7 @@ watch(open, async (isOpen) => {
       preset.purpose ?? (props.kind === "receipt" ? "commission" : "expense"),
     currency: preset.currency ?? "IQD",
     person_id: preset.person_id ?? null,
+    held_for_person_id: preset.held_for_person_id ?? null,
     deal_id: preset.deal_id ?? null,
     description: preset.description ?? "",
     amount: preset.amount ?? "",
@@ -232,10 +248,11 @@ watch(
   () => {
     form.value.other_account_id = null;
     form.value.expense_category_id = null;
+    if (!clientFunds.value) form.value.held_for_person_id = null;
   },
 );
 watch(
-  () => [form.value.person_id, clientFundsPayout.value] as const,
+  () => [fundsOwner.value, clientFundsPayout.value] as const,
   async ([personId, payout]) => {
     held.value = [];
     if (!personId || !payout) return;
@@ -268,6 +285,9 @@ async function save() {
     party_name: form.value.person_id
       ? null
       : form.value.party_name.trim() || null,
+    held_for_person_id: clientFunds.value
+      ? form.value.held_for_person_id
+      : null,
     deal_id: form.value.deal_id,
     description: form.value.description.trim(),
     reference: form.value.reference.trim() || null,
@@ -324,7 +344,7 @@ function onKeydown(event: KeyboardEvent) {
         <v-defaults-provider :defaults="FIELD_DEFAULTS">
           <FormSection title="السند" :columns="2">
             <v-alert
-              v-if="allocated"
+              v-if="allocationNote"
               class="form-section__wide"
               type="info"
               variant="tonal"
@@ -390,15 +410,25 @@ function onKeydown(event: KeyboardEvent) {
               placeholder="لمن ليس زبوناً مسجلاً"
               :error-messages="fieldErrors.party_name"
             />
-            <v-alert
-              v-else-if="clientFundsPayout"
-              type="info"
-              variant="tonal"
-              density="compact"
-            >
-              المحتفظ به لهذا الزبون:
-              <bdi>{{ formatAmount(heldHere, form.currency) }}</bdi>
-            </v-alert>
+            <template v-if="clientFunds">
+              <PersonPicker
+                v-model="form.held_for_person_id"
+                label="الأمانة لحساب"
+                :hint="heldForHint"
+                persistent-hint
+                clearable
+                :error-messages="fieldErrors.held_for_person_id"
+              />
+              <v-alert
+                v-if="clientFundsPayout && fundsOwner"
+                type="info"
+                variant="tonal"
+                density="compact"
+              >
+                المحتفظ به لصاحب الأمانة:
+                <bdi>{{ formatAmount(heldHere, form.currency) }}</bdi>
+              </v-alert>
+            </template>
           </FormSection>
           <FormSection title="البيان" :columns="2">
             <v-text-field
