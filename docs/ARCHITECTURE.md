@@ -647,6 +647,23 @@ added together.
   - Collecting and paying open `VoucherDialog` with the allocation preset
     (`commission_id` or `commission_split_id`). The purpose and currency are
     then fixed and the payer and other account are left to the server.
+- Cash and bank in the renderer:
+  - `pages/CashPage.vue` ("الصناديق والمصارف") shows each cash or bank
+    account's balance, today or as of a date (past dates are read-only), the
+    transfers (with "إلغاء التحويل"), and the reconciliations with their
+    adjustment entry.
+  - `components/accounting/TransferDialog.vue` moves money between two
+    accounts of one currency and warns before an amount beyond the source's
+    balance.
+  - `components/accounting/ReconciliationDialog.vue` takes the counted or
+    statement balance (signed), shows the book balance on that date and the
+    difference with `utils/money.ts`, and can post the adjustment.
+  - `components/accounting/ExpenseCategoriesDialog.vue`, opened from the
+    vouchers page, lists the categories and lets `expenses.manage` add,
+    edit and stop them. Picking accounts needs `accounting.read` too.
+  - In `VoucherDialog.vue`, an expense payment picks a category (only those
+    with an account in the voucher's currency). The category then decides
+    the account, so the other-account field is hidden.
 
 ## Contracts (`modules/agreements`)
 

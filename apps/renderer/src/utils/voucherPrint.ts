@@ -39,6 +39,7 @@ export async function voucherHtml(voucher: VoucherDetail) {
   const row = (label: string, value: string) =>
     `<div class="row"><span class="label">${label}</span><span class="value">${value}</span></div>`;
   const details = [
+    escapeHtml(voucher.expense_category_name),
     voucher.deal_code ? `الصفقة ${escapeHtml(voucher.deal_code)}` : "",
     voucher.reference ? `المرجع ${escapeHtml(voucher.reference)}` : "",
   ]

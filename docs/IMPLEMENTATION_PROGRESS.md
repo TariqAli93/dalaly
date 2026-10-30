@@ -28,8 +28,8 @@ Do not rely on this file alone.
 | 4c — vouchers UI | `feat/phase-04c-vouchers-ui` | [#41](https://github.com/TariqAli93/dalaly/pull/41), merged `27dce5a` | `test:contract` 117; renderer checks; web demo; CI pass | Completed |
 | 4d — commissions (server) | `feat/phase-04d-commissions` | [#42](https://github.com/TariqAli93/dalaly/pull/42), merged `2782a16` | `test:commissions` 10/10, commission rules 4/4, backup round trip 41 tables; all suites; CI pass | Completed |
 | 4d — commissions UI | `feat/phase-04d-commissions-ui` | [#43](https://github.com/TariqAli93/dalaly/pull/43), merged `ca695f6` | `test:contract` 123, percent preview vs server; renderer checks; web demo; CI pass | Completed |
-| 4e — expenses and cash (server) | `feat/phase-04e-expenses-cash` | — | `test:cash` 9/9, cash rules 4/4, money 5/5, backup round trip 44 tables | In review |
-| 4e — expenses and cash UI | — | — | — | Pending |
+| 4e — expenses and cash (server) | `feat/phase-04e-expenses-cash` | [#44](https://github.com/TariqAli93/dalaly/pull/44), merged `18781c7` | `test:cash` 9/9, cash rules 4/4, money 5/5, backup round trip 44 tables; CI pass | Completed |
+| 4e — expenses and cash UI | `feat/phase-04e-cash-ui` | — | `test:contract` 133; renderer checks; web demo | In review |
 | 4f — financial integration | `feat/phase-04f-financial-integration` | — | — | Pending |
 | 5a — leases | `feat/phase-05a-leases` | — | — | Pending |
 | 5b — lease payments | `feat/phase-05b-lease-payments` | — | — | Pending |
@@ -580,7 +580,33 @@ below.
   - full and old-archive restores.
   Cash rules: 4 unit tests. `test:removal:backup` covers 44 tables.
 - The screens (balances, transfers, reconciliations, categories, the category
-  on an expense payment) follow in their own PR.
+  on an expense payment) came in the next PR, "4e — expenses and cash UI".
+
+### 4e — expenses and cash UI
+
+- "المالية" > "الصناديق والمصارف":
+  - the balance of each cash and bank account, today or as of a date;
+  - "تحويل منه" and "مطابقة" on each account;
+  - the transfers, each voidable;
+  - the reconciliations, with the adjustment entry.
+- The transfer dialog opens on cash → bank in the account's currency.
+- The reconciliation dialog shows the books' balance on the date and the
+  difference (shortage or overage). It can post the adjustment.
+- The vouchers page has "تصنيفات المصروفات": the categories with their
+  accounts, and adding, editing and stopping them.
+- An expense payment picks its category. The voucher page and the printed
+  copy name it.
+- `test:contract` checks every cash and category call (133).
+- Checked in the web demo, cash `1101` starting at 475,000 IQD:
+  - `TR-000001` moved 100,000 to the bank: cash 375,000, bank 100,000;
+  - `RN-000001` counted 370,000. The −5,000 shortage was posted as
+    `JE-000009`, leaving cash at 370,000;
+  - voiding `TR-000001` returned the 100,000, leaving cash at 470,000 and the
+    bank at 0;
+  - balances as of 1/1/2026 read 0, with no actions;
+  - the category "رسوم حكومية" was added. `PV-000002` for 25,000 with it
+    posted to `5201` ("مصروف · رسوم حكومية");
+  - no console errors, and no horizontal scroll at 375 px.
 
 ## Database migrations
 

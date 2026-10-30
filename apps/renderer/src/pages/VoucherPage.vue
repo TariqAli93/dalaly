@@ -202,7 +202,12 @@ async function confirmVoid() {
         </div>
         <div>
           <dt>الغرض</dt>
-          <dd>{{ voucherPurposeLabel(voucher.kind, voucher.purpose) }}</dd>
+          <dd>
+            {{ voucherPurposeLabel(voucher.kind, voucher.purpose) }}
+            <template v-if="voucher.expense_category_name">
+              · {{ voucher.expense_category_name }}</template
+            >
+          </dd>
         </div>
         <div class="voucher__wide">
           <dt>وذلك عن</dt>

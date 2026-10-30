@@ -5,6 +5,7 @@ import NumberField from "../app/NumberField.vue";
 import PersonPicker from "../people/PersonPicker.vue";
 import * as vouchersService from "../../services/vouchers.service";
 import * as accountingService from "../../services/accounting.service";
+import * as cashService from "../../services/cash.service";
 import { getErrorMessage } from "../../services/api.service";
 import { usePermissions } from "../../composables/usePermissions";
 import {
@@ -22,6 +23,7 @@ import type {
   VoucherDetail,
   VoucherKind,
   VoucherPayload,
+  ExpenseCategoryRecord,
 } from "../../types";
 
 /**
@@ -71,6 +73,7 @@ function blank() {
     deal_id: null as number | null,
     description: "",
     reference: "",
+    expense_category_id: null as number | null,
   };
 }
 const form = ref(blank());
@@ -115,6 +118,22 @@ const heldHere = computed(
   () =>
     held.value.find((row) => row.currency === form.value.currency)?.held ??
     "0.00",
+);
+// Expense payments name what they were for: the category picks the account.
+const categories = ref<ExpenseCategoryRecord[]>([]);
+const expensePayment = computed(
+  () => props.kind === "payment" && form.value.purpose === "expense",
+);
+const categoryOptions = computed(() =>
+  categories.value
+    .filter(
+      (category) =>
+        category.is_active &&
+        (form.value.currency === "IQD"
+          ? category.iqd_account_id
+          : category.usd_account_id),
+    )
+    .map((category) => ({ value: category.id, title: category.name })),
 );
 const allocated = computed(
   () =>
@@ -167,14 +186,18 @@ watch(open, async (isOpen) => {
   fieldErrors.value = {};
   held.value = [];
   try {
-    const [accounts, fullChart] = await Promise.all([
+    const [accounts, fullChart, expenseKinds] = await Promise.all([
       vouchersService.listMoneyAccounts(),
       can("accounting.read")
         ? accountingService.listAccounts()
         : Promise.resolve([]),
+      props.kind === "payment"
+        ? cashService.listExpenseCategories()
+        : Promise.resolve([]),
     ]);
     moneyAccounts.value = accounts;
     chart.value = fullChart;
+    categories.value = expenseKinds;
     pickMoneyAccount();
   } catch (cause) {
     error.value = getErrorMessage(cause);
@@ -201,11 +224,15 @@ watch(
   () => {
     pickMoneyAccount();
     form.value.other_account_id = null;
+    form.value.expense_category_id = null;
   },
 );
 watch(
   () => form.value.purpose,
-  () => (form.value.other_account_id = null),
+  () => {
+    form.value.other_account_id = null;
+    form.value.expense_category_id = null;
+  },
 );
 watch(
   () => [form.value.person_id, clientFundsPayout.value] as const,
@@ -246,6 +273,9 @@ async function save() {
     reference: form.value.reference.trim() || null,
     commission_id: props.preset?.commission_id ?? null,
     commission_split_id: props.preset?.commission_split_id ?? null,
+    expense_category_id: expensePayment.value
+      ? form.value.expense_category_id
+      : null,
   };
   try {
     const saved = await vouchersService.issueVoucher(payload);
@@ -383,8 +413,21 @@ function onKeydown(event: KeyboardEvent) {
               label="مرجع (اختياري)"
               placeholder="رقم صك أو حوالة"
             />
+            <v-select
+              v-if="expensePayment"
+              v-model="form.expense_category_id"
+              :items="categoryOptions"
+              label="تصنيف المصروف"
+              placeholder="يحدد حساب المصروف"
+              clearable
+              no-data-text="لا تصنيف بحساب بهذه العملة"
+            />
             <v-autocomplete
-              v-if="can('accounting.read') && !allocated"
+              v-if="
+                can('accounting.read') &&
+                !allocated &&
+                !form.expense_category_id
+              "
               v-model="form.other_account_id"
               :items="otherOptions"
               label="الحساب المقابل (اختياري)"

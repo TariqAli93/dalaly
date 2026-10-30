@@ -93,6 +93,7 @@ test("API responses match the renderer's types", async (t) => {
     let voucherId = 0;
     let voucherPersonId = 0;
     let commissionId = 0;
+    let transferId = 0;
     let cashAccountId = 0;
 
     {
@@ -267,6 +268,34 @@ test("API responses match the renderer's types", async (t) => {
         commission_date: "2026-10-09", description: null, splits: [],
       });
       await api("POST", `/api/commissions/${ownerCommission.id}/cancel`, { cancel_date: "2026-10-12", reason: "فحص" });
+      // Cash: an expense category on a payment, a transfer and its void, a
+      // reconciliation, a category added and edited.
+      const categories = await api("GET", "/api/expense-categories");
+      await api("POST", "/api/vouchers", {
+        kind: "payment", voucher_date: "2026-10-13", currency: "IQD", amount: "1000", purpose: "expense",
+        money_account_id: cashAccountId, other_account_id: null, person_id: null, party_name: "مولدة", deal_id: null,
+        description: "اشتراك المولدة", reference: null, expense_category_id: categories[0].id,
+      });
+      const bankIqd = chart.find((row: { system_key: string | null }) => row.system_key === "bank.IQD").id;
+      const transfer = await api("POST", "/api/cash/transfers", {
+        transfer_date: "2026-10-14", currency: "IQD", from_account_id: cashAccountId, to_account_id: bankIqd,
+        amount: "5000", description: "إيداع", reference: null,
+      });
+      transferId = transfer.id;
+      const second = await api("POST", "/api/cash/transfers", {
+        transfer_date: "2026-10-14", currency: "IQD", from_account_id: cashAccountId, to_account_id: bankIqd,
+        amount: "1000", description: "خطأ", reference: null,
+      });
+      await api("POST", `/api/cash/transfers/${second.id}/void`, { void_date: "2026-10-15", reason: "فحص" });
+      await api("POST", "/api/cash/reconciliations", {
+        account_id: bankIqd, statement_date: "2026-10-15", statement_balance: "5000.00", adjust: false, notes: null,
+      });
+      const added = await api("POST", "/api/expense-categories", {
+        name: "تصنيف الفحص", iqd_account_id: categories[0].iqd_account_id, usd_account_id: null, is_active: true,
+      });
+      await api("PUT", `/api/expense-categories/${added.id}`, {
+        name: "تصنيف الفحص", iqd_account_id: categories[0].iqd_account_id, usd_account_id: null, is_active: false,
+      });
       // An audited change to the customer, for /people/:id/audit.
       const current = await api("GET", `/api/people/${person.id}`);
       await api("PUT", `/api/people/${person.id}`, { ...current, notes: "زبون الفحص" });
@@ -389,6 +418,11 @@ test("API responses match the renderer's types", async (t) => {
         `/api/commissions/${commissionId}`,
         "/api/commissions/payable",
         "/api/commissions/staff",
+        "/api/cash/balances",
+        "/api/cash/transfers/paged?page=1&page_size=10&sort_by=transfer_date&sort_order=desc",
+        `/api/cash/transfers/${transferId}`,
+        "/api/cash/reconciliations",
+        "/api/expense-categories",
       ];
       for (const url of urls) await api("GET", url);
     }

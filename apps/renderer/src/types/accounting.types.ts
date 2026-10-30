@@ -236,6 +236,8 @@ export interface VoucherPayload {
   commission_id?: number | null;
   /** A payment of this employee's share. */
   commission_split_id?: number | null;
+  /** What an expense payment was for: picks its expense account. */
+  expense_category_id?: number | null;
 }
 
 export interface VoucherFilters {
@@ -361,4 +363,100 @@ export interface CommissionFilters {
   currency?: Currency;
   state?: CommissionState;
   q?: string;
+}
+
+export type TransferSortKey =
+  "transfer_date" | "code" | "amount" | "created_at";
+
+/** Money moved between two cash or bank accounts of one currency. */
+export interface CashTransferRecord {
+  id: number;
+  code: string;
+  transfer_date: string;
+  currency: Currency;
+  amount: string;
+  from_account_id: number;
+  from_account_code: string;
+  from_account_name: string;
+  to_account_id: number;
+  to_account_code: string;
+  to_account_name: string;
+  description: string;
+  reference: string | null;
+  status: VoucherStatus;
+  journal_entry_id: number;
+  journal_entry_code: string;
+  void_entry_id: number | null;
+  void_entry_code: string | null;
+  void_reason: string | null;
+  voided_at: string | null;
+  voided_by_name: string | null;
+  created_by_name: string | null;
+  created_at: string;
+}
+
+export interface TransferPayload {
+  transfer_date: string;
+  currency: Currency;
+  from_account_id: number;
+  to_account_id: number;
+  amount: string;
+  description: string;
+  reference: string | null;
+}
+
+export interface TransferFilters {
+  currency?: Currency;
+  status?: VoucherStatus;
+  account_id?: number;
+  from?: string;
+  to?: string;
+  q?: string;
+}
+
+/** A count or a bank statement against the books on a date. */
+export interface ReconciliationRecord {
+  id: number;
+  code: string;
+  account_id: number;
+  account_code: string;
+  account_name: string;
+  currency: Currency;
+  statement_date: string;
+  statement_balance: string;
+  book_balance: string;
+  difference: string;
+  adjustment_entry_id: number | null;
+  adjustment_entry_code: string | null;
+  notes: string | null;
+  created_by_name: string | null;
+  created_at: string;
+}
+
+export interface ReconciliationPayload {
+  account_id: number;
+  statement_date: string;
+  statement_balance: string;
+  adjust: boolean;
+  notes: string | null;
+}
+
+/** What an expense is for, with its expense account in each currency. */
+export interface ExpenseCategoryRecord {
+  id: number;
+  name: string;
+  iqd_account_id: number | null;
+  iqd_account_code: string | null;
+  iqd_account_name: string | null;
+  usd_account_id: number | null;
+  usd_account_code: string | null;
+  usd_account_name: string | null;
+  is_active: boolean;
+}
+
+export interface ExpenseCategoryPayload {
+  name: string;
+  iqd_account_id: number | null;
+  usd_account_id: number | null;
+  is_active: boolean;
 }

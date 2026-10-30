@@ -5,6 +5,7 @@ import AppPage from "../components/app/AppPage.vue";
 import FilterBar from "../components/shared/FilterBar.vue";
 import DataGrid from "../components/shared/DataGrid.vue";
 import VoucherDialog from "../components/accounting/VoucherDialog.vue";
+import ExpenseCategoriesDialog from "../components/accounting/ExpenseCategoriesDialog.vue";
 import type {
   DataGridApi,
   FilterChip,
@@ -132,6 +133,7 @@ function openVoucher(voucher: VoucherRecord) {
   void router.push(`/accounting/vouchers/${voucher.id}`);
 }
 
+const categoriesDialog = ref(false);
 const dialog = ref(false);
 const dialogKind = ref<VoucherKind>("receipt");
 function openIssue(value: VoucherKind) {
@@ -152,6 +154,12 @@ onMounted(() => {
 <template>
   <AppPage title="سندات القبض والصرف" :count="total || null">
     <template #header-actions>
+      <v-btn
+        variant="text"
+        prepend-icon="mdi-shape-outline"
+        @click="categoriesDialog = true"
+        >تصنيفات المصروفات</v-btn
+      >
       <v-btn
         v-if="can('vouchers.payment')"
         variant="tonal"
@@ -288,6 +296,7 @@ onMounted(() => {
     </section>
 
     <VoucherDialog v-model="dialog" :kind="dialogKind" @saved="onIssued" />
+    <ExpenseCategoriesDialog v-model="categoriesDialog" />
   </AppPage>
 </template>
 
