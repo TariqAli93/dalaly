@@ -127,3 +127,54 @@ test("financial reports map to tables, with links only the viewer may open", asy
   assert.equal(nothing.sections[0].tables[0].rows[0].links, undefined, "no links without the permissions");
   assert.equal(monthLabel("2026-10"), "تشرين الأول 2026");
 });
+
+test("operational reports map to tables, request columns only with the requests", async () => {
+  const { dealsDocument, listingsDocument } = await import("../../apps/renderer/src/utils/operationsReports.js");
+  const deals = {
+    from: "2026-01-01",
+    to: "2026-10-31",
+    user_id: null,
+    deal_type: null,
+    totals: { created: 4, won: 1, lost: 1, cancelled: 0, open_now: 2, win_rate: 50, cohort_won: 1, cohort_conversion: 25, cycle_days_average: null, cycle_days_median: null },
+    stages: [],
+    pipeline: [],
+    lost_reasons: [],
+    employees: [{ user_id: null, display_name: null, open_now: 1, created: 1, won: 0, lost: 0, win_rate: null, cycle_days: null, commission_iqd: "7500000.00", commission_usd: "0.00" }],
+    commissions: [],
+    closed: [{ id: 4, code: "D-0004", deal_type: "sale", stage: "won", currency: "USD" as const, agreed_price: "180000.00", lost_reason: null, client_person_id: 2, client_name: "سارة", user_name: null, created_on: "2026-10-01", closed_on: "2026-10-31", cycle_days: 30 }],
+    closed_truncated: false,
+  };
+  const document = dealsDocument(deals, { can: (key: string) => key === "deals.read" });
+  const [section] = document.sections;
+  assert.equal(section.figures.find((figure) => figure.label === "نسبة الفوز")?.kind, "percent");
+  assert.equal(section.figures.find((figure) => figure.label === "متوسط مدة الإغلاق")?.value, "—");
+  const staff = section.tables.find((table) => table.title === "أداء الموظفين")!;
+  assert.equal(staff.rows[0].cells.name, "غير مسند");
+  assert.equal(staff.rows[0].tone, "muted");
+  assert.equal(staff.columns.find((column) => column.key === "usd")?.currency, "USD");
+  const closed = section.tables.find((table) => table.title === "الصفقات المغلقة في المدة")!;
+  assert.deepEqual(closed.rows[0].links, { code: "/deals/4" }, "no customer link without people.read");
+  assert.equal(closed.rows[0].currency, "USD");
+
+  const listings = {
+    kind: "rental" as const,
+    from: "2026-01-01",
+    to: "2026-10-31",
+    statuses: [{ status: "available", listings: 1 }],
+    totals: { available: 1, closed: 0, stale: 0, age_median: 3, open_requests: null, unmatched_requests: null },
+    age: [{ bucket: "days_0_30", listings: 1 }],
+    closed: [],
+    types: [{ property_type: "apartment", available: 1, requests: null }],
+    price_bands: [{ from: 1000000, to: 1500000, available: 1, requests: null }, { from: 3000000, to: null, available: 0, requests: null }],
+    demand: null,
+    unmatched: null,
+  };
+  const rental = listingsDocument(listings, { can: () => true }).sections[0];
+  assert.ok(!rental.tables.some((table) => table.title === "الطلب حسب المنطقة"), "no demand without requests.read");
+  const types = rental.tables.find((table) => table.title === "المعروض والمطلوب حسب النوع")!;
+  assert.deepEqual(types.columns.map((column) => column.key), ["type", "available"]);
+  assert.equal(types.rows[0].cells.type, "شقة", "rental types read in Arabic");
+  const bands = rental.tables.find((table) => table.title.includes("الإيجار الشهري"))!;
+  assert.deepEqual(bands.rows.map((row) => row.cells.band), ["1,000,000 – 1,500,000 شهرياً", "3,000,000 فأكثر شهرياً"]);
+  assert.ok(!rental.figures.some((figure) => figure.label === "طلبات مفتوحة"));
+});

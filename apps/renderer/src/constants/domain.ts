@@ -263,6 +263,12 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: "mdi-file-document-edit-outline",
         permission: "agreements.templates",
       },
+      {
+        title: "تقارير العمل",
+        to: "/reports/operations",
+        icon: "mdi-chart-timeline-variant",
+        permission: "reports.operations",
+      },
     ],
   },
   {

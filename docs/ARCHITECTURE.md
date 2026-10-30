@@ -838,6 +838,12 @@ period, from when to when (migration `0014_leases`).
     per currency).
   - A new report needs a service call and a mapping function. The screen,
     exports and printing then come with it.
+  - `pages/OperationsReportsPage.vue` (`/reports/operations`) does the same
+    for the operational reports, via `utils/operationsReports.ts`. It shows
+    only the tabs whose area the user may read.
+  - The model has `percent` columns. A row (`currency`) or a column
+    (`currency`) can set its amounts' currency where a table mixes dinars
+    and dollars. A section can carry a `title` in place of its currency's.
 
 ## Contracts (`modules/agreements`)
 
