@@ -1,4 +1,8 @@
-import type { LeaseFrequency, LeaseState } from "../types";
+import type {
+  LeaseFrequency,
+  LeaseInstallmentRecord,
+  LeaseState,
+} from "../types";
 
 /** دوريات دفع الإيجار (LEASE_FREQUENCIES في الخادم). */
 export const LEASE_FREQUENCIES: Array<{
@@ -33,10 +37,29 @@ export const LEASE_STATES: Array<{
   { value: "cancelled", title: "ملغى", color: "error" },
 ];
 
+/** حال القسط: يُتابع الدفع حيث يقبض المكتب الإيجار. */
+export const INSTALLMENT_STATES: Array<{
+  value: LeaseInstallmentRecord["state"];
+  title: string;
+  color: string;
+}> = [
+  { value: "paid", title: "مدفوع", color: "success" },
+  { value: "overdue", title: "متأخر", color: "error" },
+  { value: "due", title: "حلّ موعده", color: "warning" },
+  { value: "upcoming", title: "قادم", color: "default" },
+  { value: "released", title: "سقط بالإنهاء", color: "default" },
+];
+
 export const leaseFrequencyLabel = (value: string) =>
   LEASE_FREQUENCIES.find((item) => item.value === value)?.title ?? value;
 export const leasePerPeriod = (value: string) =>
   PER_PERIOD[value as LeaseFrequency] ?? "";
+export const installmentStateOf = (value: string) =>
+  INSTALLMENT_STATES.find((item) => item.value === value) ?? {
+    value,
+    title: value,
+    color: "default",
+  };
 export const leaseStateOf = (value: string) =>
   LEASE_STATES.find((item) => item.value === value) ?? {
     value,

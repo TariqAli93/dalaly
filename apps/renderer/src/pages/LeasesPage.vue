@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, useTemplateRef } from "vue";
-import { useRouter } from "vue-router";
+import { computed, onMounted, ref, useTemplateRef, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import FilterBar from "../components/shared/FilterBar.vue";
 import DataGrid from "../components/shared/DataGrid.vue";
 import LeaseDialog from "../components/leases/LeaseDialog.vue";
+import OverdueInstallments from "../components/leases/OverdueInstallments.vue";
 import type {
   DataGridApi,
   FilterChip,
@@ -31,14 +32,40 @@ import type {
 
 /**
  * الإيجارات السارية: كل إيجار بمستأجره ومؤجره وعرضه، وبدله لكل فترة،
- * ومدته وأقرب قسط مستحق. يُفعَّل الإيجار من عقد إيجار صادر، أو يُدخل يدوياً
- * لعقد ليس في النظام.
+ * ومدته وأقرب قسط مستحق والمتأخر عليه. يُفعَّل الإيجار من عقد إيجار صادر،
+ * أو يُدخل يدوياً لعقد ليس في النظام. تبويب «الأقساط المتأخرة» يجمع ما حلّ
+ * موعده ولم يُدفع في كل الإيجارات التي يقبضها المكتب (?view=overdue).
  */
+const route = useRoute();
 const router = useRouter();
 const { can } = usePermissions();
 const { setRefreshHandler } = useRefresh();
 const { notifySuccess } = useSnackbar();
 const grid = useTemplateRef<DataGridApi>("grid");
+
+const view = ref<"leases" | "overdue">(
+  route.query.view === "overdue" ? "overdue" : "leases",
+);
+watch(view, (value) => {
+  void router.replace({
+    query: {
+      ...route.query,
+      view: value === "overdue" ? "overdue" : undefined,
+    },
+  });
+});
+// How many installments are overdue, for the tab: one row is enough to count.
+const overdueCount = ref<number | null>(null);
+async function countOverdue() {
+  try {
+    overdueCount.value = (
+      await leasesService.listOverdueInstallments({}, { page: 1, page_size: 1 })
+    ).total;
+  } catch {
+    overdueCount.value = null;
+  }
+}
+const overdue = useTemplateRef<{ reload: () => Promise<void> }>("overdue");
 
 const search = ref<string | null>("");
 const state = ref<LeaseState | null>(null);
@@ -89,6 +116,7 @@ const headers: GridHeader[] = [
   { key: "rent_amount", title: "البدل", align: "end" },
   { key: "start_date", title: "المدة", sortable: true },
   { key: "next_due_date", title: "القسط القادم", priority: 2 },
+  { key: "outstanding", title: "المتأخر", align: "end", priority: 2 },
   { key: "state", title: "الحالة" },
 ];
 function openLease(lease: LeaseRecord) {
@@ -102,9 +130,20 @@ function onCreated(lease: LeaseDetail) {
   void router.push(`/leases/${lease.id}`);
 }
 
+const zero = (value: string) => /^-?0(\.0+)?$/.test(value);
+function onCollected() {
+  void countOverdue();
+  void list.reload();
+}
+
 onMounted(() => {
-  setRefreshHandler(list.reload);
+  setRefreshHandler(async () => {
+    void countOverdue();
+    if (view.value === "overdue") await overdue.value?.reload();
+    else await list.reload();
+  });
   void list.loadFirstPage();
+  void countOverdue();
 });
 </script>
 
@@ -112,7 +151,7 @@ onMounted(() => {
   <AppPage title="الإيجارات السارية" :count="total || null">
     <template #header-actions>
       <v-btn
-        v-if="can('leases.manage')"
+        v-if="can('leases.manage') && view === 'leases'"
         variant="tonal"
         prepend-icon="mdi-plus"
         @click="dialog = true"
@@ -120,7 +159,32 @@ onMounted(() => {
       >
     </template>
 
-    <section class="dal-panel dal-listpanel dal-fill" aria-label="الإيجارات">
+    <v-tabs v-model="view" density="compact" class="mb-2">
+      <v-tab value="leases">الإيجارات</v-tab>
+      <v-tab value="overdue"
+        >الأقساط المتأخرة
+        <v-badge
+          v-if="overdueCount"
+          :content="overdueCount"
+          color="error"
+          inline
+        />
+      </v-tab>
+    </v-tabs>
+
+    <section
+      v-if="view === 'overdue'"
+      class="dal-panel dal-listpanel dal-fill"
+      aria-label="الأقساط المتأخرة"
+    >
+      <OverdueInstallments ref="overdue" @changed="onCollected" />
+    </section>
+
+    <section
+      v-else
+      class="dal-panel dal-listpanel dal-fill"
+      aria-label="الإيجارات"
+    >
       <FilterBar
         v-model:search="search"
         :filters="[state]"
@@ -201,6 +265,16 @@ onMounted(() => {
               ? "—"
               : formatDate(item.next_due_date)
           }}</span>
+        </template>
+        <template #item.outstanding="{ item }">
+          <span
+            v-if="item.office_collects && !zero(item.outstanding)"
+            class="lease-amount text-error"
+            ><bdi>{{
+              formatAmount(item.outstanding, item.currency)
+            }}</bdi></span
+          >
+          <span v-else class="text-medium-emphasis">—</span>
         </template>
         <template #item.state="{ item }">
           <v-chip

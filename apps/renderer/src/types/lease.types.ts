@@ -84,9 +84,9 @@ export interface LeaseChainRecord {
   start_date: string;
   end_date: string;
   rent_amount: string;
-  currency: string;
-  frequency: string;
-  status: string;
+  currency: Currency;
+  frequency: LeaseFrequency;
+  status: LeaseRecord["status"];
 }
 
 export interface LeaseDetail extends LeaseRecord {
@@ -105,7 +105,7 @@ export interface OverdueInstallmentRecord {
   days_overdue: number;
   lease_id: number;
   lease_code: string;
-  currency: string;
+  currency: Currency;
   tenant_person_id: number | null;
   tenant_name: string | null;
   tenant_phone: string | null;

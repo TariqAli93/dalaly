@@ -779,7 +779,23 @@ period, from when to when (migration `0014_leases`).
   - Both dialogs use `LeaseScheduleSummary.vue`. `LeaseList.vue` lists a
     listing's or a customer's leases on their pages.
   - Labels and per-period wording are in `constants/leases.ts`, with
-    `installmentCount` for Arabic number agreement.
+    `installmentCount` for Arabic number agreement and the installment
+    states.
+  - Rent, deposit and payouts (5b):
+    - `LeaseMoney.vue` on the lease page holds the figures, the lease's
+      vouchers and the voucher buttons.
+    - `utils/leaseVouchers.ts` builds each lease voucher's preset and note,
+      with exact amounts (`utils/money.ts`). It is shared with
+      `OverdueInstallments.vue`, the «الأقساط المتأخرة» tab of the leases
+      list (`?view=overdue`).
+    - `VoucherDialog.vue` takes `lease_id` / `lease_installment_id` in its
+      preset, and `leaseHeld` (what the lease holds per side) for a payout's
+      limit.
+  - `LeaseTerminateDialog.vue` and `LeaseRenewDialog.vue` work from the
+    lease's installments, so they show what a date releases or what a
+    renewal schedules before the server is asked.
+  - A follow-up on an overdue installment is an activity on the tenant
+    (`POST /api/activities`), so it shows with the tasks.
 
 ## Contracts (`modules/agreements`)
 
