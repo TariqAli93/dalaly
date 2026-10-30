@@ -92,6 +92,7 @@ test("API responses match the renderer's types", async (t) => {
     let journalId = 0;
     let voucherId = 0;
     let voucherPersonId = 0;
+    let commissionId = 0;
     let cashAccountId = 0;
 
     {
@@ -242,6 +243,30 @@ test("API responses match the renderer's types", async (t) => {
         description: "خطأ", reference: null,
       });
       await api("POST", `/api/vouchers/${mistaken.id}/void`, { void_date: "2026-10-08", reason: "فحص" });
+      // Commissions: a fixed one with a share, collected in part and the share
+      // paid in part; another recorded and cancelled.
+      const [staffMember] = await api("GET", "/api/commissions/staff");
+      const commission = await api("POST", "/api/commissions", {
+        deal_id: deal.id, payer_role: "client", basis: "fixed", rate: null, amount: "300000", currency: "IQD",
+        commission_date: "2026-10-09", description: "عمولة الفحص",
+        splits: [{ user_id: staffMember.id, basis: "percent", rate: "20", amount: null }],
+      });
+      commissionId = commission.id;
+      await api("POST", "/api/vouchers", {
+        kind: "receipt", voucher_date: "2026-10-10", currency: "IQD", amount: "100000", purpose: "commission",
+        money_account_id: cashAccountId, other_account_id: null, person_id: null, party_name: null, deal_id: null,
+        description: "تحصيل جزء من العمولة", reference: null, commission_id: commission.id, commission_split_id: null,
+      });
+      await api("POST", "/api/vouchers", {
+        kind: "payment", voucher_date: "2026-10-11", currency: "IQD", amount: "20000", purpose: "commission",
+        money_account_id: cashAccountId, other_account_id: null, person_id: null, party_name: null, deal_id: null,
+        description: "دفع جزء من الحصة", reference: null, commission_id: null, commission_split_id: commission.splits[0].id,
+      });
+      const ownerCommission = await api("POST", "/api/commissions", {
+        deal_id: deal.id, payer_role: "owner", basis: "fixed", rate: null, amount: "1", currency: "USD",
+        commission_date: "2026-10-09", description: null, splits: [],
+      });
+      await api("POST", `/api/commissions/${ownerCommission.id}/cancel`, { cancel_date: "2026-10-12", reason: "فحص" });
       // An audited change to the customer, for /people/:id/audit.
       const current = await api("GET", `/api/people/${person.id}`);
       await api("PUT", `/api/people/${person.id}`, { ...current, notes: "زبون الفحص" });
@@ -360,6 +385,10 @@ test("API responses match the renderer's types", async (t) => {
         `/api/vouchers/${voucherId}`,
         "/api/vouchers/money-accounts",
         `/api/vouchers/client-funds?person_id=${voucherPersonId}`,
+        "/api/commissions/paged?page=1&page_size=10&sort_by=commission_date&sort_order=desc",
+        `/api/commissions/${commissionId}`,
+        "/api/commissions/payable",
+        "/api/commissions/staff",
       ];
       for (const url of urls) await api("GET", url);
     }

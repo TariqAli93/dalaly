@@ -33,8 +33,13 @@ import type {
 const open = defineModel<boolean>({ required: true });
 const props = defineProps<{
   kind: VoucherKind;
-  /** Filled from where it was opened: a customer, a deal. */
+  /** Filled from where it was opened: a customer, a deal, a commission. */
   preset?: Partial<VoucherPayload> | null;
+  /**
+   * Shown when the voucher collects a commission or pays a share: the
+   * server then sets the purpose's account, the customer and the deal.
+   */
+  allocationNote?: string | null;
 }>();
 const emit = defineEmits<{ saved: [VoucherDetail] }>();
 
@@ -110,6 +115,11 @@ const heldHere = computed(
   () =>
     held.value.find((row) => row.currency === form.value.currency)?.held ??
     "0.00",
+);
+const allocated = computed(
+  () =>
+    Boolean(props.preset?.commission_id) ||
+    Boolean(props.preset?.commission_split_id),
 );
 const clientFundsPayout = computed(
   () => props.kind === "payment" && form.value.purpose === "client_funds",
@@ -234,6 +244,8 @@ async function save() {
     deal_id: form.value.deal_id,
     description: form.value.description.trim(),
     reference: form.value.reference.trim() || null,
+    commission_id: props.preset?.commission_id ?? null,
+    commission_split_id: props.preset?.commission_split_id ?? null,
   };
   try {
     const saved = await vouchersService.issueVoucher(payload);
@@ -281,6 +293,14 @@ function onKeydown(event: KeyboardEvent) {
         }}</v-alert>
         <v-defaults-provider :defaults="FIELD_DEFAULTS">
           <FormSection title="السند" :columns="2">
+            <v-alert
+              v-if="allocated"
+              class="form-section__wide"
+              type="info"
+              variant="tonal"
+              density="compact"
+              >{{ allocationNote }}</v-alert
+            >
             <v-select
               v-model="form.purpose"
               class="form-section__wide"
@@ -288,6 +308,7 @@ function onKeydown(event: KeyboardEvent) {
               label="الغرض"
               :hint="purpose?.hint"
               persistent-hint
+              :disabled="allocated"
             />
             <v-text-field
               v-model="form.voucher_date"
@@ -299,6 +320,7 @@ function onKeydown(event: KeyboardEvent) {
               v-model="form.currency"
               :items="ACCOUNT_CURRENCIES"
               label="العملة"
+              :disabled="allocated"
             />
             <NumberField
               v-model="form.amount"
@@ -320,6 +342,7 @@ function onKeydown(event: KeyboardEvent) {
             </v-select>
           </FormSection>
           <FormSection
+            v-if="!allocated"
             :title="kind === 'receipt' ? 'الدافع' : 'المستلم'"
             :columns="2"
           >
@@ -361,7 +384,7 @@ function onKeydown(event: KeyboardEvent) {
               placeholder="رقم صك أو حوالة"
             />
             <v-autocomplete
-              v-if="can('accounting.read')"
+              v-if="can('accounting.read') && !allocated"
               v-model="form.other_account_id"
               :items="otherOptions"
               label="الحساب المقابل (اختياري)"

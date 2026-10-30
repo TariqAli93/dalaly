@@ -53,3 +53,12 @@ test("the journal editor sums amounts exactly", async () => {
   assert.equal(minorToAmount(-150n), "-1.50");
   assert.equal(sumAmounts(["1", "x"]), null);
 });
+
+test("the commission preview rounds a percentage as the server does", async () => {
+  const { minorToAmount, percentOfAmount } = await import("../../apps/renderer/src/utils/money.js");
+  const { percentOf } = await import("../src/shared/money.js");
+  for (const [amount, rate] of [["150000000.00", "2.5"], ["333333.33", "1.75"], ["0.01", "50"], ["9007199254740993.00", "0.0001"]])
+    assert.equal(minorToAmount(percentOfAmount(amount, rate)!), percentOf(amount, rate), `${rate}% of ${amount}`);
+  assert.equal(percentOfAmount("100", "abc"), null);
+  assert.equal(percentOfAmount("x", "2"), null);
+});

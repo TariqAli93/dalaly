@@ -598,6 +598,22 @@ added together.
     it), the amount in figures and words, signature lines, and "ملغى" across
     a voided one. It goes through the platform's `printHtml` and
     `exportPdf`, with the bundled font embedded (`fontFacesFor`).
+- Commissions in the renderer:
+  - On the deal page, `components/deals/DealCommissions.vue` lists the deal's
+    commissions with what is collected and left. It offers "تسجيل عمولة"
+    (`components/accounting/CommissionDialog.vue`) and "تحصيل".
+  - `CommissionDialog.vue` previews the amount and each share with
+    `utils/money.ts` `percentOfAmount`, the server's half-up rounding (tested
+    against it), so what it shows is what is recorded. Employees come from
+    `GET /api/commissions/staff` (`commissions.manage`); the tasks list of
+    assignees needs a follow-up permission.
+  - `pages/CommissionsPage.vue` lists commissions, and the employees' shares
+    still owed with a "دفع" on each.
+  - `pages/CommissionPage.vue` shows one, with its shares, vouchers, and
+    collecting, paying and cancelling.
+  - Collecting and paying open `VoucherDialog` with the allocation preset
+    (`commission_id` or `commission_split_id`). The purpose and currency are
+    then fixed and the payer and other account are left to the server.
 
 ## Contracts (`modules/agreements`)
 

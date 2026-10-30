@@ -13,6 +13,7 @@ import {
   commissionPayloadSchema,
 } from "./commissions.schema.js";
 import { cancelCommission, recordCommission } from "./commissions.service.js";
+import { listAssignees } from "../tasks/tasks.repository.js";
 
 const notFound = { message: "العمولة غير موجودة." };
 const badId = { message: "معرّف العمولة غير صحيح." };
@@ -32,6 +33,14 @@ export const commissionsRoutes: FastifyPluginAsync = async (app) => {
       listPayableSplits(
         commissionPayableQuerySchema.parse(request.query).user_id,
       ),
+  );
+
+  // The active employees a share can go to, for whoever records commissions
+  // (the tasks list of assignees needs a follow-up permission).
+  app.get(
+    "/staff",
+    { preHandler: requirePermission("commissions.manage") },
+    async () => listAssignees(),
   );
 
   app.get(

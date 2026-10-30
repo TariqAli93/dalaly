@@ -229,6 +229,10 @@ export interface VoucherPayload {
   deal_id: number | null;
   description: string;
   reference: string | null;
+  /** A receipt collecting this commission. */
+  commission_id?: number | null;
+  /** A payment of this employee's share. */
+  commission_split_id?: number | null;
 }
 
 export interface VoucherFilters {
@@ -258,4 +262,100 @@ export interface MoneyAccount {
 export interface ClientFundsHeld {
   currency: Currency;
   held: string;
+}
+
+export type PayerRole = "client" | "owner";
+export type ShareBasis = "fixed" | "percent";
+export type CommissionState = "open" | "settled" | "cancelled";
+export type CommissionSortKey =
+  "commission_date" | "code" | "amount" | "created_at";
+
+/**
+ * The office's commission on a deal, owed by its client or owner. `collected`
+ * is what allocated receipts settled; `office_share` is what is left after
+ * employees' shares.
+ */
+export interface CommissionRecord {
+  id: number;
+  code: string;
+  deal_id: number | null;
+  deal_code: string | null;
+  payer_role: PayerRole;
+  payer_person_id: number | null;
+  payer_name: string | null;
+  currency: Currency;
+  basis: ShareBasis;
+  rate: string | null;
+  base_amount: string | null;
+  amount: string;
+  collected: string;
+  outstanding: string;
+  shares_total: string;
+  office_share: string;
+  commission_date: string;
+  description: string | null;
+  status: "active" | "cancelled";
+  journal_entry_id: number;
+  journal_entry_code: string;
+  cancel_entry_id: number | null;
+  cancel_entry_code: string | null;
+  cancel_reason: string | null;
+  cancelled_at: string | null;
+  created_by_name: string | null;
+  created_at: string;
+}
+
+/** An employee's share, with what was paid on it. */
+export interface CommissionSplitRecord {
+  id: number;
+  commission_id: number;
+  commission_code: string;
+  commission_status: "active" | "cancelled";
+  deal_code: string | null;
+  currency: Currency;
+  user_id: number;
+  user_name: string;
+  basis: ShareBasis;
+  rate: string | null;
+  amount: string;
+  paid: string;
+  outstanding: string;
+}
+
+export interface CommissionDetail extends CommissionRecord {
+  splits: CommissionSplitRecord[];
+  vouchers: Array<{
+    id: number;
+    code: string;
+    kind: VoucherKind;
+    voucher_date: string;
+    amount: string;
+    party_name: string;
+    status: VoucherStatus;
+    commission_split_id: number | null;
+  }>;
+}
+
+export interface CommissionSharePayload {
+  basis: ShareBasis;
+  rate: string | null;
+  amount: string | null;
+}
+
+export interface CommissionPayload extends CommissionSharePayload {
+  deal_id: number;
+  payer_role: PayerRole;
+  currency?: Currency;
+  commission_date: string;
+  description: string | null;
+  splits: Array<CommissionSharePayload & { user_id: number }>;
+}
+
+export interface CommissionFilters {
+  deal_id?: number;
+  person_id?: number;
+  user_id?: number;
+  currency?: Currency;
+  state?: CommissionState;
+  q?: string;
 }

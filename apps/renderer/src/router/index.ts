@@ -240,6 +240,26 @@ const appPages: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/accounting/commissions",
+    name: "commissions",
+    component: () => import("../pages/CommissionsPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "commissions.read",
+      titleKey: "routes.commissions",
+    },
+  },
+  {
+    path: "/accounting/commissions/:id(\\d+)",
+    name: "commission",
+    component: () => import("../pages/CommissionPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "commissions.read",
+      titleKey: "routes.commissions",
+    },
+  },
+  {
     path: "/accounting/vouchers",
     name: "vouchers",
     component: () => import("../pages/VouchersPage.vue"),

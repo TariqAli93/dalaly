@@ -33,3 +33,23 @@ export function sumAmounts(values: Array<string | number | null | undefined>) {
   }
   return total;
 }
+
+const RATE = /^(\d{1,3})(?:\.(\d{1,4}))?$/;
+
+/**
+ * `rate` percent of an amount, rounded half up to the hundredth, as the
+ * server computes a commission: 2.5% of 150,000,000 is 3,750,000.00.
+ * Null when either is not valid.
+ */
+export function percentOfAmount(
+  amount: string | number | null | undefined,
+  rate: string | number | null | undefined,
+) {
+  const minor = amountToMinor(amount);
+  const match = RATE.exec(String(rate ?? "").trim());
+  if (minor === null || !match) return null;
+  const units =
+    BigInt(match[1]) * 10_000n + BigInt((match[2] ?? "").padEnd(4, "0"));
+  const denominator = 100n * 10_000n;
+  return (minor * units + denominator / 2n) / denominator;
+}
