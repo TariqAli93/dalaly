@@ -36,8 +36,8 @@ Do not rely on this file alone.
 | 5a — leases UI | `feat/phase-05a-leases-ui` | [#49](https://github.com/TariqAli93/dalaly/pull/49), merged `5381863` | renderer checks; `test:contract` 142; web demo; CI pass | Completed |
 | 5b — lease payments (server) | `feat/phase-05b-lease-payments` | [#50](https://github.com/TariqAli93/dalaly/pull/50), merged `10c00f1` | `test:lease-payments` 11/11, lease rules 9/9, `test:contract` 145; affected suites; CI pass | Completed |
 | 5b — lease payments UI | `feat/phase-05b-lease-payments-ui` | [#51](https://github.com/TariqAli93/dalaly/pull/51), merged `139075a` | renderer checks; `test:contract` 145; web demo; CI pass | Completed |
-| 6a — financial reports (server) | `feat/phase-06a-financial-reports` | — | `test:reports` 1/1 (a known year, every report), report rules 4/4, `test:contract` 153; timings under 500 ms | In review |
-| 6a — financial reports UI | — | — | — | Pending |
+| 6a — financial reports (server) | `feat/phase-06a-financial-reports` | [#52](https://github.com/TariqAli93/dalaly/pull/52), merged `c0f6fc4` | `test:reports` 1/1 (a known year, every report), report rules 4/4, `test:contract` 153; timings under 500 ms; CI pass | Completed |
+| 6a — financial reports UI | `feat/phase-06a-financial-reports-ui` | — | renderer checks; renderer utils 8/8; web demo | In review |
 | 6b — operational reports | `feat/phase-06b-operational-reports` | — | — | Pending |
 | 7a — navigation | `feat/phase-07a-navigation` | — | — | Pending |
 | 7b — dashboard | `feat/phase-07b-dashboard` | — | — | Pending |
@@ -923,6 +923,57 @@ below.
   - receivables 140 ms;
   - payables 37 ms.
   All are under the plan's 500 ms.
+
+### 6a — financial reports UI
+
+- «التقارير المالية» (`/reports/financial`, under المالية in the
+  navigation, `reports.financial`) has a tab per report:
+  - income and expenses (optionally month by month);
+  - balance sheet;
+  - cash flow;
+  - commissions (optionally one employee);
+  - receivables;
+  - payables;
+  - trial balance;
+  - an account's ledger.
+- The filters live in the address, so a link reopens the same report:
+  - a period, or one day;
+  - the currency;
+  - month by month;
+  - the employee;
+  - the account.
+- Each report response is mapped once to one table model
+  (`utils/financialReports.ts`, `utils/reportDocument.ts`). The screen
+  (`components/reports/ReportView.vue`), Excel, PDF and printing all show
+  that same model.
+  - On screen: figures first, then tables. Every column sorts, amounts
+    exactly as hundredths. A search filters the rows. Totals sit in each
+    table's footer.
+  - Links into records show only where the viewer may open them (customer,
+    deal, commission, journal entry). An account opens its ledger inside
+    the reports.
+  - Excel has one right-to-left sheet per currency, with amounts as
+    numbers. PDF and print use A4 landscape with the office's logo.
+- Web demo (`dalaly_demo` with a deal, two commissions, one with an
+  employee's share, a collection, two expenses, capital, and the lease
+  money from 5b):
+  - income and expenses: 7,500,000 revenue, 1,930,000 expenses
+    (1,000,000 of it the share) and 5,570,000 net. Month by month gave
+    June, August and September. The lease rent was not income.
+  - balance sheet: assets 26,570,000 = liabilities 1,000,000 + equity
+    20,000,000 + unclosed earnings 5,570,000.
+  - cash flow closed at 22,070,000, with the rent in and out netting to 0.
+    Receivables were 4,500,000 (2,500,000 over 90 days, 2,000,000 at
+    31–60). The trial balance balanced at 33,430,000.
+  - opening the cash account from the trial balance opened its ledger,
+    closing at 22,070,000.
+  - sorting, search, Excel (rows and right-to-left checked in the file),
+    PDF and print (A4 landscape rendered) worked. Nothing scrolls sideways
+    at 1024 px; the month columns scroll inside their table.
+- Fixed while checking: the balance sheet's "unclosed earnings" row
+  printed "undefined" in its empty cells.
+- `scripts/renderer-utils.test.ts`: signed amounts; mapping with and
+  without permissions (links, cancelled rows, warnings); Iraqi month names.
 
 
 ## Database migrations

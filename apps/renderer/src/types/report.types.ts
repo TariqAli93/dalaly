@@ -199,6 +199,8 @@ export interface CommissionsReportQuery extends ReportPeriodQuery {
   user_id?: number;
 }
 
+export type AgingKey = "current" | "days_31_60" | "days_61_90" | "over_90";
+
 /** Age buckets of what a customer owes, in days since it was charged. */
 export interface Aging {
   current: string;

@@ -16,6 +16,17 @@ export function amountToMinor(value: string | number | null | undefined) {
   return BigInt(match[1]) * 100n + BigInt((match[2] ?? "").padEnd(2, "0"));
 }
 
+/**
+ * A balance or a difference, which may be negative, as the API sends it:
+ * "-1250.50" -> -125050n; null when it is not an amount.
+ */
+export function signedAmountToMinor(value: string | number | null | undefined) {
+  const text = String(value ?? "").trim();
+  const minor = amountToMinor(text.startsWith("-") ? text.slice(1) : text);
+  if (minor === null) return null;
+  return text.startsWith("-") ? -minor : minor;
+}
+
 /** 150050n -> "1500.50"; keeps a minus sign. */
 export function minorToAmount(minor: bigint) {
   const sign = minor < 0n ? "-" : "";
