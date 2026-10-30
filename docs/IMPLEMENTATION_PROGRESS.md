@@ -22,8 +22,8 @@ Do not rely on this file alone.
 | 3b — deals UI | `feat/phase-03b-deals-ui` | [#35](https://github.com/TariqAli93/dalaly/pull/35), merged `eed0dcc` | renderer typecheck, lint, build; `formatAmount` tests; web demo; CI pass | Completed |
 | 3c — deal integration | `feat/phase-03c-deal-integration` | [#36](https://github.com/TariqAli93/dalaly/pull/36), merged `8364e11` | `test:deals` 15/15; all suites; web demo; CI pass | Completed |
 | 4a — chart of accounts | `feat/phase-04a-chart-of-accounts` | [#37](https://github.com/TariqAli93/dalaly/pull/37), merged `d71806f` | `test:accounting` 9/9, account rules 7/7, `test:contract` 100, backup round trip 35 tables; web demo; CI pass | Completed |
-| 4b — general ledger (server) | `feat/phase-04b-general-ledger` | — | `test:ledger` 13/13, journal rules 6/6, backup round trip 38 tables | In review |
-| 4b — journal UI | — | — | — | Pending |
+| 4b — general ledger (server) | `feat/phase-04b-general-ledger` | [#38](https://github.com/TariqAli93/dalaly/pull/38), merged `edb4caf` | `test:ledger` 13/13, journal rules 6/6, backup round trip 38 tables; CI pass | Completed |
+| 4b — journal UI | `feat/phase-04b-journal-ui` | — | `test:contract` 111, editor sums 1 test; renderer checks; web demo | In review |
 | 4c — receipts and payments | `feat/phase-04c-receipts-payments` | — | — | Pending |
 | 4d — commissions | `feat/phase-04d-commissions` | — | — | Pending |
 | 4e — expenses and cash | `feat/phase-04e-expenses-cash` | — | — | Pending |
@@ -386,7 +386,40 @@ below.
   The journal rules have 6 unit tests. `test:removal:backup` covers 38
   tables, with a posted entry and a closed month.
 - The journal pages (list, entry editor, reversal, statements, closing
-  months) are not in this PR. They follow in their own, like 3a/3b.
+  months) came in the next PR, "4b — journal UI".
+
+### 4b — journal UI
+
+- "المالية" > "القيود" lists entries, filtered by currency, status, source,
+  dates and text. A reversed entry is marked "معكوس".
+- The entry page shows the lines and their totals, and offers what the
+  entry's status and the user's permissions allow:
+  - for a draft: edit, post, delete;
+  - for a posted entry: "قيد عكسي" (a date and a reason).
+  A reversal and its original link to each other.
+- The editor dialog:
+  - lists only active posting accounts of the entry's currency, picked by
+    typing a code and Enter;
+  - takes each line on one side;
+  - shows exact totals and the difference.
+  "حفظ مسودة" keeps an unbalanced entry; "ترحيل" is enabled only once the
+  entry balances.
+- An account statement (from the chart, or from a line's account) shows the
+  opening balance, a running balance on the account's side, and the closing
+  balance.
+- "الأشهر المقفلة" closes a month, saying how many drafts it leaves, and
+  reopens one after a confirmation.
+- `test:contract` checks every new renderer call (111). The editor's exact
+  sums are tested in `renderer-utils.test.ts`.
+- Dates are shown without `<bdi>`: the ar-IQ format carries right-to-left
+  marks that make an isolate reorder it. This also fixes the date in the
+  customer's deals tab (3c).
+- Checked in the web demo:
+  - a draft saved 0.50 short ("الفرق 0.50", posting disabled), edited to
+    balance and posted;
+  - its reversal `JE-000002` with swapped lines, linked both ways;
+  - the cash statement going 0 → 1,500,000.50 → 0;
+  - September closed from the dialog.
 
 ## Database migrations
 
