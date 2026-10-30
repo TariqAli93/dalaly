@@ -73,7 +73,12 @@ const faceCache = new Map<string, string>();
 
 async function fontFaces(document: ContractDocument) {
   // The fallback in every font stack is always embedded too.
-  const families = new Set([...usedFonts(document), "IBM Plex Sans Arabic"]);
+  return fontFacesFor([...usedFonts(document), "IBM Plex Sans Arabic"]);
+}
+
+/** @font-face rules embedding the bundled fonts of these families. */
+export async function fontFacesFor(names: string[]) {
+  const families = new Set(names);
   const faces: string[] = [];
   for (const family of families) {
     const files = FONT_FILES[family];
