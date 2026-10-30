@@ -711,6 +711,40 @@ added together.
     `allocationNote` whenever it is given (a deal's context too, not only an
     allocation).
 
+## Leases (`modules/leases`)
+
+A lease in force: who rents which listing from whom, for how much per
+period, from when to when (migration `0014_leases`).
+
+- **From a contract or by hand.** `leases.service.ts` `activateLease` reads
+  an issued residential or commercial rent contract: the terms of its
+  current revision (`agreement_revisions`), its landlord and tenant
+  (`agreement_parties`) and its listing. It keeps the revision number, under
+  the contract's row lock; a partial unique index allows one live lease per
+  contract. `createLease` enters one without a contract.
+  `agreementLeaseDraft` shows what activating would give, or why it cannot.
+- **The schedule** is pure (`leases.rules.ts` `leaseSchedule`):
+  - one installment per period of the frequency, counted from the start
+    date and due on its first day;
+  - a period the end date cuts short pays its days' share (bigint, half up);
+  - an end date on an anniversary of the start ends the last period;
+  - at most 360 installments.
+  It is written with the lease and never changed.
+- **The listing** is marked rented on activation, and back to available when
+  its only live lease is cancelled; both are audited as rental changes.
+- **Never rewritten.** `leases_guard` allows only cancelling (status and the
+  cancel fields). `lease_installments_guard` refuses any change. Clearing a
+  lease's customer, listing or contract (that is, deleting them) is refused,
+  except by a restore, which puts the links back (`KEPT_LINKS`). Leases and
+  installments are restored only by a full restore.
+- Where a lease stands (`upcoming`, `current`, `ended`, `cancelled`) is read
+  from its dates and the office's today (Baghdad), in SQL for lists and
+  filters.
+- API `/api/leases`:
+  - `leases.read`: `paged` (state, customer, listing, text), `:id` with its
+    schedule, `agreement/:id`, `POST schedule`;
+  - `leases.manage`: `POST /` by hand, `POST activate`, `POST /:id/cancel`.
+
 ## Contracts (`modules/agreements`)
 
 Contract Studio: sale, installment sale, residential and commercial lease

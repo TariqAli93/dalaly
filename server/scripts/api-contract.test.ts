@@ -94,6 +94,7 @@ test("API responses match the renderer's types", async (t) => {
     let voucherPersonId = 0;
     let commissionId = 0;
     let transferId = 0;
+    let leaseId = 0;
     let cashAccountId = 0;
 
     {
@@ -329,6 +330,17 @@ test("API responses match the renderer's types", async (t) => {
       });
       await api("POST", `/api/agreements/${lease.id}/issue`, { base_rev: savedLease.draft_rev });
       await api("POST", `/api/agreements/${lease.id}/exports`, { format: "pdf", revision: 1, file_name: "عقد.pdf" });
+      // Leases: the issued contract put in force, one by hand (previewed
+      // first) and cancelled.
+      await api("GET", `/api/leases/agreement/${lease.id}`);
+      leaseId = (await api("POST", "/api/leases/activate", { agreement_id: lease.id, office_collects: true, notes: null })).id;
+      const handTerms = { currency: "IQD", rent_amount: "500000", frequency: "quarterly", start_date: "2026-01-01", end_date: "2026-12-31" };
+      await api("POST", "/api/leases/schedule", handTerms);
+      const byHand = await api("POST", "/api/leases", {
+        ...handTerms, rental_id: null, landlord_person_id: ctx.people[0].id, tenant_person_id: ctx.people[1].id,
+        deposit: null, office_collects: false, notes: "فحص",
+      });
+      await api("POST", `/api/leases/${byHand.id}/cancel`, { reason: "فحص" });
       const saleTemplate = await api("GET", "/api/agreements/templates/sale");
       await api("PUT", "/api/agreements/templates/sale", { base_version: saleTemplate.version, definition: saleTemplate.definition });
       const [permission] = await api("GET", "/api/permissions");
@@ -425,6 +437,9 @@ test("API responses match the renderer's types", async (t) => {
         "/api/expense-categories",
         `/api/finance/deals/${dealId}`,
         `/api/finance/people/${voucherPersonId}`,
+        "/api/leases/paged?page=1&page_size=10&sort_by=start_date&sort_order=desc",
+        `/api/leases/${leaseId}`,
+        `/api/leases/agreement/${agreementId}`,
       ];
       for (const url of urls) await api("GET", url);
     }

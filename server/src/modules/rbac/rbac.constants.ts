@@ -190,4 +190,14 @@ export const SYSTEM_PERMISSIONS = [
     module: "cash",
   },
   { key: "expenses.manage", name: "إدارة تصنيفات المصروفات", module: "cash" },
+  {
+    key: "leases.read",
+    name: "عرض عقود الإيجار السارية وأقساطها",
+    module: "leases",
+  },
+  {
+    key: "leases.manage",
+    name: "تفعيل عقود الإيجار وإلغاؤها",
+    module: "leases",
+  },
 ] as const;

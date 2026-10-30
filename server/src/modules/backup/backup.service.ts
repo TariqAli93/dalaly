@@ -56,6 +56,8 @@ import {
   commissions,
   commissionSplits,
   vouchers,
+  leases,
+  leaseInstallments,
   officeProfiles,
   auditLogs,
   appSettings,
@@ -302,6 +304,20 @@ const TABLE_SPECS = [
     dates: ["voidedAt", "createdAt"],
     optional: true,
   },
+  // Leases (Phase 5a), after the contracts, listings and customers they
+  // name; only a full restore replaces them.
+  {
+    name: "leases",
+    table: leases,
+    dates: ["cancelledAt", "createdAt"],
+    optional: true,
+  },
+  {
+    name: "lease_installments",
+    table: leaseInstallments,
+    dates: [],
+    optional: true,
+  },
   // Added after backup version 3, like the contract tables above.
   {
     name: "activities",
@@ -401,6 +417,8 @@ const SERIAL_TABLES = new Set<TableName>([
   "expense_categories",
   "cash_transfers",
   "cash_reconciliations",
+  "leases",
+  "lease_installments",
   "document_types",
   "identity_documents",
   "audit_logs",
@@ -939,6 +957,10 @@ const KEPT_LINKS = [
   { table: "vouchers", column: "deal_id", target: "deals" },
   { table: "commissions", column: "payer_person_id", target: "people" },
   { table: "commissions", column: "deal_id", target: "deals" },
+  { table: "leases", column: "landlord_person_id", target: "people" },
+  { table: "leases", column: "tenant_person_id", target: "people" },
+  { table: "leases", column: "agreement_id", target: "agreements" },
+  { table: "leases", column: "rental_id", target: "rentals" },
 ] as const;
 
 function keptLinks(restoring: readonly string[]) {
