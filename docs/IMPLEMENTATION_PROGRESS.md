@@ -27,8 +27,9 @@ Do not rely on this file alone.
 | 4c — receipts and payments (server) | `feat/phase-04c-receipts-payments` | [#40](https://github.com/TariqAli93/dalaly/pull/40), merged `90adba2` | `test:vouchers` 10/10, voucher rules 5/5, backup round trip 39 tables; CI pass | Completed |
 | 4c — vouchers UI | `feat/phase-04c-vouchers-ui` | [#41](https://github.com/TariqAli93/dalaly/pull/41), merged `27dce5a` | `test:contract` 117; renderer checks; web demo; CI pass | Completed |
 | 4d — commissions (server) | `feat/phase-04d-commissions` | [#42](https://github.com/TariqAli93/dalaly/pull/42), merged `2782a16` | `test:commissions` 10/10, commission rules 4/4, backup round trip 41 tables; all suites; CI pass | Completed |
-| 4d — commissions UI | `feat/phase-04d-commissions-ui` | — | `test:contract` 123, percent preview vs server; renderer checks; web demo | In review |
-| 4e — expenses and cash | `feat/phase-04e-expenses-cash` | — | — | Pending |
+| 4d — commissions UI | `feat/phase-04d-commissions-ui` | [#43](https://github.com/TariqAli93/dalaly/pull/43), merged `ca695f6` | `test:contract` 123, percent preview vs server; renderer checks; web demo; CI pass | Completed |
+| 4e — expenses and cash (server) | `feat/phase-04e-expenses-cash` | — | `test:cash` 9/9, cash rules 4/4, money 5/5, backup round trip 44 tables | In review |
+| 4e — expenses and cash UI | — | — | — | Pending |
 | 4f — financial integration | `feat/phase-04f-financial-integration` | — | — | Pending |
 | 5a — leases | `feat/phase-05a-leases` | — | — | Pending |
 | 5b — lease payments | `feat/phase-05b-lease-payments` | — | — | Pending |
@@ -546,6 +547,41 @@ below.
   - 2,000,000 collected by `RC-000002`, leaving 4,100,000;
   - the share paid by `PV-000001`, after which the payable view is empty.
 
+### 4e — expenses and cash (server)
+
+- Expense categories map the expense account of each currency.
+  - A payment voucher with a category posts there. A conflicting account,
+    a missing currency, an inactive category, or a category on another kind
+    of voucher is refused.
+  - Nine defaults are added to an office with none, on install and after
+    restoring an older archive.
+- Transfers between cash and bank, in one currency:
+  - never beyond the source's balance; of two racing transfers, one is
+    refused;
+  - voided only while the money is still in the account it went to.
+- Reconciliations record a count or statement against the books on its
+  date. With `adjust`, a shortage posts to operating expenses and an overage
+  to other income. A month that is closed refuses the adjustment, and the
+  whole reconciliation with it.
+- Triggers keep transfers and reconciliations. `vouchers_guard` compares
+  whole rows now.
+- **Fixed:** `toMinor` refused negative amounts. A payment from an account
+  overdrawn by a manual entry failed with a 500; balances and differences
+  are now signed (money tests 5/5).
+- `test:cash` (9):
+  - an upgrade from `0011` with the default categories;
+  - categories and the account they pick;
+  - transfers: lines, balances as of a date, limits, a race;
+  - voiding and its limit;
+  - reconciliations: shortage adjusted, overage recorded then adjusted, an
+    earlier date, a non-money account, a closed month;
+  - the triggers;
+  - permissions;
+  - full and old-archive restores.
+  Cash rules: 4 unit tests. `test:removal:backup` covers 44 tables.
+- The screens (balances, transfers, reconciliations, categories, the category
+  on an expense payment) follow in their own PR.
+
 ## Database migrations
 
 | Migration | Phase | What it adds |
@@ -558,6 +594,7 @@ below.
 | `0009_general_ledger` | 4b | `journal_entries` (checked status, currency, source, reversal link, posted time; unique code, idempotency key and reversal), `journal_lines` (one positive side; FK accounts restrict, people and deals set null for restores), `accounting_periods`; triggers `journal_entries_guard`, `journal_lines_guard`, `accounts_ledger_guard` |
 | `0010_vouchers` | 4c | `vouchers` (checked kind, currency, positive amount, status and void fields together, distinct accounts; FK accounts and entries restrict, people and deals set null for restores); trigger `vouchers_guard`; `journal_entries_guard` replaced to refuse deleting a user with posted entries |
 | `0011_commissions` | 4d | `commissions` (checked payer role, currency, basis with rate and base, positive amount, cancel fields together; one active per deal and payer), `commission_splits` (one per user, positive), `vouchers.commission_id` and `commission_split_id` with a kind check; triggers `commissions_guard`, `commission_splits_guard`; `vouchers_guard` replaced |
+| `0012_expenses_cash` | 4e | `expense_categories` (an account at least), `cash_transfers` (positive, distinct accounts, void fields together), `cash_reconciliations` (difference = statement − book), `vouchers.expense_category_id` with a check; journal source `reconciliation`; triggers `cash_transfers_guard`, `cash_reconciliations_guard`; `vouchers_guard` replaced (whole rows) |
 
 ## Decisions that need the owner
 

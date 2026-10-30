@@ -18,6 +18,7 @@ import {
   commissionSplits,
   commissions,
   deals,
+  expenseCategories,
   journalEntries,
   officeProfiles,
   users,
@@ -61,6 +62,8 @@ function selectVouchers() {
       commission_id: vouchers.commissionId,
       commission_code: commissions.code,
       commission_split_id: vouchers.commissionSplitId,
+      expense_category_id: vouchers.expenseCategoryId,
+      expense_category_name: expenseCategories.name,
       status: vouchers.status,
       journal_entry_id: vouchers.journalEntryId,
       journal_entry_code: entry.code,
@@ -82,6 +85,10 @@ function selectVouchers() {
       commissions,
       sql`${commissions.id} = coalesce(${vouchers.commissionId}, (select ${commissionSplits.commissionId} from ${commissionSplits} where ${commissionSplits.id} = ${vouchers.commissionSplitId}))`,
     )
+    .leftJoin(
+      expenseCategories,
+      eq(vouchers.expenseCategoryId, expenseCategories.id),
+    )
     .leftJoin(creator, eq(vouchers.createdBy, creator.id))
     .leftJoin(voider, eq(vouchers.voidedBy, voider.id));
 }
@@ -98,6 +105,8 @@ function conditions(query: VoucherPageQuery): SQL | undefined {
     where.push(eq(vouchers.moneyAccountId, query.money_account_id));
   if (query.commission_id)
     where.push(eq(vouchers.commissionId, query.commission_id));
+  if (query.expense_category_id)
+    where.push(eq(vouchers.expenseCategoryId, query.expense_category_id));
   if (query.from) where.push(gte(vouchers.voucherDate, query.from));
   if (query.to) where.push(lte(vouchers.voucherDate, query.to));
   if (query.q) {
@@ -166,7 +175,7 @@ export async function getVoucher(id: number) {
  * "cash" and "bank" headings), each with its posted balance, for the voucher
  * form: money is paid only from what an account holds.
  */
-export async function listMoneyAccounts() {
+export async function listMoneyAccounts(asOf?: string) {
   const rows = await rawRows(sql`
     WITH RECURSIVE tree AS (
       SELECT id, system_key AS kind FROM accounts WHERE system_key IN ('cash', 'bank')
@@ -178,6 +187,7 @@ export async function listMoneyAccounts() {
         SELECT sum(l.debit - l.credit)
         FROM journal_lines l JOIN journal_entries e ON e.id = l.entry_id
         WHERE l.account_id = a.id AND e.status = 'posted'
+          AND (${asOf ?? null}::date IS NULL OR e.entry_date <= ${asOf ?? null}::date)
       ), 0)::numeric(18,2)::text AS balance
     FROM tree JOIN accounts a ON a.id = tree.id
     WHERE a.is_postable AND a.is_active

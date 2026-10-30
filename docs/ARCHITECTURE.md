@@ -548,6 +548,39 @@ added together.
     - `vouchers.void` to void.
   - Deleting a user who issued vouchers or posted entries is refused with
     "deactivate instead": `0010` replaces `journal_entries_guard` to say so.
+- **Expenses and cash** (migration `0012_expenses_cash`; `cash.rules.ts`,
+  `cash.service.ts`).
+  - Expense categories (`expense_categories`) name the expense account of
+    each currency. A payment voucher of purpose "expense" with
+    `expense_category_id` posts to that account. Nine defaults on operating
+    expenses are added to an office that has none (`ensureDefaultExpenseCategories`,
+    at startup and after a restore).
+  - Transfers (`cash_transfers`, `TR-000001`):
+    - money between two cash or bank accounts of one currency, posted with
+      the transfer;
+    - never more than the source holds; the source row is locked, so two
+      transfers cannot both drain it;
+    - voiding reverses the entry, only while the money is still in the
+      account it went to.
+  - Reconciliations (`cash_reconciliations`, `RN-000001`):
+    - a count or a statement against the books' balance on its date;
+    - with `adjust`, the difference is posted: a shortage to operating
+      expenses, an overage to other income (`source_type`
+      `reconciliation`);
+    - never changed.
+  - Triggers keep transfers (void only) and reconciliations (no change).
+    `vouchers_guard` now compares whole rows (`to_jsonb`) except the void
+    columns, so a column added later is fixed without replacing it again.
+  - `toMinor` takes a sign: balances and differences can be negative.
+    Amounts typed in still go through `parseMoney`, which refuses one.
+    Before, a payment from an account overdrawn by a manual entry failed
+    with a 500.
+  - API:
+    - `/api/cash`: `balances?as_of=`, `transfers` (paged, detail, create,
+      void), `reconciliations` (list, create). Permissions `cash.read` and
+      `cash.manage`.
+    - `/api/expense-categories`: read with `vouchers.read`, edit with
+      `expenses.manage`.
 - **Commissions** (`commissions`, `commission_splits`, migration
   `0011_commissions`; `commissions.rules.ts`, `commissions.service.ts`).
   - A commission (`CM-000001`) is the office's income on a deal, owed by its

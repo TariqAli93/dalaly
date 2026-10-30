@@ -30,12 +30,18 @@ export function parseMoney(value: unknown): string | null {
   return `${whole}.${(match[2] ?? "").padEnd(2, "0")}`;
 }
 
-/** "1234.50" -> 123450n. The value must already be parsed. */
+/**
+ * "1234.50" -> 123450n; "-250.50" -> -25050n (a balance or a difference can
+ * be negative; amounts typed in are checked by parseMoney, which is not).
+ */
 export function toMinor(amount: string): bigint {
-  const parsed = parseMoney(amount);
+  const text = amount.trim();
+  const negative = text.startsWith("-");
+  const parsed = parseMoney(negative ? text.slice(1) : text);
   if (parsed === null) throw new Error(`Not an amount: ${amount}`);
   const [whole, fraction] = parsed.split(".");
-  return BigInt(whole) * SCALE + BigInt(fraction);
+  const minor = BigInt(whole) * SCALE + BigInt(fraction);
+  return negative ? -minor : minor;
 }
 
 /** 123450n -> "1234.50"; negative minor units keep their sign. */

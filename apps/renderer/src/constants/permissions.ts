@@ -14,6 +14,7 @@ export const PERMISSION_MODULES: Array<{ key: string; title: string }> = [
   { key: "accounting", title: "المالية" },
   { key: "vouchers", title: "سندات القبض والصرف" },
   { key: "commissions", title: "العمولات" },
+  { key: "cash", title: "الصناديق والمصارف والمصروفات" },
   { key: "locations", title: "المحافظات والمناطق" },
   { key: "users", title: "المستخدمون" },
   { key: "roles", title: "الأدوار والصلاحيات" },

@@ -14,6 +14,7 @@ import { db } from "../../infrastructure/database/db.js";
 import { pool } from "../../infrastructure/database/pool.js";
 import type { Transaction } from "../../infrastructure/database/record-codes.js";
 import { ensureDefaultChart } from "../accounting/default-chart.js";
+import { ensureDefaultExpenseCategories } from "../accounting/cash.service.js";
 import { resolveManagedFile } from "../documents/documents.storage.js";
 import { getSetting, setSetting } from "../settings/settings.repository.js";
 import { DomainError } from "../../shared/errors.js";
@@ -35,6 +36,9 @@ import {
   propertyFollowups,
   accounts,
   accountingPeriods,
+  cashReconciliations,
+  cashTransfers,
+  expenseCategories,
   activities,
   deals,
   dealOffers,
@@ -242,6 +246,13 @@ const TABLE_SPECS = [
     dates: ["createdAt", "updatedAt"],
     optional: true,
   },
+  // Expense categories (Phase 4e) name accounts; vouchers name them.
+  {
+    name: "expense_categories",
+    table: expenseCategories,
+    dates: ["createdAt", "updatedAt"],
+    optional: true,
+  },
   // The ledger (Phase 4b), after the accounts, customers and deals its lines
   // name. Its triggers refuse changes to posted entries; a restore passes them
   // (dalaly.ledger_restore) because it replaces the tables whole.
@@ -256,6 +267,19 @@ const TABLE_SPECS = [
     name: "accounting_periods",
     table: accountingPeriods,
     dates: ["closedAt"],
+    optional: true,
+  },
+  // Transfers and reconciliations (Phase 4e), after the entries they posted.
+  {
+    name: "cash_transfers",
+    table: cashTransfers,
+    dates: ["voidedAt", "createdAt"],
+    optional: true,
+  },
+  {
+    name: "cash_reconciliations",
+    table: cashReconciliations,
+    dates: ["createdAt"],
     optional: true,
   },
   // Commissions (Phase 4d), after their entries; vouchers name them.
@@ -374,6 +398,9 @@ const SERIAL_TABLES = new Set<TableName>([
   "commissions",
   "commission_splits",
   "vouchers",
+  "expense_categories",
+  "cash_transfers",
+  "cash_reconciliations",
   "document_types",
   "identity_documents",
   "audit_logs",
@@ -1226,7 +1253,10 @@ async function restoreArchive(
     for (const name of tablesToRestore) {
       await resetSequence(name);
     }
-    if (tablesToRestore.includes("accounts")) await ensureDefaultChart();
+    if (tablesToRestore.includes("accounts")) {
+      await ensureDefaultChart();
+      await ensureDefaultExpenseCategories();
+    }
 
     let imagesRestored = 0;
     if (scope === "full" || scope === "images" || scope === "properties") {

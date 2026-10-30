@@ -39,6 +39,8 @@ export const voucherPayloadSchema = z.object({
   commission_id: optionalId,
   /** A payment of this employee's share of a commission. */
   commission_split_id: optionalId,
+  /** What an expense payment was for: picks its expense account. */
+  expense_category_id: optionalId,
   description: z
     .string()
     .trim()
@@ -67,6 +69,7 @@ export const voucherPageQuerySchema = z.object({
   deal_id: optionalId,
   money_account_id: optionalId,
   commission_id: optionalId,
+  expense_category_id: optionalId,
   from: isoDate.optional(),
   to: isoDate.optional(),
   q: z.string().trim().max(100).optional(),

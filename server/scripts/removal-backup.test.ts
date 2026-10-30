@@ -214,6 +214,29 @@ test("shared backup v3 survives full restore and rejects incompatible data befor
       journalEntryId: commissionEntry.id, createdBy: ctx.adminId,
     }).returning();
     await db.insert(schema.commissionSplits).values({ commissionId: commission.id, userId: ctx.adminId, basis: "fixed", amount: "750000.00" });
+    // A transfer from cash to the bank and a count of the cash box, each with
+    // its posted entry.
+    const [bankIqd] = await db.select().from(schema.accounts).where(eq(schema.accounts.systemKey, "bank.IQD"));
+    const posted = async (code: string, date: string, sourceType: "transfer" | "reconciliation", debit: number, credit: number, amount: string) => {
+      const [row] = await db.insert(schema.journalEntries).values({ code, entryDate: date, description: code, currency: "IQD", sourceType, createdBy: ctx.adminId }).returning();
+      await db.insert(schema.journalLines).values([
+        { entryId: row.id, lineNo: 1, accountId: debit, debit: amount },
+        { entryId: row.id, lineNo: 2, accountId: credit, credit: amount },
+      ]);
+      await db.update(schema.journalEntries).set({ status: "posted", postedAt: new Date() }).where(eq(schema.journalEntries.id, row.id));
+      return row;
+    };
+    const transferEntry = await posted("JE-000003", "2026-09-20", "transfer", bankIqd.id, cashIqd.id, "100000.00");
+    await db.insert(schema.cashTransfers).values({
+      code: "TR-000001", transferDate: "2026-09-20", currency: "IQD", fromAccountId: cashIqd.id, toAccountId: bankIqd.id,
+      amount: "100000.00", description: "إيداع", journalEntryId: transferEntry.id, createdBy: ctx.adminId,
+    });
+    const [operating] = await db.select().from(schema.accounts).where(eq(schema.accounts.systemKey, "operating_expenses.IQD"));
+    const countEntry = await posted("JE-000004", "2026-09-30", "reconciliation", operating.id, cashIqd.id, "250.50");
+    await db.insert(schema.cashReconciliations).values({
+      code: "RN-000001", accountId: cashIqd.id, statementDate: "2026-09-30", statementBalance: "1000.00", bookBalance: "1250.50",
+      difference: "-250.50", adjustmentEntryId: countEntry.id, notes: "جرد", createdBy: ctx.adminId,
+    });
     // The payment voucher the rent entry stands for.
     await db.insert(schema.vouchers).values({
       code: "PV-000001", kind: "payment", voucherDate: "2026-09-15", currency: "IQD", amount: "750000.00",
@@ -280,14 +303,14 @@ test("shared backup v3 survives full restore and rejects incompatible data befor
     const manifest = JSON.parse(zip.readAsText("manifest.json"));
     const data = JSON.parse(zip.readAsText("data.json")) as Record<string, Record<string, unknown>[]>;
     assert.equal(manifest.version, 3);
-    assert.equal(Object.keys(data).length, 41);
+    assert.equal(Object.keys(data).length, 44);
     assert.ok(data.permissions.some((row) => row.id === customPermissionId && row.key === "reports.custom.review"));
     assert.ok(data.role_permissions.some((row) => row.permissionId === customPermissionId));
     assert.ok(data.app_settings.some((row) => row.key === "reports.custom.preferences"));
     assert.ok(Object.values(data).every((rows) => rows.length > 0), "representative data in every exported table");
     assert.equal(zip.getEntries().filter((entry) => !entry.isDirectory && /^(documents|images)\//.test(entry.entryName)).length, 4);
 
-    await t.test("all 41 shared tables and four managed files round trip", async () => {
+    await t.test("all 44 shared tables and four managed files round trip", async () => {
       await db.update(schema.people).set({ fullName: "اسم تغير بعد النسخ" });
       await db.update(schema.properties).set({ totalPrice: "1.00" });
       await db.update(schema.rentals).set({ rentPrice: "1.00" });
