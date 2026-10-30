@@ -1369,6 +1369,126 @@ export const accountingPeriods = pgTable(
 );
 
 /**
+ * The office's commission on a deal (CM-000001), owed by its client or its
+ * owner: a fixed amount or a percentage of the agreed price. Recording it
+ * posts the receivable against brokerage income, and each employee's share
+ * (`commission_splits`) as commission expense against commissions payable,
+ * in one entry. Receipts and payments allocated to it settle them
+ * (`vouchers.commission_id`, `vouchers.commission_split_id`). A commission
+ * never changes: cancelling it (only while nothing is settled) reverses its
+ * entry. Triggers in 0011 hold that.
+ */
+export const commissions = pgTable(
+  "commissions",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    code: text("code").notNull().unique(),
+    /** Set null only by a customers restore, which puts the link back. */
+    dealId: bigint("deal_id", { mode: "number" }).references(() => deals.id, {
+      onDelete: "set null",
+    }),
+    payerRole: text("payer_role").notNull(),
+    payerPersonId: bigint("payer_person_id", { mode: "number" }).references(
+      () => people.id,
+      { onDelete: "set null" },
+    ),
+    currency: text("currency").notNull(),
+    basis: text("basis").notNull(),
+    rate: numeric("rate", { precision: 7, scale: 4 }),
+    /** The agreed price a percentage was taken of. */
+    baseAmount: numeric("base_amount", { precision: 18, scale: 2 }),
+    amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+    commissionDate: date("commission_date", { mode: "string" }).notNull(),
+    description: text("description"),
+    status: text("status").notNull().default("active"),
+    journalEntryId: bigint("journal_entry_id", { mode: "number" })
+      .notNull()
+      .references(() => journalEntries.id, { onDelete: "restrict" }),
+    cancelEntryId: bigint("cancel_entry_id", { mode: "number" }).references(
+      () => journalEntries.id,
+      { onDelete: "restrict" },
+    ),
+    cancelReason: text("cancel_reason"),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    cancelledBy: bigint("cancelled_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    createdBy: bigint("created_by", { mode: "number" }).references(
+      () => users.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_commissions_deal").on(table.dealId),
+    index("idx_commissions_payer").on(table.payerPersonId),
+    // One live commission per deal and payer (the buyer's, the seller's).
+    uniqueIndex("uq_commissions_deal_payer")
+      .on(table.dealId, table.payerRole)
+      .where(sql`${table.status} = 'active'`),
+    check(
+      "commissions_payer_role",
+      sql`${table.payerRole} in ('client', 'owner')`,
+    ),
+    check("commissions_currency", sql`${table.currency} in ('IQD', 'USD')`),
+    check("commissions_basis", sql`${table.basis} in ('fixed', 'percent')`),
+    check(
+      "commissions_rate",
+      sql`(${table.basis} = 'percent') = (${table.rate} is not null and ${table.baseAmount} is not null)`,
+    ),
+    check("commissions_amount", sql`${table.amount} > 0`),
+    check(
+      "commissions_status",
+      sql`${table.status} in ('active', 'cancelled')`,
+    ),
+    check(
+      "commissions_cancel",
+      sql`(${table.status} = 'cancelled') = (${table.cancelEntryId} is not null and ${table.cancelledAt} is not null and ${table.cancelReason} is not null)`,
+    ),
+  ],
+);
+
+/** An employee's share of a commission; paid by allocated payments. */
+export const commissionSplits = pgTable(
+  "commission_splits",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    commissionId: bigint("commission_id", { mode: "number" })
+      .notNull()
+      .references(() => commissions.id),
+    /** An employee with a share is deactivated, not deleted. */
+    userId: bigint("user_id", { mode: "number" })
+      .notNull()
+      .references(() => users.id),
+    basis: text("basis").notNull(),
+    rate: numeric("rate", { precision: 7, scale: 4 }),
+    amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("uq_commission_splits_user").on(
+      table.commissionId,
+      table.userId,
+    ),
+    index("idx_commission_splits_user").on(table.userId),
+    check(
+      "commission_splits_basis",
+      sql`${table.basis} in ('fixed', 'percent')`,
+    ),
+    check(
+      "commission_splits_rate",
+      sql`(${table.basis} = 'percent') = (${table.rate} is not null)`,
+    ),
+    check("commission_splits_amount", sql`${table.amount} > 0`),
+  ],
+);
+
+/**
  * Receipts (سند قبض, RC-000001) and payments (سند صرف, PV-000001): money into
  * or out of a cash or bank account, posted to the ledger with the voucher in
  * one transaction (`journal_entry_id`). A voucher never changes: a mistake is
@@ -1403,6 +1523,14 @@ export const vouchers = pgTable(
     }),
     description: text("description").notNull(),
     reference: text("reference"),
+    /** A receipt that collects this commission. */
+    commissionId: bigint("commission_id", { mode: "number" }).references(
+      () => commissions.id,
+    ),
+    /** A payment of this employee's share. */
+    commissionSplitId: bigint("commission_split_id", {
+      mode: "number",
+    }).references(() => commissionSplits.id),
     status: text("status").notNull().default("posted"),
     journalEntryId: bigint("journal_entry_id", { mode: "number" })
       .notNull()
@@ -1430,6 +1558,12 @@ export const vouchers = pgTable(
     index("idx_vouchers_person").on(table.personId),
     index("idx_vouchers_deal").on(table.dealId),
     index("idx_vouchers_money_account").on(table.moneyAccountId),
+    index("idx_vouchers_commission").on(table.commissionId),
+    index("idx_vouchers_commission_split").on(table.commissionSplitId),
+    check(
+      "vouchers_allocation",
+      sql`(${table.commissionId} is null or ${table.kind} = 'receipt') and (${table.commissionSplitId} is null or ${table.kind} = 'payment')`,
+    ),
     check("vouchers_kind", sql`${table.kind} in ('receipt', 'payment')`),
     check("vouchers_currency", sql`${table.currency} in ('IQD', 'USD')`),
     check("vouchers_amount", sql`${table.amount} > 0`),
@@ -1551,3 +1685,4 @@ export type Account = typeof accounts.$inferSelect;
 export type JournalEntry = typeof journalEntries.$inferSelect;
 export type JournalLine = typeof journalLines.$inferSelect;
 export type Voucher = typeof vouchers.$inferSelect;
+export type Commission = typeof commissions.$inferSelect;

@@ -15,6 +15,8 @@ import { db } from "../../infrastructure/database/db.js";
 import { rawRows } from "../../infrastructure/database/raw-query.js";
 import {
   accounts,
+  commissionSplits,
+  commissions,
   deals,
   journalEntries,
   officeProfiles,
@@ -56,6 +58,9 @@ function selectVouchers() {
       deal_code: deals.code,
       description: vouchers.description,
       reference: vouchers.reference,
+      commission_id: vouchers.commissionId,
+      commission_code: commissions.code,
+      commission_split_id: vouchers.commissionSplitId,
       status: vouchers.status,
       journal_entry_id: vouchers.journalEntryId,
       journal_entry_code: entry.code,
@@ -73,6 +78,10 @@ function selectVouchers() {
     .innerJoin(entry, eq(vouchers.journalEntryId, entry.id))
     .leftJoin(voidEntry, eq(vouchers.voidEntryId, voidEntry.id))
     .leftJoin(deals, eq(vouchers.dealId, deals.id))
+    .leftJoin(
+      commissions,
+      sql`${commissions.id} = coalesce(${vouchers.commissionId}, (select ${commissionSplits.commissionId} from ${commissionSplits} where ${commissionSplits.id} = ${vouchers.commissionSplitId}))`,
+    )
     .leftJoin(creator, eq(vouchers.createdBy, creator.id))
     .leftJoin(voider, eq(vouchers.voidedBy, voider.id));
 }
@@ -87,6 +96,8 @@ function conditions(query: VoucherPageQuery): SQL | undefined {
   if (query.deal_id) where.push(eq(vouchers.dealId, query.deal_id));
   if (query.money_account_id)
     where.push(eq(vouchers.moneyAccountId, query.money_account_id));
+  if (query.commission_id)
+    where.push(eq(vouchers.commissionId, query.commission_id));
   if (query.from) where.push(gte(vouchers.voucherDate, query.from));
   if (query.to) where.push(lte(vouchers.voucherDate, query.to));
   if (query.q) {

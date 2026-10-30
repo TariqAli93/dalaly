@@ -548,6 +548,29 @@ added together.
     - `vouchers.void` to void.
   - Deleting a user who issued vouchers or posted entries is refused with
     "deactivate instead": `0010` replaces `journal_entries_guard` to say so.
+- **Commissions** (`commissions`, `commission_splits`, migration
+  `0011_commissions`; `commissions.rules.ts`, `commissions.service.ts`).
+  - A commission (`CM-000001`) is the office's income on a deal, owed by its
+    client or its owner. It is a fixed amount or a percentage of the agreed
+    price (`percentOf`, half up), never the price. There is one live
+    commission per deal and payer.
+  - Employees' shares are fixed or a percentage of the commission, together
+    no more than it; the office keeps the rest.
+  - Recording it posts one entry: the payer's receivable against brokerage
+    income, and the shares as commission expense against commissions
+    payable (one line per employee).
+  - A receipt with `commission_id` collects it, crediting the receivable. A
+    payment with `commission_split_id` pays a share, debiting the payable.
+    Each takes the commission's currency, customer and deal, and no more
+    than is left. The row is locked, so two cannot both take the rest.
+  - A voided voucher stops counting. A commission is cancelled (its entry
+    reversed) only while no voucher settles it or its shares.
+  - Triggers keep commissions as recorded and shares unchanged, and keep the
+    new voucher columns fixed. `vouchers_guard` is replaced in `0011`.
+  - API `/api/commissions`: `paged` (state open, settled or cancelled), `:id`
+    with shares and vouchers, `payable` (unpaid shares), `POST /`,
+    `POST /:id/cancel`. Permissions `commissions.read` and
+    `commissions.manage`.
 - In the renderer, `pages/AccountsPage.vue` is the chart, a tree with
   filters by currency and text. `components/accounting/AccountDialog.vue`
   adds and edits accounts: a child takes its parent's type and currency, and
