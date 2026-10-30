@@ -15,6 +15,8 @@ import MatchWorkspace from "../components/dashboard/MatchWorkspace.vue";
 import DecisionsPanel from "../components/dashboard/DecisionsPanel.vue";
 import RiskPanel from "../components/dashboard/RiskPanel.vue";
 import PerformanceSummary from "../components/dashboard/PerformanceSummary.vue";
+import BusinessPanels from "../components/dashboard/BusinessPanels.vue";
+import { fetchBusinessSummary } from "../services/dashboard.service";
 import MatchDetailsDrawer from "../components/dashboard/MatchDetailsDrawer.vue";
 import CustomerDrawer from "../components/dashboard/CustomerDrawer.vue";
 import RecordFollowupDialog from "../components/shared/RecordFollowupDialog.vue";
@@ -37,6 +39,7 @@ import {
 } from "../utils/dashboardPriority";
 import { formatNumber, formatTime } from "../utils/format";
 import type {
+  BusinessSummary,
   DashboardAppointment,
   DashboardCustomer,
   DashboardMatch,
@@ -83,6 +86,26 @@ function canFollowup(kindOf: OperationsKind) {
 // ─── التحميل ───────────────────────────────────────────────────────────
 // يبدأ في setup قبل التركيب؛ تغيّر النوع أو البحث يعيد الصفحة الأولى.
 void dashboard.loadAll();
+// المهام والصفقات والزبائن والإيجارات ومال الشهر (/dashboard/business).
+const business = ref<BusinessSummary | null>(null);
+const businessError = ref<string | null>(null);
+const businessLoading = ref(false);
+let businessController: AbortController | null = null;
+async function loadBusiness() {
+  businessController?.abort();
+  businessController = new AbortController();
+  businessLoading.value = true;
+  try {
+    business.value = await fetchBusinessSummary(businessController.signal);
+    businessError.value = null;
+  } catch (cause) {
+    if ((cause as { name?: string }).name !== "AbortError")
+      businessError.value = getErrorMessage(cause);
+  } finally {
+    businessLoading.value = false;
+  }
+}
+void loadBusiness();
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
 function reloadFirstPage() {
   if (page.value !== 1) page.value = 1;
@@ -95,10 +118,15 @@ watch(q, () => {
   searchTimer = setTimeout(reloadFirstPage, 300);
 });
 watch(staleDays, () => void dashboard.loadOverview());
-onMounted(() => setRefreshHandler(dashboard.loadAll));
+onMounted(() =>
+  setRefreshHandler(async () => {
+    await Promise.all([dashboard.loadAll(), loadBusiness()]);
+  }),
+);
 onBeforeUnmount(() => {
   clearTimeout(searchTimer);
   dashboard.cancel();
+  businessController?.abort();
 });
 
 // ─── المؤشرات والأولوية ──────────────────────────────────────────────────
@@ -420,6 +448,12 @@ async function runBackup() {
         :items="priorities"
         :scope="priorityScope"
         @select="openSection"
+      />
+      <BusinessPanels
+        :summary="business"
+        :loading="businessLoading"
+        :error="businessError"
+        @retry="loadBusiness"
       />
 
       <!-- عمودان: المطابقات (عمل اليوم) ثم حالة العروض، وبجانبهما الزبائن

@@ -7,6 +7,7 @@ import { formatNumber } from "../../utils/format";
 import ThemeToggle from "./ThemeToggle.vue";
 import GlobalSearch from "./GlobalSearch.vue";
 import QuickAdd from "./QuickAdd.vue";
+import NotificationBell from "./NotificationBell.vue";
 
 // شريط الأوامر: عنوان الصفحة (h1) وسياقها وأوامرها على الحافة الأمامية، ثم
 // الأدوات العامة. الصفحة تكتب العنوان والسياق عبر AppPage، وترسل أوامرها
@@ -70,6 +71,7 @@ async function onLogout() {
 
     <QuickAdd />
     <GlobalSearch />
+    <NotificationBell />
     <ThemeToggle />
     <v-btn
       icon="mdi-refresh"

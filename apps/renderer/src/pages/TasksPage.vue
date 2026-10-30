@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import DataGrid from "../components/shared/DataGrid.vue";
 import TaskDialog from "../components/tasks/TaskDialog.vue";
@@ -78,7 +78,12 @@ const DUE_FILTERS = [
 
 const status = ref<NonNullable<TaskFilters["status"]>>("open");
 const assigned = ref<TaskFilters["assigned"] | null>(null);
-const due = ref<TaskFilters["due"] | null>(null);
+const dueQuery = useRoute().query.due;
+// ?due=today|week|overdue (from the dashboard and the notification center).
+const due = ref<TaskFilters["due"] | null>(
+  (DUE_FILTERS.find((item) => item.value === dueQuery)?.value as
+    TaskFilters["due"] | undefined) ?? null,
+);
 const type = ref<FollowupType | null>(null);
 const q = ref("");
 const assigneeFilters = computed(() => [

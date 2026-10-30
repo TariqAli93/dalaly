@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import DataGrid from "../components/shared/DataGrid.vue";
 import DealDialog from "../components/deals/DealDialog.vue";
@@ -63,7 +63,8 @@ watch(view, (value) => {
 const dealType = ref<DealFilters["deal_type"] | null>(null);
 const assigned = ref<DealFilters["assigned"] | null>(null);
 const state = ref<"open" | "closed" | null>("open");
-const stalled = ref(false);
+// ?stalled=1 (from the dashboard and the notification center).
+const stalled = ref(useRoute().query.stalled === "1");
 const q = ref("");
 const assigneeFilters = computed(() => [
   { title: "صفقاتي", value: "me" },
