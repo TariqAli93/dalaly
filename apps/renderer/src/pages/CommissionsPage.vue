@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, useTemplateRef, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import FilterBar from "../components/shared/FilterBar.vue";
 import DataGrid from "../components/shared/DataGrid.vue";
@@ -41,7 +41,15 @@ const grid = useTemplateRef<DataGridApi>("grid");
 
 const view = ref<"commissions" | "payable">("commissions");
 const search = ref<string | null>("");
-const state = ref<CommissionState | null>(null);
+// ?state=open (from the dashboard's outstanding commissions).
+const stateQuery = useRoute().query.state;
+const state = ref<CommissionState | null>(
+  stateQuery === "open" ||
+    stateQuery === "settled" ||
+    stateQuery === "cancelled"
+    ? stateQuery
+    : null,
+);
 const currency = ref<Currency | null>(null);
 const STATES: Array<{ value: CommissionState; title: string }> = [
   { value: "open", title: "غير محصّلة بالكامل" },

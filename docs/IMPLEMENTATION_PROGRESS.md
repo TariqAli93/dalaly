@@ -41,8 +41,8 @@ Do not rely on this file alone.
 | 6b — operational reports (server)   | `feat/phase-06b-operational-reports`    | [#54](https://github.com/TariqAli93/dalaly/pull/54), merged `9bebe63` | `test:reports` 2/2 (operational: every figure), report rules 5/5, `test:contract` 157; CI pass                        | Completed |
 | 6b — operational reports UI         | `feat/phase-06b-operational-reports-ui` | [#55](https://github.com/TariqAli93/dalaly/pull/55), merged `a687d08` | renderer checks; renderer utils 9/9; web demo; CI pass                                                                | Completed |
 | 7a — navigation and quick add       | `feat/phase-07a-navigation`             | [#56](https://github.com/TariqAli93/dalaly/pull/56), merged `2d5cfd9` | renderer checks; web demo (every quick-add item); CI pass                                                             | Completed |
-| 7b — dashboard (server)             | `feat/phase-07b-dashboard`              | —                                                                     | `test:dashboard-business` 1/1, `test:reports` 2/2, `test:contract` 159                                                | In review |
-| 7b — dashboard UI                   | —                                       | —                                                                     | —                                                                                                                     | Pending   |
+| 7b — dashboard (server)             | `feat/phase-07b-dashboard`              | [#57](https://github.com/TariqAli93/dalaly/pull/57), merged `5b5baa6` | `test:dashboard-business` 1/1, `test:reports` 2/2, `test:contract` 159; CI pass                                       | Completed |
+| 7b — dashboard UI                   | `feat/phase-07b-dashboard-ui`           | —                                                                     | renderer checks; web demo at 1366×768 and 1024×720                                                                    | In review |
 | 8 — refactoring and performance     | `refactor/phase-08-*`                   | —                                                                     | —                                                                                                                     | Pending   |
 | 9 — final verification              | `test/phase-09-*`                       | —                                                                     | —                                                                                                                     | Pending   |
 
@@ -1135,6 +1135,49 @@ below.
     The month's money is checked against the income statement for the same
     days. It also checks each section's permission and the empty summary of
     a user without any.
+
+### 7b — dashboard UI
+
+- The dashboard has a band of panels, under the summary strip and the
+  priorities, for what needs attention (`components/dashboard/BusinessPanels.vue`):
+  - **tasks**: overdue, today, the next 7 days, and the first ones;
+  - **deals**: negotiating, stale 14 days, and won in 30 days;
+  - **customers needing contact**;
+  - **leases in force**: installments overdue, with the arrears per
+    currency, and those ending within 30 days;
+  - **this month's money**: commissions collected and outstanding,
+    expenses, and net.
+    Every figure and row is a link to its records:
+  - `/tasks?due=overdue|today|week`;
+  - `/deals?stalled=1`, `/deals/:id`;
+  - `/clients/:id`;
+  - `/leases?view=overdue`, `/leases/:id`;
+  - the month's income statement;
+  - `/accounting/commissions?state=open` (only with `commissions.read`);
+  - the operational reports, where the user has them.
+    A panel shows only with its permission.
+- The tasks, deals and commissions pages now read those filters from the
+  address. The matching workspace, decisions and risks stay below.
+- **Notification bell** (`components/app/NotificationBell.vue`) in the
+  command bar:
+  - it lists each alert with its count and opens its records;
+  - its badge counts the urgent and warning ones; information alone shows
+    a dot;
+  - it refreshes every two minutes, on moving between pages (at most every
+    15 seconds), and on opening;
+  - titles and links are in `constants/alerts.ts`.
+- «Stale» deals use the deals page's word, «راكدة».
+- Web demo:
+  - at 1366×768, five panels; the bell showed 13 (5 overdue tasks, 8
+    overdue installments), with today's task and 4 customers as
+    information;
+  - «مهام فات موعدها» opened the tasks list filtered to overdue: 5, as in
+    the bell;
+  - `/deals?stalled=1` switched the deals page's «راكدة 14 يوماً» filter
+    on, and `/accounting/commissions?state=open` listed the 2 open ones;
+  - the month's money showed October's 3,000,000 collected and 4,500,000
+    outstanding;
+  - at 1024×720, three panels a row and no sideways scroll.
 
 ## Database migrations
 
