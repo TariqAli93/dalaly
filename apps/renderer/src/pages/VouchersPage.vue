@@ -15,6 +15,7 @@ import * as vouchersService from "../services/vouchers.service";
 import { createPagedList } from "../composables/usePagedList";
 import { usePermissions } from "../composables/usePermissions";
 import { useRefresh } from "../composables/useRefresh";
+import { useNewFromQuery } from "../composables/useNewFromQuery";
 import { useSnackbar } from "../composables/useSnackbar";
 import {
   ACCOUNT_CURRENCIES,
@@ -145,6 +146,10 @@ function onIssued(voucher: VoucherDetail) {
   void router.push(`/accounting/vouchers/${voucher.id}`);
 }
 
+useNewFromQuery((kind) => {
+  if (kind === "receipt" && can("vouchers.receipt")) openIssue("receipt");
+  else if (kind === "payment" && can("vouchers.payment")) openIssue("payment");
+});
 onMounted(() => {
   setRefreshHandler(list.reload);
   void list.loadFirstPage();

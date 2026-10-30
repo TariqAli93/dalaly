@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRouter } from "vue-router";
 import AppPage from "../app/AppPage.vue";
 import FilterBar from "../shared/FilterBar.vue";
 import DataGrid from "../shared/DataGrid.vue";
@@ -23,6 +23,7 @@ import { getErrorMessage } from "../../services/api.service";
 import { usePermissions } from "../../composables/usePermissions";
 import { useSnackbar } from "../../composables/useSnackbar";
 import { useRefresh } from "../../composables/useRefresh";
+import { useNewFromQuery } from "../../composables/useNewFromQuery";
 import { useLocations } from "../../composables/useLocations";
 import { useRequests } from "../../composables/useRequests";
 import { formatMoney } from "../../utils/format";
@@ -43,7 +44,6 @@ import type { MatchResult } from "../../types";
  * والتعديل والمطابقات أوامر في الصف. الحفظ والمطابقة خطوتان منفصلتان.
  */
 const props = defineProps<{ mode: RequestMode }>();
-const route = useRoute();
 const router = useRouter();
 const { can } = usePermissions();
 const { notifyError, notifySuccess, notifyInfo } = useSnackbar();
@@ -203,6 +203,12 @@ function openCreate(personId: number | null = null) {
   presetPerson.value = personId;
   dialog.value = true;
 }
+// ?new=1 (من «إضافة») و&person=<id> (من ملف الزبون).
+useNewFromQuery((_, query) => {
+  if (!can("requests.create")) return;
+  const person = Number(query.person);
+  openCreate(Number.isSafeInteger(person) && person > 0 ? person : null);
+});
 function openEdit(item: RequestRecord) {
   editing.value = item;
   presetPerson.value = null;
@@ -269,12 +275,6 @@ onMounted(() => {
   void loadLocations();
   setRefreshHandler(list.reload);
   window.addEventListener("keydown", onShortcut);
-  // ?new=1 (من لوحة التحكم) و&person=<id> (من ملف الزبون).
-  if (route.query.new && can("requests.create")) {
-    const person = Number(route.query.person);
-    openCreate(Number.isSafeInteger(person) && person > 0 ? person : null);
-    void router.replace({ query: {} });
-  }
 });
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", onShortcut);

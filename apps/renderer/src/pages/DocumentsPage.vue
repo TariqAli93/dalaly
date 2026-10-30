@@ -23,6 +23,7 @@ import { getErrorMessage } from "../services/api.service";
 import { usePermissions } from "../composables/usePermissions";
 import { useSnackbar } from "../composables/useSnackbar";
 import { useRefresh } from "../composables/useRefresh";
+import { useNewFromQuery } from "../composables/useNewFromQuery";
 import { useConfirm } from "../composables/useConfirm";
 import { createPagedList } from "../composables/usePagedList";
 import {
@@ -198,12 +199,11 @@ const linkedPerson = Number(route.query.person);
 if (Number.isSafeInteger(linkedPerson) && linkedPerson > 0)
   personId.value = linkedPerson;
 void list.reload();
+useNewFromQuery(() => {
+  if (can("documents.manage")) openCreate();
+});
 onMounted(async () => {
   setRefreshHandler(list.reload);
-  if (route.query.new && can("documents.manage")) {
-    openCreate();
-    void router.replace({ query: {} });
-  }
   try {
     types.value = await documentsService.listDocumentTypes();
   } catch (cause) {

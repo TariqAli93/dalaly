@@ -931,9 +931,16 @@ The signed-in pages are children of one route whose component is
 stays mounted while the user moves between pages and keeps its state (an
 expanded sidebar, which is also remembered between launches in
 `localStorage`). The sidebar's groups, order and permissions are
-`NAV_SECTIONS` in `constants/domain.ts`; create pages are not navigation
-items. `Ctrl+K` opens `GlobalSearch`, which queries sale and rental
-listings, customers and both request types through their paged endpoints.
+`NAV_SECTIONS` in `constants/domain.ts`, grouped by business area; create
+pages are not navigation items.
+
+- `Ctrl+K` opens `GlobalSearch`, which queries sale and rental listings,
+  customers and both request types through their paged endpoints.
+- «إضافة» in the command bar (`QuickAdd.vue`, items in `QUICK_ADD`) starts
+  any record from any page, by permission. It links to the record's page
+  with `?new=`.
+- `useNewFromQuery` opens the page's add dialog for that parameter, also
+  when the page is already open, and removes it from the address.
 
 Records have their own routes: `/properties/:id`, `/rentals/:id`,
 `/clients/:id` (the customer hub: requests, owned listings, documents),
@@ -943,6 +950,8 @@ matches). The global router guard turns the older `?open=<id>` links on
 query changes. `/rentals?status=<status>` starts the list with that status;
 the request lists take `?new=1&person=<id>` and `/documents` takes
 `?person=<id>&new=1` to open their add dialog with the customer chosen.
+`/people`, `/deals`, `/leases` and `/tasks` take `?new=1`, and
+`/accounting/vouchers` takes `?new=receipt` or `?new=payment`.
 
 Each page wraps its content in `components/app/AppPage.vue`, which writes
 the title, parent link and count into the 48px command bar

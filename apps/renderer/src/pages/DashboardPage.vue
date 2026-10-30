@@ -370,34 +370,6 @@ function openAppointment(item: DashboardAppointment) {
 }
 
 // ─── أوامر الترويسة ──────────────────────────────────────────────────────
-const createItems = computed(() =>
-  [
-    {
-      title: "عرض بيع",
-      icon: "mdi-home-plus-outline",
-      to: "/properties/new",
-      show: can("properties.create"),
-    },
-    {
-      title: "عرض إيجار",
-      icon: "mdi-key-plus",
-      to: "/rentals/new",
-      show: can("rentals.create"),
-    },
-    {
-      title: "طلب شراء",
-      icon: "mdi-home-search-outline",
-      to: "/purchase-requests?new=1",
-      show: can("requests.create"),
-    },
-    {
-      title: "طلب إيجار",
-      icon: "mdi-home-search-outline",
-      to: "/rental-requests?new=1",
-      show: can("requests.create"),
-    },
-  ].filter((item) => item.show),
-);
 const backupRunning = ref(false);
 async function runBackup() {
   backupRunning.value = true;
@@ -418,26 +390,6 @@ async function runBackup() {
       <span class="ops__updated">آخر تحديث {{ formatTime(loadedAt) }}</span>
     </template>
     <template #header-actions>
-      <v-menu v-if="createItems.length" location="bottom end">
-        <template #activator="{ props: menu }">
-          <v-btn
-            v-bind="menu"
-            color="primary"
-            prepend-icon="mdi-plus"
-            append-icon="mdi-chevron-down"
-            >إضافة</v-btn
-          >
-        </template>
-        <v-list density="compact" min-width="180">
-          <v-list-item
-            v-for="item in createItems"
-            :key="item.to"
-            :title="item.title"
-            :prepend-icon="item.icon"
-            @click="router.push(item.to)"
-          />
-        </v-list>
-      </v-menu>
       <v-btn
         v-if="can('backups.create')"
         variant="text"
