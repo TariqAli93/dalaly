@@ -33,8 +33,9 @@ Do not rely on this file alone.
 | 4f — financial integration (server) | `feat/phase-04f-financial-integration` | [#46](https://github.com/TariqAli93/dalaly/pull/46), merged `a4fd3ac` | `test:finance` 9/9, voucher and deal rules 12/12, `test:contract` 135; affected suites; CI pass | Completed |
 | 4f — financial integration UI | `feat/phase-04f-financial-ui` | [#47](https://github.com/TariqAli93/dalaly/pull/47), merged `391845a` | renderer checks; `test:contract` 135; web demo; CI pass | Completed |
 | 5a — leases (server) | `feat/phase-05a-leases` | [#48](https://github.com/TariqAli93/dalaly/pull/48), merged `06d5b9f` | `test:leases` 9/9, lease rules 7/7, `test:contract` 142, backup round trip 46 tables; affected suites; CI pass | Completed |
-| 5a — leases UI | `feat/phase-05a-leases-ui` | — | renderer checks; `test:contract` 142; web demo | In review |
-| 5b — lease payments | `feat/phase-05b-lease-payments` | — | — | Pending |
+| 5a — leases UI | `feat/phase-05a-leases-ui` | [#49](https://github.com/TariqAli93/dalaly/pull/49), merged `5381863` | renderer checks; `test:contract` 142; web demo; CI pass | Completed |
+| 5b — lease payments (server) | `feat/phase-05b-lease-payments` | — | `test:lease-payments` 11/11, lease rules 9/9, `test:contract` 145; affected suites | In review |
+| 5b — lease payments UI | — | — | — | Pending |
 | 6a — financial reports | `feat/phase-06a-financial-reports` | — | — | Pending |
 | 6b — operational reports | `feat/phase-06b-operational-reports` | — | — | Pending |
 | 7a — navigation | `feat/phase-07a-navigation` | — | — | Pending |
@@ -765,6 +766,65 @@ below.
   - cancelling `LS-000002` put `R-9003` back to available;
   - the lease page fits at 375 px.
 
+### 5b — lease payments (server)
+
+- Rent is collected against the schedule: a receipt with
+  `lease_installment_id` (migration `0015`).
+  - It is client funds held for the landlord, paid by the tenant by default.
+  - It can be partial, and never more than is left on the installment (the
+    installment row is locked, so two receipts cannot both take the rest).
+  - It needs a lease where the office collects the rent, on an installment
+    a termination has not released.
+- A voucher with `lease_id` alone moves the lease's other client funds:
+  - the deposit, held for the tenant;
+  - a payout to the landlord, or the deposit back to the tenant.
+  A payout takes no more than the lease holds for that person (its receipts
+  less its payouts), besides the customer-wide limit.
+- Voiding a rent receipt whose money was handed over is refused until the
+  payout is voided.
+- Each installment carries what was paid, what is left and its state: paid,
+  upcoming, due, overdue, or released. Payments are tracked only where the
+  office collects.
+- The lease carries:
+  - the rent due so far, collected and outstanding, and the overdue count;
+  - what it holds for the landlord, and the deposit held for the tenant;
+  - its renewal chain (its history).
+  `GET /api/leases/installments/overdue` lists overdue installments across
+  leases, oldest first.
+- `POST /api/leases/:id/terminate` ends a lease early.
+  - Installments due after the date are released; arrears stay owed and
+    collectible.
+  - It is refused while an installment due after that day is paid, and for
+    a date outside the term.
+  - The listing is freed.
+- `POST /api/leases/:id/renew` starts a new lease the day after the old one
+  ends:
+  - same parties, listing and currency, with the new rent, frequency and end
+    (the deposit and who collects carry over unless given);
+  - the old lease is marked renewed and its installments stay owed;
+  - cancelling the renewal puts the old lease back in force.
+- Cancelling is refused once a voucher names the lease. `leases_guard`
+  allows only these moves: active to cancelled, terminated or renewed, and
+  renewed back to active.
+- **Fixed during this phase:**
+  - The lease page's per-installment paid amount was not tied to its own
+    installment, since Drizzle leaves the column unqualified in a one-table
+    select. It is now a raw query with an alias.
+  - The backup listed vouchers before leases, so a full restore deleted
+    installments that vouchers still named. Leases now come first.
+- `test:lease-payments` (11):
+  - an upgrade from `0014`;
+  - collecting partly and its limits;
+  - overdue lists;
+  - deposit and payouts per lease;
+  - voiding after a payout;
+  - termination with arrears and released installments;
+  - renewal, and cancelling the renewal;
+  - triggers;
+  - permissions;
+  - a full restore.
+  Lease rules: 9 unit tests. `test:contract` 145.
+
 
 ## Database migrations
 
@@ -781,6 +841,7 @@ below.
 | `0012_expenses_cash` | 4e | `expense_categories` (an account at least), `cash_transfers` (positive, distinct accounts, void fields together), `cash_reconciliations` (difference = statement − book), `vouchers.expense_category_id` with a check; journal source `reconciliation`; triggers `cash_transfers_guard`, `cash_reconciliations_guard`; `vouchers_guard` replaced (whole rows) |
 | `0013_client_funds_held_for` | 4f | `vouchers.held_for_person_id` (FK people, set null, indexed; only on client funds, checked); `vouchers_guard` replaced to refuse clearing it |
 | `0014_leases` | 5a | `leases` (contract and revision, listing, landlord and tenant set null for restores; positive rent, frequency, end after start, cancel fields together; one live lease per contract) and `lease_installments` (period, due date, positive amount; unique per lease and number); triggers `leases_guard`, `lease_installments_guard` |
+| `0015_lease_payments` | 5b | `vouchers.lease_id`, `vouchers.lease_installment_id` (only on client funds; an installment only on a receipt; indexed); `leases` termination fields and `renewed_from_id` (one live renewal per lease), status check widened to terminated and renewed; `leases_guard` replaced |
 
 ## Decisions that need the owner
 

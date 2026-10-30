@@ -7,7 +7,10 @@ import type {
   LeaseRecord,
   LeaseSchedule,
   LeaseScheduleTerms,
+  LeaseRenewPayload,
   LeaseSortKey,
+  LeaseTerminatePayload,
+  OverdueInstallmentRecord,
   PageQuery,
   PagedResult,
 } from "../types";
@@ -68,5 +71,30 @@ export function cancelLease(id: number, reason: string) {
   return request<LeaseDetail>(`/leases/${id}/cancel`, {
     method: "POST",
     body: JSON.stringify({ reason }),
+  });
+}
+
+/** Installments past their day and not fully paid, oldest first. */
+export function listOverdueInstallments(
+  filters: { person_id?: number; lease_id?: number },
+  page: { page: number; page_size: number },
+) {
+  return request<PagedResult<OverdueInstallmentRecord>>(
+    `/leases/installments/overdue${buildQuery({ ...filters, ...page })}`,
+  );
+}
+
+export function terminateLease(id: number, payload: LeaseTerminatePayload) {
+  return request<LeaseDetail>(`/leases/${id}/terminate`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** The new lease, from the day after this one ends. */
+export function renewLease(id: number, payload: LeaseRenewPayload) {
+  return request<LeaseDetail>(`/leases/${id}/renew`, {
+    method: "POST",
+    body: JSON.stringify(payload),
   });
 }

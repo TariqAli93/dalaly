@@ -30,6 +30,7 @@ import {
 import type { VoucherPayload } from "./vouchers.schema.js";
 import { allocationError } from "./commissions.rules.js";
 import { commissionLeft, splitLeft } from "./commissions.service.js";
+import { leaseHeld, leaseLink } from "../leases/leases.service.js";
 
 /**
  * Issuing and voiding receipts and payments. A voucher and its journal entry
@@ -247,7 +248,44 @@ export async function issueVoucher(payload: VoucherPayload, userId?: number) {
       );
     const chart = await chartWithHeadings(tx);
     const allocation = await resolveAllocation(tx, payload);
-    const personId = allocation?.personId ?? payload.person_id ?? null;
+    // A lease's client funds: its rent (an installment), deposit or payouts.
+    const rule = (message: string) =>
+      new DomainError(400, message, "VOUCHER_RULE");
+    const lease =
+      payload.lease_id || payload.lease_installment_id
+        ? await leaseLink(tx, {
+            leaseId: payload.lease_id ?? null,
+            installmentId: payload.lease_installment_id ?? null,
+          })
+        : null;
+    if (lease) {
+      if (allocation) throw rule("السند لعمولة أو لإيجار، لا لكليهما.");
+      if (payload.deal_id) throw rule("سند الإيجار لا يُربط بصفقة.");
+      if (payload.purpose !== "client_funds")
+        throw rule(
+          "مال الإيجار أمانة لحساب المؤجر أو المستأجر: غرض السند أمانات العملاء.",
+        );
+      if (payload.currency !== lease.lease.currency)
+        throw rule(`الإيجار ${lease.lease.code} بعملة غير عملة السند.`);
+      if (lease.installment) {
+        if (kind !== "receipt") throw rule("قسط الإيجار يُحصَّل بسند قبض.");
+        if (
+          payload.held_for_person_id &&
+          payload.held_for_person_id !== lease.lease.landlordPersonId
+        )
+          throw rule("إيجار القسط يُحفظ لحساب المؤجر.");
+        const over = allocationError(
+          payload.amount,
+          lease.installment.left,
+          `القسط ${lease.installment.seq} من الإيجار ${lease.lease.code}`,
+        );
+        if (over) throw new DomainError(409, over, "VOUCHER_ALLOCATION");
+      }
+    }
+    const personId =
+      allocation?.personId ??
+      payload.person_id ??
+      (lease?.installment ? lease.lease.tenantPersonId : null);
     const dealId = allocation?.dealId ?? payload.deal_id ?? null;
     const categoryAccountId = await expenseCategoryAccount(tx, payload);
     const otherId = allocation
@@ -307,12 +345,22 @@ export async function issueVoucher(payload: VoucherPayload, userId?: number) {
       parties = deal;
     }
 
+    // A lease's funds are held for its landlord or tenant, as a deal's
+    // for its sides; its rent for the landlord.
+    if (lease)
+      parties = {
+        clientPersonId: lease.lease.tenantPersonId ?? 0,
+        ownerPersonId: lease.lease.landlordPersonId,
+      };
     const held = heldFor({
       kind,
       purpose: payload.purpose,
       personId,
-      heldForId: payload.held_for_person_id ?? null,
+      heldForId:
+        payload.held_for_person_id ??
+        (lease?.installment ? lease.lease.landlordPersonId : null),
       deal: parties,
+      subject: lease ? "الإيجار" : "الصفقة",
     });
     if ("error" in held) throw new DomainError(400, held.error, "VOUCHER_RULE");
     const heldForId = held.personId;
@@ -356,6 +404,16 @@ export async function issueVoucher(payload: VoucherPayload, userId?: number) {
             `المحتفظ به لهذا الزبون في ${other!.code} هو ${forPerson} فقط.`,
             "VOUCHER_CLIENT_FUNDS",
           );
+        // Paid out on a lease: out of what was collected on that lease.
+        if (lease) {
+          const onLease = await leaseHeld(tx, lease.lease.id, heldForId!);
+          if (compareMoney(payload.amount, onLease) > 0)
+            throw new DomainError(
+              409,
+              `المحتفظ به لهذا الزبون على الإيجار ${lease.lease.code} هو ${onLease} فقط.`,
+              "VOUCHER_CLIENT_FUNDS",
+            );
+        }
         // Paid out on a deal: out of what was collected on that deal.
         if (dealId) {
           const onDeal = await postedBalance(tx, other!.id, "credit", {
@@ -423,6 +481,8 @@ export async function issueVoucher(payload: VoucherPayload, userId?: number) {
       commissionId: payload.commission_id ?? null,
       commissionSplitId: payload.commission_split_id ?? null,
       expenseCategoryId: payload.expense_category_id ?? null,
+      leaseId: lease?.lease.id ?? null,
+      leaseInstallmentId: lease?.installment?.id ?? null,
       journalEntryId: entryId,
       createdBy: userId ?? null,
     });
@@ -480,10 +540,14 @@ export async function voidVoucher(
         personId: owner,
         dealId: row.dealId ?? undefined,
       });
-      if (compareMoney(row.amount, left) > 0)
+      const onLease = row.leaseId
+        ? await leaseHeld(tx, row.leaseId, owner)
+        : left;
+      const kept = compareMoney(onLease, left) < 0 ? onLease : left;
+      if (compareMoney(row.amount, kept) > 0)
         throw new DomainError(
           409,
-          `سُلِّم من أمانة السند ${row.code} والباقي منها ${left}؛ ألغِ سند التسليم أولاً.`,
+          `سُلِّم من أمانة السند ${row.code} والباقي منها ${kept}؛ ألغِ سند التسليم أولاً.`,
           "VOUCHER_CLIENT_FUNDS",
         );
     }

@@ -197,6 +197,11 @@ export interface VoucherRecord {
   /** What an expense payment was for. */
   expense_category_id: number | null;
   expense_category_name: string | null;
+  /** A lease's client funds: rent (with its installment), deposit, payout. */
+  lease_id: number | null;
+  lease_code: string | null;
+  lease_installment_id: number | null;
+  lease_installment_seq: number | null;
   status: VoucherStatus;
   journal_entry_id: number;
   journal_entry_code: string;
@@ -246,6 +251,10 @@ export interface VoucherPayload {
   commission_split_id?: number | null;
   /** What an expense payment was for: picks its expense account. */
   expense_category_id?: number | null;
+  /** A lease's deposit or a payout to its landlord. */
+  lease_id?: number | null;
+  /** A receipt collecting this installment of a lease's rent. */
+  lease_installment_id?: number | null;
 }
 
 export interface VoucherFilters {
@@ -255,6 +264,7 @@ export interface VoucherFilters {
   purpose?: string;
   person_id?: number;
   deal_id?: number;
+  lease_id?: number;
   money_account_id?: number;
   from?: string;
   to?: string;

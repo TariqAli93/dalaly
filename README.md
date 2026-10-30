@@ -112,6 +112,7 @@ pnpm --filter @dalaly/server test:commissions    # commissions: accrual with emp
 pnpm --filter @dalaly/server test:cash           # expense categories, cash/bank transfers (also racing, voiding), reconciliations with adjustments, triggers, restores
 pnpm --filter @dalaly/server test:finance        # client funds held for their landlord or seller (refunds, per-deal limits, voiding), deal and customer money vs the journal, closing rules, restores
 pnpm --filter @dalaly/server test:leases         # leases: activation from an issued rent contract (once), by hand, schedules, the listing rented and freed, cancelling, triggers, restores
+pnpm --filter @dalaly/server test:lease-payments # rent against installments (partly), overdue, deposit, landlord payouts per lease, termination, renewal, restores
 pnpm --filter @dalaly/server test:import         # Excel import: all rows or none, row cap, same skips as before
 pnpm --filter @dalaly/server test:queries        # users/roles lists and location names in a fixed number of queries
 pnpm --filter @dalaly/server test:dashboard      # dashboard summary unchanged by its merged queries

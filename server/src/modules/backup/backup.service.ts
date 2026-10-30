@@ -284,6 +284,21 @@ const TABLE_SPECS = [
     dates: ["createdAt"],
     optional: true,
   },
+  // Leases (Phase 5a), after the contracts, listings and customers they
+  // name, and before the vouchers that collect their rent (5b); only a full
+  // restore replaces them.
+  {
+    name: "leases",
+    table: leases,
+    dates: ["cancelledAt", "terminatedAt", "createdAt"],
+    optional: true,
+  },
+  {
+    name: "lease_installments",
+    table: leaseInstallments,
+    dates: [],
+    optional: true,
+  },
   // Commissions (Phase 4d), after their entries; vouchers name them.
   {
     name: "commissions",
@@ -302,20 +317,6 @@ const TABLE_SPECS = [
     name: "vouchers",
     table: vouchers,
     dates: ["voidedAt", "createdAt"],
-    optional: true,
-  },
-  // Leases (Phase 5a), after the contracts, listings and customers they
-  // name; only a full restore replaces them.
-  {
-    name: "leases",
-    table: leases,
-    dates: ["cancelledAt", "createdAt"],
-    optional: true,
-  },
-  {
-    name: "lease_installments",
-    table: leaseInstallments,
-    dates: [],
     optional: true,
   },
   // Added after backup version 3, like the contract tables above.

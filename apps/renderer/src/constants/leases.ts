@@ -28,6 +28,8 @@ export const LEASE_STATES: Array<{
   { value: "current", title: "سارٍ", color: "success" },
   { value: "upcoming", title: "لم يبدأ", color: "info" },
   { value: "ended", title: "منتهٍ", color: "default" },
+  { value: "terminated", title: "أُنهي مبكراً", color: "warning" },
+  { value: "renewed", title: "مجدَّد", color: "secondary" },
   { value: "cancelled", title: "ملغى", color: "error" },
 ];
 

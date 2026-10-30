@@ -1,8 +1,9 @@
 import type { Currency } from "./deal.types";
 
 export type LeaseFrequency = "monthly" | "quarterly" | "semi_annual" | "annual";
-/** Where a lease stands today: before, during or after its dates. */
-export type LeaseState = "upcoming" | "current" | "ended" | "cancelled";
+/** Where a lease stands today: by its status, or before, during or after its dates. */
+export type LeaseState =
+  "upcoming" | "current" | "ended" | "terminated" | "renewed" | "cancelled";
 export type LeaseSortKey = "start_date" | "end_date" | "code" | "created_at";
 
 /**
@@ -30,11 +31,29 @@ export interface LeaseRecord {
   end_date: string;
   deposit: string | null;
   office_collects: boolean;
-  status: "active" | "cancelled";
+  status: "active" | "terminated" | "renewed" | "cancelled";
   state: LeaseState;
   installment_count: number;
   total_rent: string;
   next_due_date: string | null;
+  /** Installments whose day has come (not released by a termination). */
+  due_to_date: string;
+  /** Rent collected by the office against the schedule. */
+  collected: string;
+  /** What is left of the installments whose day has come. */
+  outstanding: string;
+  overdue_count: number;
+  /** Client funds the office holds on the lease for the landlord. */
+  held_for_landlord: string;
+  /** The deposit it holds on the lease for the tenant. */
+  deposit_held: string;
+  termination_date: string | null;
+  termination_reason: string | null;
+  terminated_at: string | null;
+  renewed_from_id: number | null;
+  renewed_from_code: string | null;
+  renewed_by_id: number | null;
+  renewed_by_code: string | null;
   notes: string | null;
   cancel_reason: string | null;
   cancelled_at: string | null;
@@ -49,12 +68,65 @@ export interface LeaseInstallmentRecord {
   period_start: string;
   period_end: string;
   amount: string;
-  /** Due once its day has come. */
-  state: "upcoming" | "due";
+  paid: string;
+  left: string;
+  /**
+   * Paid, upcoming, due (today, or any day where the office does not collect
+   * the rent), overdue, or released by a termination.
+   */
+  state: "upcoming" | "due" | "overdue" | "paid" | "released";
+}
+
+/** A lease of the same renewal chain: its history. */
+export interface LeaseChainRecord {
+  id: number;
+  code: string;
+  start_date: string;
+  end_date: string;
+  rent_amount: string;
+  currency: string;
+  frequency: string;
+  status: string;
 }
 
 export interface LeaseDetail extends LeaseRecord {
   installments: LeaseInstallmentRecord[];
+  chain: LeaseChainRecord[];
+}
+
+/** An installment past its day and not fully paid, with its lease. */
+export interface OverdueInstallmentRecord {
+  id: number;
+  seq: number;
+  due_date: string;
+  amount: string;
+  paid: string;
+  left: string;
+  days_overdue: number;
+  lease_id: number;
+  lease_code: string;
+  currency: string;
+  tenant_person_id: number | null;
+  tenant_name: string | null;
+  tenant_phone: string | null;
+  landlord_person_id: number | null;
+  landlord_name: string | null;
+}
+
+export interface LeaseTerminatePayload {
+  termination_date: string;
+  reason: string;
+}
+
+/** A renewal: the new terms from the day after the lease ends. */
+export interface LeaseRenewPayload {
+  rent_amount: string;
+  frequency: LeaseFrequency;
+  end_date: string;
+  /** Omitted: the deposit carries over; null: none. */
+  deposit?: string | null;
+  office_collects?: boolean;
+  notes: string | null;
 }
 
 /** One installment of a schedule not yet written. */

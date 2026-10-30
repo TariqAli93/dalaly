@@ -341,6 +341,31 @@ test("API responses match the renderer's types", async (t) => {
         deposit: null, office_collects: false, notes: "فحص",
       });
       await api("POST", `/api/leases/${byHand.id}/cancel`, { reason: "فحص" });
+      // Lease payments: rent against an installment, a deposit, a payout; an
+      // older lease with overdue rent, ended early; the contract's renewed.
+      const [firstInstallment] = (await api("GET", `/api/leases/${leaseId}`)).installments;
+      await api("POST", "/api/vouchers", {
+        kind: "receipt", voucher_date: "2026-11-02", currency: "IQD", amount: "500000", purpose: "client_funds",
+        money_account_id: cashAccountId, other_account_id: null, person_id: null, party_name: null, deal_id: null,
+        description: "إيجار تشرين الثاني", reference: null, lease_installment_id: firstInstallment.id,
+      });
+      await api("POST", "/api/vouchers", {
+        kind: "receipt", voucher_date: "2026-11-02", currency: "IQD", amount: "750000", purpose: "client_funds",
+        money_account_id: cashAccountId, other_account_id: null, person_id: ctx.people[1].id, party_name: null, deal_id: null,
+        held_for_person_id: ctx.people[1].id, description: "تأمين", reference: null, lease_id: leaseId,
+      });
+      await api("POST", "/api/vouchers", {
+        kind: "payment", voucher_date: "2026-11-03", currency: "IQD", amount: "400000", purpose: "client_funds",
+        money_account_id: cashAccountId, other_account_id: null, person_id: ctx.people[0].id, party_name: null, deal_id: null,
+        description: "تسليم المؤجر", reference: null, lease_id: leaseId,
+      });
+      const older = await api("POST", "/api/leases", {
+        currency: "IQD", rent_amount: "300000", frequency: "monthly", start_date: "2020-01-01", end_date: "2020-12-31",
+        rental_id: null, landlord_person_id: ctx.people[0].id, tenant_person_id: ctx.people[1].id,
+        deposit: null, office_collects: true, notes: null,
+      });
+      await api("POST", `/api/leases/${older.id}/terminate`, { termination_date: "2020-06-30", reason: "فحص" });
+      await api("POST", `/api/leases/${leaseId}/renew`, { rent_amount: "800000", frequency: "monthly", end_date: "2028-10-31", notes: null });
       const saleTemplate = await api("GET", "/api/agreements/templates/sale");
       await api("PUT", "/api/agreements/templates/sale", { base_version: saleTemplate.version, definition: saleTemplate.definition });
       const [permission] = await api("GET", "/api/permissions");
@@ -440,6 +465,8 @@ test("API responses match the renderer's types", async (t) => {
         "/api/leases/paged?page=1&page_size=10&sort_by=start_date&sort_order=desc",
         `/api/leases/${leaseId}`,
         `/api/leases/agreement/${agreementId}`,
+        "/api/leases/installments/overdue?page=1&page_size=10",
+        `/api/vouchers/paged?page=1&page_size=10&sort_by=voucher_date&sort_order=desc&lease_id=${leaseId}`,
       ];
       for (const url of urls) await api("GET", url);
     }

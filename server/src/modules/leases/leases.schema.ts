@@ -58,8 +58,38 @@ export const LEASE_STATES = [
   "upcoming",
   "current",
   "ended",
+  "terminated",
+  "renewed",
   "cancelled",
 ] as const;
+
+/** Ends a lease early; installments due after the date are released. */
+export const leaseTerminateSchema = z.object({
+  termination_date: isoDate,
+  reason: z.string().trim().min(1, "اذكر سبب إنهاء الإيجار.").max(300),
+});
+
+/**
+ * Renews a lease from the day after it ends, with the same parties and
+ * listing and the new terms.
+ */
+export const leaseRenewSchema = z.object({
+  rent_amount: moneyField,
+  frequency: z.enum(LEASE_FREQUENCIES),
+  end_date: isoDate,
+  /** Missing: the lease's deposit carries over; null: none. */
+  deposit: optionalMoneyField.optional(),
+  office_collects: booleanField.optional(),
+  notes: optionalText,
+});
+export type LeaseRenewPayload = z.infer<typeof leaseRenewSchema>;
+
+export const overduePageQuerySchema = z.object({
+  ...pageFields,
+  person_id: optionalId,
+  lease_id: optionalId,
+});
+export type OverduePageQuery = z.infer<typeof overduePageQuerySchema>;
 
 export const leasePageQuerySchema = z.object({
   ...pageFields,

@@ -737,13 +737,36 @@ period, from when to when (migration `0014_leases`).
   lease's customer, listing or contract (that is, deleting them) is refused,
   except by a restore, which puts the links back (`KEPT_LINKS`). Leases and
   installments are restored only by a full restore.
-- Where a lease stands (`upcoming`, `current`, `ended`, `cancelled`) is read
-  from its dates and the office's today (Baghdad), in SQL for lists and
+- Where a lease stands is read from its status (`terminated`, `renewed`,
+  `cancelled`), else from its dates and the office's today (Baghdad):
+  `upcoming`, `current`, `ended`. It is computed in SQL for lists and
   filters.
+- **Payments** (Phase 5b, migration `0015`). They are client-funds vouchers
+  naming the lease (`vouchers.lease_id`):
+  - rent against an installment (`lease_installment_id`), held for the
+    landlord, partial and never beyond what is left, and only where the
+    office collects;
+  - the deposit, held for the tenant;
+  - payouts, each taking no more than the lease holds for that person.
+  `leases.service.ts` `leaseLink` locks the lease (`FOR NO KEY UPDATE`) and
+  the installment for the voucher's transaction. `leaseHeld` sums a lease's
+  funds for one person. Each installment's state (`installmentState`) is
+  paid, upcoming, due, overdue or released.
+- **Termination** releases the installments due after its date. Arrears stay
+  collectible. It is refused while a later installment is paid.
+- **Renewal** writes a new lease from the day after the old one ends
+  (`renewed_from_id`). The old one becomes `renewed`; cancelling the renewal
+  restores it. The lease page shows the whole chain.
+- `leases_guard` (replaced in `0015`) allows only active to cancelled,
+  terminated or renewed, and renewed to active. Cancelling is refused once a
+  voucher names the lease.
 - API `/api/leases`:
   - `leases.read`: `paged` (state, customer, listing, text), `:id` with its
     schedule, `agreement/:id`, `POST schedule`;
-  - `leases.manage`: `POST /` by hand, `POST activate`, `POST /:id/cancel`.
+  - `leases.manage`: `POST /` by hand, `POST activate`, `POST /:id/cancel`,
+    `POST /:id/terminate`, `POST /:id/renew`;
+  - `leases.read` also: `installments/overdue`. Vouchers filter by
+    `lease_id`.
 - In the renderer:
   - `pages/LeasesPage.vue` lists leases; `pages/LeasePage.vue` shows one
     with its schedule and cancels it.

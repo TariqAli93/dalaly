@@ -1,20 +1,29 @@
 import { type FastifyPluginAsync } from "fastify";
 import { requirePermission } from "../auth/auth.hooks.js";
 import { parseId } from "../../shared/utils/parse-id.js";
-import { getLease, listLeasesPage } from "./leases.repository.js";
+import {
+  getLease,
+  listLeasesPage,
+  listOverdueInstallments,
+} from "./leases.repository.js";
 import {
   leaseActivateSchema,
   leaseCancelSchema,
   leasePageQuerySchema,
   leasePayloadSchema,
+  leaseRenewSchema,
   leaseScheduleSchema,
+  leaseTerminateSchema,
+  overduePageQuerySchema,
 } from "./leases.schema.js";
 import {
   activateLease,
   agreementLeaseDraft,
   cancelLease,
   createLease,
+  renewLease,
   scheduleOf,
+  terminateLease,
 } from "./leases.service.js";
 
 const notFound = { message: "الإيجار غير موجود." };
@@ -26,6 +35,14 @@ export const leasesRoutes: FastifyPluginAsync = async (app) => {
     { preHandler: requirePermission("leases.read") },
     async (request) =>
       listLeasesPage(leasePageQuerySchema.parse(request.query)),
+  );
+
+  /** Installments past their day and not fully paid, oldest first. */
+  app.get(
+    "/installments/overdue",
+    { preHandler: requirePermission("leases.read") },
+    async (request) =>
+      listOverdueInstallments(overduePageQuerySchema.parse(request.query)),
   );
 
   /** The schedule terms would give, before a lease is entered by hand. */
@@ -103,6 +120,33 @@ export const leasesRoutes: FastifyPluginAsync = async (app) => {
       const { reason } = leaseCancelSchema.parse(request.body);
       const done = await cancelLease(id, reason, request.user?.id);
       return done ? await getLease(id) : reply.code(404).send(notFound);
+    },
+  );
+
+  app.post(
+    "/:id/terminate",
+    { preHandler: requirePermission("leases.manage") },
+    async (request, reply) => {
+      const id = parseId((request.params as { id: string }).id);
+      if (!id) return reply.code(400).send(badId);
+      const input = leaseTerminateSchema.parse(request.body);
+      const done = await terminateLease(id, input, request.user?.id);
+      return done ? await getLease(id) : reply.code(404).send(notFound);
+    },
+  );
+
+  /** A new lease from the day after this one ends; this one is renewed. */
+  app.post(
+    "/:id/renew",
+    { preHandler: requirePermission("leases.manage") },
+    async (request, reply) => {
+      const id = parseId((request.params as { id: string }).id);
+      if (!id) return reply.code(400).send(badId);
+      const input = leaseRenewSchema.parse(request.body);
+      const renewal = await renewLease(id, input, request.user?.id);
+      return renewal
+        ? reply.code(201).send(await getLease(renewal))
+        : reply.code(404).send(notFound);
     },
   );
 };
