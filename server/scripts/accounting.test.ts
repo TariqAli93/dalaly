@@ -58,7 +58,7 @@ test("a database of the previous release migrates to 0008 with its data and gets
     assert.equal(Number((await pool.query("SELECT count(*) FROM accounts")).rows[0].count), DEFAULT_ACCOUNTS.length);
     assert.equal(Number((await pool.query("SELECT count(*) FROM deals")).rows[0].count), 1, "existing data is untouched");
     assert.equal(
-      Number((await pool.query("SELECT count(*) FROM permissions WHERE key LIKE 'accounting.%'")).rows[0].count),
+      Number((await pool.query("SELECT count(*) FROM permissions WHERE key IN ('accounting.read', 'accounting.accounts.manage')")).rows[0].count),
       2,
     );
   } finally {

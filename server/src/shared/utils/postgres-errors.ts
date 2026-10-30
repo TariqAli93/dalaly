@@ -1,16 +1,18 @@
 /**
- * SQLSTATE and constraint of a PostgreSQL error, whether pg threw it directly
- * or Drizzle wrapped it (DrizzleQueryError keeps the pg error as `cause`).
+ * SQLSTATE, constraint and message of a PostgreSQL error, whether pg threw it
+ * directly or Drizzle wrapped it (DrizzleQueryError keeps the pg error as
+ * `cause`).
  */
 export function postgresError(
   error: unknown,
-): { code: string; constraint?: string } | null {
+): { code: string; constraint?: string; message?: string } | null {
   let current: unknown = error;
   for (let depth = 0; depth < 3; depth += 1) {
     if (!current || typeof current !== "object") return null;
     const candidate = current as {
       code?: unknown;
       constraint?: unknown;
+      message?: unknown;
       cause?: unknown;
     };
     // SQLSTATE codes are five digits/capitals; Fastify and Node codes are not.
@@ -24,6 +26,8 @@ export function postgresError(
           typeof candidate.constraint === "string"
             ? candidate.constraint
             : undefined,
+        message:
+          typeof candidate.message === "string" ? candidate.message : undefined,
       };
     current = candidate.cause;
   }

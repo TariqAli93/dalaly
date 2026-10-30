@@ -169,6 +169,13 @@ export async function buildServer(options: { logger?: boolean } = {}) {
         code: "RECORD_IN_USE",
         message: "لا يمكن تنفيذ العملية بسبب ارتباط السجل ببيانات أخرى.",
       });
+    // The ledger's triggers (0009) refuse a change to posted history with
+    // SQLSTATE DL001 and an Arabic message of their own.
+    if (sqlState === "DL001")
+      return reply.code(409).send({
+        code: "LEDGER_LOCKED",
+        message: postgresError(error)?.message ?? "",
+      });
     if (sqlState === "23505")
       return reply.code(409).send({
         code: "DUPLICATE_VALUE",
