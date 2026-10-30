@@ -248,6 +248,17 @@ async function confirmVoid() {
             >
           </dd>
         </div>
+        <div v-if="voucher.lease_id">
+          <dt>الإيجار</dt>
+          <dd>
+            <router-link :to="`/leases/${voucher.lease_id}`"
+              ><bdi>{{ voucher.lease_code }}</bdi></router-link
+            >
+            <template v-if="voucher.lease_installment_seq">
+              · القسط {{ voucher.lease_installment_seq }}</template
+            >
+          </dd>
+        </div>
         <div v-if="voucher.reference">
           <dt>المرجع</dt>
           <dd>{{ voucher.reference }}</dd>

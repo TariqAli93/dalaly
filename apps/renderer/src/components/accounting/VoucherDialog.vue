@@ -31,7 +31,9 @@ import type {
  * البائع أو المؤجر أمانة). الأمانة تُحفظ لصاحبها (المالك أو البائع) لا لمن
  * دفعها، فإيجار المستأجر للمؤجر وعربون المشتري للبائع. الصرف بحدود رصيد
  * الصندوق أو المصرف، وتسليم الأمانة بحدود ما يُحفظ لصاحبها؛ يُظهر الحوار
- * الرصيدين ويفحصهما الخادم. السند لا يُعدَّل بعد إصداره، بل يُلغى ويُصدر غيره.
+ * الرصيدين ويفحصهما الخادم. سند الإيجار (قسطه أو تأمينه أو تسليمه) أمانة
+ * بعملة الإيجار، وتسليمه بحدود ما يحفظه الإيجار لصاحبها. السند لا يُعدَّل بعد
+ * إصداره، بل يُلغى ويُصدر غيره.
  */
 const open = defineModel<boolean>({ required: true });
 const props = defineProps<{
@@ -44,6 +46,11 @@ const props = defineProps<{
    * the deal whose client funds it moves.
    */
   allocationNote?: string | null;
+  /**
+   * What the lease of the preset holds for each of its two sides (person
+   * id to amount): a payout from it takes no more.
+   */
+  leaseHeld?: Record<number, string> | null;
 }>();
 const emit = defineEmits<{ saved: [VoucherDetail] }>();
 
@@ -117,11 +124,17 @@ const otherOptions = computed(() => {
       title: `${account.code} — ${account.name}`,
     }));
 });
-const heldHere = computed(
-  () =>
+const heldHere = computed(() => {
+  const all =
     held.value.find((row) => row.currency === form.value.currency)?.held ??
-    "0.00",
-);
+    "0.00";
+  const owner = fundsOwner.value;
+  const onLease = owner ? props.leaseHeld?.[owner] : undefined;
+  if (onLease === undefined) return all;
+  return (amountToMinor(onLease) ?? 0n) < (amountToMinor(all) ?? 0n)
+    ? onLease
+    : all;
+});
 // Expense payments name what they were for: the category picks the account.
 const categories = ref<ExpenseCategoryRecord[]>([]);
 const expensePayment = computed(
@@ -143,6 +156,14 @@ const allocated = computed(
     Boolean(props.preset?.commission_id) ||
     Boolean(props.preset?.commission_split_id),
 );
+/** A lease's client funds: in its currency, held for one of its sides. */
+const leaseBound = computed(
+  () =>
+    Boolean(props.preset?.lease_id) ||
+    Boolean(props.preset?.lease_installment_id),
+);
+/** An installment's rent is held for the landlord: the server sets it. */
+const rentReceipt = computed(() => Boolean(props.preset?.lease_installment_id));
 const clientFunds = computed(() => form.value.purpose === "client_funds");
 const clientFundsPayout = computed(
   () => props.kind === "payment" && clientFunds.value,
@@ -153,10 +174,16 @@ const fundsOwner = computed(
 );
 const heldForHint = computed(() =>
   props.kind === "receipt"
-    ? form.value.deal_id
-      ? "فارغ: البائع أو المؤجر في الصفقة."
-      : "فارغ: الدافع نفسه."
-    : "فارغ: المستلم نفسه. لإعادة عربون إلى المشتري اختر البائع.",
+    ? rentReceipt.value
+      ? "إيجار القسط يُحفظ للمؤجر."
+      : form.value.deal_id
+        ? "فارغ: البائع أو المؤجر في الصفقة."
+        : leaseBound.value
+          ? "فارغ: المؤجر في الإيجار."
+          : "فارغ: الدافع نفسه."
+    : leaseBound.value
+      ? "فارغ: المستلم نفسه، وهو أحد طرفي الإيجار."
+      : "فارغ: المستلم نفسه. لإعادة عربون إلى المشتري اختر البائع.",
 );
 
 /** What the typed amount exceeds, if anything, before the server says so. */
@@ -174,7 +201,9 @@ const overLimit = computed(() => {
     kept !== null &&
     amount > kept
   )
-    return `أكبر مما يُحفظ لصاحب الأمانة (${formatAmount(heldHere.value, form.value.currency)}).`;
+    return leaseBound.value
+      ? `أكبر مما يحفظه الإيجار لصاحب الأمانة (${formatAmount(heldHere.value, form.value.currency)}).`
+      : `أكبر مما يُحفظ لصاحب الأمانة (${formatAmount(heldHere.value, form.value.currency)}).`;
   return "";
 });
 
@@ -296,6 +325,8 @@ async function save() {
     expense_category_id: expensePayment.value
       ? form.value.expense_category_id
       : null,
+    lease_id: props.preset?.lease_id ?? null,
+    lease_installment_id: props.preset?.lease_installment_id ?? null,
   };
   try {
     const saved = await vouchersService.issueVoucher(payload);
@@ -358,7 +389,7 @@ function onKeydown(event: KeyboardEvent) {
               label="الغرض"
               :hint="purpose?.hint"
               persistent-hint
-              :disabled="allocated"
+              :disabled="allocated || leaseBound"
             />
             <v-text-field
               v-model="form.voucher_date"
@@ -370,7 +401,7 @@ function onKeydown(event: KeyboardEvent) {
               v-model="form.currency"
               :items="ACCOUNT_CURRENCIES"
               label="العملة"
-              :disabled="allocated"
+              :disabled="allocated || leaseBound"
             />
             <NumberField
               v-model="form.amount"
@@ -416,6 +447,7 @@ function onKeydown(event: KeyboardEvent) {
                 label="الأمانة لحساب"
                 :hint="heldForHint"
                 persistent-hint
+                :disabled="rentReceipt"
                 clearable
                 :error-messages="fieldErrors.held_for_person_id"
               />
@@ -425,7 +457,11 @@ function onKeydown(event: KeyboardEvent) {
                 variant="tonal"
                 density="compact"
               >
-                المحتفظ به لصاحب الأمانة:
+                {{
+                  leaseBound
+                    ? "يحفظه الإيجار لصاحب الأمانة:"
+                    : "المحتفظ به لصاحب الأمانة:"
+                }}
                 <bdi>{{ formatAmount(heldHere, form.currency) }}</bdi>
               </v-alert>
             </template>

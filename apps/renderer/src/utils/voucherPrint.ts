@@ -44,6 +44,11 @@ export async function voucherHtml(voucher: VoucherDetail) {
       ? `أمانة لحساب ${escapeHtml(voucher.held_for_name)}`
       : "",
     voucher.deal_code ? `الصفقة ${escapeHtml(voucher.deal_code)}` : "",
+    voucher.lease_code
+      ? voucher.lease_installment_seq
+        ? `القسط ${voucher.lease_installment_seq} من الإيجار ${escapeHtml(voucher.lease_code)}`
+        : `الإيجار ${escapeHtml(voucher.lease_code)}`
+      : "",
     voucher.reference ? `المرجع ${escapeHtml(voucher.reference)}` : "",
   ]
     .filter(Boolean)

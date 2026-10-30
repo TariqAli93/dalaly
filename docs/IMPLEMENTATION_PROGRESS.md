@@ -34,8 +34,8 @@ Do not rely on this file alone.
 | 4f — financial integration UI | `feat/phase-04f-financial-ui` | [#47](https://github.com/TariqAli93/dalaly/pull/47), merged `391845a` | renderer checks; `test:contract` 135; web demo; CI pass | Completed |
 | 5a — leases (server) | `feat/phase-05a-leases` | [#48](https://github.com/TariqAli93/dalaly/pull/48), merged `06d5b9f` | `test:leases` 9/9, lease rules 7/7, `test:contract` 142, backup round trip 46 tables; affected suites; CI pass | Completed |
 | 5a — leases UI | `feat/phase-05a-leases-ui` | [#49](https://github.com/TariqAli93/dalaly/pull/49), merged `5381863` | renderer checks; `test:contract` 142; web demo; CI pass | Completed |
-| 5b — lease payments (server) | `feat/phase-05b-lease-payments` | — | `test:lease-payments` 11/11, lease rules 9/9, `test:contract` 145; affected suites | In review |
-| 5b — lease payments UI | — | — | — | Pending |
+| 5b — lease payments (server) | `feat/phase-05b-lease-payments` | [#50](https://github.com/TariqAli93/dalaly/pull/50), merged `10c00f1` | `test:lease-payments` 11/11, lease rules 9/9, `test:contract` 145; affected suites; CI pass | Completed |
+| 5b — lease payments UI | `feat/phase-05b-lease-payments-ui` | — | renderer checks; `test:contract` 145; web demo | In review |
 | 6a — financial reports | `feat/phase-06a-financial-reports` | — | — | Pending |
 | 6b — operational reports | `feat/phase-06b-operational-reports` | — | — | Pending |
 | 7a — navigation | `feat/phase-07a-navigation` | — | — | Pending |
@@ -824,6 +824,63 @@ below.
   - permissions;
   - a full restore.
   Lease rules: 9 unit tests. `test:contract` 145.
+
+### 5b — lease payments UI
+
+- The lease page has a money section (`LeaseMoney.vue`):
+  - the rent due so far, collected and in arrears, with the overdue count;
+  - what it holds for the landlord and the deposit held for the tenant;
+  - the lease's latest vouchers;
+  - buttons to collect the oldest installment owed, take the deposit, hand
+    the rent to the landlord and return the deposit.
+- The schedule shows each installment's paid amount, what is left and its
+  state. Each installment still owed has a «تحصيل» button: a receipt for
+  what is left, from the tenant, held for the landlord.
+- The voucher dialog carries `lease_id` and `lease_installment_id`:
+  - it locks the purpose (client funds) and the currency;
+  - it locks the fund owner on rent;
+  - a payout's limit is the lower of what the lease holds for that person
+    and what the office holds for them.
+  The voucher page and its print name the lease and the installment.
+- «إنهاء مبكر» (`LeaseTerminateDialog.vue`):
+  - it shows which installments the date releases, the arrears that stay,
+    and the deposit to return;
+  - it refuses a date after which an installment was paid.
+- «تجديد» (`LeaseRenewDialog.vue`):
+  - it starts the day after the old lease ends, defaulting to the same
+    terms for a year;
+  - it previews the new schedule, then opens the new lease;
+  - it says the old lease's deposit stays held on it.
+  Each lease of a renewal chain lists the chain with each link's state.
+- The leases list has two tabs:
+  - its leases, with an arrears column;
+  - «الأقساط المتأخرة» (`?view=overdue`, `OverdueInstallments.vue`), with a
+    count on the tab.
+  Each overdue row can be collected, or followed up. A follow-up is a call
+  task on the tenant, dated tomorrow 10:00, with the installment and amount
+  in its notes; it is listed with the tasks. A customer's and a listing's
+  lease lists show arrears too.
+- Fixed: the lease page's next due date was wrapped in `<bdi>`, which
+  scrambled the right-to-left marks the Arabic date format adds.
+- Web demo (`pnpm demo:reset`):
+  - `LS-000001`: monthly 850,000 from 1/7/2026 with the office collecting.
+    Partly collecting installment 1 (500,000) left 350,000 on it. Arrears
+    went from 3,400,000 to 2,900,000, and the lease held 500,000 for the
+    landlord.
+  - The payout dialog offered those 500,000 with the lease limit, and
+    handing them over left 0 held.
+  - The termination preview for 31/10 released 8 installments (6,800,000)
+    and kept 2,900,000 in arrears; it was not confirmed.
+  - Renewing at 900,000 opened `LS-000003` from 1/7/2027, with the chain
+    showing `LS-000001` renewed and `LS-000003` not started.
+  - `LS-000002`, USD quarterly for 2026, was ended on 31/10: nothing
+    released, 4,800 in arrears still collectible.
+  - The overdue tab listed 8 installments oldest first, including the
+    renewed lease's. A follow-up from it saved an open, high-priority call
+    task on the tenant.
+  - At 1024 px (the window's minimum) nothing scrolls sideways. At 375 px
+    the web demo's command bar is wider than the screen on any page with a
+    parent link, as on the deal page; that is the shell, not this page.
 
 
 ## Database migrations

@@ -8,7 +8,8 @@ import type { LeaseFilters, LeaseRecord } from "../../types";
 
 /**
  * إيجارات عرض أو زبون، الأحدث أولاً: كل منها بطرفه الآخر وبدله ومدته
- * وحالته. يُستعمل في صفحة عرض الإيجار وفي ملف الزبون.
+ * وحالته، والمتأخر عليه إن كان المكتب يقبض إيجاره. يُستعمل في صفحة عرض
+ * الإيجار وفي ملف الزبون.
  */
 const props = defineProps<{
   filters: Pick<LeaseFilters, "person_id" | "rental_id">;
@@ -44,6 +45,9 @@ watch(() => [props.filters.person_id, props.filters.rental_id], load, {
 });
 defineExpose({ reload: load, total });
 
+const owed = (lease: LeaseRecord) =>
+  lease.office_collects && !/^-?0(\.0+)?$/.test(lease.outstanding);
+
 /** The other side, as the customer's page reads it. */
 function otherSide(lease: LeaseRecord) {
   if (props.personId === lease.landlord_person_id)
@@ -78,6 +82,10 @@ function otherSide(lease: LeaseRecord) {
           >{{ formatAmount(lease.rent_amount, lease.currency) }}
           {{ leasePerPeriod(lease.frequency) }}</bdi
         >
+        <span v-if="owed(lease)" class="lease-list__owed text-error"
+          >متأخر
+          <bdi>{{ formatAmount(lease.outstanding, lease.currency) }}</bdi></span
+        >
         <v-chip
           size="x-small"
           variant="tonal"
@@ -110,7 +118,8 @@ function otherSide(lease: LeaseRecord) {
   min-width: 8rem;
 }
 .lease-list__dates,
-.lease-list__amount {
+.lease-list__amount,
+.lease-list__owed {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
