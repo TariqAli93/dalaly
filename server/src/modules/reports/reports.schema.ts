@@ -1,21 +1,18 @@
 import { z } from "zod";
 import { CURRENCIES } from "../../shared/money.js";
-import { optionalId } from "../../shared/validation/fields.js";
+import { isoDate, optionalId } from "../../shared/validation/fields.js";
 
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "التاريخ بصيغة YYYY-MM-DD.")
-  .refine(
-    (value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)),
-    "تاريخ غير صحيح.",
-  );
+const reportDate = isoDate.refine(
+  (value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)),
+  "تاريخ غير صحيح.",
+);
 
 const currency = z.enum(CURRENCIES).optional();
 
 /** A period: from `from` to `to`, both included (defaults: the year to date). */
 const periodFields = {
-  from: isoDate.optional(),
-  to: isoDate.optional(),
+  from: reportDate.optional(),
+  to: reportDate.optional(),
   currency,
 };
 const orderedPeriod = (value: { from?: string; to?: string }) =>
@@ -47,8 +44,8 @@ export type CommissionsReportQuery = z.infer<
 // ─── Operational reports ───────────────────────────────────────────────
 
 const periodOnly = {
-  from: isoDate.optional(),
-  to: isoDate.optional(),
+  from: reportDate.optional(),
+  to: reportDate.optional(),
 };
 
 /** Deals in a period: one employee's (assigned to them), one kind. */
@@ -88,7 +85,7 @@ export type LeasesReportQuery = z.infer<typeof leasesReportQuerySchema>;
 
 /** A position on a day (defaults to the office's today). */
 export const asOfQuerySchema = z.object({
-  as_of: isoDate.optional(),
+  as_of: reportDate.optional(),
   currency,
 });
 export type AsOfQuery = z.infer<typeof asOfQuerySchema>;

@@ -1,11 +1,11 @@
 import { z } from "zod";
 import { CURRENCIES, moneyField, parseMoney } from "../../shared/money.js";
-import { optionalId, optionalText } from "../../shared/validation/fields.js";
+import {
+  isoDate,
+  optionalId,
+  optionalText,
+} from "../../shared/validation/fields.js";
 import { pageFields } from "../../shared/validation/paging.js";
-
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "التاريخ بصيغة YYYY-MM-DD.");
 
 export const transferPayloadSchema = z.object({
   transfer_date: isoDate,
