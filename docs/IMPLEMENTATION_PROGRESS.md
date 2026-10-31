@@ -52,8 +52,9 @@ Do not rely on this file alone.
 | 8g — untrack local tool state       | `chore/phase-08g-untrack-tool-state`    | [#65](https://github.com/TariqAli93/dalaly/pull/65), merged `e10fd79` | `git check-ignore` for both files; no code change; CI pass                                                            | Completed |
 | 8h — unused capture flags           | `refactor/phase-08h-capture-flags`      | [#66](https://github.com/TariqAli93/dalaly/pull/66), merged `f715a6d` | lint, typecheck, build; unit 122; web demo restarted and checked; CI pass                                             | Completed |
 | 8i — perf harnesses                 | `fix/phase-08i-tables-harness`          | [#67](https://github.com/TariqAli93/dalaly/pull/67), merged `dd56abc` | `tables.mjs` and the startup pass run to the end on the 28 Oct build; CI pass                                         | Completed |
-| 8j — close Phase 8 (docs)           | `docs/phase-08j-close`                  | —                                                                     | docs only                                                                                                             | In review |
-| 9 — final verification              | `test/phase-09-*`                       | —                                                                     | —                                                                                                                     | Pending   |
+| 8j — close Phase 8 (docs)           | `docs/phase-08j-close`                  | [#68](https://github.com/TariqAli93/dalaly/pull/68), merged `da90ec4` | docs only; CI pass                                                                                                    | Completed |
+| 9a — end-to-end workflows           | `test/phase-09a-workflows`              | —                                                                     | `test:workflows` 20/20 (sale 11, rental 7, 2 tests)                                                                   | In review |
+| 9b — release checks                 | `test/phase-09b-*`                      | —                                                                     | —                                                                                                                     | Pending   |
 
 ## Baseline evidence (Phase 0, `main` at `3e01f9f`)
 
@@ -1402,6 +1403,52 @@ Not done in Phase 8, with the reason:
 - `UI_REDESIGN.md` and `UI_ENHANCEMENTS.md` now say they are history (8j).
   `MAPS.md` matches the code and `AUDIT_AND_ROADMAP.md` is kept current,
   so both stay as they are.
+
+### 9a — end-to-end workflows
+
+`server/scripts/workflows.test.ts` (`test:workflows`, in CI's `database`
+job) drives both core workflows through the API, each on its own
+database, and checks the money and the state at every step.
+
+- **Sale.** In order:
+  1. A customer and their purchase request, matched to the listing.
+  2. A deal on it, which takes the owner and the price.
+  3. The deal goes through every stage. An offer, a counter-offer and
+     its acceptance agree 145,000,000.
+  4. The sale contract is prepared from the deal. Issuing it is refused
+     until the buyer has a national ID and an address (422
+     `AGREEMENT_INCOMPLETE`); then it is issued.
+  5. The deal is won.
+  6. Commissions: the buyer's 2% (2,900,000), with an employee's 25%
+     share, and the seller's fixed 1,000,000.
+  7. Receipts collect 3,300,000. Collecting 1,000,000.01 or paying out
+     725,000.01 is refused. The share is paid.
+  8. The deal's money and each customer's money agree.
+  9. Revenue is 3,900,000 of brokerage income, never the sale price, and
+     it equals the commissions report. Every posted entry and the trial
+     balance balance. Cash flow and receivables agree, and so does the
+     dashboard's money.
+- **Rental.** In order:
+  1. A tenant's rental request and a rent deal at 750,000.
+  2. The lease contract is prepared from the deal and issued. A lease
+     cannot be previewed before the contract is issued.
+  3. The lease is put in force with its 12 installments (9,000,000). The
+     listing becomes rented, and the deal is won.
+  4. A 375,000 commission is recorded.
+  5. One installment's rent is received, held for the landlord, and so
+     is the deposit, held for the tenant.
+  6. The landlord is paid out what is held for them; 0.01 more is
+     refused.
+  7. Rent held for the landlord never shows as income, and client funds
+     are −750,000 in the trial balance.
+  8. Payables show the deposit, and receivables the commission.
+  9. The leases report agrees: in force, expiring, due, overdue,
+     brokerage. So do the dashboard's overdue count and its alert.
+- Dates are relative to the office's today, so the suite runs on any
+  date. Two things are done in SQL:
+  - the fixture listing's plot fields, as in `deals.test.ts`;
+  - a read-only check that every posted journal entry balances.
+- No product gap was found: every step the workflows need is in the API.
 
 ## Database migrations
 
