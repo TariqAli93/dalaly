@@ -10,6 +10,7 @@ import { fontFacesFor, officeLogoDataUrl } from "./contractExport";
 import { formatAmount, formatDate, formatDateTime } from "./format";
 import { signedAmountToMinor } from "./money";
 import type { Currency } from "../types";
+import { escapeHtml } from "./html";
 
 export type ReportCell = string | number | null;
 /** percent: a share already in percent (33.3), shown «33.3%». */
@@ -105,15 +106,6 @@ export function compareCells(a: ReportCell, b: ReportCell, kind?: string) {
     return Number(a ?? -Infinity) - Number(b ?? -Infinity) || 0;
   return String(a ?? "").localeCompare(String(b ?? ""), "ar");
 }
-
-const escapeHtml = (value: string) =>
-  value.replace(
-    /[&<>"']/g,
-    (char) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
-        char
-      ]!,
-  );
 
 /** The printable page: A4 landscape, the office's header, every table. */
 export async function reportHtml(report: ReportDocument) {

@@ -5,6 +5,7 @@ import { getErrorMessage } from "../../services/api.service";
 import { leasePerPeriod, leaseStateOf } from "../../constants/leases";
 import { formatAmount, formatDate } from "../../utils/format";
 import type { LeaseFilters, LeaseRecord } from "../../types";
+import { isZeroAmount } from "../../utils/money";
 
 /**
  * إيجارات عرض أو زبون، الأحدث أولاً: كل منها بطرفه الآخر وبدله ومدته
@@ -46,7 +47,7 @@ watch(() => [props.filters.person_id, props.filters.rental_id], load, {
 defineExpose({ reload: load, total });
 
 const owed = (lease: LeaseRecord) =>
-  lease.office_collects && !/^-?0(\.0+)?$/.test(lease.outstanding);
+  lease.office_collects && !isZeroAmount(lease.outstanding);
 
 /** The other side, as the customer's page reads it. */
 function otherSide(lease: LeaseRecord) {

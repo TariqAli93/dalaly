@@ -3,6 +3,7 @@ import { platform } from "../platform";
 import { downloadBlob } from "../platform/web";
 import { formatMoney, formatPlot } from "./format";
 import type { PropertyRecord } from "../types";
+import { escapeHtml } from "./html";
 
 function line(label: string, value: unknown) {
   if (value === null || value === undefined || value === "") return "";
@@ -115,13 +116,6 @@ function buildHtmlDocument(title: string, bodyText: string) {
     .row{font-size:15px;padding:4px 0;border-bottom:1px solid #eee}
     @media print{body{padding:12px}}
   </style></head><body><h1>${escapeHtml(title)}</h1>${rows}</body></html>`;
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
 }
 
 /**

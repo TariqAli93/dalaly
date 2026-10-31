@@ -6,7 +6,7 @@
 import { AGING_LABELS, payerRoleLabel } from "../constants/reports";
 import { dealTypeLabel } from "../constants/deals";
 import { formatDate } from "./format";
-import { minorToAmount, signedAmountToMinor } from "./money";
+import { isZeroAmount, minorToAmount, signedAmountToMinor } from "./money";
 import type {
   AccountStatement,
   BalanceSheetReport,
@@ -56,7 +56,6 @@ export const monthLabel = (month: string) =>
 const periodText = (from: string, to: string) =>
   `من ${formatDate(from)} إلى ${formatDate(to)}`;
 const dayText = (day: string) => `في ${formatDate(day)}`;
-const isZero = (value: string) => /^-?0(\.0+)?$/.test(value);
 const negative = (value: string) => value.startsWith("-");
 
 function personLink(links: ReportLinks, id: number | null) {
@@ -435,7 +434,7 @@ export function commissionsDocument(
         {
           label: "المتبقي على الزبائن",
           value: section.totals.outstanding,
-          tone: isZero(section.totals.outstanding) ? undefined : "warn",
+          tone: isZeroAmount(section.totals.outstanding) ? undefined : "warn",
         },
         { label: "حصص الموظفين", value: section.totals.shares },
         { label: "المدفوع من الحصص", value: section.totals.shares_paid },
@@ -556,7 +555,7 @@ export function receivablesDocument(
             label: AGING_LABELS[key],
             value: section.totals[key],
             tone:
-              key === "over_90" && !isZero(section.totals[key])
+              key === "over_90" && !isZeroAmount(section.totals[key])
                 ? ("bad" as const)
                 : undefined,
           }),
@@ -738,8 +737,8 @@ export function ledgerDocument(
                 description: line.memo
                   ? `${line.description} — ${line.memo}`
                   : line.description,
-                debit: isZero(line.debit) ? null : line.debit,
-                credit: isZero(line.credit) ? null : line.credit,
+                debit: isZeroAmount(line.debit) ? null : line.debit,
+                credit: isZeroAmount(line.credit) ? null : line.credit,
                 balance: line.balance,
               },
               links: links.can("accounting.read")

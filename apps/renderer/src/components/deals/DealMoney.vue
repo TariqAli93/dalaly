@@ -20,6 +20,7 @@ import type {
   VoucherPayload,
   VoucherRecord,
 } from "../../types";
+import { isZeroAmount } from "../../utils/money";
 
 /**
  * مال الصفقة من القيود المرحَّلة: عمولة المكتب وما حُصِّل منها، والأمانات
@@ -62,7 +63,6 @@ defineExpose({ reload: load });
 
 const parties = computed(() => dealPartyLabels(props.deal.deal_type));
 const open = computed(() => !["lost", "cancelled"].includes(props.deal.stage));
-const zero = (value: string) => /^-?0(\.0+)?$/.test(value);
 const heldIn = computed(
   () =>
     finance.value?.totals.find((row) => row.currency === props.deal.currency)
@@ -74,7 +74,11 @@ const contractGap = computed(() => {
   const totals = finance.value?.totals.find(
     (row) => row.currency === contract?.currency,
   );
-  if (!contract?.commission || !totals || zero(totals.commission_recorded))
+  if (
+    !contract?.commission ||
+    !totals ||
+    isZeroAmount(totals.commission_recorded)
+  )
     return false;
   return contract.commission !== totals.commission_recorded;
 });
@@ -108,7 +112,7 @@ function handOver() {
     person_id: props.deal.owner_person_id,
     held_for_person_id: props.deal.owner_person_id,
     deal_id: props.deal.id,
-    amount: zero(heldIn.value) ? "" : heldIn.value,
+    amount: isZeroAmount(heldIn.value) ? "" : heldIn.value,
     description: `تسليم أمانة الصفقة ${props.deal.code}`,
   };
   note.value = `من أمانة ${ownerName.value} على الصفقة ${props.deal.code}؛ المحتفظ به ${formatAmount(heldIn.value, props.deal.currency)}. لإعادة عربون إلى ${parties.value.client} اختره مستلماً.`;
@@ -145,7 +149,7 @@ function onIssued(voucher: VoucherDetail) {
         >قبض أمانة</v-btn
       >
       <v-btn
-        v-if="can('vouchers.payment') && !zero(heldIn)"
+        v-if="can('vouchers.payment') && !isZeroAmount(heldIn)"
         variant="text"
         size="small"
         prepend-icon="mdi-cash-fast"
@@ -196,7 +200,7 @@ function onIssued(voucher: VoucherDetail) {
             <dt>المتبقي على الزبون</dt>
             <dd
               :class="{
-                'text-warning': !zero(totals.commission_outstanding),
+                'text-warning': !isZeroAmount(totals.commission_outstanding),
               }"
             >
               <bdi>{{
@@ -210,7 +214,7 @@ function onIssued(voucher: VoucherDetail) {
               >
             </dd>
           </div>
-          <div v-if="!zero(totals.shares_owed)">
+          <div v-if="!isZeroAmount(totals.shares_owed)">
             <dt>حصص الموظفين</dt>
             <dd>
               <bdi>{{ formatAmount(totals.shares_owed, totals.currency) }}</bdi>
@@ -246,7 +250,7 @@ function onIssued(voucher: VoucherDetail) {
               :class="{
                 'text-error': totals.net.startsWith('-'),
                 'text-success':
-                  !totals.net.startsWith('-') && !zero(totals.net),
+                  !totals.net.startsWith('-') && !isZeroAmount(totals.net),
               }"
             >
               <bdi>{{ formatAmount(totals.net, totals.currency) }}</bdi>

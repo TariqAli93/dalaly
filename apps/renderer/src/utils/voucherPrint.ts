@@ -10,15 +10,7 @@ import { voucherKindLabel, voucherPurposeLabel } from "../constants/accounting";
 import { fontFacesFor, officeLogoDataUrl } from "./contractExport";
 import { formatAmount, formatDate } from "./format";
 import type { VoucherDetail } from "../types";
-
-const escapeHtml = (value: string | null | undefined) =>
-  (value ?? "").replace(
-    /[&<>"']/g,
-    (char) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
-        char
-      ]!,
-  );
+import { escapeHtml } from "./html";
 
 export async function voucherHtml(voucher: VoucherDetail) {
   const [faces, logo] = await Promise.all([

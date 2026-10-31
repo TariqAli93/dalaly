@@ -30,6 +30,7 @@ import type {
   LeaseState,
   ListSortOption,
 } from "../types";
+import { isZeroAmount } from "../utils/money";
 
 /**
  * الإيجارات السارية: كل إيجار بمستأجره ومؤجره وعرضه، وبدله لكل فترة،
@@ -134,7 +135,6 @@ function onCreated(lease: LeaseDetail) {
   void router.push(`/leases/${lease.id}`);
 }
 
-const zero = (value: string) => /^-?0(\.0+)?$/.test(value);
 function onCollected() {
   void countOverdue();
   void list.reload();
@@ -272,7 +272,7 @@ onMounted(() => {
         </template>
         <template #item.outstanding="{ item }">
           <span
-            v-if="item.office_collects && !zero(item.outstanding)"
+            v-if="item.office_collects && !isZeroAmount(item.outstanding)"
             class="lease-amount text-error"
             ><bdi>{{
               formatAmount(item.outstanding, item.currency)

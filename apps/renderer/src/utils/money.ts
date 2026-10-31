@@ -64,3 +64,8 @@ export function percentOfAmount(
   const denominator = 100n * 10_000n;
   return (minor * units + denominator / 2n) / denominator;
 }
+
+/** An amount the API sends as zero: "0", "0.00" or "-0.00". */
+export function isZeroAmount(value: string) {
+  return /^-?0(\.0+)?$/.test(value);
+}

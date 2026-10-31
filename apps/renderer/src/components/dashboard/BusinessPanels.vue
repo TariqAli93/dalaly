@@ -12,6 +12,7 @@ import {
   pluralizeDays,
 } from "../../utils/format";
 import type { BusinessSummary } from "../../types";
+import { isZeroAmount } from "../../utils/money";
 
 /**
  * ما يحتاج انتباهاً اليوم، من /dashboard/business: المهام (المتأخرة واليوم
@@ -41,7 +42,6 @@ const any = computed(
     money.value,
 );
 const reports = computed(() => can("reports.operations"));
-const isZero = (value: string) => /^-?0(\.0+)?$/.test(value);
 
 /** The overdue first, then today's, up to five. */
 const taskRows = computed(() => {
@@ -382,7 +382,11 @@ const monthLink = computed(() =>
               >عمولات لم تُحصَّل ({{ row.commissions_open }})</template
             >
           </dt>
-          <dd :class="{ 'text-warning': !isZero(row.commissions_outstanding) }">
+          <dd
+            :class="{
+              'text-warning': !isZeroAmount(row.commissions_outstanding),
+            }"
+          >
             <bdi>{{
               formatAmount(row.commissions_outstanding, row.currency)
             }}</bdi>

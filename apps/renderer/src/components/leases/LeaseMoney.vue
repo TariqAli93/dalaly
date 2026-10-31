@@ -22,6 +22,7 @@ import type {
   VoucherDetail,
   VoucherRecord,
 } from "../../types";
+import { isZeroAmount } from "../../utils/money";
 
 /**
  * مال الإيجار: ما استُحق منه حتى اليوم وما حُصِّل والمتأخر، وما يحفظه المكتب
@@ -57,7 +58,6 @@ async function loadVouchers() {
 }
 watch(() => props.lease.id, loadVouchers, { immediate: true });
 
-const zero = (value: string) => /^-?0(\.0+)?$/.test(value);
 const money = (value: string) => formatAmount(value, props.lease.currency);
 const live = computed(() => props.lease.status !== "cancelled");
 const collects = computed(() => props.lease.office_collects && live.value);
@@ -118,7 +118,7 @@ defineExpose({ collect, reload: loadVouchers });
         >قبض التأمين</v-btn
       >
       <v-btn
-        v-if="!zero(lease.held_for_landlord) && can('vouchers.payment')"
+        v-if="!isZeroAmount(lease.held_for_landlord) && can('vouchers.payment')"
         variant="text"
         size="small"
         prepend-icon="mdi-cash-fast"
@@ -128,7 +128,7 @@ defineExpose({ collect, reload: loadVouchers });
         >تسليم للمؤجر</v-btn
       >
       <v-btn
-        v-if="!zero(lease.deposit_held) && can('vouchers.payment')"
+        v-if="!isZeroAmount(lease.deposit_held) && can('vouchers.payment')"
         variant="text"
         size="small"
         prepend-icon="mdi-shield-refresh-outline"
@@ -150,7 +150,7 @@ defineExpose({ collect, reload: loadVouchers });
         </div>
         <div>
           <dt>المتأخر على المستأجر</dt>
-          <dd :class="{ 'text-error': !zero(lease.outstanding) }">
+          <dd :class="{ 'text-error': !isZeroAmount(lease.outstanding) }">
             <bdi>{{ money(lease.outstanding) }}</bdi>
             <small v-if="lease.overdue_count">{{
               lease.overdue_count === 1
