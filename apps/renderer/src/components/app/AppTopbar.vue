@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuth } from "../../composables/useAuth";
 import { usePageTitle } from "../../composables/usePageTitle";
@@ -28,6 +28,37 @@ async function onLogout() {
   await logout();
   void router.push("/login");
 }
+
+// في شريط ضيّق تُطوى أوامر الصفحة الثانوية إلى أيقونات (styles.css)، فننسخ
+// نص كل زر إلى title ليبقى اسمه ظاهراً عند المرور. عرض فقط: لا يمسّ ما
+// تفعله الأزرار، ولا يغيّر title وضعته الصفحة بنفسها.
+const actionsRef = ref<HTMLElement | null>(null);
+let actionTitles: MutationObserver | undefined;
+function mirrorActionTitles() {
+  const buttons = actionsRef.value?.querySelectorAll<HTMLElement>(".v-btn");
+  for (const button of buttons ?? []) {
+    const text = button
+      .querySelector(".v-btn__content")
+      ?.textContent?.replace(/\s+/g, " ")
+      .trim();
+    if (!text || (button.title && button.dataset.dalTitle !== "auto")) {
+      continue;
+    }
+    button.title = text;
+    button.dataset.dalTitle = "auto";
+  }
+}
+onMounted(() => {
+  if (!actionsRef.value) return;
+  mirrorActionTitles();
+  actionTitles = new MutationObserver(mirrorActionTitles);
+  actionTitles.observe(actionsRef.value, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+  });
+});
+onBeforeUnmount(() => actionTitles?.disconnect());
 </script>
 
 <template>
@@ -51,11 +82,13 @@ async function onLogout() {
         <v-icon
           icon="mdi-chevron-left"
           size="16"
-          class="text-medium-emphasis"
+          class="dal-commandbar__sep text-medium-emphasis"
           aria-hidden="true"
         />
       </template>
-      <h1 id="dal-page-title" tabindex="-1">{{ pageTitle ?? "دلالي" }}</h1>
+      <h1 id="dal-page-title" tabindex="-1" :title="pageTitle ?? undefined">
+        {{ pageTitle ?? "دلالي" }}
+      </h1>
       <span
         v-if="pageCount !== null"
         class="dal-count"
@@ -65,7 +98,11 @@ async function onLogout() {
       <div id="dal-page-status" class="dal-commandbar__status" />
     </div>
 
-    <div id="dal-page-actions" class="dal-commandbar__actions" />
+    <div
+      id="dal-page-actions"
+      ref="actionsRef"
+      class="dal-commandbar__actions"
+    />
 
     <v-spacer />
 
@@ -89,6 +126,7 @@ async function onLogout() {
           class="dal-profile-button"
           variant="text"
           :aria-label="`حساب المستخدم: ${displayName}`"
+          :title="displayName"
         >
           <v-avatar color="primary" variant="tonal" size="26">
             <span>{{ userName.slice(0, 1) }}</span>
@@ -127,6 +165,7 @@ async function onLogout() {
 
 <style scoped>
 .dal-profile-button {
+  min-width: 0;
   padding-inline: 6px;
 }
 .dal-profile-button :deep(.v-btn__content) {
@@ -138,7 +177,8 @@ async function onLogout() {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-@media (max-width: 1100px) {
+/* الاسم أول ما يُترك حين يضيق الشريط (يبقى في تلميح الزر وقائمته). */
+@container dal-commandbar (max-width: 1199px) {
   .dal-profile-name {
     display: none;
   }
