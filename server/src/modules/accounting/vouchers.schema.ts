@@ -1,16 +1,16 @@
 import { z } from "zod";
 import { CURRENCIES, moneyField } from "../../shared/money.js";
-import { optionalId, optionalText } from "../../shared/validation/fields.js";
+import {
+  isoDate,
+  optionalId,
+  optionalText,
+} from "../../shared/validation/fields.js";
 import { pageFields } from "../../shared/validation/paging.js";
 import {
   PAYMENT_PURPOSES,
   RECEIPT_PURPOSES,
   VOUCHER_KINDS,
 } from "./vouchers.rules.js";
-
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "التاريخ بصيغة YYYY-MM-DD.");
 
 export const VOUCHER_PURPOSES = [
   ...new Set([

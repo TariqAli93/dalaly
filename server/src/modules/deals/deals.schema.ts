@@ -4,15 +4,17 @@ import {
   moneyField,
   optionalMoneyField,
 } from "../../shared/money.js";
-import { optionalId, optionalText } from "../../shared/validation/fields.js";
+import {
+  isoDate,
+  optionalId,
+  optionalText,
+} from "../../shared/validation/fields.js";
 import { pageFields } from "../../shared/validation/paging.js";
 import { TASK_PRIORITIES } from "../tasks/tasks.schema.js";
 import { DEAL_STAGES } from "./deals.rules.js";
 import { TEMPLATE_KEYS } from "../../shared/contract-document/index.js";
 
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "التاريخ بصيغة YYYY-MM-DD.")
+const closeDate = isoDate
   .nullable()
   .optional()
   .or(z.literal("").transform(() => null));
@@ -36,7 +38,7 @@ export const dealPayloadSchema = z.object({
   asking_price: optionalMoneyField,
   agreed_price: optionalMoneyField,
   expected_commission: optionalMoneyField,
-  expected_close_date: isoDate,
+  expected_close_date: closeDate,
   notes: optionalText,
 });
 
