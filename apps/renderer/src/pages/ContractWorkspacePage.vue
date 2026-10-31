@@ -1108,10 +1108,18 @@ watch(template, () => step.value === "content" && void loadReference());
 </template>
 
 <style scoped>
+/* القوالب أربعة دائماً، بيعان ثم إيجاران: عمودان يجعلان كل صفّ نوعاً، بدل
+   ثلاثة وقالب وحيد في الصف الثاني. */
 .chooser {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--dal-gutter);
+  max-width: 1100px;
+}
+@media (max-width: 760px) {
+  .chooser {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .chooser__item {
   display: flex;
@@ -1139,7 +1147,7 @@ watch(template, () => step.value === "content" && void loadReference());
 }
 .chooser__text small {
   color: var(--dal-muted);
-  font-size: 12.5px;
+  font-size: calc(12px * var(--dal-font-scale));
 }
 .steps {
   display: flex;

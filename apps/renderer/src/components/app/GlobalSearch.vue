@@ -396,12 +396,18 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .dal-omnibox {
+  /* يتقلّص قبل عنوان الصفحة حين تكثر أوامرها (أضعاف معامل العنوان)، فيُخفي
+     تلميح Ctrl+K ثم نصه، ولا يتراكب شيء في الشريط. */
+  container: dal-omnibox / inline-size;
   display: flex;
+  flex: 0 8 260px;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  width: 260px;
+  min-width: 32px;
   height: 32px;
-  padding-inline: 10px 6px;
+  padding-inline: 8px 6px;
+  overflow: hidden;
   border: 1px solid var(--dal-stroke);
   border-radius: var(--dal-radius-control);
   background: var(--dal-surface);
@@ -413,9 +419,19 @@ onBeforeUnmount(() => {
 .dal-omnibox:hover {
   border-color: rgba(var(--v-theme-on-surface), 0.5);
 }
+.dal-omnibox > .v-icon {
+  flex: none;
+}
 .dal-omnibox__label {
   flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
   text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dal-omnibox__kbd {
+  flex: none;
 }
 .dal-omnibox__kbd,
 .dal-palette__keys kbd {
@@ -427,11 +443,21 @@ onBeforeUnmount(() => {
   direction: ltr;
   unicode-bidi: isolate;
 }
-@media (max-width: 1279px) {
+@container dal-omnibox (max-width: 170px) {
+  .dal-omnibox__kbd {
+    display: none;
+  }
+}
+@container dal-omnibox (max-width: 72px) {
+  .dal-omnibox__label {
+    display: none;
+  }
+}
+/* شريط ضيّق: زر بحث بأيقونة فقط، والاختصار Ctrl+K يعمل كما هو. */
+@container dal-commandbar (max-width: 999px) {
   .dal-omnibox {
-    width: 32px;
+    flex-basis: 32px;
     padding: 0;
-    justify-content: center;
   }
   .dal-omnibox__label,
   .dal-omnibox__kbd {

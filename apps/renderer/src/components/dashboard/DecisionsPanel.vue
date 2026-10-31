@@ -196,7 +196,7 @@ function isToday(value: string) {
                       ? "اليوم"
                       : formatShortDate(item.scheduled_at)
                   }}
-                  <bdi>{{ formatTime(item.scheduled_at) }}</bdi>
+                  <bdi dir="rtl">{{ formatTime(item.scheduled_at) }}</bdi>
                 </span>
               </span>
               <span class="decision__line">

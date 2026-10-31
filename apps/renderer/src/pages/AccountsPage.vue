@@ -141,160 +141,170 @@ onMounted(() => {
       >
     </template>
 
-    <div class="accounts-toolbar">
-      <v-text-field
-        v-model="search"
-        density="compact"
-        variant="outlined"
-        hide-details
-        clearable
-        prepend-inner-icon="mdi-magnify"
-        placeholder="ابحث برمز الحساب أو اسمه"
-        aria-label="بحث في الحسابات"
-        class="accounts-toolbar__search"
-      />
-      <v-btn-toggle
-        v-model="currency"
-        density="compact"
-        variant="outlined"
-        divided
-        aria-label="العملة"
-      >
-        <v-btn :value="null">العملتان</v-btn>
-        <v-btn
-          v-for="option in ACCOUNT_CURRENCIES"
-          :key="option.value"
-          :value="option.value"
-          >{{ option.title }}</v-btn
+    <section class="dal-panel" aria-label="دليل الحسابات">
+      <div class="accounts-toolbar">
+        <v-text-field
+          v-model="search"
+          density="compact"
+          variant="outlined"
+          hide-details
+          clearable
+          prepend-inner-icon="mdi-magnify"
+          placeholder="ابحث برمز الحساب أو اسمه"
+          aria-label="بحث في الحسابات"
+          class="accounts-toolbar__search"
+        />
+        <v-btn-toggle
+          v-model="currency"
+          density="compact"
+          variant="outlined"
+          divided
+          aria-label="العملة"
         >
-      </v-btn-toggle>
-      <v-switch
-        v-model="showInactive"
-        density="compact"
-        hide-details
-        color="primary"
-        label="إظهار الحسابات الموقوفة"
-      />
-    </div>
+          <v-btn :value="null">العملتان</v-btn>
+          <v-btn
+            v-for="option in ACCOUNT_CURRENCIES"
+            :key="option.value"
+            :value="option.value"
+            >{{ option.title }}</v-btn
+          >
+        </v-btn-toggle>
+        <v-switch
+          v-model="showInactive"
+          density="compact"
+          hide-details
+          color="primary"
+          label="إظهار الحسابات الموقوفة"
+        />
+      </div>
 
-    <v-progress-linear v-if="loading && !accounts.length" indeterminate />
-    <v-alert v-else-if="error" type="error" variant="tonal" density="compact">
-      {{ error }}
-      <template #append>
-        <v-btn variant="text" size="small" @click="load">إعادة المحاولة</v-btn>
-      </template>
-    </v-alert>
-    <v-empty-state
-      v-else-if="!rows.length"
-      icon="mdi-file-tree-outline"
-      title="لا حسابات تطابق البحث"
-    />
-    <v-table v-else density="compact" class="accounts-table" hover>
-      <thead>
-        <tr>
-          <th scope="col">الرمز</th>
-          <th scope="col">الحساب</th>
-          <th scope="col">النوع</th>
-          <th scope="col">العملة</th>
-          <th scope="col"><span class="d-sr-only">الإجراءات</span></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="row in rows"
-          :key="row.account.id"
-          :class="{
-            'accounts-table__heading': !row.account.is_postable,
-            'accounts-table__inactive': !row.account.is_active,
-          }"
-        >
-          <td class="accounts-table__code">
-            <bdi>{{ row.account.code }}</bdi>
-          </td>
-          <td>
-            <div
-              class="accounts-table__name"
-              :style="{ paddingInlineStart: `${row.depth * 20}px` }"
-            >
-              <v-btn
-                v-if="row.hasChildren && !search"
-                :icon="
-                  collapsed.has(row.account.id)
-                    ? 'mdi-chevron-left'
-                    : 'mdi-chevron-down'
-                "
-                size="x-small"
-                variant="text"
-                :aria-label="
-                  collapsed.has(row.account.id)
-                    ? `إظهار حسابات ${row.account.name}`
-                    : `طي حسابات ${row.account.name}`
-                "
-                :aria-expanded="!collapsed.has(row.account.id)"
-                @click="toggle(row.account.id)"
-              />
-              <span v-else class="accounts-table__spacer" />
-              <span>{{ row.account.name }}</span>
-              <v-icon
-                v-if="row.account.system_key"
-                icon="mdi-lock-outline"
-                size="14"
-                class="accounts-table__lock"
-                role="img"
-                aria-label="حساب أساسي يعتمد عليه النظام"
-                title="حساب من الدليل الأساسي يعتمد عليه النظام: يُعدَّل اسمه فقط"
-              />
-              <v-chip
-                v-if="!row.account.is_active"
-                size="x-small"
-                variant="tonal"
-                color="warning"
-                label
-                >موقوف</v-chip
+      <v-progress-linear v-if="loading && !accounts.length" indeterminate />
+      <v-alert
+        v-else-if="error"
+        type="error"
+        variant="tonal"
+        density="compact"
+        class="ma-3"
+      >
+        {{ error }}
+        <template #append>
+          <v-btn variant="text" size="small" @click="load"
+            >إعادة المحاولة</v-btn
+          >
+        </template>
+      </v-alert>
+      <v-empty-state
+        v-else-if="!rows.length"
+        icon="mdi-file-tree-outline"
+        title="لا حسابات تطابق البحث"
+      />
+      <v-table v-else density="compact" class="accounts-table" hover>
+        <thead>
+          <tr>
+            <th scope="col">الرمز</th>
+            <th scope="col">الحساب</th>
+            <th scope="col">النوع</th>
+            <th scope="col">العملة</th>
+            <th scope="col"><span class="d-sr-only">الإجراءات</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="row in rows"
+            :key="row.account.id"
+            :class="{
+              'accounts-table__heading': !row.account.is_postable,
+              'accounts-table__inactive': !row.account.is_active,
+            }"
+          >
+            <td class="accounts-table__code">
+              <bdi>{{ row.account.code }}</bdi>
+            </td>
+            <td>
+              <div
+                class="accounts-table__name"
+                :style="{ paddingInlineStart: `${row.depth * 20}px` }"
               >
-            </div>
-          </td>
-          <td>{{ accountTypeLabel(row.account.account_type) }}</td>
-          <td>
-            {{
-              row.account.is_postable || row.account.currency
-                ? accountCurrencyLabel(row.account.currency)
-                : "—"
-            }}
-          </td>
-          <td class="accounts-table__actions">
-            <v-btn
-              v-if="row.account.is_postable"
-              icon="mdi-text-box-search-outline"
-              size="small"
-              variant="text"
-              :to="`/accounting/accounts/${row.account.id}`"
-              :aria-label="`كشف حساب ${row.account.name}`"
-              :title="`كشف حساب ${row.account.name}`"
-            />
-            <template v-if="can('accounting.accounts.manage')">
+                <v-btn
+                  v-if="row.hasChildren && !search"
+                  :icon="
+                    collapsed.has(row.account.id)
+                      ? 'mdi-chevron-left'
+                      : 'mdi-chevron-down'
+                  "
+                  size="x-small"
+                  variant="text"
+                  :aria-label="
+                    collapsed.has(row.account.id)
+                      ? `إظهار حسابات ${row.account.name}`
+                      : `طي حسابات ${row.account.name}`
+                  "
+                  :aria-expanded="!collapsed.has(row.account.id)"
+                  @click="toggle(row.account.id)"
+                />
+                <span v-else class="accounts-table__spacer" />
+                <span>{{ row.account.name }}</span>
+                <v-icon
+                  v-if="row.account.system_key"
+                  icon="mdi-lock-outline"
+                  size="14"
+                  class="accounts-table__lock"
+                  role="img"
+                  aria-label="حساب أساسي يعتمد عليه النظام"
+                  title="حساب من الدليل الأساسي يعتمد عليه النظام: يُعدَّل اسمه فقط"
+                />
+                <v-chip
+                  v-if="!row.account.is_active"
+                  size="x-small"
+                  variant="tonal"
+                  color="warning"
+                  label
+                  >موقوف</v-chip
+                >
+              </div>
+            </td>
+            <td>{{ accountTypeLabel(row.account.account_type) }}</td>
+            <td>
+              {{
+                row.account.is_postable || row.account.currency
+                  ? accountCurrencyLabel(row.account.currency)
+                  : "—"
+              }}
+            </td>
+            <td class="accounts-table__actions">
               <v-btn
-                v-if="!row.account.is_postable && row.account.is_active"
-                icon="mdi-plus"
+                v-if="row.account.is_postable"
+                icon="mdi-text-box-search-outline"
                 size="small"
                 variant="text"
-                :aria-label="`حساب فرعي تحت ${row.account.name}`"
-                :title="`حساب فرعي تحت ${row.account.name}`"
-                @click="openNew(row.account)"
+                :to="`/accounting/accounts/${row.account.id}`"
+                :aria-label="`كشف حساب ${row.account.name}`"
+                :title="`كشف حساب ${row.account.name}`"
               />
-              <v-btn
-                icon="mdi-pencil-outline"
-                size="small"
-                variant="text"
-                :aria-label="`تعديل ${row.account.name}`"
-                :title="`تعديل ${row.account.name}`"
-                @click="openEdit(row.account)"
-              />
-            </template>
-          </td>
-        </tr>
-      </tbody>
-    </v-table>
+              <template v-if="can('accounting.accounts.manage')">
+                <v-btn
+                  v-if="!row.account.is_postable && row.account.is_active"
+                  icon="mdi-plus"
+                  size="small"
+                  variant="text"
+                  :aria-label="`حساب فرعي تحت ${row.account.name}`"
+                  :title="`حساب فرعي تحت ${row.account.name}`"
+                  @click="openNew(row.account)"
+                />
+                <v-btn
+                  icon="mdi-pencil-outline"
+                  size="small"
+                  variant="text"
+                  :aria-label="`تعديل ${row.account.name}`"
+                  :title="`تعديل ${row.account.name}`"
+                  @click="openEdit(row.account)"
+                />
+              </template>
+            </td>
+          </tr>
+        </tbody>
+      </v-table>
+    </section>
 
     <AccountDialog
       v-model="dialog"
@@ -307,12 +317,14 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* شريط أدوات القائمة داخل لوحها كبقية القوائم (FilterBar). */
 .accounts-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  margin-block-end: 12px;
+  gap: 8px 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--dal-stroke);
 }
 .accounts-toolbar__search {
   flex: 1 1 260px;

@@ -94,13 +94,13 @@ defineExpose({ reload: load });
         <div>
           <dt>آخر تواصل</dt>
           <dd>
-            <bdi>{{ fmt(timeline.last_interaction_at) }}</bdi>
+            <bdi dir="rtl">{{ fmt(timeline.last_interaction_at) }}</bdi>
           </dd>
         </div>
         <div>
           <dt>الموعد القادم</dt>
           <dd>
-            <bdi>{{ fmt(timeline.next_followup_at) }}</bdi>
+            <bdi dir="rtl">{{ fmt(timeline.next_followup_at) }}</bdi>
           </dd>
         </div>
         <div>
@@ -183,10 +183,10 @@ defineExpose({ reload: load });
             <strong>النتيجة:</strong> {{ task.outcome }}
           </p>
           <p class="person-activity__meta">
-            <bdi>{{ fmt(task.created_at) }}</bdi>
+            <bdi dir="rtl">{{ fmt(task.created_at) }}</bdi>
             <span v-if="task.user_name"> · {{ task.user_name }}</span>
             <span v-if="task.scheduled_at">
-              · موعد: <bdi>{{ fmt(task.scheduled_at) }}</bdi></span
+              · موعد: <bdi dir="rtl">{{ fmt(task.scheduled_at) }}</bdi></span
             >
             <span v-if="task.assigned_user_name">
               · المكلّف: {{ task.assigned_user_name }}</span

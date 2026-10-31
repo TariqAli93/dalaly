@@ -30,6 +30,7 @@ const groups = computed(() =>
         size="small"
         prepend-icon="mdi-plus"
         aria-label="إضافة سجل جديد"
+        title="إضافة سجل جديد"
         >إضافة</v-btn
       >
     </template>
@@ -51,5 +52,18 @@ const groups = computed(() =>
 <style scoped>
 .dal-quick-add {
   margin-inline-end: 4px;
+}
+/* شريط ضيّق: أيقونة فقط، والاسم في التلميح ووصف الزر. */
+@container dal-commandbar (max-width: 1199px) {
+  .dal-quick-add {
+    min-width: 32px;
+    padding-inline: 6px;
+  }
+  .dal-quick-add :deep(.v-btn__prepend) {
+    margin-inline: 0;
+  }
+  .dal-quick-add :deep(.v-btn__content) {
+    display: none;
+  }
 }
 </style>

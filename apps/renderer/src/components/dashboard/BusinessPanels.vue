@@ -410,11 +410,13 @@ const monthLink = computed(() =>
 </template>
 
 <style scoped>
+/* ألواح الصف الواحد بارتفاع واحد: كان القصير منها يترك فراغاً متعرّجاً
+   بجوار لوح المهام الطويل. */
 .biz {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
   gap: var(--dal-gutter);
-  align-items: start;
+  align-items: stretch;
 }
 .biz__wide {
   grid-column: 1 / -1;

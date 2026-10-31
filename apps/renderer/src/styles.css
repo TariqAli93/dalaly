@@ -348,19 +348,25 @@ body {
 .dal-commandbar .v-toolbar__content {
   gap: 4px;
   padding-inline: 4px 12px;
+  /* الأدوات العامة تُطوى بحسب عرض الشريط نفسه لا النافذة: القائمة الموسّعة
+     أو المطويّة تغيّر ما يتّسع له، وصفحة سجل بأوامر كثيرة تحتاج مكانها. */
+  container: dal-commandbar / inline-size;
 }
+/* مجموعة العنوان بلا صندوق خاص: أجزاؤها عناصر في الشريط نفسه، فيتقلّص
+   العنوان وحده حين يضيق المكان. كانت المجموعة تنكمش دون محتواها فتتراكب
+   حالة السجل وأوامره على العنوان. */
 .dal-commandbar__title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  flex: 0 1 auto;
-  padding-inline-end: 8px;
+  display: contents;
+}
+.dal-commandbar__title > * {
+  margin-inline-end: 2px;
 }
 .dal-commandbar__title h1 {
-  /* لا ينطوي العنوان إلى لا شيء حين تكثر أوامر الصفحة: عرضه عرض نصه حتى
-     حدّ، وما زاد يُقصّ بنقاط. */
-  flex: 0 0 auto;
+  /* عرضه عرض نصه حتى حدّ، وما زاد يُقصّ بنقاط. حين تكثر أوامر الصفحة
+     يتقلّص بعد البحث الشامل لا قبله، ولا ينزل عن 4em فيبقى مقروءاً. كان
+     عرضه ثابتاً فتنكمش حاويته وتتراكب حالة السجل وأوامره فوقه. */
+  flex: 0 1 auto;
+  min-width: 4em;
   max-width: min(24em, 30vw);
   margin: 0;
   font-size: calc(16px * var(--dal-font-scale));
@@ -378,16 +384,60 @@ body {
   outline-offset: 2px;
 }
 .dal-commandbar__parent {
+  flex: none;
+  max-width: 12em;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--dal-muted);
   font-size: calc(13px * var(--dal-font-scale));
   white-space: nowrap;
   text-decoration: none;
+}
+/* صفحة سجل بأوامر كثيرة في شريط دون 1200px (1366px والقائمة موسّعة): البحث
+   الشامل زرّ أيقونة من البداية (Ctrl+K كما هو)، فيبقى اسم السجل كاملاً بدل أن
+   يتقلّص هو والبحث معاً. */
+@container dal-commandbar (max-width: 1199px) {
+  .dal-commandbar__actions:has(> :nth-child(3)) ~ .dal-omnibox {
+    flex-basis: 32px;
+    padding: 0;
+  }
+}
+/* شريط ضيّق (1366px بتكبير 125% مع القائمة الموسّعة): يُترك رابط القائمة الأم
+   (Alt+← يرجع إليها أيضاً)، وتُطوى أوامر الصفحة الثانوية إلى أيقوناتها إن
+   كانت ثلاثة فأكثر (أمر واحد أو اثنان يتّسع لهما الشريط باسميهما). يبقى
+   الأمر الأساسي باسمه، وتبقى الأسماء لقارئ الشاشة وفي التلميح (AppTopbar). */
+@container dal-commandbar (max-width: 999px) {
+  .dal-commandbar__parent,
+  .dal-commandbar .dal-commandbar__sep {
+    display: none;
+  }
+  .dal-commandbar__actions:has(> :nth-child(3))
+    .v-btn:not(.bg-primary):has(> .v-btn__prepend) {
+    min-width: 32px;
+    padding-inline: 6px;
+  }
+  .dal-commandbar__actions:has(> :nth-child(3))
+    .v-btn:not(.bg-primary):has(> .v-btn__prepend)
+    > .v-btn__prepend {
+    margin-inline: 0;
+  }
+  .dal-commandbar__actions:has(> :nth-child(3))
+    .v-btn:not(.bg-primary):has(> .v-btn__prepend)
+    > .v-btn__content {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 .dal-commandbar__parent:hover {
   color: rgb(var(--v-theme-primary-text));
   text-decoration: underline;
 }
 .dal-count {
+  flex: none;
   min-width: 24px;
   padding: 1px 8px;
   border-radius: 9999px;
@@ -404,15 +454,20 @@ body {
   gap: 6px;
   flex: 0 0 auto;
 }
+.dal-commandbar__status {
+  margin-inline-end: 8px;
+}
 .dal-commandbar__actions:not(:empty) {
   padding-inline-start: 8px;
   border-inline-start: 1px solid var(--dal-stroke);
 }
 .dal-commandbar .v-btn:not(.v-btn--icon) {
   height: 32px;
-  padding-inline: 12px;
+  padding-inline: 10px;
 }
-.dal-commandbar .v-btn--icon {
+/* .v-toolbar__content يرفع الأولوية فوق قاعدة الكثافة في Vuetify، التي كانت
+   تجعل زر القائمة 48px والأيقونات 36px. */
+.dal-commandbar .v-toolbar__content .v-btn--icon {
   width: 32px;
   height: 32px;
 }
@@ -447,6 +502,11 @@ body {
   gap: 8px;
   min-height: 40px;
   padding: 8px 12px;
+  border-bottom: 1px solid var(--dal-stroke);
+}
+/* تبويبات تبدّل محتوى اللوح كله: أول صفوفه، بخط فاصل تحتها. */
+.dal-panel__tabs {
+  flex: none;
   border-bottom: 1px solid var(--dal-stroke);
 }
 .dal-section-title {
@@ -894,11 +954,19 @@ body {
   padding: 12px;
   align-items: center;
 }
+/* <bdi> بلا dir بيانات لاتينية (رمز، هاتف، مبلغ) تُعرض من اليسار. التاريخ
+   والوقت المنسّقان بالعربية (utils/format.ts) فيهما «م/ص» و«،» وعلامات RLM،
+   فيُكتبان <bdi dir="rtl">: فرض ltr عليهما كان يقلب ترتيبهما
+   ("24p 11:58:31 ،2026/10/"). */
 :is(.v-application, .v-overlay) input[type="tel"],
 :is(.v-application, .v-overlay) input[type="email"],
 :is(.v-application, .v-overlay) input[type="date"],
-:is(.v-application, .v-overlay) bdi {
+:is(.v-application, .v-overlay) bdi:not([dir]) {
   direction: ltr;
+  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
+}
+:is(.v-application, .v-overlay) bdi[dir] {
   unicode-bidi: isolate;
   font-variant-numeric: tabular-nums;
 }

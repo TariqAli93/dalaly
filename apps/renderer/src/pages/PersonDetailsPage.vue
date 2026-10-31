@@ -783,7 +783,7 @@ const listLabel = (count: number, label: string) =>
                   <bdi>{{ item.document_number || "—" }}</bdi>
                 </template>
                 <template #item.expires_at="{ item }">
-                  <bdi>{{
+                  <bdi dir="rtl">{{
                     item.expires_at ? formatDate(item.expires_at) : "—"
                   }}</bdi>
                 </template>

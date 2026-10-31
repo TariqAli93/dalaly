@@ -218,58 +218,61 @@ onMounted(() => {
           class="cash-balances__date"
         />
       </div>
-      <v-alert v-if="balancesError" type="error" variant="tonal">{{
+      <v-alert v-if="balancesError" type="error" variant="tonal" class="ma-3">{{
         balancesError
       }}</v-alert>
-      <div v-for="group in totals" :key="group.currency" class="cash-group">
-        <div
-          v-for="account in group.accounts"
-          :key="account.id"
-          class="cash-card"
-        >
-          <div class="cash-card__head">
-            <v-icon
-              :icon="account.kind === 'cash' ? 'mdi-cash' : 'mdi-bank-outline'"
-              size="20"
-            />
-            <span>{{ account.name }}</span>
-          </div>
-          <bdi
-            class="cash-card__balance"
-            :class="{ 'text-error': account.balance.startsWith('-') }"
-            >{{ formatAmount(account.balance, account.currency) }}</bdi
+      <div class="cash-groups">
+        <div v-for="group in totals" :key="group.currency" class="cash-group">
+          <div
+            v-for="account in group.accounts"
+            :key="account.id"
+            class="cash-card"
           >
-          <div v-if="can('cash.manage') && !asOf" class="cash-card__actions">
-            <v-btn
-              size="small"
-              variant="text"
-              prepend-icon="mdi-swap-horizontal"
-              @click="openTransfer(account)"
-              >تحويل منه</v-btn
+            <div class="cash-card__head">
+              <v-icon
+                :icon="
+                  account.kind === 'cash' ? 'mdi-cash' : 'mdi-bank-outline'
+                "
+                size="20"
+              />
+              <span>{{ account.name }}</span>
+            </div>
+            <bdi
+              class="cash-card__balance"
+              :class="{ 'text-error': account.balance.startsWith('-') }"
+              >{{ formatAmount(account.balance, account.currency) }}</bdi
             >
-            <v-btn
-              size="small"
-              variant="text"
-              prepend-icon="mdi-scale-balance"
-              @click="openReconcile(account)"
-              >مطابقة</v-btn
-            >
+            <div v-if="can('cash.manage') && !asOf" class="cash-card__actions">
+              <v-btn
+                size="small"
+                variant="text"
+                prepend-icon="mdi-swap-horizontal"
+                @click="openTransfer(account)"
+                >تحويل منه</v-btn
+              >
+              <v-btn
+                size="small"
+                variant="text"
+                prepend-icon="mdi-scale-balance"
+                @click="openReconcile(account)"
+                >مطابقة</v-btn
+              >
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <v-tabs v-model="tab" class="mt-4" density="compact">
-      <v-tab value="transfers">التحويلات</v-tab>
-      <v-tab value="reconciliations">المطابقات</v-tab>
-    </v-tabs>
-
     <section
-      v-if="tab === 'transfers'"
       class="dal-panel dal-listpanel cash-list"
-      aria-label="التحويلات"
+      :aria-label="tab === 'transfers' ? 'التحويلات' : 'المطابقات'"
     >
+      <v-tabs v-model="tab" density="compact" class="dal-panel__tabs">
+        <v-tab value="transfers">التحويلات</v-tab>
+        <v-tab value="reconciliations">المطابقات</v-tab>
+      </v-tabs>
       <DataGrid
+        v-if="tab === 'transfers'"
         v-model:page="page"
         v-model:items-per-page="pageSize"
         v-model:sort-by="sortBy"
@@ -317,12 +320,14 @@ onMounted(() => {
           >
         </template>
       </DataGrid>
-    </section>
 
-    <section v-else class="dal-panel cash-list" aria-label="المطابقات">
-      <v-alert v-if="reconciliationsError" type="error" variant="tonal">{{
-        reconciliationsError
-      }}</v-alert>
+      <v-alert
+        v-else-if="reconciliationsError"
+        type="error"
+        variant="tonal"
+        class="ma-3"
+        >{{ reconciliationsError }}</v-alert
+      >
       <v-empty-state
         v-else-if="!reconciliations.length"
         icon="mdi-scale-balance"
@@ -428,15 +433,13 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.cash-balances {
-  padding: 12px 16px;
-}
 .cash-balances__bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-block-end: 8px;
+  padding: 8px 12px 8px 16px;
+  border-bottom: 1px solid var(--dal-stroke);
 }
 .cash-balances__title {
   margin: 0;
@@ -446,18 +449,25 @@ onMounted(() => {
 .cash-balances__date {
   flex: 0 1 11rem;
 }
-.cash-group {
+/* شريط واحد للحسابات كلها، خلاياه بخطوط فاصلة كشريط الملخّص في لوحة التحكم،
+   بدل بطاقات داخل اللوح يملأ كل زوج منها نصف العرض. الإزاحة 1px تُخفي خط
+   أول عمود وأول صف تحت حافة اللوح وخط الشريط العلوي. */
+.cash-groups {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
-  gap: 10px;
-  margin-block-end: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  margin-block-start: -1px;
+  margin-inline-start: -1px;
+}
+.cash-group {
+  display: contents;
 }
 .cash-card {
-  border: 1px solid var(--dal-stroke);
-  border-radius: var(--dal-radius-card);
-  padding: 10px 12px;
   display: grid;
+  align-content: start;
   gap: 4px;
+  padding: 12px 16px 8px;
+  border-block-start: 1px solid var(--dal-stroke);
+  border-inline-start: 1px solid var(--dal-stroke);
 }
 .cash-card__head {
   display: flex;
@@ -476,8 +486,7 @@ onMounted(() => {
   margin-inline-start: -8px;
 }
 .cash-list {
-  margin-block-start: 8px;
-  padding: 4px 8px;
+  margin-block-start: var(--dal-gutter);
 }
 .cash-amount {
   text-align: end;

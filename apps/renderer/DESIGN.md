@@ -253,13 +253,17 @@ Every size is `calc(Npx * var(--dal-font-scale))`; scale 0.9 / 1 / 1.125 / 1.25 
 
 **The One Family Rule.** One family at a time, the user's choice. No display face, no second family for numbers.
 
-**The Latin Digits Rule.** Every number renders in Latin digits through `utils/format.ts` (`numberingSystem: "latn"`, `en-US` grouping). Latin data (money, phones, codes, dates) is isolated with `direction: ltr; unicode-bidi: isolate` (`.money`, `<bdi>`, tel/email/date inputs) and uses tabular figures.
+**The Latin Digits Rule.** Every number renders in Latin digits through `utils/format.ts` (`numberingSystem: "latn"`, `en-US` grouping). Latin data (money, phones, codes, ISO-style contract dates) is isolated with `direction: ltr; unicode-bidi: isolate` (`.money`, `<bdi>`, tel/email/date inputs) and uses tabular figures. Dates and times from `formatDate` / `formatDateTime` / `formatTime` carry Arabic «م/ص», «،» and RLM marks, so they are isolated as `<bdi dir="rtl">`; forcing them LTR scrambles them. Only a `<bdi>` without `dir` is forced LTR.
 
 ## Layout
 
 - **Shell** (`AppLayout`): skip link first ("تخطَّ إلى المحتوى"), then the nav pane (right), the command bar, and `main#dal-main` directly on the canvas. On route change focus moves to the page `h1`.
 - **Navigation pane:** 232px expanded, 56px rail, permanent at md and up, temporary drawer below. Expanded is the default; the rail state is stored in `dalaly.sidebar.rail.v1`. The brand header matches the 48px bar height. Sections carry 12px headers; the list is one tab stop with arrow keys and Home/End.
-- **Command bar:** 48px, canvas-coloured, hairline below. Leading edge: nav toggle, parent-list link with chevron (record pages), the `h1` (truncates at min(24em, 30vw)), the count badge, the status slot, then page actions after a hairline separator. Trailing edge: global search (260px field, an icon button under 1280px), theme toggle, refresh, user menu (name hidden under 1100px). Pages fill it through `AppPage` (`title`, `parent`, `count`, `#status`, `#header-actions`).
+- **Command bar:** 48px, canvas-coloured, hairline below. Leading edge: nav toggle, parent-list link with chevron (record pages), the `h1` (truncates at min(24em, 30vw), full title in its tooltip), the count badge, the status slot, then page actions after a hairline separator. Trailing edge: quick add, global search (260px field), notifications, theme toggle, refresh, user menu. Pages fill it through `AppPage` (`title`, `parent`, `count`, `#status`, `#header-actions`).
+- **Command bar collapse:** the bar is a size container (`dal-commandbar`), so collapse follows the bar's own width (nav expanded or rail), not the window. Nothing in the bar may overlap; the title group has no box of its own (`display: contents`) so the `h1` is the item that gives way, down to 4em. In order:
+  - The search field shrinks first (it hides Ctrl+K, then its label).
+  - Bar under 1200px: user name and the quick-add label hide (both stay in tooltips); with 3+ page actions the search starts as its 32px icon.
+  - Bar under 1000px (1366px at 125% with the nav expanded): the parent link hides, the search is always its icon, and with 3+ page actions the non-primary actions that have an icon show the icon only. Their label stays as the accessible name and is mirrored into `title` by `AppTopbar`.
 - **Content:** gutter 12px, 16px at 1440px and up; max width 1920px, or the user's max width when fluid is off.
 - **List pages:** a panel that fills the viewport height (`100dvh - bar - 2 gutters`), toolbar on top, table body scrolling alone with a sticky header and visible footer.
 - **Master-detail:** list plus a 340px sticky summary pane separated by the gutter; at 1100px and below the pane becomes a 360px overlay from the far edge with a scrim, Esc closes.
@@ -303,7 +307,7 @@ Two radii: 4px (`--dal-radius-control`) for buttons, icon buttons, fields, chips
 - **Shape:** 4px, flat, no ripple, no uppercase or letter-spacing; 13px / 600.
 - **Primary:** solid teal with white text, one per area (the form save button, the page's main command). Light-mode hover darkens it slightly.
 - **Secondary / tertiary:** tonal for recovery actions (retry, clear filters), text for everything else. Destructive actions use the error colour as text inside menus, last, after a divider.
-- **Command bar:** 32px buttons and 32px icon buttons.
+- **Command bar:** 32px buttons (10px side padding) and 32px icon buttons, the nav toggle included.
 - **Focus:** 2px primary outline, 2px offset, on every focusable element; `on-sidebar` colour inside the nav pane.
 
 ### Chips
@@ -314,7 +318,7 @@ Two radii: 4px (`--dal-radius-control`) for buttons, icon buttons, fields, chips
 
 ### Panels / Containers
 
-- **Panel** (`.dal-panel`): surface, 1px hairline, 8px, no shadow, clips its content. Header 40px min, 8px 12px padding, section-weight title.
+- **Panel** (`.dal-panel`): surface, 1px hairline, 8px, no shadow, clips its content. Header 40px min, 8px 12px padding, section-weight title. Tabs that switch the whole panel (settings, leases, cash transfers) are its first row (`.dal-panel__tabs`, hairline below), never on the canvas above it.
 - **Summary strip:** one panel of equal cells divided by vertical hairlines; label 13px / 600 and note 12px muted at the start, KPI value at the end in `primary-text` (muted at zero, error for alert values). Each cell is a button that opens its filtered list.
 - **Record facts:** the same strip form for a record's identity, price, status and owner.
 - **Detail list:** `dl` grid of auto-fill 180px columns, 12px muted label over a 14px / 600 value, hairline under each row.

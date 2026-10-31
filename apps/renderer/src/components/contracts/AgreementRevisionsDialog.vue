@@ -192,7 +192,7 @@ watch(
                     <bdi>{{ item.file_name ?? "—" }}</bdi>
                   </td>
                   <td>
-                    <bdi>{{ formatDateTime(item.created_at) }}</bdi>
+                    <bdi dir="rtl">{{ formatDateTime(item.created_at) }}</bdi>
                   </td>
                   <td>{{ item.created_by_name ?? "" }}</td>
                 </tr>

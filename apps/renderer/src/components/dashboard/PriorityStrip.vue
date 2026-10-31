@@ -64,7 +64,7 @@ const calmText = computed(() => {
             {{ first.detail }}
             <template v-if="first.due">
               أقربها {{ formatShortDate(first.due) }} الساعة
-              <bdi>{{ formatTime(first.due) }}</bdi
+              <bdi dir="rtl">{{ formatTime(first.due) }}</bdi
               >.
             </template>
           </span>

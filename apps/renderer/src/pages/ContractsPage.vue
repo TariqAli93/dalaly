@@ -458,7 +458,7 @@ async function create(key: TemplateKey) {
           >
         </template>
         <template #item.updated_at="{ item }">
-          <bdi>{{ formatDate(item.updated_at) }}</bdi>
+          <bdi dir="rtl">{{ formatDate(item.updated_at) }}</bdi>
         </template>
         <template #empty-actions>
           <v-btn
