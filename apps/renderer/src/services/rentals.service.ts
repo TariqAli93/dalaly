@@ -29,9 +29,6 @@ function query(
   return text ? `?${text}` : "";
 }
 
-export function listRentals(filters: Partial<RentalFilters> = {}) {
-  return request<RentalRecord[]>(`/rentals${query(filters)}`);
-}
 /** صفحة واحدة مع العدد الكلي، لجدول الإيجارات. */
 export function listRentalsPage(
   filters: Partial<RentalFilters> & OwnerFilters,

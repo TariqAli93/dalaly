@@ -48,7 +48,6 @@ import { rentalFavoritesRoutes } from "./modules/rental-favorites/rental-favorit
 import { remoteAccessRoutes } from "./modules/remote-access/remote-access.routes.js";
 import { rolesRoutes } from "./modules/roles/roles.routes.js";
 import { setupRoutes } from "./modules/setup/setup.routes.js";
-import { statsRoutes } from "./modules/stats/stats.routes.js";
 import { tasksRoutes } from "./modules/tasks/tasks.routes.js";
 import { usersRoutes } from "./modules/users/users.routes.js";
 
@@ -242,7 +241,6 @@ export async function buildServer(options: { logger?: boolean } = {}) {
   await app.register(usersRoutes, { prefix: "/api/users" });
   await app.register(rolesRoutes, { prefix: "/api/roles" });
   await app.register(permissionsRoutes, { prefix: "/api/permissions" });
-  await app.register(statsRoutes, { prefix: "/api/stats" });
   await app.register(dashboardRoutes, { prefix: "/api/dashboard" });
   await app.register(peopleRoutes, { prefix: "/api/people" });
   await app.register(activitiesRoutes, { prefix: "/api/activities" });

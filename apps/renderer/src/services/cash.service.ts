@@ -40,10 +40,6 @@ export function listTransfersPage(
   );
 }
 
-export function getTransfer(id: number) {
-  return request<CashTransferRecord>(`/cash/transfers/${id}`);
-}
-
 export function createTransfer(payload: TransferPayload) {
   return request<CashTransferRecord>("/cash/transfers", {
     method: "POST",

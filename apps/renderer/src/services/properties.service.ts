@@ -22,10 +22,6 @@ function buildQuery(
   return query ? `?${query}` : "";
 }
 
-export function listProperties(filters: Partial<PropertyFilters> = {}) {
-  return request<PropertyRecord[]>(`/properties${buildQuery(filters)}`);
-}
-
 /** صفحة واحدة مع العدد الكلي، لجدول العروض. */
 export function listPropertiesPage(
   filters: Partial<PropertyFilters>,

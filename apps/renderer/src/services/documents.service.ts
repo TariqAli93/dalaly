@@ -58,12 +58,6 @@ export function requirements(
     expired: DocumentRecord[];
   }>(`/documents/people/${personId}/requirements?scope=${scope}`);
 }
-export function addPersonDocument(personId: number, payload: unknown) {
-  return request<DocumentRecord>(`/documents/people/${personId}`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}
 /** ملف المستمسك بترويسة المصادقة، ليُعرض داخل البرنامج. */
 export function fetchFile(id: number) {
   return requestBlob(`/documents/${id}/file`);

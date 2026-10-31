@@ -43,7 +43,8 @@ Do not rely on this file alone.
 | 7a — navigation and quick add       | `feat/phase-07a-navigation`             | [#56](https://github.com/TariqAli93/dalaly/pull/56), merged `2d5cfd9` | renderer checks; web demo (every quick-add item); CI pass                                                             | Completed |
 | 7b — dashboard (server)             | `feat/phase-07b-dashboard`              | [#57](https://github.com/TariqAli93/dalaly/pull/57), merged `5b5baa6` | `test:dashboard-business` 1/1, `test:reports` 2/2, `test:contract` 159; CI pass                                       | Completed |
 | 7b — dashboard UI                   | `feat/phase-07b-dashboard-ui`           | [#58](https://github.com/TariqAli93/dalaly/pull/58), merged `c77bf8e` | renderer checks; web demo at 1366×768 and 1024×720; CI pass                                                           | Completed |
-| 8a — business benchmarks            | `perf/phase-08a-business-benchmarks`    | —                                                                     | `perf:business` before/after; deals 15, vouchers 10, tasks 13, paging 17, `test:contract` 159; unit 119               | In review |
+| 8a — business benchmarks            | `perf/phase-08a-business-benchmarks`    | [#59](https://github.com/TariqAli93/dalaly/pull/59), merged `b8bd40f` | `perf:business` before/after; deals 15, vouchers 10, tasks 13, paging 17, `test:contract` 159; unit 119; CI pass      | Completed |
+| 8b — dead code                      | `refactor/phase-08b-dead-code`          | —                                                                     | lint, typecheck, build; unit 119; `test:contract` 149 (was 159: 10 routes no renderer code reads); `test:dashboard` 4 | In review |
 | 8 — refactoring (further PRs)       | `refactor/phase-08-*`                   | —                                                                     | —                                                                                                                     | Pending   |
 | 9 — final verification              | `test/phase-09-*`                       | —                                                                     | —                                                                                                                     | Pending   |
 
@@ -1203,6 +1204,39 @@ below.
 - Response shapes are unchanged: `test:contract` and the suites of each
   changed list pass.
 
+### 8b — dead code
+
+Each item was checked with a search of the renderer, the server, its
+scripts, the Electron app and the docs before it was removed:
+
+- `components/properties/PropertyActions.vue` and `utils/schedule.ts`
+  (`afterNextPaint`): no file imports them.
+- Renderer service functions with no caller:
+  - `listActivities`, `getActivity`, `deleteActivity`;
+  - `getTransfer`, `addPersonDocument`;
+  - `listPeople`, `getPersonAudit`, `listProperties`, `listRentals`;
+  - `listRentalRequests`, `listPurchaseRequests`.
+
+  The list pages use the paged lists and a customer's page reads their
+  timeline. The API routes themselves are unchanged.
+
+- `listingKindText` (`utils/listingText.ts`) and the `OfficeProfileRecord`
+  alias: no use.
+- The `stats` module and `GET /api/stats/summary`: no caller anywhere
+  (renderer, Electron, tests, perf).
+- The contract test still calls the routes of those service functions
+  and checks their status. With no renderer type declared for them, it no longer compares
+  their bodies with one: no renderer code reads them. That is 10 checks
+  fewer (159 → 149): the 9 GETs and `POST /documents/people/:id`.
+
+Left for later PRs, as they need a decision or a closer look:
+
+- the capture-mode leftovers (`isCaptureMode`, `isWebDemo`, the capture
+  docs and scripts);
+- `server/scripts/fixtures/legacy-contract-*.sql` (legacy contract data,
+  `CONTRACT_SYSTEM_REMOVAL_MAP.md`);
+- tracked files that `.gitignore` lists.
+
 ## Database migrations
 
 | Migration                    | Phase            | What it adds                                                                                                                                                                                                                                                                                                                                                  |
@@ -1241,8 +1275,9 @@ stops at that point.
 
 ## Known issues
 
-- `/api/dashboard/summary` and `/api/stats/summary` have no renderer caller
-  (kept for now; `test:dashboard` reads the first). Revisit in Phase 8.
+- `/api/dashboard/summary` has no renderer caller. It is kept:
+  `test:dashboard`, the contract test and `pnpm perf` read it, and
+  `inParallel` lives in its file. (`/api/stats/summary` was removed in 8b.)
 - The renderer has no unit tests of its own. Its pure helpers are tested
   from `server/scripts/renderer-utils.test.ts`.
 

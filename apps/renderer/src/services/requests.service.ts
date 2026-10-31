@@ -27,11 +27,6 @@ function query(filters: Record<string, string | number | null | undefined>) {
   const text = params.toString();
   return text ? `?${text}` : "";
 }
-export function listRentalRequests(filters: Record<string, unknown> = {}) {
-  return request<RentalRequestRecord[]>(
-    `/rental-requests${query(filters as Record<string, string | number | null | undefined>)}`,
-  );
-}
 /** صفحة واحدة مع العدد الكلي، لجدول طلبات الإيجار. */
 export function listRentalRequestsPage(
   filters: RequestListFilters,
@@ -57,11 +52,6 @@ export function updateRentalRequest(id: number, payload: unknown) {
     method: "PUT",
     body: JSON.stringify(payload),
   });
-}
-export function listPurchaseRequests(filters: Record<string, unknown> = {}) {
-  return request<PurchaseRequestRecord[]>(
-    `/purchase-requests${query(filters as Record<string, string | number | null | undefined>)}`,
-  );
 }
 /** صفحة واحدة مع العدد الكلي، لجدول طلبات الشراء. */
 export function listPurchaseRequestsPage(
