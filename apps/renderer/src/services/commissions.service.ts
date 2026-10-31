@@ -10,15 +10,7 @@ import type {
   PagedResult,
 } from "../types";
 import { request } from "./api.service";
-
-function buildQuery(filters: Record<string, string | number | undefined>) {
-  const query = new URLSearchParams(
-    Object.entries(filters)
-      .filter(([, value]) => value !== undefined && value !== "")
-      .map(([key, value]) => [key, String(value)]),
-  );
-  return query.toString() ? `?${query}` : "";
-}
+import { queryString } from "../utils/query";
 
 export function listCommissionsPage(
   filters: CommissionFilters,
@@ -26,7 +18,7 @@ export function listCommissionsPage(
   signal?: AbortSignal,
 ) {
   return request<PagedResult<CommissionRecord>>(
-    `/commissions/paged${buildQuery({ ...filters, ...page })}`,
+    `/commissions/paged${queryString({ ...filters, ...page })}`,
     { signal },
   );
 }
@@ -38,7 +30,7 @@ export function getCommission(id: number) {
 /** Employees' shares not yet paid in full. */
 export function listPayableSplits(userId?: number) {
   return request<CommissionSplitRecord[]>(
-    `/commissions/payable${buildQuery({ user_id: userId })}`,
+    `/commissions/payable${queryString({ user_id: userId })}`,
   );
 }
 

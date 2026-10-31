@@ -17,15 +17,7 @@ import type {
   PagedResult,
 } from "../types";
 import { request } from "./api.service";
-
-function buildQuery(filters: Record<string, string | number | undefined>) {
-  const query = new URLSearchParams(
-    Object.entries(filters)
-      .filter(([, value]) => value !== undefined && value !== "")
-      .map(([key, value]) => [key, String(value)]),
-  );
-  return query.toString() ? `?${query}` : "";
-}
+import { queryString } from "../utils/query";
 
 // ─── Templates ──────────────────────────────────────────────────────────
 // A template's definition changes only through the calls below, so it is
@@ -119,7 +111,7 @@ export function listAgreementsPage(
   signal?: AbortSignal,
 ) {
   return request<PagedResult<AgreementListItem>>(
-    `/agreements/paged${buildQuery({ ...filters, ...page })}`,
+    `/agreements/paged${queryString({ ...filters, ...page })}`,
     { signal },
   );
 }
@@ -193,7 +185,7 @@ export function getAgreementRevision(id: number, revision: number) {
 /** The Word file of a revision, or of the draft when no revision is given. */
 export function getAgreementDocx(id: number, revision?: number | null) {
   return request<AgreementDocxFile>(
-    `/agreements/${id}/docx${buildQuery({ revision: revision ?? undefined })}`,
+    `/agreements/${id}/docx${queryString({ revision: revision ?? undefined })}`,
   );
 }
 

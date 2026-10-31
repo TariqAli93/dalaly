@@ -45,7 +45,8 @@ Do not rely on this file alone.
 | 7b — dashboard UI                   | `feat/phase-07b-dashboard-ui`           | [#58](https://github.com/TariqAli93/dalaly/pull/58), merged `c77bf8e` | renderer checks; web demo at 1366×768 and 1024×720; CI pass                                                           | Completed |
 | 8a — business benchmarks            | `perf/phase-08a-business-benchmarks`    | [#59](https://github.com/TariqAli93/dalaly/pull/59), merged `b8bd40f` | `perf:business` before/after; deals 15, vouchers 10, tasks 13, paging 17, `test:contract` 159; unit 119; CI pass      | Completed |
 | 8b — dead code                      | `refactor/phase-08b-dead-code`          | [#60](https://github.com/TariqAli93/dalaly/pull/60), merged `bf74c56` | lint, typecheck, build; unit 119; `test:contract` 149 (10 unread routes); `test:dashboard` 4; CI pass                 | Completed |
-| 8c — list reload loop               | `fix/phase-08c-filter-reload-loop`      | —                                                                     | lint, typecheck, build; unit 119; request counts in the web demo                                                      | In review |
+| 8c — list reload loop               | `fix/phase-08c-filter-reload-loop`      | [#61](https://github.com/TariqAli93/dalaly/pull/61), merged `162ac6d` | lint, typecheck, build; unit 119; request counts in the web demo; CI pass                                             | Completed |
+| 8d — query-string helper            | `refactor/phase-08d-query-strings`      | —                                                                     | lint, typecheck, build; unit 120; `test:contract` 149; web demo URLs                                                  | In review |
 | 8 — refactoring (further PRs)       | `refactor/phase-08-*`                   | —                                                                     | —                                                                                                                     | Pending   |
 | 9 — final verification              | `test/phase-09-*`                       | —                                                                     | —                                                                                                                     | Pending   |
 
@@ -1251,6 +1252,20 @@ Left for later PRs, as they need a decision or a closer look:
   against 15 to 30 in the first seconds and a steady stream before; a
   filter change sends one. `PERFORMANCE.md`, "List pages reloading in a
   loop".
+
+### 8d — query-string helper
+
+- Fourteen renderer services had their own copy of the lines that turn
+  filters into `?key=value`, in three variants. They now share
+  `queryString` (`utils/query.ts`), which leaves out `""`, `null` and
+  `undefined`.
+- No caller passed `""` to the documents list (the only variant that kept
+  it) or `null` to the variants that sent it as the text `null`, so every
+  request keeps its URL. In the web demo the properties, vouchers and
+  income-statement requests had the same query strings, and filters were
+  added the same way (`kind=receipt`, `status=available`).
+- `renderer-utils.test.ts` covers the helper: empty values left out,
+  Arabic text encoded, `0` and `false` kept.
 
 ## Database migrations
 

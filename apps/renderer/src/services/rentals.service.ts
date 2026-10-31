@@ -9,25 +9,13 @@ import type {
   RentalSortKey,
 } from "../types";
 import { mediaUrl, request } from "./api.service";
+import { queryString } from "../utils/query";
 
 /** إيجارات مالك مسجَّل (ملف الزبون)، ومعها المؤرشفة عند الطلب. */
 type OwnerFilters = {
   owner_person_id?: number | null;
   include_archived?: "true" | "false";
 };
-
-function query(
-  filters:
-    (Partial<RentalFilters> & OwnerFilters) | Partial<PageQuery<RentalSortKey>>,
-) {
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== "" && value !== undefined && value !== null)
-      params.set(key, String(value));
-  });
-  const text = params.toString();
-  return text ? `?${text}` : "";
-}
 
 /** صفحة واحدة مع العدد الكلي، لجدول الإيجارات. */
 export function listRentalsPage(
@@ -36,7 +24,7 @@ export function listRentalsPage(
   signal?: AbortSignal,
 ) {
   return request<PagedResult<RentalRecord>>(
-    `/rentals/paged${query({ ...filters, ...page })}`,
+    `/rentals/paged${queryString({ ...filters, ...page })}`,
     { signal },
   );
 }

@@ -12,6 +12,7 @@ import type {
   PagedResult,
 } from "../types";
 import { request } from "./api.service";
+import { queryString } from "../utils/query";
 
 export function listAccounts() {
   return request<AccountRecord[]>("/accounting/accounts");
@@ -31,22 +32,13 @@ export function updateAccount(id: number, payload: AccountPayload) {
   });
 }
 
-function buildQuery(filters: Record<string, string | number | undefined>) {
-  const query = new URLSearchParams(
-    Object.entries(filters)
-      .filter(([, value]) => value !== undefined && value !== "")
-      .map(([key, value]) => [key, String(value)]),
-  );
-  return query.toString() ? `?${query}` : "";
-}
-
 export function listJournalPage(
   filters: JournalFilters,
   page: PageQuery<JournalSortKey>,
   signal?: AbortSignal,
 ) {
   return request<PagedResult<JournalEntryRecord>>(
-    `/accounting/journal/paged${buildQuery({ ...filters, ...page })}`,
+    `/accounting/journal/paged${queryString({ ...filters, ...page })}`,
     { signal },
   );
 }
@@ -96,7 +88,7 @@ export function getAccountStatement(
   range: { from?: string; to?: string },
 ) {
   return request<AccountStatement>(
-    `/accounting/accounts/${id}/statement${buildQuery(range)}`,
+    `/accounting/accounts/${id}/statement${queryString(range)}`,
   );
 }
 

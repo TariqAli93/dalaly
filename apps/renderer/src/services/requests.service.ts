@@ -8,6 +8,7 @@ import type {
   RentalRequestSortKey,
 } from "../types";
 import { request } from "./api.service";
+import { queryString } from "../utils/query";
 
 /** فلاتر قوائم الطلبات (rental/purchaseRequestFiltersSchema في الخادم). */
 export type RequestListFilters = {
@@ -18,15 +19,6 @@ export type RequestListFilters = {
   governorate_id?: number | null;
   district_id?: number | null;
 };
-function query(filters: Record<string, string | number | null | undefined>) {
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== "" && value !== null && value !== undefined)
-      params.set(key, String(value));
-  });
-  const text = params.toString();
-  return text ? `?${text}` : "";
-}
 /** صفحة واحدة مع العدد الكلي، لجدول طلبات الإيجار. */
 export function listRentalRequestsPage(
   filters: RequestListFilters,
@@ -34,7 +26,7 @@ export function listRentalRequestsPage(
   signal?: AbortSignal,
 ) {
   return request<PagedResult<RentalRequestRecord>>(
-    `/rental-requests/paged${query({ ...filters, ...page })}`,
+    `/rental-requests/paged${queryString({ ...filters, ...page })}`,
     { signal },
   );
 }
@@ -60,7 +52,7 @@ export function listPurchaseRequestsPage(
   signal?: AbortSignal,
 ) {
   return request<PagedResult<PurchaseRequestRecord>>(
-    `/purchase-requests/paged${query({ ...filters, ...page })}`,
+    `/purchase-requests/paged${queryString({ ...filters, ...page })}`,
     { signal },
   );
 }
