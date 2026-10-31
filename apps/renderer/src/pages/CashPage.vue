@@ -172,10 +172,11 @@ async function reload() {
     tab.value === "reconciliations" ? loadReconciliations() : undefined,
   ]);
 }
+// قبل أن يُظهر الجدول خياراته الأولى، فلا يطلب الصفحة نفسها مرتين.
+void list.loadFirstPage();
 onMounted(() => {
   setRefreshHandler(reload);
   void loadBalances();
-  void list.loadFirstPage();
 });
 </script>
 

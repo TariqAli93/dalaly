@@ -150,10 +150,9 @@ useNewFromQuery((kind) => {
   if (kind === "receipt" && can("vouchers.receipt")) openIssue("receipt");
   else if (kind === "payment" && can("vouchers.payment")) openIssue("payment");
 });
-onMounted(() => {
-  setRefreshHandler(list.reload);
-  void list.loadFirstPage();
-});
+// قبل أن يُظهر الجدول خياراته الأولى، فلا يطلب الصفحة نفسها مرتين.
+void list.loadFirstPage();
+onMounted(() => setRefreshHandler(list.reload));
 </script>
 
 <template>

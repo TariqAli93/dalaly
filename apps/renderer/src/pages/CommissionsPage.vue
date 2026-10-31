@@ -169,10 +169,9 @@ function onPaid(voucher: VoucherDetail) {
 function reload() {
   return view.value === "payable" ? loadPayable() : list.reload();
 }
-onMounted(() => {
-  setRefreshHandler(reload);
-  void list.loadFirstPage();
-});
+// قبل أن يُظهر الجدول خياراته الأولى، فلا يطلب الصفحة نفسها مرتين.
+void list.loadFirstPage();
+onMounted(() => setRefreshHandler(reload));
 </script>
 
 <template>

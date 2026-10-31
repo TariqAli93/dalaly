@@ -146,9 +146,10 @@ onMounted(() => {
     if (view.value === "overdue") await overdue.value?.reload();
     else await list.reload();
   });
-  void list.loadFirstPage();
   void countOverdue();
 });
+// قبل أن يُظهر الجدول خياراته الأولى، فلا يطلب الصفحة نفسها مرتين.
+void list.loadFirstPage();
 </script>
 
 <template>
