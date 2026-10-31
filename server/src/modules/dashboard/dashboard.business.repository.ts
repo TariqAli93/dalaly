@@ -274,7 +274,8 @@ export async function businessSummary(
  * the same definitions, without the records. Only what has a count.
  */
 export async function businessAlerts(user: AuthUser, access: BusinessAccess) {
-  const summary = await businessSummary(user, access, 1);
+  // No alert reads the month's money: leave it out.
+  const summary = await businessSummary(user, { ...access, money: false }, 1);
   const alerts = [
     {
       key: "tasks_overdue",

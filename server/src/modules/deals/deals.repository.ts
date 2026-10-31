@@ -12,6 +12,10 @@ import {
 import { alias, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { db } from "../../infrastructure/database/db.js";
 import {
+  lookupValue,
+  qualified,
+} from "../../infrastructure/database/lookup.js";
+import {
   withRecordCodeLock,
   type Transaction,
 } from "../../infrastructure/database/record-codes.js";
@@ -20,7 +24,6 @@ import {
   dealOffers,
   dealStageHistory,
   deals,
-  people,
   properties,
   purchaseRequests,
   rentalRequests,
@@ -58,43 +61,48 @@ import type {
 } from "./deals.schema.js";
 
 const ENTITY = "deal";
-const client = alias(people, "client");
-const owner = alias(people, "owner");
-const assignee = alias(users, "assignee");
 
-/** A deal with the names of what it links to. */
+const own = (column: string) => qualified("deals", column);
+const PROPERTY = own("property_id");
+const RENTAL = own("rental_id");
+
+/**
+ * A deal with the names of what it links to, one lookup each rather than a
+ * join each (`lookupValue`): the list's filters and sorting use the deal's
+ * own columns (the search looks its names up the same way), so the page is
+ * cut first and only its rows look anything up.
+ */
 function selectDeals() {
   return db
     .select({
       deal: deals,
-      clientName: client.fullName,
-      clientPhone: client.phonePrimary,
-      ownerName: owner.fullName,
-      assignedUserName: assignee.displayName,
+      clientName: sql<string>`${lookupValue("people", "full_name", own("client_person_id"))}`,
+      clientPhone: sql<
+        string | null
+      >`${lookupValue("people", "phone_primary", own("client_person_id"))}`,
+      ownerName: sql<
+        string | null
+      >`${lookupValue("people", "full_name", own("owner_person_id"))}`,
+      assignedUserName: sql<
+        string | null
+      >`${lookupValue("users", "display_name", own("assigned_user_id"))}`,
       listingCode: sql<
         string | null
-      >`coalesce(${properties.code}, ${rentals.code})`,
-      listingName: sql<
-        string | null
-      >`coalesce(${properties.name}, 'عقار ' || ${properties.code}, ${rentals.name}, 'إيجار ' || ${rentals.code})`,
+      >`coalesce(${lookupValue("properties", "code", PROPERTY)}, ${lookupValue("rentals", "code", RENTAL)})`,
+      listingName: sql<string | null>`coalesce(
+        ${lookupValue("properties", "coalesce(name, 'عقار ' || code)", PROPERTY)},
+        ${lookupValue("rentals", "coalesce(name, 'إيجار ' || code)", RENTAL)})`,
       requestCode: sql<
         string | null
-      >`coalesce(${purchaseRequests.code}, ${rentalRequests.code})`,
-      agreementCode: agreements.code,
-      agreementStatus: agreements.status,
+      >`coalesce(${lookupValue("purchase_requests", "code", own("purchase_request_id"))}, ${lookupValue("rental_requests", "code", own("rental_request_id"))})`,
+      agreementCode: sql<
+        string | null
+      >`${lookupValue("agreements", "code", own("agreement_id"))}`,
+      agreementStatus: sql<
+        string | null
+      >`${lookupValue("agreements", "status", own("agreement_id"))}`,
     })
-    .from(deals)
-    .innerJoin(client, eq(deals.clientPersonId, client.id))
-    .leftJoin(owner, eq(deals.ownerPersonId, owner.id))
-    .leftJoin(assignee, eq(deals.assignedUserId, assignee.id))
-    .leftJoin(properties, eq(deals.propertyId, properties.id))
-    .leftJoin(rentals, eq(deals.rentalId, rentals.id))
-    .leftJoin(
-      purchaseRequests,
-      eq(deals.purchaseRequestId, purchaseRequests.id),
-    )
-    .leftJoin(rentalRequests, eq(deals.rentalRequestId, rentalRequests.id))
-    .leftJoin(agreements, eq(deals.agreementId, agreements.id));
+    .from(deals);
 }
 
 type DealRow = Awaited<
@@ -159,10 +167,10 @@ function conditions(filters: DealFilters, userId?: number) {
       or(
         ilike(deals.code, pattern),
         ilike(deals.title, pattern),
-        ilike(client.fullName, pattern),
-        ilike(owner.fullName, pattern),
-        ilike(properties.code, pattern),
-        ilike(rentals.code, pattern),
+        sql`${lookupValue("people", "full_name", own("client_person_id"))} ILIKE ${pattern}`,
+        sql`${lookupValue("people", "full_name", own("owner_person_id"))} ILIKE ${pattern}`,
+        sql`${lookupValue("properties", "code", PROPERTY)} ILIKE ${pattern}`,
+        sql`${lookupValue("rentals", "code", RENTAL)} ILIKE ${pattern}`,
       )!,
     );
   }
@@ -196,10 +204,6 @@ export async function listDealsPage(query: DealPageQuery, userId?: number) {
   const [{ total }] = await db
     .select({ total: sql<number>`count(*)::int` })
     .from(deals)
-    .innerJoin(client, eq(deals.clientPersonId, client.id))
-    .leftJoin(owner, eq(deals.ownerPersonId, owner.id))
-    .leftJoin(properties, eq(deals.propertyId, properties.id))
-    .leftJoin(rentals, eq(deals.rentalId, rentals.id))
     .where(where);
   return {
     items: rows.map(dealApi),
@@ -225,10 +229,6 @@ export async function dealPipeline(filters: DealFilters, userId?: number) {
       expected_commission_total: sql<string>`coalesce(sum(${deals.expectedCommission}), 0)::numeric(18,2)::text`,
     })
     .from(deals)
-    .innerJoin(client, eq(deals.clientPersonId, client.id))
-    .leftJoin(owner, eq(deals.ownerPersonId, owner.id))
-    .leftJoin(properties, eq(deals.propertyId, properties.id))
-    .leftJoin(rentals, eq(deals.rentalId, rentals.id))
     .where(conditions(filters, userId))
     .groupBy(deals.stage, deals.currency)
     .orderBy(deals.stage, deals.currency);

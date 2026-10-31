@@ -10,21 +10,14 @@ import {
   sql,
   type SQL,
 } from "drizzle-orm";
-import { alias } from "drizzle-orm/pg-core";
 import { db } from "../../infrastructure/database/db.js";
 import { rawRows } from "../../infrastructure/database/raw-query.js";
 import {
-  accounts,
-  commissionSplits,
-  commissions,
-  deals,
-  expenseCategories,
-  journalEntries,
-  leaseInstallments,
-  leases,
+  lookupValue,
+  qualified,
+} from "../../infrastructure/database/lookup.js";
+import {
   officeProfiles,
-  people,
-  users,
   vouchers,
 } from "../../infrastructure/database/schema.js";
 import { decimalAmountInWords } from "../../shared/contract-document/index.js";
@@ -33,13 +26,13 @@ import { pageOffset } from "../../shared/utils/paging.js";
 import { containsPattern } from "../../shared/utils/search.js";
 import type { VoucherPageQuery } from "./vouchers.schema.js";
 
-const moneyAccount = alias(accounts, "money_account");
-const otherAccount = alias(accounts, "other_account");
-const entry = alias(journalEntries, "entry");
-const voidEntry = alias(journalEntries, "void_entry");
-const creator = alias(users, "creator");
-const voider = alias(users, "voider");
-const heldFor = alias(people, "held_for");
+/**
+ * A voucher with the names and codes of what it links to, one lookup each
+ * rather than a join each (`lookupValue`). Filters and sorting use the
+ * voucher's own columns, so the page is cut first.
+ */
+const lookup = lookupValue;
+const own = (column: string) => qualified("vouchers", column);
 
 function selectVouchers() {
   return db
@@ -52,61 +45,59 @@ function selectVouchers() {
       amount: vouchers.amount,
       purpose: vouchers.purpose,
       money_account_id: vouchers.moneyAccountId,
-      money_account_code: moneyAccount.code,
-      money_account_name: moneyAccount.name,
+      money_account_code: sql<string>`${lookup("accounts", "code", own("money_account_id"))}`,
+      money_account_name: sql<string>`${lookup("accounts", "name", own("money_account_id"))}`,
       other_account_id: vouchers.otherAccountId,
-      other_account_code: otherAccount.code,
-      other_account_name: otherAccount.name,
+      other_account_code: sql<string>`${lookup("accounts", "code", own("other_account_id"))}`,
+      other_account_name: sql<string>`${lookup("accounts", "name", own("other_account_id"))}`,
       person_id: vouchers.personId,
       party_name: vouchers.partyName,
       held_for_person_id: vouchers.heldForPersonId,
-      held_for_name: heldFor.fullName,
+      held_for_name: sql<
+        string | null
+      >`${lookup("people", "full_name", own("held_for_person_id"))}`,
       deal_id: vouchers.dealId,
-      deal_code: deals.code,
+      deal_code: sql<string | null>`${lookup("deals", "code", own("deal_id"))}`,
       description: vouchers.description,
       reference: vouchers.reference,
       commission_id: vouchers.commissionId,
-      commission_code: commissions.code,
+      // A share paid names its split; its commission is the split's.
+      commission_code: sql<string | null>`${lookup(
+        "commissions",
+        "code",
+        `coalesce(${own("commission_id")}, (SELECT commission_id FROM commission_splits WHERE id = ${own("commission_split_id")}))`,
+      )}`,
       commission_split_id: vouchers.commissionSplitId,
       expense_category_id: vouchers.expenseCategoryId,
-      expense_category_name: expenseCategories.name,
+      expense_category_name: sql<
+        string | null
+      >`${lookup("expense_categories", "name", own("expense_category_id"))}`,
       lease_id: vouchers.leaseId,
-      lease_code: leases.code,
+      lease_code: sql<
+        string | null
+      >`${lookup("leases", "code", own("lease_id"))}`,
       lease_installment_id: vouchers.leaseInstallmentId,
-      lease_installment_seq: leaseInstallments.seq,
+      lease_installment_seq: sql<
+        number | null
+      >`${lookup("lease_installments", "seq", own("lease_installment_id"))}`,
       status: vouchers.status,
       journal_entry_id: vouchers.journalEntryId,
-      journal_entry_code: entry.code,
+      journal_entry_code: sql<string>`${lookup("journal_entries", "code", own("journal_entry_id"))}`,
       void_entry_id: vouchers.voidEntryId,
-      void_entry_code: voidEntry.code,
+      void_entry_code: sql<
+        string | null
+      >`${lookup("journal_entries", "code", own("void_entry_id"))}`,
       void_reason: vouchers.voidReason,
       voided_at: vouchers.voidedAt,
-      voided_by_name: voider.displayName,
-      created_by_name: creator.displayName,
+      voided_by_name: sql<
+        string | null
+      >`${lookup("users", "display_name", own("voided_by"))}`,
+      created_by_name: sql<
+        string | null
+      >`${lookup("users", "display_name", own("created_by"))}`,
       created_at: vouchers.createdAt,
     })
-    .from(vouchers)
-    .innerJoin(moneyAccount, eq(vouchers.moneyAccountId, moneyAccount.id))
-    .innerJoin(otherAccount, eq(vouchers.otherAccountId, otherAccount.id))
-    .innerJoin(entry, eq(vouchers.journalEntryId, entry.id))
-    .leftJoin(voidEntry, eq(vouchers.voidEntryId, voidEntry.id))
-    .leftJoin(deals, eq(vouchers.dealId, deals.id))
-    .leftJoin(heldFor, eq(vouchers.heldForPersonId, heldFor.id))
-    .leftJoin(
-      commissions,
-      sql`${commissions.id} = coalesce(${vouchers.commissionId}, (select ${commissionSplits.commissionId} from ${commissionSplits} where ${commissionSplits.id} = ${vouchers.commissionSplitId}))`,
-    )
-    .leftJoin(
-      expenseCategories,
-      eq(vouchers.expenseCategoryId, expenseCategories.id),
-    )
-    .leftJoin(leases, eq(vouchers.leaseId, leases.id))
-    .leftJoin(
-      leaseInstallments,
-      eq(vouchers.leaseInstallmentId, leaseInstallments.id),
-    )
-    .leftJoin(creator, eq(vouchers.createdBy, creator.id))
-    .leftJoin(voider, eq(vouchers.voidedBy, voider.id));
+    .from(vouchers);
 }
 
 function conditions(query: VoucherPageQuery): SQL | undefined {

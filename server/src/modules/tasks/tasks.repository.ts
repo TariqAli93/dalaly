@@ -163,17 +163,28 @@ function taskRow(row: RawRow) {
   };
 }
 
-/** Tasks of `sources` matching `where`, with their names, ordered and limited. */
-function taskQuery(sources: TaskSource[], where: SQL, tail: SQL) {
+/**
+ * Tasks of `sources` matching `where`, with their names. With a page, the
+ * page is cut (and the total counted) before the names are joined, so only
+ * its rows are looked up, not every matching task (docs/PERFORMANCE.md).
+ */
+function taskQuery(
+  sources: TaskSource[],
+  where: SQL,
+  page?: { order: SQL; limit: number; offset: number },
+) {
+  const matching = page
+    ? sql`SELECT x.*, count(*) OVER () AS total FROM (${union(sources, where)}) x
+        ORDER BY ${page.order} LIMIT ${page.limit} OFFSET ${page.offset}`
+    : sql`SELECT x.*, 1 AS total FROM (${union(sources, where)}) x`;
   return rawRows(sql`SELECT x.*,
       (x.status = 'open' AND x.scheduled_at < now()) AS overdue,
       p.full_name AS person_name,
       au.display_name AS assigned_user_name, cu.username AS user_name,
       coalesce(pr.code, r.code) AS listing_code,
       coalesce(pr.name, 'عقار ' || pr.code, r.name, 'إيجار ' || r.code) AS listing_name,
-      coalesce(preq.code, rreq.code) AS request_code,
-      count(*) OVER () AS total
-    FROM (${union(sources, where)}) x
+      coalesce(preq.code, rreq.code) AS request_code
+    FROM (${matching}) x
     LEFT JOIN people p ON p.id = x.person_id
     LEFT JOIN users au ON au.id = x.assigned_user_id
     LEFT JOIN users cu ON cu.id = x.user_id
@@ -181,7 +192,7 @@ function taskQuery(sources: TaskSource[], where: SQL, tail: SQL) {
     LEFT JOIN rentals r ON r.id = x.rental_id
     LEFT JOIN purchase_requests preq ON preq.id = x.purchase_request_id
     LEFT JOIN rental_requests rreq ON rreq.id = x.rental_request_id
-    ${tail}`);
+    ${page ? sql`ORDER BY ${page.order}` : sql``}`);
 }
 
 /** One page of the tasks the user may read, with the matching total. */
@@ -190,12 +201,11 @@ export async function listTasksPage(query: TaskPageQuery, user: AuthUser) {
     (source) => !query.source || source === query.source,
   );
   const rows = sources.length
-    ? await taskQuery(
-        sources,
-        conditions(query, user.id),
-        sql`ORDER BY ${orderBy(query)}
-          LIMIT ${query.page_size} OFFSET ${pageOffset(query.page, query.page_size)}`,
-      )
+    ? await taskQuery(sources, conditions(query, user.id), {
+        order: orderBy(query),
+        limit: query.page_size,
+        offset: pageOffset(query.page, query.page_size),
+      })
     : [];
   return {
     items: rows.map(taskRow),
@@ -206,7 +216,7 @@ export async function listTasksPage(query: TaskPageQuery, user: AuthUser) {
 }
 
 async function getTask(source: TaskSource, id: number) {
-  const [row] = await taskQuery([source], sql`t.id = ${id}`, sql``);
+  const [row] = await taskQuery([source], sql`t.id = ${id}`);
   return row ? taskRow(row) : null;
 }
 

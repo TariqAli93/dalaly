@@ -1386,3 +1386,103 @@ scripts/perf/compare.mjs perf-results/shell-*.json` prints every row.
   (this change has no server code). The API pass varied by up to 1.8×
   between rounds on identical server code (4 clients searching
   `GET /properties?search=`: 402–760 ms), so its rows say nothing here.
+
+## Business lists and dashboard, October 2026
+
+`pnpm perf:business` (`scripts/perf/business.mjs`) times the business
+modules' API against the targets in
+[BUSINESS_SYSTEM_PLAN.md](BUSINESS_SYSTEM_PLAN.md), section 7: a paged
+list under 15 ms median and 50 ms p95, a report under 500 ms, posting a
+receipt under 50 ms. It runs a built API bundle under Node (not the
+packaged app) against a new `dalaly_perf_<timestamp>` database, which it
+drops at the end.
+
+```bash
+pnpm --filter @dalaly/server build
+pnpm perf:business -- --label my-change
+```
+
+The dataset is the `pnpm perf` one (5,000 properties) plus a year of
+business records: 1,500 deals over every stage and 10,000 customer tasks,
+written in SQL; then, through the API so that each is a real posting, 375
+commissions (one per won deal and payer), 1,200 expenses, 200 leases with
+2,400 installments, and a receipt for every installment due so far (957,
+timed as `POST /vouchers`): 2,407 vouchers and 6,316 journal lines. It
+runs `ANALYZE` after seeding. Without it the first plans after the bulk
+insert differed from later ones, and one run of `/dashboard/alerts` had a
+p95 of 249 ms. Each list is then timed with 3 warm-ups and 30 requests,
+and each report with 2 and 10. `--keep` leaves the database in place, and
+`--reuse <name>` measures it again without seeding: use them to compare two
+bundles on the same rows or to read query plans. Results go to
+`perf-results/<label>-business.json`.
+
+Builds: `main` at `c77bf8e` against this branch, each on a fresh seed, one
+after the other, the same development PC. Two earlier `--reuse` runs, with
+`main` and the branch on the same kept database, agreed within 1–6 ms on
+every row below.
+
+| Median ms (p95)                        |      `main` |      branch |
+| -------------------------------------- | ----------: | ----------: |
+| `GET /vouchers/paged`                  | 52.5 (66.7) |   7.5 (8.6) |
+| `GET /vouchers/:id`                    | 12.7 (14.1) |   5.0 (7.3) |
+| `POST /vouchers` (a receipt)           | 19.3 (25.0) | 13.1 (18.9) |
+| `GET /deals/paged`                     | 30.8 (34.5) | 14.8 (18.2) |
+| `GET /deals/paged` (stalled 14 days)   | 40.3 (59.4) | 18.0 (22.4) |
+| `GET /tasks/paged`                     | 22.1 (28.7) | 10.3 (12.2) |
+| `GET /tasks/paged` (overdue)           | 20.0 (21.5) | 10.0 (11.7) |
+| `GET /dashboard/business`              | 59.0 (66.9) | 36.5 (47.9) |
+| `GET /dashboard/alerts`                | 57.2 (63.5) | 47.3 (64.4) |
+| `GET /leases/paged`                    | 22.0 (26.2) | 22.7 (26.3) |
+| Slowest report (operational, listings) | 49.6 (55.1) | 47.6 (64.5) |
+
+The other lists (commissions, payable splits, the journal, cash balances,
+a deal's and a person's finance, a lease, overdue installments) were
+4–12 ms median in both builds. Every financial report took 7–21 ms and
+every operational one 7–50 ms, far under the 500 ms target.
+
+### What improved
+
+- **Planning time, not reading.** `EXPLAIN (ANALYZE)` of the vouchers page
+  on `main` showed 82–88 ms of planning against 0.6 ms of execution: the
+  list joined a dozen tables (accounts, people, deals, commissions and
+  their splits, expense categories, leases, users) to show their names, and
+  PostgreSQL considered every join order on every request. The vouchers and
+  deals lists now read each name with a scalar subquery
+  (`lookupValue` in `infrastructure/database/lookup.ts`). Each subquery is
+  planned on its own and runs only for the 25 rows of the page. Their
+  counts and the deals pipeline no longer join at all. The vouchers page
+  went from 52.5 to 7.5 ms. A first attempt that only added the split's
+  commission as another join made it worse (about 63 → 127 ms on the kept
+  database).
+- **Opening a voucher, and posting one**, return the voucher through the
+  same query, so they gained the same way: 12.7 → 5.0 ms and 19.3 →
+  13.1 ms.
+- **Tasks** cut the page (and count the total with `count(*) OVER ()`)
+  before joining names, so only 25 rows are looked up instead of every
+  matching task: 22 → 10 ms.
+- **The dashboard's business summary** reads those lists' tables: 59 →
+  37 ms. **Alerts**, which the notification bell polls every two minutes
+  and on page changes, no longer compute the month's money, which no alert
+  shows: 57 → 47 ms.
+
+### What did not improve, or got worse
+
+- **Three requests still miss the 15 ms median**; the first two are under
+  the 50 ms p95:
+  - `/leases/paged`, 22.7 ms, unchanged. It was left as it is: besides six
+    joins it has a dozen per-row subqueries over installments and
+    vouchers, written with `${leases.id}`. As a one-table select that
+    column would be unqualified, and inside `FROM lease_installments i`
+    it would read the installment's own id without any error (the pitfall
+    `lookup.ts` describes). Moving it means rewriting each subquery with
+    `qualified` and a test that checks the figures: a later change.
+  - The stalled deals filter, 18 ms: two `NOT EXISTS` checks per open deal
+    (recent tasks and offers, both indexed by deal), in the page and in its
+    count.
+  - `/dashboard/alerts`, 47 ms median and 64 ms p95. It is timed with the
+    lists but runs the summary's sections (two at a time) and is not a
+    page a user waits on.
+- **The p95 of `/dashboard/alerts` and of the slowest report** were higher
+  on the branch (64.4 and 64.5 ms). Single runs; their medians were lower.
+- Lists and reports that did not change moved by up to 4 ms either way
+  between runs. Read that as noise.
