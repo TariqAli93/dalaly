@@ -1486,3 +1486,33 @@ every operational one 7–50 ms, far under the 500 ms target.
   on the branch (64.4 and 64.5 ms). Single runs; their medians were lower.
 - Lists and reports that did not change moved by up to 4 ms either way
   between runs. Read that as noise.
+
+## List pages reloading in a loop, October 2026
+
+Found in the web demo while checking another change: with the vouchers
+page open and idle, the renderer sent `GET /vouchers/paged` without end,
+30 requests in its first 5 seconds and then about 7 a second for as long
+as the page stayed open. The commissions, journal and leases pages did the
+same (15 requests each in 4 seconds); the customers page sent one.
+
+- **Cause.** `FilterBar` watched its `filters` prop with `{ deep: true }`,
+  and a deep watcher runs its callback whenever its source changes, even to
+  equal values. These pages pass the values as an array literal
+  (`:filters="[kind, currency, status, from, to]"`), a new array on every
+  render. A finished load re-renders the page (rows, total, loading), so
+  `FilterBar` scheduled `apply` again 300 ms later, and these pages' `apply`
+  reloads without comparing with the last request. The older pages compare
+  first (`usePeople`, `useProperties`, `useRentals`), so they never looped.
+- **Fix.** `FilterBar` now watches the filters' values
+  (`JSON.stringify(props.filters)`), so only a real change applies them.
+- **A second duplicate.** The cash, commissions, journal, leases and
+  vouchers pages and the overdue installments view sent their first page
+  twice, and the first request was aborted. They started the first load in
+  `onMounted`, which runs after the table has emitted its first options, and
+  those options had already triggered a load. They now start it during
+  setup, before the table mounts, as the customers and tasks pages do.
+
+After the fix, in the same demo: one list request when each of the six
+views opens and none after; choosing a voucher type sends one request
+(`kind=receipt`), and a status on the properties list, whose filters are
+an object, sends one (`status=available`).

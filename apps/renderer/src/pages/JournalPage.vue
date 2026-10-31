@@ -138,10 +138,9 @@ function onSaved(entry: JournalEntryDetail) {
   void router.push(`/accounting/journal/${entry.id}`);
 }
 
-onMounted(() => {
-  setRefreshHandler(list.reload);
-  void list.loadFirstPage();
-});
+// قبل أن يُظهر الجدول خياراته الأولى، فلا يطلب الصفحة نفسها مرتين.
+void list.loadFirstPage();
+onMounted(() => setRefreshHandler(list.reload));
 </script>
 
 <template>

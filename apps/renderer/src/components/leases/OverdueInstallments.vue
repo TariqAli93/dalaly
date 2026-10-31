@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, useTemplateRef } from "vue";
+import { computed, ref, useTemplateRef } from "vue";
 import { useRouter } from "vue-router";
 import DataGrid from "../shared/DataGrid.vue";
 import PhoneLink from "../shared/PhoneLink.vue";
@@ -159,7 +159,8 @@ function actionsOf(row: OverdueInstallmentRecord): RowAction[] {
 }
 
 const count = computed(() => total.value);
-onMounted(() => void list.loadFirstPage());
+// قبل أن يُظهر الجدول خياراته الأولى، فلا يطلب الصفحة نفسها مرتين.
+void list.loadFirstPage();
 defineExpose({ reload: list.reload, count });
 </script>
 

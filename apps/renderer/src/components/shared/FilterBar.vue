@@ -44,7 +44,10 @@ function schedule() {
   timer = setTimeout(() => emit("apply"), props.delay);
 }
 watch(search, schedule);
-watch(() => props.filters, schedule, { deep: true });
+// Pages often pass the values as a new array each render (`[kind, status]`).
+// Compare the values: a deep watch fired on every re-render, so each load
+// (its rows and loading flag re-render the page) applied the filters again.
+watch(() => JSON.stringify(props.filters ?? null), schedule);
 
 function applyNow() {
   clearTimeout(timer);
