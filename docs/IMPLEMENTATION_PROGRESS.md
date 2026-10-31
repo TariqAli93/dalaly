@@ -53,8 +53,8 @@ Do not rely on this file alone.
 | 8h — unused capture flags           | `refactor/phase-08h-capture-flags`      | [#66](https://github.com/TariqAli93/dalaly/pull/66), merged `f715a6d` | lint, typecheck, build; unit 122; web demo restarted and checked; CI pass                                             | Completed |
 | 8i — perf harnesses                 | `fix/phase-08i-tables-harness`          | [#67](https://github.com/TariqAli93/dalaly/pull/67), merged `dd56abc` | `tables.mjs` and the startup pass run to the end on the 28 Oct build; CI pass                                         | Completed |
 | 8j — close Phase 8 (docs)           | `docs/phase-08j-close`                  | [#68](https://github.com/TariqAli93/dalaly/pull/68), merged `da90ec4` | docs only; CI pass                                                                                                    | Completed |
-| 9a — end-to-end workflows           | `test/phase-09a-workflows`              | —                                                                     | `test:workflows` 20/20 (sale 11, rental 7, 2 tests)                                                                   | In review |
-| 9b — release checks                 | `test/phase-09b-*`                      | —                                                                     | —                                                                                                                     | Pending   |
+| 9a — end-to-end workflows           | `test/phase-09a-workflows`              | [#69](https://github.com/TariqAli93/dalaly/pull/69), merged `b5a008f` | `test:workflows` 20/20 (sale 11, rental 7, 2 tests); CI pass                                                          | Completed |
+| 9b — release checks                 | `test/phase-09b-release-checks`         | —                                                                     | packaged build; `pnpm perf` vs 28 Oct; Electron startup 11/11; upgrade from 0.1.0 fails                               | In review |
 
 ## Baseline evidence (Phase 0, `main` at `3e01f9f`)
 
@@ -1450,6 +1450,55 @@ database, and checks the money and the state at every step.
   - a read-only check that every posted journal entry balances.
 - No product gap was found: every step the workflows need is in the API.
 
+### 9b — release checks
+
+On the current `main` (`b5a008f`), packaged with electron-builder
+(`--dir`):
+
+- **Packaged build:** startup, login and the walk through every list,
+  picker and edit form. `pnpm perf`'s startup pass recorded all its
+  marks on this build in two runs.
+- **Against the 28 October build** (`PERFORMANCE.md`, "Release check"):
+  - The timings fell within the spread of an unsteady machine, so they
+    do not separate the builds.
+  - Every step sends the same list requests. The rentals list after a
+    reload sends one more API request: the alerts bell (7b).
+  - The properties route loads 100 KB of JS, as before. The 486 KB more
+    in total is the new pages' lazy chunks.
+  - Renderer memory on the properties list is about 10 MB higher.
+- **`test:startup:electron`:** all 11 real Electron startup scenarios
+  pass (setup, restart, a deleted, unavailable or restored database,
+  missing migration assets, a removed administrator, a missing users
+  table, a backend that never answers).
+- **Harness fix:** the current build's CSP refused the string 8i's
+  `firstRowShows` passed to `waitForFunction`. Both helpers are now
+  functions (`scripts/perf/lib.mjs`).
+- **Release notes draft:** `RELEASE_NOTES.md`, 0.2.0, not released.
+
+Found, and waiting for the owner (see "Decisions that need the owner"):
+
+- **Upgrading from 0.1.0 fails.** A database migrated by 0.1.0 (June:
+  7 tables, migrations `0000_initial`, `0001_dynamic_rbac`,
+  `0002_drop_legacy_user_role`) is not upgraded by today's runner.
+  - The migrations were consolidated on 2026-10-16 (`152c7a5`) and
+    squashed on 2026-10-22 (`eb63ea4`). The new baseline's hash and date
+    are new to such a database, so the runner runs it.
+  - It stops at «relation "permissions" already exists» and rolls back,
+    and the app shows its startup error.
+  - 0.1.0 had no backup feature to carry its data across.
+  - Checked with a throwaway script that applies 0.1.0's migrations, as
+    released, and then today's.
+- **`test:removal:electron` and `test:removal:browser` cannot pass on a
+  current build.** They date from the contract retirement (2026-10-19):
+  - they fail on any «العقود» in the UI, which the new contracts module
+    (2026-10-26) shows by design;
+  - their selectors predate the redesign. The first failure is the user
+    menu, renamed from «قائمة المستخدم» to «حساب المستخدم: …».
+
+  CI does not run them. Their check that no retired contract API
+  (`/api/contracts`, `/api/contract-studio`, `/api/contract-templates`,
+  `/api/studio`) is requested still applies to the current product.
+
 ## Database migrations
 
 | Migration                    | Phase            | What it adds                                                                                                                                                                                                                                                                                                                                                  |
@@ -1468,6 +1517,25 @@ database, and checks the money and the state at every step.
 | `0015_lease_payments`        | 5b               | `vouchers.lease_id`, `vouchers.lease_installment_id` (only on client funds; an installment only on a receipt; indexed); `leases` termination fields and `renewed_from_id` (one live renewal per lease), status check widened to terminated and renewed; `leases_guard` replaced                                                                               |
 
 ## Decisions that need the owner
+
+- **0.1.0 databases (9b).** They cannot upgrade in place. The options:
+  - declare 0.2.0 a fresh install, with 0.1.0's listings entered again
+    or imported from Excel;
+  - add a one-off upgrade for a 0.1.0 database, which recognises its
+    three migrations and moves users, roles and listings into the new
+    schema. That needs its own tests on real 0.1.0 data.
+
+  The answer depends on whether any office runs 0.1.0 with data.
+
+- **The removal browser and packaged suites (9b).** Update them to the
+  current product: no retired contract API requested, today's selectors,
+  the new contracts module allowed. Or retire them, since
+  `test:startup:electron` and `pnpm perf`'s walk through the packaged
+  build already cover startup and navigation.
+
+- **Publishing 0.2.0.** The version bump, the tag and a GitHub release
+  with installers reach every office that downloads it, so they wait for
+  the owner's approval and for the 0.1.0 decision above.
 
 - **Orphan image files from before Phase 1a.** A listing deleted before
   Phase 1a left its image files and thumbnails on disk, outside every row

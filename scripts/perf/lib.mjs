@@ -461,20 +461,21 @@ export async function painted(page) {
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
 
-/**
- * In the page: the seeded codes (`PERF-P12`, `PERF-RQ3`…) the first row of
- * the list table shows, in cell order; empty before rows show. Each cell is
- * searched on its own: the grids show a code beside a name (one column
- * since the redesign, as «عقار PERF-P12»), and the row's text runs the
- * cells together.
- */
-const FIRST_ROW_CODES = `[...(document.querySelector(".v-data-table tbody tr")?.cells ?? [])].flatMap(
-  (cell) => (cell.textContent ?? "").match(/PERF-[A-Z]+\\d+/g) ?? [],
-)`;
+// Both read the seeded codes (`PERF-P12`, `PERF-RQ3`…) the first row of the
+// list table shows, in cell order. Each cell is searched on its own: the
+// grids show a code beside a name (one column since the redesign, as «عقار
+// PERF-P12»), and the row's text runs the cells together. They are functions,
+// not strings: the app's CSP (no 'unsafe-eval') refuses a string that
+// waitForFunction evaluates in the page.
 
 /** The first code the list table's first row shows, if rows are shown. */
 export function firstRowCode(page) {
-  return page.evaluate(`${FIRST_ROW_CODES}[0]`);
+  return page.evaluate(
+    () =>
+      [...(document.querySelector(".v-data-table tbody tr")?.cells ?? [])].flatMap(
+        (cell) => (cell.textContent ?? "").match(/PERF-[A-Z]+\d+/g) ?? [],
+      )[0],
+  );
 }
 
 /**
@@ -483,13 +484,15 @@ export function firstRowCode(page) {
  * starts with a different code than that.
  */
 export function firstRowShows(page, prefix, previous) {
-  const pattern = JSON.stringify(`^${prefix}\\d`);
   return page.waitForFunction(
-    `(() => {
-      const codes = ${FIRST_ROW_CODES};
-      return codes.some((code) => new RegExp(${pattern}).test(code)) && codes[0] !== ${JSON.stringify(previous ?? null)};
-    })()`,
-    undefined,
+    ([prefix, previous]) => {
+      const codes = [...(document.querySelector(".v-data-table tbody tr")?.cells ?? [])].flatMap(
+        (cell) => (cell.textContent ?? "").match(/PERF-[A-Z]+\d+/g) ?? [],
+      );
+      const pattern = new RegExp(`^${prefix}\\d`);
+      return codes.some((code) => pattern.test(code)) && codes[0] !== previous;
+    },
+    [prefix, previous ?? null],
     { timeout: 60_000 },
   );
 }
