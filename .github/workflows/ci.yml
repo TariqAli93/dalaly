@@ -193,6 +193,9 @@ jobs:
       - name: test:dashboard-business
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:dashboard-business
+      - name: test:workflows
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @dalaly/server test:workflows
       - name: test:import
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @dalaly/server test:import

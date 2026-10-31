@@ -115,6 +115,7 @@ pnpm --filter @dalaly/server test:leases         # leases: activation from an is
 pnpm --filter @dalaly/server test:lease-payments # rent against installments (partly), overdue, deposit, landlord payouts per lease, termination, renewal, restores
 pnpm --filter @dalaly/server test:reports        # financial reports against a known year (trial balance, income, balance sheet, cash flow, commissions, receivables, payables) and operational ones (deals, customers, listings, leases), with permissions
 pnpm --filter @dalaly/server test:dashboard-business # the dashboard's tasks, deals, customers, leases and month's money, and the alerts, by permission
+pnpm --filter @dalaly/server test:workflows    # a sale and a rental end to end through the API: request, deal, contract, commissions or lease, money held and paid, reports
 pnpm --filter @dalaly/server test:import         # Excel import: all rows or none, row cap, same skips as before
 pnpm --filter @dalaly/server test:queries        # users/roles lists and location names in a fixed number of queries
 pnpm --filter @dalaly/server test:dashboard      # dashboard summary unchanged by its merged queries
