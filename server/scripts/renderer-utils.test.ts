@@ -5,6 +5,7 @@ import { samePlot, plotIdentityKey } from "../../apps/renderer/src/utils/plotIde
 import { splitAmenityKeys } from "../../apps/renderer/src/utils/amenities.js";
 import { escapeHtml } from "../../apps/renderer/src/utils/html.js";
 import { isZeroAmount } from "../../apps/renderer/src/utils/money.js";
+import { queryString } from "../../apps/renderer/src/utils/query.js";
 
 test("an amount is zero only when the API sends zero", () => {
   for (const value of ["0", "0.00", "-0.00", "0.0"]) assert.ok(isZeroAmount(value), value);
@@ -15,6 +16,16 @@ test("printed HTML escapes markup and quotes", () => {
   assert.equal(escapeHtml(`<b>"علي" & 'سارة'</b>`), "&lt;b&gt;&quot;علي&quot; &amp; &#39;سارة&#39;&lt;/b&gt;");
   assert.equal(escapeHtml(null), "");
   assert.equal(escapeHtml(undefined), "");
+});
+
+test("query strings keep the set filters, encoded, and drop empty ones", () => {
+  assert.equal(queryString({}), "");
+  assert.equal(queryString({ q: "", status: undefined, person_id: null }), "");
+  assert.equal(
+    queryString({ q: "بيت كبير", page: 2, page_size: 25, archived: false, skip: "" }),
+    `?q=${encodeURIComponent("بيت كبير").replaceAll("%20", "+")}&page=2&page_size=25&archived=false`,
+  );
+  assert.equal(queryString({ from: "2026-10-01", amount: 0 }), "?from=2026-10-01&amount=0");
 });
 
 test("Arabic-Indic and Persian digits become Latin, with Arabic separators", () => {

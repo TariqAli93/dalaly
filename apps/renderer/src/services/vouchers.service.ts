@@ -10,15 +10,7 @@ import type {
   VoucherSortKey,
 } from "../types";
 import { request } from "./api.service";
-
-function buildQuery(filters: Record<string, string | number | undefined>) {
-  const query = new URLSearchParams(
-    Object.entries(filters)
-      .filter(([, value]) => value !== undefined && value !== "")
-      .map(([key, value]) => [key, String(value)]),
-  );
-  return query.toString() ? `?${query}` : "";
-}
+import { queryString } from "../utils/query";
 
 export function listVouchersPage(
   filters: VoucherFilters,
@@ -26,7 +18,7 @@ export function listVouchersPage(
   signal?: AbortSignal,
 ) {
   return request<PagedResult<VoucherRecord>>(
-    `/vouchers/paged${buildQuery({ ...filters, ...page })}`,
+    `/vouchers/paged${queryString({ ...filters, ...page })}`,
     { signal },
   );
 }

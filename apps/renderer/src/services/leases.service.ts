@@ -15,15 +15,7 @@ import type {
   PagedResult,
 } from "../types";
 import { request } from "./api.service";
-
-function buildQuery(filters: Record<string, string | number | undefined>) {
-  const query = new URLSearchParams(
-    Object.entries(filters)
-      .filter(([, value]) => value !== undefined && value !== "")
-      .map(([key, value]) => [key, String(value)]),
-  );
-  return query.toString() ? `?${query}` : "";
-}
+import { queryString } from "../utils/query";
 
 export function listLeasesPage(
   filters: LeaseFilters,
@@ -31,7 +23,7 @@ export function listLeasesPage(
   signal?: AbortSignal,
 ) {
   return request<PagedResult<LeaseRecord>>(
-    `/leases/paged${buildQuery({ ...filters, ...page })}`,
+    `/leases/paged${queryString({ ...filters, ...page })}`,
     { signal },
   );
 }
@@ -80,7 +72,7 @@ export function listOverdueInstallments(
   page: { page: number; page_size: number },
 ) {
   return request<PagedResult<OverdueInstallmentRecord>>(
-    `/leases/installments/overdue${buildQuery({ ...filters, ...page })}`,
+    `/leases/installments/overdue${queryString({ ...filters, ...page })}`,
   );
 }
 

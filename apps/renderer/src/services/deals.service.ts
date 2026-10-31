@@ -11,15 +11,7 @@ import type {
   PageQuery,
 } from "../types";
 import { request } from "./api.service";
-
-function buildQuery(filters: Record<string, string | number | undefined>) {
-  const query = new URLSearchParams(
-    Object.entries(filters)
-      .filter(([, value]) => value !== undefined && value !== "")
-      .map(([key, value]) => [key, String(value)]),
-  );
-  return query.toString() ? `?${query}` : "";
-}
+import { queryString } from "../utils/query";
 
 export function listDealsPage(
   filters: DealFilters,
@@ -27,7 +19,7 @@ export function listDealsPage(
   signal?: AbortSignal,
 ) {
   return request<DealPage>(
-    `/deals/paged${buildQuery({ ...filters, ...page })}`,
+    `/deals/paged${queryString({ ...filters, ...page })}`,
     {
       signal,
     },
@@ -36,7 +28,7 @@ export function listDealsPage(
 
 /** Counts and exact totals per stage and currency. */
 export function getDealPipeline(filters: DealFilters = {}) {
-  return request<DealPipeline>(`/deals/pipeline${buildQuery({ ...filters })}`);
+  return request<DealPipeline>(`/deals/pipeline${queryString({ ...filters })}`);
 }
 
 export function getDeal(id: number) {

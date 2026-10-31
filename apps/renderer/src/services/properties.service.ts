@@ -8,19 +8,7 @@ import type {
   PropertySortKey,
 } from "../types";
 import { request } from "./api.service";
-
-function buildQuery(
-  filters: Partial<PropertyFilters> | Partial<PageQuery<PropertySortKey>>,
-) {
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== "" && value !== undefined && value !== null) {
-      params.set(key, String(value));
-    }
-  });
-  const query = params.toString();
-  return query ? `?${query}` : "";
-}
+import { queryString } from "../utils/query";
 
 /** صفحة واحدة مع العدد الكلي، لجدول العروض. */
 export function listPropertiesPage(
@@ -29,7 +17,7 @@ export function listPropertiesPage(
   signal?: AbortSignal,
 ) {
   return request<PagedResult<PropertyRecord>>(
-    `/properties/paged${buildQuery({ ...filters, ...page })}`,
+    `/properties/paged${queryString({ ...filters, ...page })}`,
     { signal },
   );
 }
