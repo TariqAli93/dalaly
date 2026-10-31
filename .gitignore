@@ -31,5 +31,9 @@ tools/cloudflared/*
 perf-results
 .claude
 .claude-flow
+# Local tool state: the design live server's pid, port and token, and the
+# swarm tool's learned weights. Each machine writes its own.
+apps/renderer/.impeccable/live/server.json
+.swarm/
 # Playwright CLI output (may contain credentials)
 .playwright-cli/
