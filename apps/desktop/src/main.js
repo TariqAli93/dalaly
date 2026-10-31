@@ -250,6 +250,8 @@ function startLocalApi() {
       IMAGES_DIR: path.join(appDataDir, "images", "properties"),
       BACKUP_DIR: path.join(appDataDir, "backups"),
       INTERNAL_TOKEN: internalToken,
+      // The desktop package's version: Settings and backup manifests show it.
+      APP_VERSION: app.getVersion(),
     },
   });
 

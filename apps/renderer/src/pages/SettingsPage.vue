@@ -177,7 +177,7 @@ async function uploadCompanyLogo() {
 }
 
 const systemItems = computed(() => [
-  { label: "الإصدار", value: status.value?.app_version ?? "0.1.0", ltr: true },
+  { label: "الإصدار", value: status.value?.app_version ?? "—", ltr: true },
   { label: "قاعدة البيانات", value: "محلية على هذا الجهاز" },
   {
     label: "المستخدم الحالي",

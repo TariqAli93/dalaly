@@ -49,7 +49,7 @@ const corsOrigins = (
   .filter(Boolean);
 
 export const config = {
-  appVersion: process.env.APP_VERSION ?? "0.1.0",
+  appVersion: process.env.APP_VERSION ?? "0.2.0",
   apiHost: process.env.API_HOST ?? "127.0.0.1",
   apiPort: Number(process.env.API_PORT ?? 34567),
   corsOrigins,

@@ -55,7 +55,8 @@ Do not rely on this file alone.
 | 8j — close Phase 8 (docs)           | `docs/phase-08j-close`                  | [#68](https://github.com/TariqAli93/dalaly/pull/68), merged `da90ec4` | docs only; CI pass                                                                                                    | Completed |
 | 9a — end-to-end workflows           | `test/phase-09a-workflows`              | [#69](https://github.com/TariqAli93/dalaly/pull/69), merged `b5a008f` | `test:workflows` 20/20 (sale 11, rental 7, 2 tests); CI pass                                                          | Completed |
 | 9b — release checks                 | `test/phase-09b-release-checks`         | [#70](https://github.com/TariqAli93/dalaly/pull/70), merged `a138dcb` | packaged build; `pnpm perf` vs 28 Oct; Electron startup 11/11; CI pass                                                | Completed |
-| 9c — removal suites                 | `test/phase-09c-removal-suites`         | —                                                                     | `test:removal:browser` 16 checks, `test:removal:electron` 17 (packaged)                                               | In review |
+| 9c — removal suites                 | `test/phase-09c-removal-suites`         | [#71](https://github.com/TariqAli93/dalaly/pull/71), merged `64a6c2b` | `test:removal:browser` 16 checks, `test:removal:electron` 17 (packaged); CI pass                                      | Completed |
+| 9d — 0.2.0 prepared                 | `chore/phase-09d-release-0.2.0`         | —                                                                     | lint, unit 122, build; installers built; packaged app reports 0.2.0                                                   | In review |
 
 ## Baseline evidence (Phase 0, `main` at `3e01f9f`)
 
@@ -1543,6 +1544,55 @@ Owner decision, 2026-10-31: update `test:removal:browser` and
   - CI does not run either (they need Windows and a packaged build).
   - The browser suite's first run after a lockfile change can fail once,
     when Vite's dev server reloads the page to add new dependencies.
+
+### 9d — 0.2.0 prepared
+
+Owner decision, 2026-10-31: prepare the release; tag and publish it only
+on a separate go-ahead.
+
+- **Version 0.2.0** in the four `package.json` files and in the env
+  examples (`.env.example`, `.env.web-demo`).
+- **The version the app reports.** The API took its version from
+  `APP_VERSION` or a hard-coded `0.1.0`. Electron never set it, so every
+  packaged build showed 0.1.0 in الإعدادات and wrote 0.1.0 into backup
+  manifests.
+  - `main.js` now passes `app.getVersion()` (the desktop package's
+    version) to the API.
+  - The server's fallback is 0.2.0.
+  - The Settings page shows «—» until the status arrives, instead of a
+    guess.
+  - Checked: the packaged app, launched on a fresh profile, reports 0.2.0
+    from Electron and from `/api/health`.
+- **Installers**, built locally with `pnpm build` and `pnpm build:desktop`
+  (cloudflared already present, pinned by `fetch:cloudflared`), in
+  `apps/desktop/release/`:
+
+  | File                                           | SHA-256                                                            |
+  | ---------------------------------------------- | ------------------------------------------------------------------ |
+  | `دلالي-تثبيت-0.2.0-x64.exe` (setup, 102 MB)    | `989fd9f70d882b1fa48d60ad90d5c805b0095be390fa7d5572706feeace509bf` |
+  | `دلالي-محمول-0.2.0-x64.exe` (portable, 102 MB) | `c3ccb024949f2ba8ff1c94f2271f8508bc049832ec7f3e154f079b72c7a627ac` |
+
+  They are not committed, tagged or published.
+
+- **`RELEASE_NOTES.md`**: 0.2.0 marked prepared. A 0.1.0 install needs a
+  fresh database (the owner's decision), and the notes say why. They also
+  record the version fix and the removal suites.
+
+### Phase 9 — summary
+
+- **End to end (9a):** a sale and a rental through the API, 20/20 in CI.
+- **Release checks (9b):**
+  - the packaged build, against the 28 October build;
+  - `test:startup:electron` 11/11;
+  - found: a 0.1.0 database cannot upgrade (decided: fresh install).
+- **Removal suites (9c):** updated to the current product. Both pass on
+  the packaged build.
+- **0.2.0 prepared (9d):**
+  - the version set;
+  - the app's reported version fixed;
+  - the installers built and checksummed.
+- **Waiting for the owner:** tagging `v0.2.0` and publishing a GitHub
+  release with the two installers.
 
 ## Database migrations
 
