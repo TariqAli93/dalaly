@@ -19,6 +19,7 @@ import type {
   VoucherPayload,
   VoucherRecord,
 } from "../../types";
+import { isZeroAmount } from "../../utils/money";
 
 /**
  * مال الزبون من القيود المرحَّلة: ما عليه للمكتب (عمولات لم تُحصَّل)، وما
@@ -57,10 +58,9 @@ async function load() {
 }
 watch(() => props.personId, load, { immediate: true });
 
-const zero = (value: string) => /^-?0(\.0+)?$/.test(value);
 /** The first currency in which the office holds something for them. */
 const heldTotals = computed(() =>
-  finance.value?.totals.find((row) => !zero(row.client_funds_held)),
+  finance.value?.totals.find((row) => !isZeroAmount(row.client_funds_held)),
 );
 
 const dialog = ref(false);
@@ -135,7 +135,9 @@ const currencyName = (currency: Currency) =>
         <dl class="person-money__facts">
           <div>
             <dt>عليه للمكتب</dt>
-            <dd :class="{ 'text-warning': !zero(totals.owed_to_office) }">
+            <dd
+              :class="{ 'text-warning': !isZeroAmount(totals.owed_to_office) }"
+            >
               <bdi>{{
                 formatAmount(totals.owed_to_office, totals.currency)
               }}</bdi>
@@ -189,7 +191,9 @@ const currencyName = (currency: Currency) =>
               label
               >ملغاة</v-chip
             >
-            <span v-else-if="!zero(row.outstanding)" class="text-warning"
+            <span
+              v-else-if="!isZeroAmount(row.outstanding)"
+              class="text-warning"
               >المتبقي
               <bdi>{{ formatAmount(row.outstanding, row.currency) }}</bdi></span
             >

@@ -1487,6 +1487,21 @@ every operational one 7–50 ms, far under the 500 ms target.
 - Lists and reports that did not change moved by up to 4 ms either way
   between runs. Read that as noise.
 
+### The leases list, measured again
+
+A later run of `pnpm perf:business` (the same code, after Phases 8b–8e,
+which did not touch the leases module) measured `GET /leases/paged` at
+14.5 ms median and 15.7 ms p95, inside the target. Every other request in
+that run was also 20–30% faster than in the run above (vouchers 7.5 →
+6.2 ms, deals 14.8 → 11.0, the business summary 36.5 → 30.1), so most of
+the difference is the machine, not the list.
+
+`EXPLAIN (ANALYZE)` of its page on that database: 4.9 ms planning and
+5.6 ms execution, then 0.2 ms for the count. Rewriting its joins as
+lookups could save at most the planning part, and would mean rewriting
+each per-row subquery with `qualified` (see above). Left as it is: on this
+dataset it meets the target, and the saving does not justify that risk.
+
 ## List pages reloading in a loop, October 2026
 
 Found in the web demo while checking another change: with the vouchers

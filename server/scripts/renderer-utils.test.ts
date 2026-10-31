@@ -3,7 +3,20 @@ import { test } from "node:test";
 import { normalizeDigits } from "../../apps/renderer/src/utils/digits.js";
 import { samePlot, plotIdentityKey } from "../../apps/renderer/src/utils/plotIdentity.js";
 import { splitAmenityKeys } from "../../apps/renderer/src/utils/amenities.js";
+import { escapeHtml } from "../../apps/renderer/src/utils/html.js";
+import { isZeroAmount } from "../../apps/renderer/src/utils/money.js";
 import { queryString } from "../../apps/renderer/src/utils/query.js";
+
+test("an amount is zero only when the API sends zero", () => {
+  for (const value of ["0", "0.00", "-0.00", "0.0"]) assert.ok(isZeroAmount(value), value);
+  for (const value of ["0.01", "-0.50", "10.00", "", "00.00"]) assert.ok(!isZeroAmount(value), value);
+});
+
+test("printed HTML escapes markup and quotes", () => {
+  assert.equal(escapeHtml(`<b>"علي" & 'سارة'</b>`), "&lt;b&gt;&quot;علي&quot; &amp; &#39;سارة&#39;&lt;/b&gt;");
+  assert.equal(escapeHtml(null), "");
+  assert.equal(escapeHtml(undefined), "");
+});
 
 test("query strings keep the set filters, encoded, and drop empty ones", () => {
   assert.equal(queryString({}), "");

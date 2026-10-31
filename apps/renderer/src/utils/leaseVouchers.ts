@@ -1,5 +1,5 @@
 import { formatAmount, formatDate } from "./format";
-import { amountToMinor, minorToAmount } from "./money";
+import { amountToMinor, isZeroAmount, minorToAmount } from "./money";
 import type { Currency, VoucherKind, VoucherPayload } from "../types";
 
 /** What a lease's voucher needs to know of the lease. */
@@ -19,8 +19,6 @@ export interface LeaseVoucher {
   preset: Partial<VoucherPayload>;
   note: string;
 }
-
-const zero = (value: string) => /^-?0(\.0+)?$/.test(value);
 
 /**
  * سند قبض لقسط من الإيجار: المتبقي منه، من المستأجر، لحساب المؤجر. أمانة
@@ -89,7 +87,7 @@ export function leasePayout(
       person_id: personId,
       held_for_person_id: personId,
       lease_id: lease.id,
-      amount: zero(held) ? "" : held,
+      amount: isZeroAmount(held) ? "" : held,
       description:
         to === "landlord"
           ? `تسليم إيجار ${lease.code} إلى المؤجر`
