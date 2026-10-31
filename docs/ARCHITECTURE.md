@@ -928,7 +928,8 @@ pages/         one per route (lazy-loaded in router/index.ts)
 components/    app/ shell, shared/ reusable, <domain>/ feature components
 composables/   cross-page state (auth, permissions, snackbar, confirm…)
 services/      one HTTP client module per API area; api.service.ts holds
-               the token, 401 handling and ApiError
+               the token, 401 handling and ApiError; filters go into the
+               path through queryString (utils/query.ts)
 platform/      native capabilities: electron.ts (preload bridge) / web.ts
 constants/     domain option lists and Arabic labels (single source)
 utils/         formatting (format.ts), files, exports, Excel import

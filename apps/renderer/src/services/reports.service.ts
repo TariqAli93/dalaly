@@ -20,21 +20,13 @@ import type {
   TrialBalanceReport,
 } from "../types";
 import { request } from "./api.service";
+import { queryString } from "../utils/query";
 
 /** The financial reports (reports.financial); see docs/REPORTS.md. */
 
-function buildQuery(filters: Record<string, string | number | undefined>) {
-  const query = new URLSearchParams(
-    Object.entries(filters)
-      .filter(([, value]) => value !== undefined && value !== "")
-      .map(([key, value]) => [key, String(value)]),
-  );
-  return query.toString() ? `?${query}` : "";
-}
-
 export function getTrialBalance(query: ReportPeriodQuery) {
   return request<TrialBalanceReport>(
-    `/reports/financial/trial-balance${buildQuery({ ...query })}`,
+    `/reports/financial/trial-balance${queryString({ ...query })}`,
   );
 }
 
@@ -42,37 +34,37 @@ export function getIncomeStatement(
   query: ReportPeriodQuery & { group?: "none" | "month" },
 ) {
   return request<IncomeStatementReport>(
-    `/reports/financial/income-statement${buildQuery({ ...query })}`,
+    `/reports/financial/income-statement${queryString({ ...query })}`,
   );
 }
 
 export function getBalanceSheet(query: ReportAsOfQuery) {
   return request<BalanceSheetReport>(
-    `/reports/financial/balance-sheet${buildQuery({ ...query })}`,
+    `/reports/financial/balance-sheet${queryString({ ...query })}`,
   );
 }
 
 export function getCashFlow(query: ReportPeriodQuery) {
   return request<CashFlowReport>(
-    `/reports/financial/cash-flow${buildQuery({ ...query })}`,
+    `/reports/financial/cash-flow${queryString({ ...query })}`,
   );
 }
 
 export function getCommissionsReport(query: CommissionsReportQuery) {
   return request<CommissionsReport>(
-    `/reports/financial/commissions${buildQuery({ ...query })}`,
+    `/reports/financial/commissions${queryString({ ...query })}`,
   );
 }
 
 export function getReceivables(query: ReportAsOfQuery) {
   return request<ReceivablesReport>(
-    `/reports/financial/receivables${buildQuery({ ...query })}`,
+    `/reports/financial/receivables${queryString({ ...query })}`,
   );
 }
 
 export function getPayables(query: ReportAsOfQuery) {
   return request<PayablesReport>(
-    `/reports/financial/payables${buildQuery({ ...query })}`,
+    `/reports/financial/payables${queryString({ ...query })}`,
   );
 }
 
@@ -82,7 +74,7 @@ export function getAccountLedger(
   range: { from?: string; to?: string },
 ) {
   return request<AccountStatement>(
-    `/reports/financial/ledger/${id}${buildQuery(range)}`,
+    `/reports/financial/ledger/${id}${queryString(range)}`,
   );
 }
 
@@ -90,24 +82,24 @@ export function getAccountLedger(
 
 export function getDealsReport(query: DealsReportQuery) {
   return request<DealsReport>(
-    `/reports/operations/deals${buildQuery({ ...query })}`,
+    `/reports/operations/deals${queryString({ ...query })}`,
   );
 }
 
 export function getCustomersReport(query: CustomersReportQuery) {
   return request<CustomersReport>(
-    `/reports/operations/customers${buildQuery({ ...query })}`,
+    `/reports/operations/customers${queryString({ ...query })}`,
   );
 }
 
 export function getListingsReport(query: ListingsReportQuery) {
   return request<ListingsReport>(
-    `/reports/operations/listings${buildQuery({ ...query })}`,
+    `/reports/operations/listings${queryString({ ...query })}`,
   );
 }
 
 export function getLeasesReport(query: LeasesReportQuery) {
   return request<LeasesReport>(
-    `/reports/operations/leases${buildQuery({ ...query })}`,
+    `/reports/operations/leases${queryString({ ...query })}`,
   );
 }

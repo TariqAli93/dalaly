@@ -12,20 +12,12 @@ import type {
   TransferSortKey,
 } from "../types";
 import { request } from "./api.service";
-
-function buildQuery(filters: Record<string, string | number | undefined>) {
-  const query = new URLSearchParams(
-    Object.entries(filters)
-      .filter(([, value]) => value !== undefined && value !== "")
-      .map(([key, value]) => [key, String(value)]),
-  );
-  return query.toString() ? `?${query}` : "";
-}
+import { queryString } from "../utils/query";
 
 /** Cash and bank accounts with their balances, today or as of a date. */
 export function getBalances(asOf?: string) {
   return request<MoneyAccount[]>(
-    `/cash/balances${buildQuery({ as_of: asOf })}`,
+    `/cash/balances${queryString({ as_of: asOf })}`,
   );
 }
 
@@ -35,7 +27,7 @@ export function listTransfersPage(
   signal?: AbortSignal,
 ) {
   return request<PagedResult<CashTransferRecord>>(
-    `/cash/transfers/paged${buildQuery({ ...filters, ...page })}`,
+    `/cash/transfers/paged${queryString({ ...filters, ...page })}`,
     { signal },
   );
 }
@@ -59,7 +51,7 @@ export function voidTransfer(
 
 export function listReconciliations(accountId?: number) {
   return request<ReconciliationRecord[]>(
-    `/cash/reconciliations${buildQuery({ account_id: accountId })}`,
+    `/cash/reconciliations${queryString({ account_id: accountId })}`,
   );
 }
 

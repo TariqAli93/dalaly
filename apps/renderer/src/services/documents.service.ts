@@ -6,15 +6,7 @@ import type {
   PagedResult,
 } from "../types";
 import { request, requestBlob } from "./api.service";
-
-function buildQuery(filters: Record<string, string | number | undefined>) {
-  const query = new URLSearchParams(
-    Object.entries(filters)
-      .filter(([, value]) => value !== undefined)
-      .map(([key, value]) => [key, String(value)]),
-  );
-  return query.toString() ? `?${query}` : "";
-}
+import { queryString } from "../utils/query";
 
 export function listDocumentTypes() {
   return request<DocumentTypeRecord[]>("/documents/types");
@@ -22,7 +14,7 @@ export function listDocumentTypes() {
 export function listDocuments(
   filters: Record<string, string | number | undefined> = {},
 ) {
-  return request<DocumentRecord[]>(`/documents${buildQuery(filters)}`);
+  return request<DocumentRecord[]>(`/documents${queryString(filters)}`);
 }
 /** صفحة واحدة مع العدد الكلي، لجدول المستمسكات. */
 export function listDocumentsPage(
@@ -31,7 +23,7 @@ export function listDocumentsPage(
   signal?: AbortSignal,
 ) {
   return request<PagedResult<DocumentRecord>>(
-    `/documents/paged${buildQuery({ ...filters, ...page })}`,
+    `/documents/paged${queryString({ ...filters, ...page })}`,
     { signal },
   );
 }

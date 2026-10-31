@@ -3,6 +3,17 @@ import { test } from "node:test";
 import { normalizeDigits } from "../../apps/renderer/src/utils/digits.js";
 import { samePlot, plotIdentityKey } from "../../apps/renderer/src/utils/plotIdentity.js";
 import { splitAmenityKeys } from "../../apps/renderer/src/utils/amenities.js";
+import { queryString } from "../../apps/renderer/src/utils/query.js";
+
+test("query strings keep the set filters, encoded, and drop empty ones", () => {
+  assert.equal(queryString({}), "");
+  assert.equal(queryString({ q: "", status: undefined, person_id: null }), "");
+  assert.equal(
+    queryString({ q: "بيت كبير", page: 2, page_size: 25, archived: false, skip: "" }),
+    `?q=${encodeURIComponent("بيت كبير").replaceAll("%20", "+")}&page=2&page_size=25&archived=false`,
+  );
+  assert.equal(queryString({ from: "2026-10-01", amount: 0 }), "?from=2026-10-01&amount=0");
+});
 
 test("Arabic-Indic and Persian digits become Latin, with Arabic separators", () => {
   assert.equal(normalizeDigits("٠٧٧٠١٢٣٤٥٦٧"), "07701234567");
