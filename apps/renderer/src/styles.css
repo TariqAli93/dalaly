@@ -504,6 +504,11 @@ body {
   padding: 8px 12px;
   border-bottom: 1px solid var(--dal-stroke);
 }
+/* تبويبات تبدّل محتوى اللوح كله: أول صفوفه، بخط فاصل تحتها. */
+.dal-panel__tabs {
+  flex: none;
+  border-bottom: 1px solid var(--dal-stroke);
+}
 .dal-section-title {
   font-size: calc(14px * var(--dal-font-scale));
   font-weight: 700;
@@ -949,15 +954,19 @@ body {
   padding: 12px;
   align-items: center;
 }
+/* <bdi> بلا dir بيانات لاتينية (رمز، هاتف، مبلغ) تُعرض من اليسار. التاريخ
+   والوقت المنسّقان بالعربية (utils/format.ts) فيهما «م/ص» و«،» وعلامات RLM،
+   فيُكتبان <bdi dir="rtl">: فرض ltr عليهما كان يقلب ترتيبهما
+   ("24p 11:58:31 ،2026/10/"). */
 :is(.v-application, .v-overlay) input[type="tel"],
 :is(.v-application, .v-overlay) input[type="email"],
 :is(.v-application, .v-overlay) input[type="date"],
 :is(.v-application, .v-overlay) bdi:not([dir]) {
   direction: ltr;
-/* <bdi> بلا dir بيانات لاتينية (رمز، هاتف، مبلغ) تُعرض من اليسار. التاريخ
-   والوقت المنسّقان بالعربية (utils/format.ts) فيهما «م/ص» و«،» وعلامات RLM،
-   فيُكتبان <bdi dir="rtl">: فرض ltr عليهما كان يقلب ترتيبهما
-   ("24p 11:58:31 ،2026/10/"). */
+  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
+}
+:is(.v-application, .v-overlay) bdi[dir] {
   unicode-bidi: isolate;
   font-variant-numeric: tabular-nums;
 }
@@ -966,10 +975,6 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   *,
-:is(.v-application, .v-overlay) bdi[dir] {
-  unicode-bidi: isolate;
-  font-variant-numeric: tabular-nums;
-}
   *::before,
   *::after {
     scroll-behavior: auto !important;

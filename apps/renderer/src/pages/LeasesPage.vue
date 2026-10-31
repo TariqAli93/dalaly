@@ -164,133 +164,134 @@ void list.loadFirstPage();
       >
     </template>
 
-    <v-tabs v-model="view" density="compact" class="mb-2">
-      <v-tab value="leases">الإيجارات</v-tab>
-      <v-tab value="overdue"
-        >الأقساط المتأخرة
-        <v-badge
-          v-if="overdueCount"
-          :content="overdueCount"
-          color="error"
-          inline
-        />
-      </v-tab>
-    </v-tabs>
-
+    <!-- التبويبات أول صفوف اللوح (كالإعدادات): كانت فوقه على الخلفية فيزيد
+         ارتفاع الصفحة عن النافذة ويُقصّ تذييل الجدول. -->
     <section
-      v-if="view === 'overdue'"
       class="dal-panel dal-listpanel dal-fill"
-      aria-label="الأقساط المتأخرة"
+      :aria-label="view === 'overdue' ? 'الأقساط المتأخرة' : 'الإيجارات'"
     >
-      <OverdueInstallments ref="overdue" @changed="onCollected" />
-    </section>
-
-    <section
-      v-else
-      class="dal-panel dal-listpanel dal-fill"
-      aria-label="الإيجارات"
-    >
-      <FilterBar
-        v-model:search="search"
-        :filters="[state]"
-        search-label="بحث في الإيجارات"
-        placeholder="بحث برقم الإيجار أو المستأجر أو المؤجر أو العرض"
-        :chips="chips"
-        @apply="apply"
-        @down="grid?.focusFirstRow()"
-        @remove="removeChip"
-        @clear="clear"
-      >
-        <template #filters>
-          <v-select
-            v-model="state"
-            :items="LEASE_STATES"
-            label="الحالة"
-            hide-details
-            clearable
-            class="dal-toolbar__filter"
+      <v-tabs v-model="view" density="compact" class="dal-panel__tabs">
+        <v-tab value="leases">الإيجارات</v-tab>
+        <v-tab value="overdue"
+          >الأقساط المتأخرة
+          <v-badge
+            v-if="overdueCount"
+            :content="overdueCount"
+            color="error"
+            inline
           />
-        </template>
-      </FilterBar>
+        </v-tab>
+      </v-tabs>
 
-      <DataGrid
-        ref="grid"
-        v-model:page="page"
-        v-model:items-per-page="pageSize"
-        v-model:sort-by="sortBy"
-        grid-key="leases"
-        table-label="جدول الإيجارات"
-        :items="items"
-        :headers="headers"
-        :total="total"
-        :loading="loading"
-        :error="error"
-        :has-filters="chips.length > 0"
-        :row-label="(lease) => `${lease.code} · ${lease.tenant_name ?? ''}`"
-        :empty="{
-          icon: 'mdi-home-clock-outline',
-          title: 'لا إيجارات بعد',
-          text: 'يُفعَّل الإيجار من صفحة عقد الإيجار بعد إصداره.',
-        }"
-        :no-match="{ title: 'لا إيجارات مطابقة للفلاتر الحالية' }"
-        @open="openLease"
-        @retry="list.reload"
-        @clear-filters="clear"
-        @options="onTableOptions"
-      >
-        <template #item.code="{ item }">
-          <bdi class="font-weight-medium">{{ item.code }}</bdi>
-        </template>
-        <template #item.tenant_name="{ item }">
-          <span class="dal-clip">{{ item.tenant_name ?? "—" }}</span>
-        </template>
-        <template #item.landlord_name="{ item }">
-          <span class="dal-clip">{{ item.landlord_name ?? "—" }}</span>
-        </template>
-        <template #item.rental_name="{ item }">
-          <span class="dal-clip">{{
-            item.rental_name ?? item.rental_code ?? "—"
-          }}</span>
-        </template>
-        <template #item.rent_amount="{ item }">
-          <span class="lease-amount"
-            ><bdi>{{ formatAmount(item.rent_amount, item.currency) }}</bdi>
-            {{ leasePerPeriod(item.frequency) }}</span
-          >
-        </template>
-        <template #item.start_date="{ item }">
-          <span class="lease-dates"
-            >{{ formatDate(item.start_date) }} ←
-            {{ formatDate(item.end_date) }}</span
-          >
-        </template>
-        <template #item.next_due_date="{ item }">
-          <span>{{
-            item.state === "cancelled" || !item.next_due_date
-              ? "—"
-              : formatDate(item.next_due_date)
-          }}</span>
-        </template>
-        <template #item.outstanding="{ item }">
-          <span
-            v-if="item.office_collects && !isZeroAmount(item.outstanding)"
-            class="lease-amount text-error"
-            ><bdi>{{
-              formatAmount(item.outstanding, item.currency)
-            }}</bdi></span
-          >
-          <span v-else class="text-medium-emphasis">—</span>
-        </template>
-        <template #item.state="{ item }">
-          <v-chip
-            size="small"
-            variant="tonal"
-            label
-            :color="leaseStateOf(item.state).color"
-            >{{ leaseStateOf(item.state).title }}</v-chip
-          >
-        </template>
-      </DataGrid>
+      <OverdueInstallments
+        v-if="view === 'overdue'"
+        ref="overdue"
+        @changed="onCollected"
+      />
+
+      <template v-else>
+        <FilterBar
+          v-model:search="search"
+          :filters="[state]"
+          search-label="بحث في الإيجارات"
+          placeholder="بحث برقم الإيجار أو المستأجر أو المؤجر أو العرض"
+          :chips="chips"
+          @apply="apply"
+          @down="grid?.focusFirstRow()"
+          @remove="removeChip"
+          @clear="clear"
+        >
+          <template #filters>
+            <v-select
+              v-model="state"
+              :items="LEASE_STATES"
+              label="الحالة"
+              hide-details
+              clearable
+              class="dal-toolbar__filter"
+            />
+          </template>
+        </FilterBar>
+
+        <DataGrid
+          ref="grid"
+          v-model:page="page"
+          v-model:items-per-page="pageSize"
+          v-model:sort-by="sortBy"
+          grid-key="leases"
+          table-label="جدول الإيجارات"
+          :items="items"
+          :headers="headers"
+          :total="total"
+          :loading="loading"
+          :error="error"
+          :has-filters="chips.length > 0"
+          :row-label="(lease) => `${lease.code} · ${lease.tenant_name ?? ''}`"
+          :empty="{
+            icon: 'mdi-home-clock-outline',
+            title: 'لا إيجارات بعد',
+            text: 'يُفعَّل الإيجار من صفحة عقد الإيجار بعد إصداره.',
+          }"
+          :no-match="{ title: 'لا إيجارات مطابقة للفلاتر الحالية' }"
+          @open="openLease"
+          @retry="list.reload"
+          @clear-filters="clear"
+          @options="onTableOptions"
+        >
+          <template #item.code="{ item }">
+            <bdi class="font-weight-medium">{{ item.code }}</bdi>
+          </template>
+          <template #item.tenant_name="{ item }">
+            <span class="dal-clip">{{ item.tenant_name ?? "—" }}</span>
+          </template>
+          <template #item.landlord_name="{ item }">
+            <span class="dal-clip">{{ item.landlord_name ?? "—" }}</span>
+          </template>
+          <template #item.rental_name="{ item }">
+            <span class="dal-clip">{{
+              item.rental_name ?? item.rental_code ?? "—"
+            }}</span>
+          </template>
+          <template #item.rent_amount="{ item }">
+            <span class="lease-amount"
+              ><bdi>{{ formatAmount(item.rent_amount, item.currency) }}</bdi>
+              {{ leasePerPeriod(item.frequency) }}</span
+            >
+          </template>
+          <template #item.start_date="{ item }">
+            <span class="lease-dates"
+              >{{ formatDate(item.start_date) }} ←
+              {{ formatDate(item.end_date) }}</span
+            >
+          </template>
+          <template #item.next_due_date="{ item }">
+            <span>{{
+              item.state === "cancelled" || !item.next_due_date
+                ? "—"
+                : formatDate(item.next_due_date)
+            }}</span>
+          </template>
+          <template #item.outstanding="{ item }">
+            <span
+              v-if="item.office_collects && !isZeroAmount(item.outstanding)"
+              class="lease-amount text-error"
+              ><bdi>{{
+                formatAmount(item.outstanding, item.currency)
+              }}</bdi></span
+            >
+            <span v-else class="text-medium-emphasis">—</span>
+          </template>
+          <template #item.state="{ item }">
+            <v-chip
+              size="small"
+              variant="tonal"
+              label
+              :color="leaseStateOf(item.state).color"
+              >{{ leaseStateOf(item.state).title }}</v-chip
+            >
+          </template>
+        </DataGrid>
+      </template>
     </section>
 
     <LeaseDialog v-model="dialog" @saved="onCreated" />

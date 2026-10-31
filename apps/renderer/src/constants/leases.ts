@@ -33,7 +33,9 @@ export const LEASE_STATES: Array<{
   { value: "upcoming", title: "لم يبدأ", color: "info" },
   { value: "ended", title: "منتهٍ", color: "default" },
   { value: "terminated", title: "أُنهي مبكراً", color: "warning" },
-  { value: "renewed", title: "مجدَّد", color: "secondary" },
+  // محايد كالمنتهي: إيجار أُغلق بتجديده. "secondary" لون سطح فاتح فكانت
+  // الشريحة غير مقروءة في الوضعين.
+  { value: "renewed", title: "مجدَّد", color: "default" },
   { value: "cancelled", title: "ملغى", color: "error" },
 ];
 

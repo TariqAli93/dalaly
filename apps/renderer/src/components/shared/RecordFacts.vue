@@ -28,9 +28,13 @@ defineProps<{ facts: RecordFact[]; label: string }>();
               >{{ fact.value || "—" }}</span
             >
           </slot>
-          <small v-if="fact.hint" class="record-facts__hint">{{
-            fact.hint
-          }}</small>
+          <small
+            v-if="fact.hint"
+            class="record-facts__hint"
+            dir="auto"
+            :title="fact.hint"
+            >{{ fact.hint }}</small
+          >
         </dd>
       </div>
     </dl>
@@ -76,9 +80,16 @@ defineProps<{ facts: RecordFact[]; label: string }>();
   color: rgb(var(--v-theme-primary-text));
   line-height: 1.3;
 }
+/* سطر واحد يُقصّ بنقاط والنص كاملاً في التلميح: بريد طويل كان ينكسر في
+   منتصفه ("example.\ncom"). */
 .record-facts__hint {
+  align-self: flex-start;
+  max-width: 100%;
+  overflow: hidden;
   color: var(--dal-muted);
   font-size: calc(12px * var(--dal-font-scale));
   font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>
