@@ -10,11 +10,6 @@ export function propertyTypeText(kind: OperationsKind, value: string) {
   return kind === "rental" ? (RENTAL_PROPERTY_LABELS[value] ?? value) : value;
 }
 
-/** "بيت للبيع" / "شقة للإيجار". */
-export function listingKindText(kind: OperationsKind) {
-  return kind === "sale" ? "بيع" : "إيجار";
-}
-
 export function locationText(
   ...parts: Array<string | null | undefined>
 ): string {

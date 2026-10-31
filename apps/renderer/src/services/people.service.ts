@@ -1,5 +1,4 @@
 import type {
-  AuditLogRecord,
   PageQuery,
   PagedResult,
   PersonDetailRecord,
@@ -17,11 +16,6 @@ function buildQuery(filters: Record<string, string | number | undefined>) {
       .map(([key, value]) => [key, String(value)]),
   );
   return query.toString() ? `?${query}` : "";
-}
-
-/** كل الأشخاص، لقوائم الاختيار (مالك العرض، عميل الطلب، تصفية المستمسكات). */
-export function listPeople(filters: Record<string, string | undefined> = {}) {
-  return request<PersonRecord[]>(`/people${buildQuery(filters)}`);
 }
 
 /** صفحة واحدة مع العدد الكلي، لجدول الأشخاص. */
@@ -55,9 +49,6 @@ export function findDuplicatePeople(query: {
   exclude_id?: number;
 }) {
   return request<PersonDuplicate[]>(`/people/duplicates${buildQuery(query)}`);
-}
-export function getPersonAudit(id: number) {
-  return request<AuditLogRecord[]>(`/people/${id}/audit`);
 }
 export function createPerson(payload: unknown) {
   return request<PersonRecord>("/people", {
