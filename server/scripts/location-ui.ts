@@ -17,7 +17,7 @@ export async function verifyLocationUi(
   const address = app.server.address(); assert.ok(address && typeof address !== "string");
   const vite = spawn(process.execPath, [path.join(root, "apps/renderer/node_modules/vite/bin/vite.js"), "--host", "127.0.0.1", "--port", "5189", "--strictPort", "--mode", "web-demo"], {
     cwd: path.join(root, "apps/renderer"), windowsHide: true, stdio: "pipe",
-    env: { ...process.env, VITE_API_BASE_URL: `http://127.0.0.1:${address.port}/api`, VITE_WEB_DEMO: "false" },
+    env: { ...process.env, VITE_API_BASE_URL: `http://127.0.0.1:${address.port}/api` },
   });
   let browser;
   let debugPage: import("@playwright/test").Page | undefined;
