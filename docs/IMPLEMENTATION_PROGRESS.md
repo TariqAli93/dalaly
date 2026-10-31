@@ -49,7 +49,8 @@ Do not rely on this file alone.
 | 8d — query-string helper            | `refactor/phase-08d-query-strings`      | [#62](https://github.com/TariqAli93/dalaly/pull/62), merged `609cdfb` | lint, typecheck, build; unit 120; `test:contract` 149; web demo URLs; CI pass                                         | Completed |
 | 8e — shared date schema             | `refactor/phase-08e-date-schemas`       | [#63](https://github.com/TariqAli93/dalaly/pull/63), merged `9013d0b` | deals, accounting, ledger, vouchers, commissions, cash, finance, leases, payments, reports, agreements; CI pass       | Completed |
 | 8f — renderer helpers               | `refactor/phase-08f-renderer-helpers`   | [#64](https://github.com/TariqAli93/dalaly/pull/64), merged `0497ff4` | lint, typecheck, build; unit 122; web demo (lease, dashboard); CI pass                                                | Completed |
-| 8g — untrack local tool state       | `chore/phase-08g-untrack-tool-state`    | —                                                                     | `git check-ignore` for both files; no code change                                                                     | In review |
+| 8g — untrack local tool state       | `chore/phase-08g-untrack-tool-state`    | [#65](https://github.com/TariqAli93/dalaly/pull/65), merged `e10fd79` | `git check-ignore` for both files; no code change; CI pass                                                            | Completed |
+| 8h — unused capture flags           | `refactor/phase-08h-capture-flags`      | —                                                                     | lint, typecheck, build; unit 122; web demo restarted and checked                                                      | In review |
 | 8 — refactoring (further PRs)       | `refactor/phase-08-*`                   | —                                                                     | —                                                                                                                     | Pending   |
 | 9 — final verification              | `test/phase-09-*`                       | —                                                                     | —                                                                                                                     | Pending   |
 
@@ -1316,6 +1317,22 @@ Owner decision, 2026-10-31 (after the Phase 8 audit):
   (project configuration, not runtime state).
 - Also decided: keep the web demo and remove only capture leftovers
   nothing references (8h); leave Tailwind for a later cleanup.
+
+### 8h — unused capture flags
+
+- `isCaptureMode` and `isWebDemo` (`platform/index.ts`) had no reader, so
+  `VITE_CAPTURE_MODE` and `VITE_WEB_DEMO` did nothing. The platform is
+  chosen by the Electron bridge. The web demo's behaviour comes from its
+  Vite mode and API address.
+- Removed: the two exports, their typings in `env.d.ts`, their lines in
+  `.env.web-demo`, and the `VITE_WEB_DEMO: "false"` overrides in
+  `location-ui.ts` and `removal-browser.ts`.
+- Kept, as decided: the web demo (`pnpm demo:reset`, `pnpm dev:web`) and
+  the capture docs and scripts. `PRODUCT.md` and `CAPTURE-REPORT.md` still
+  reference them, so they are not unreferenced leftovers.
+- Web demo, restarted on the trimmed `.env.web-demo`: the dashboard and
+  properties list load from the demo API (port 45699), with no console
+  errors.
 
 ## Database migrations
 

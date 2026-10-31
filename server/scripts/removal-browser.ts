@@ -206,7 +206,6 @@ async function main() {
       mode: "web-demo",
       define: {
         "import.meta.env.VITE_API_BASE_URL": JSON.stringify(`http://127.0.0.1:${api.port}/api`),
-        "import.meta.env.VITE_WEB_DEMO": JSON.stringify("false"),
       },
       server: { host: "127.0.0.1", port: 0 },
     });

@@ -17,10 +17,4 @@ export const platform: PlatformAdapter = hasElectronBridge
   ? electronPlatform
   : webPlatform;
 
-/** وضع العرض على الويب (يُفعَّل من ملف البيئة .env.web-demo فقط). */
-export const isWebDemo = import.meta.env.VITE_WEB_DEMO === "true";
-
-/** وضع التصوير الآلي — يُستخدم لتهدئة الحركة وإظهار مؤشّر التصوير. */
-export const isCaptureMode = import.meta.env.VITE_CAPTURE_MODE === "true";
-
 export type { PlatformAdapter } from "./types";
