@@ -44,7 +44,8 @@ Do not rely on this file alone.
 | 7b — dashboard (server)             | `feat/phase-07b-dashboard`              | [#57](https://github.com/TariqAli93/dalaly/pull/57), merged `5b5baa6` | `test:dashboard-business` 1/1, `test:reports` 2/2, `test:contract` 159; CI pass                                       | Completed |
 | 7b — dashboard UI                   | `feat/phase-07b-dashboard-ui`           | [#58](https://github.com/TariqAli93/dalaly/pull/58), merged `c77bf8e` | renderer checks; web demo at 1366×768 and 1024×720; CI pass                                                           | Completed |
 | 8a — business benchmarks            | `perf/phase-08a-business-benchmarks`    | [#59](https://github.com/TariqAli93/dalaly/pull/59), merged `b8bd40f` | `perf:business` before/after; deals 15, vouchers 10, tasks 13, paging 17, `test:contract` 159; unit 119; CI pass      | Completed |
-| 8b — dead code                      | `refactor/phase-08b-dead-code`          | —                                                                     | lint, typecheck, build; unit 119; `test:contract` 149 (was 159: 10 routes no renderer code reads); `test:dashboard` 4 | In review |
+| 8b — dead code                      | `refactor/phase-08b-dead-code`          | [#60](https://github.com/TariqAli93/dalaly/pull/60), merged `bf74c56` | lint, typecheck, build; unit 119; `test:contract` 149 (10 unread routes); `test:dashboard` 4; CI pass                 | Completed |
+| 8c — list reload loop               | `fix/phase-08c-filter-reload-loop`      | —                                                                     | lint, typecheck, build; unit 119; request counts in the web demo                                                      | In review |
 | 8 — refactoring (further PRs)       | `refactor/phase-08-*`                   | —                                                                     | —                                                                                                                     | Pending   |
 | 9 — final verification              | `test/phase-09-*`                       | —                                                                     | —                                                                                                                     | Pending   |
 
@@ -1236,6 +1237,20 @@ Left for later PRs, as they need a decision or a closer look:
 - `server/scripts/fixtures/legacy-contract-*.sql` (legacy contract data,
   `CONTRACT_SYSTEM_REMOVAL_MAP.md`);
 - tracked files that `.gitignore` lists.
+
+### 8c — list reload loop
+
+- The vouchers, commissions, journal and leases pages reloaded their list
+  about 7 times a second while open. `FilterBar` scheduled `apply` after
+  every re-render, because it deep-watched an array the page re-creates on
+  each render. It now compares the filters' values.
+- Those pages, the cash page and the overdue installments view also sent
+  their first page twice. They now start the first load during setup, as
+  the customers and tasks pages do.
+- Evidence (web demo): one list request per view opened and none after,
+  against 15 to 30 in the first seconds and a steady stream before; a
+  filter change sends one. `PERFORMANCE.md`, "List pages reloading in a
+  loop".
 
 ## Database migrations
 
