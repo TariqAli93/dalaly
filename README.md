@@ -143,6 +143,14 @@ seeded throwaway database — see `docs/PERFORMANCE.md`:
 pnpm perf -- --app apps/desktop/release/win-unpacked --label my-change
 ```
 
+The business modules (deals, tasks, vouchers, commissions, leases, the
+reports and the dashboard) against the plan's targets, on the built API:
+
+```bash
+pnpm --filter @dalaly/server build
+pnpm perf:business -- --label my-change
+```
+
 ## Backups
 
 Settings → النسخ الاحتياطي. A backup is a zip of the database, the property
@@ -197,7 +205,6 @@ Without network access, copy the official `cloudflared-windows-amd64.exe`
 with the pinned hash. To upgrade, change `VERSION` and `SHA256` in
 `scripts/fetch-cloudflared.mjs` to the new release's (its release notes list
 the checksums).
-
 
 ## نطاق التطبيق والبيانات التاريخية
 
