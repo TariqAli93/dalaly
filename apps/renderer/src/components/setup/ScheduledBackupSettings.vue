@@ -246,7 +246,8 @@ onMounted(load);
             >حفظ الجدولة</v-btn
           >
           <span class="scheduled-footer__status">
-            {{ t("backup.lastRun") }}: <bdi>{{ fmt(config.lastRunAt) }}</bdi>
+            {{ t("backup.lastRun") }}:
+            <bdi dir="rtl">{{ fmt(config.lastRunAt) }}</bdi>
             <span v-if="config.lastError" class="text-error">
               · خطأ: {{ config.lastError }}</span
             >

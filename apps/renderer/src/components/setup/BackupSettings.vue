@@ -307,7 +307,7 @@ onMounted(() => {
       <div>
         <dt>آخر نسخة احتياطية</dt>
         <dd>
-          <bdi>{{ fmt(history?.last_backup_at ?? null) }}</bdi>
+          <bdi dir="rtl">{{ fmt(history?.last_backup_at ?? null) }}</bdi>
         </dd>
       </div>
       <div>
@@ -361,7 +361,7 @@ onMounted(() => {
             </td>
             <td class="text-end">{{ fmtSize(job.file_size) }}</td>
             <td>
-              <bdi>{{ fmt(job.created_at) }}</bdi>
+              <bdi dir="rtl">{{ fmt(job.created_at) }}</bdi>
             </td>
           </tr>
         </tbody>

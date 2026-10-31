@@ -421,7 +421,7 @@ onBeforeUnmount(() => {
           </div>
         </template>
         <template #item.scheduled_at="{ item }">
-          <bdi :class="{ 'task-overdue': item.overdue }">{{
+          <bdi dir="rtl" :class="{ 'task-overdue': item.overdue }">{{
             item.scheduled_at ? formatDateTime(item.scheduled_at) : "بلا موعد"
           }}</bdi>
         </template>

@@ -9,7 +9,7 @@ const emit = defineEmits<{ restore: []; discard: [] }>();
 <template>
   <v-alert type="info" variant="tonal" class="mb-3" role="status">
     توجد تعديلات لم تُحفظ على هذا النموذج من
-    <bdi dir="ltr">{{ formatDateTime(savedAt) }}</bdi
+    <bdi dir="rtl">{{ formatDateTime(savedAt) }}</bdi
     >، قبل أن تنتهي الجلسة.
     <template #append>
       <div class="d-flex ga-2">

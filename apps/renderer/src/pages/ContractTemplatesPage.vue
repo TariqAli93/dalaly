@@ -195,7 +195,9 @@ onMounted(() => {
           </v-chip>
         </template>
         <template #item.updated_at="{ item }">
-          <bdi>{{ item.version ? formatDateTime(item.updated_at) : "—" }}</bdi>
+          <bdi dir="rtl">{{
+            item.version ? formatDateTime(item.updated_at) : "—"
+          }}</bdi>
           <small v-if="item.updated_by_name" class="text-medium-emphasis">
             · {{ item.updated_by_name }}</small
           >

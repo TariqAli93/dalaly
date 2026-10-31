@@ -467,7 +467,7 @@ onBeforeUnmount(() => {
           item.assigned_user_name ?? "—"
         }}</template>
         <template #item.updated_at="{ item }">
-          <bdi>{{ formatDate(item.updated_at) }}</bdi>
+          <bdi dir="rtl">{{ formatDate(item.updated_at) }}</bdi>
         </template>
       </DataGrid>
     </section>

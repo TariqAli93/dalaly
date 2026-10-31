@@ -317,7 +317,9 @@ onBeforeUnmount(() => list.cancel());
           <bdi>{{ item.document_number || "—" }}</bdi>
         </template>
         <template #item.expires_at="{ item }">
-          <bdi>{{ item.expires_at ? formatDate(item.expires_at) : "—" }}</bdi>
+          <bdi dir="rtl">{{
+            item.expires_at ? formatDate(item.expires_at) : "—"
+          }}</bdi>
         </template>
         <template #item.computed_status="{ item }">
           <v-chip

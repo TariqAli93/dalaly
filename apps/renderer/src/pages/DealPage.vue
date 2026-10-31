@@ -354,7 +354,7 @@ async function addActivity(value: TaskFieldsPayload) {
         <p v-if="closed" class="deal-stages__closed">
           أُغلقت الصفقة «{{ dealStageLabel(deal.stage) }}»
           <span v-if="deal.closed_at"
-            >في <bdi>{{ formatDateTime(deal.closed_at) }}</bdi></span
+            >في <bdi dir="rtl">{{ formatDateTime(deal.closed_at) }}</bdi></span
           >
           <span v-if="deal.lost_reason">: {{ deal.lost_reason }}</span>
         </p>
@@ -430,7 +430,7 @@ async function addActivity(value: TaskFieldsPayload) {
                   offer.notes
                 }}</span>
                 <span class="deal-list__meta"
-                  ><bdi>{{ formatDateTime(offer.created_at) }}</bdi>
+                  ><bdi dir="rtl">{{ formatDateTime(offer.created_at) }}</bdi>
                   <template v-if="offer.created_by_name">
                     · {{ offer.created_by_name }}</template
                   ></span
@@ -514,7 +514,7 @@ async function addActivity(value: TaskFieldsPayload) {
                   ><strong>النتيجة:</strong> {{ activity.outcome }}</span
                 >
                 <span class="deal-list__meta"
-                  ><bdi>{{
+                  ><bdi dir="rtl">{{
                     formatDateTime(activity.scheduled_at ?? activity.created_at)
                   }}</bdi>
                   · {{ activity.person_name }}</span
@@ -536,7 +536,7 @@ async function addActivity(value: TaskFieldsPayload) {
                 >
                 <span v-if="row.reason">{{ row.reason }}</span>
                 <span class="deal-list__meta"
-                  ><bdi>{{ formatDateTime(row.created_at) }}</bdi>
+                  ><bdi dir="rtl">{{ formatDateTime(row.created_at) }}</bdi>
                   <template v-if="row.user_name">
                     · {{ row.user_name }}</template
                   ></span
