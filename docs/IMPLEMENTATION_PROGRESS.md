@@ -54,7 +54,8 @@ Do not rely on this file alone.
 | 8i — perf harnesses                 | `fix/phase-08i-tables-harness`          | [#67](https://github.com/TariqAli93/dalaly/pull/67), merged `dd56abc` | `tables.mjs` and the startup pass run to the end on the 28 Oct build; CI pass                                         | Completed |
 | 8j — close Phase 8 (docs)           | `docs/phase-08j-close`                  | [#68](https://github.com/TariqAli93/dalaly/pull/68), merged `da90ec4` | docs only; CI pass                                                                                                    | Completed |
 | 9a — end-to-end workflows           | `test/phase-09a-workflows`              | [#69](https://github.com/TariqAli93/dalaly/pull/69), merged `b5a008f` | `test:workflows` 20/20 (sale 11, rental 7, 2 tests); CI pass                                                          | Completed |
-| 9b — release checks                 | `test/phase-09b-release-checks`         | —                                                                     | packaged build; `pnpm perf` vs 28 Oct; Electron startup 11/11; upgrade from 0.1.0 fails                               | In review |
+| 9b — release checks                 | `test/phase-09b-release-checks`         | [#70](https://github.com/TariqAli93/dalaly/pull/70), merged `a138dcb` | packaged build; `pnpm perf` vs 28 Oct; Electron startup 11/11; CI pass                                                | Completed |
+| 9c — removal suites                 | `test/phase-09c-removal-suites`         | —                                                                     | `test:removal:browser` 16 checks, `test:removal:electron` 17 (packaged)                                               | In review |
 
 ## Baseline evidence (Phase 0, `main` at `3e01f9f`)
 
@@ -1499,6 +1500,50 @@ Found, and waiting for the owner (see "Decisions that need the owner"):
   (`/api/contracts`, `/api/contract-studio`, `/api/contract-templates`,
   `/api/studio`) is requested still applies to the current product.
 
+### 9c — removal suites
+
+Owner decision, 2026-10-31: update `test:removal:browser` and
+`test:removal:electron` to the current product rather than retire them.
+
+- **Kept:**
+  - no page requests a retired contract API (`/api/contracts`,
+    `/api/contract-studio`, `/api/contract-templates`, `/api/studio`);
+  - no JavaScript errors and no 5xx responses;
+  - the customer flow: create, update, archive, restore, details;
+  - a document upload that returns its original bytes;
+  - a customer's owned listings;
+  - property and rental list, details and edit;
+  - office settings, and a narrow window.
+- **Replaced:** the ban on any «العقود» text and on any link containing
+  `contract`, which forbade the new contracts module (2026-10-26).
+  - A step now fails only on a link to a retired route.
+  - The retired routes (`/contracts/create`, `/contracts/1/edit`,
+    `/contracts/archive/1`, `/contract-templates`) still fall through to
+    `#/`.
+  - `/contracts` is a real route again, so it is off that list.
+- **Added:**
+  - The sidebar's «العقود» opens `#/contracts`, and
+    `/api/agreements/paged` answers 200.
+  - «القوالب» opens `#/contracts/templates`, and
+    `/api/agreements/templates` answers 200.
+- **Selectors follow today's UI:**
+  - the account menu, and the sidebar by name;
+  - the customer's add, edit and archive, through the row menu and the
+    confirmation;
+  - the documents filter «الزبون» and its upload dialog;
+  - the «العروض المملوكة» tab;
+  - the rental details page that replaced the dialog.
+- **Packaged suite:** the preload bridge must still lack the retired
+  `printPdf` and `printDocument`. It must have `printHtml` and `saveFile`,
+  which the current exports use.
+- **Results:**
+  - `test:removal:browser`: PASS, 16 checks.
+  - `test:removal:electron`: PASS on the current packaged build, 17
+    checks, including a real property PDF through the native export.
+  - CI does not run either (they need Windows and a packaged build).
+  - The browser suite's first run after a lockfile change can fail once,
+    when Vite's dev server reloads the page to add new dependencies.
+
 ## Database migrations
 
 | Migration                    | Phase            | What it adds                                                                                                                                                                                                                                                                                                                                                  |
@@ -1518,24 +1563,14 @@ Found, and waiting for the owner (see "Decisions that need the owner"):
 
 ## Decisions that need the owner
 
-- **0.1.0 databases (9b).** They cannot upgrade in place. The options:
-  - declare 0.2.0 a fresh install, with 0.1.0's listings entered again
-    or imported from Excel;
-  - add a one-off upgrade for a 0.1.0 database, which recognises its
-    three migrations and moves users, roles and listings into the new
-    schema. That needs its own tests on real 0.1.0 data.
+- **Publishing 0.2.0.** The tag and a GitHub release with installers
+  reach every office that downloads it. The owner decided (2026-10-31) to
+  prepare the release (version bump, final notes, local installers) and
+  to publish only on a separate go-ahead.
 
-  The answer depends on whether any office runs 0.1.0 with data.
-
-- **The removal browser and packaged suites (9b).** Update them to the
-  current product: no retired contract API requested, today's selectors,
-  the new contracts module allowed. Or retire them, since
-  `test:startup:electron` and `pnpm perf`'s walk through the packaged
-  build already cover startup and navigation.
-
-- **Publishing 0.2.0.** The version bump, the tag and a GitHub release
-  with installers reach every office that downloads it, so they wait for
-  the owner's approval and for the 0.1.0 decision above.
+Decided 2026-10-31 (9b): a 0.1.0 database is not upgraded in place, and
+0.2.0 is a fresh install (`RELEASE_NOTES.md`). The removal suites were
+updated rather than retired (9c).
 
 - **Orphan image files from before Phase 1a.** A listing deleted before
   Phase 1a left its image files and thumbnails on disk, outside every row

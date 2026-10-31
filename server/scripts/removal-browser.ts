@@ -7,8 +7,13 @@ import { chromium, expect, type Page } from "@playwright/test";
 import { removalTestContext } from "./removal-test-context.js";
 
 const repository = fileURLToPath(new URL("../../", import.meta.url));
-const forbiddenUi = /عقود|العقد|إنشاء عقد|تحرير عقد|إصدار عقد|طباعة عقد|قوالب العقود|استوديو العقود|Contract Studio/i;
-const forbiddenApi = /\/api\/(?:contracts(?:\/|$)|contract-studio(?:\/|$)|contract-templates(?:\/|$)|studio(?:\/|$))/i;
+// The retired contract system's API namespaces. The current contracts module
+// (Contract Studio, 2026-10-26) lives under /api/agreements and is allowed.
+const forbiddenApi = /\/api\/(?:contracts(?:[/?]|$)|contract-studio(?:[/?]|$)|contract-templates(?:[/?]|$)|studio(?:[/?]|$))/i;
+// Frontend routes of the retired system. /contracts and /contracts/templates
+// belong to the current module; these paths do not.
+const retiredRoutes = ["/contracts/create", "/contracts/1/edit", "/contracts/archive/1", "/contract-templates"];
+const retiredHref = /#\/(?:contracts\/(?:create|archive)(?:[/?]|$)|contracts\/\d+\/edit(?:[/?]|$)|contract-templates(?:[/?]|$)|contract-studio(?:[/?]|$)|studio(?:[/?]|$))/i;
 
 type Fixture = {
   property: { id: number; name?: string | null; code?: string };
@@ -34,158 +39,195 @@ export async function verifyRemovalNavigation(
     if (response.url().includes("/api/") && response.status() >= 500)
       serverErrors.push(`${response.status()} ${response.url()}`);
   });
-  async function noContractUi(label: string) {
-    const controls = await page
-      .locator("a, button, [role=button], [role=tab]")
-      .allTextContents();
-    assert.deepEqual(controls.filter((text) => forbiddenUi.test(text)), [], label);
-    assert.equal(await page.locator('a[href*="contract"], a[href*="studio"]').count(), 0, label);
-    assert.deepEqual(forbiddenRequests, [], "Remaining pages requested a removed API");
+  async function noRetiredContracts(label: string) {
+    const links = await page.locator("a[href]").evaluateAll((anchors) =>
+      anchors.map((anchor) => anchor.getAttribute("href") ?? ""),
+    );
+    assert.deepEqual(links.filter((href) => retiredHref.test(href)), [], `${label}: links to a retired contract route`);
+    assert.deepEqual(forbiddenRequests, [], `${label}: requests to a retired contract API`);
     passed.push(label);
   }
   async function navigate(route: string) {
     await page.evaluate((hash) => { window.location.hash = hash; }, route);
     await expect(page).toHaveURL(new RegExp(`#${route.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`));
   }
+  // Waits for the response while the action runs, so a failed action is
+  // reported as itself rather than as an unhandled response timeout.
+  async function responseTo(method: string, url: (value: string) => boolean, action: () => Promise<unknown>) {
+    const [response] = await Promise.all([
+      page.waitForResponse((candidate) => candidate.request().method() === method && url(candidate.url())),
+      action(),
+    ]);
+    return response;
+  }
+  const sidebar = page.getByRole("navigation", { name: "التنقل الرئيسي" });
+  const commandBar = page.getByRole("banner");
+  const propertyName = fixture.property.name || `عقار ${fixture.property.code}`;
+  const rentalName = fixture.rental.name || `إيجار ${fixture.rental.code}`;
 
   await page.goto(`${base}#/login`);
   await expect(page.getByLabel("اسم المستخدم", { exact: true })).toBeVisible({ timeout: 30000 });
   await page.getByLabel("اسم المستخدم", { exact: true }).fill("removal_admin");
   await page.getByLabel("الرمز السري", { exact: true }).fill("1234");
-  const loginResponse = page.waitForResponse((response) =>
-    response.url().endsWith("/api/auth/login") && response.request().method() === "POST",
+  const loginResponse = await responseTo("POST", (url) => url.endsWith("/api/auth/login"), () =>
+    page.getByRole("button", { name: "تسجيل الدخول", exact: true }).click(),
   );
-  await page.getByRole("button", { name: "تسجيل الدخول", exact: true }).click();
-  assert.equal((await loginResponse).status(), 200);
-  await expect(page.getByRole("button", { name: "قائمة المستخدم", exact: true })).toBeVisible({ timeout: 20000 });
+  assert.equal(loginResponse.status(), 200);
+  await expect(page.getByRole("button", { name: /^حساب المستخدم: / })).toBeVisible({ timeout: 20000 });
   await expect(page).toHaveURL(/#\/$/);
-  await noContractUi("UI login and dashboard have no contract navigation or actions");
+  await noRetiredContracts("Login and dashboard: no retired contract API or route");
 
-  await page.locator('.dal-nav-drawer a[href="#/people"]').click();
-  await expect(page.getByRole("button", { name: "إضافة شخص", exact: true })).toBeVisible();
-  await expect(page.locator("tbody tr")).toContainText([fixture.people[0].full_name]);
-  await noContractUi("Sidebar opens the people directory without contract actions");
+  await sidebar.getByRole("link", { name: "الزبائن", exact: true }).click();
+  const addPerson = commandBar.getByRole("button", { name: "إضافة زبون", exact: true });
+  await expect(addPerson).toBeVisible();
+  await expect(page.locator("tbody tr").filter({ hasText: fixture.people[0].full_name })).toBeVisible();
+  await noRetiredContracts("Sidebar opens the customers directory: no retired contract API or route");
 
   if (options.editPeople !== false) {
     const name = `شخص فحص الإزالة ${Date.now()}`;
-    await page.getByRole("button", { name: "إضافة شخص", exact: true }).click();
+    await addPerson.click();
     const dialog = page.getByRole("dialog");
-    await dialog.getByLabel("الاسم الرباعي مع اللقب", { exact: true }).fill(name);
+    await dialog.getByLabel("الاسم الرباعي مع اللقب *", { exact: true }).fill(name);
     await dialog.getByLabel("الهاتف", { exact: true }).fill("07701234567");
-    await dialog.getByLabel("رقم البطاقة الوطنية أو هوية الأحوال المدنية").fill("001234567890");
-    const createdResponse = page.waitForResponse((response) =>
-      response.url().endsWith("/api/people") && response.request().method() === "POST",
+    await dialog.getByLabel("رقم البطاقة الوطنية أو هوية الأحوال المدنية", { exact: true }).fill("001234567890");
+    const createdHttp = await responseTo("POST", (url) => url.endsWith("/api/people"), () =>
+      dialog.getByRole("button", { name: "حفظ", exact: true }).click(),
     );
-    await dialog.getByRole("button", { name: "حفظ", exact: true }).click();
-    const createdHttp = await createdResponse;
     assert.equal(createdHttp.status(), 201);
     const created = await createdHttp.json();
     await expect(dialog).not.toBeVisible();
     const row = page.locator("tbody tr").filter({ hasText: name });
     await expect(row).toBeVisible();
-    await row.getByRole("button", { name: "تعديل بيانات الشخص" }).click();
+    await row.getByRole("button", { name: `تعديل: ${name}`, exact: true }).click();
     const updatedName = `${name} محدث`;
-    await dialog.getByLabel("الاسم الرباعي مع اللقب", { exact: true }).fill(updatedName);
-    const updatedResponse = page.waitForResponse((response) =>
-      response.url().endsWith(`/api/people/${created.id}`) && response.request().method() === "PUT",
+    await dialog.getByLabel("الاسم الرباعي مع اللقب *", { exact: true }).fill(updatedName);
+    const updatedHttp = await responseTo("PUT", (url) => url.endsWith(`/api/people/${created.id}`), () =>
+      dialog.getByRole("button", { name: "حفظ", exact: true }).click(),
     );
-    await dialog.getByRole("button", { name: "حفظ", exact: true }).click();
-    assert.equal((await updatedResponse).status(), 200);
+    assert.equal(updatedHttp.status(), 200);
     await expect(dialog).not.toBeVisible();
     const updatedRow = page.locator("tbody tr").filter({ hasText: updatedName });
-    const archiveResponse = page.waitForResponse((response) =>
-      response.url().endsWith(`/api/people/${created.id}/archive`) && response.request().method() === "PATCH",
+    await expect(updatedRow).toBeVisible();
+    // Archiving is in the row's "more" menu and asks for confirmation.
+    await updatedRow.getByRole("button", { name: `أوامر أخرى: ${updatedName}`, exact: true }).click();
+    await page.getByRole("listitem").filter({ hasText: /^أرشفة$/ }).click();
+    const confirm = page.getByRole("alertdialog", { name: `أرشفة ${updatedName}`, exact: true });
+    const archived = await responseTo("PATCH", (url) => url.endsWith(`/api/people/${created.id}/archive`), () =>
+      confirm.getByRole("button", { name: "أرشفة", exact: true }).click(),
     );
-    await updatedRow.getByRole("button", { name: "أرشفة الشخص" }).click();
-    const archived = await archiveResponse;
     assert.equal(archived.status(), 200);
     assert.equal((await archived.json()).status, "archived");
-    // The existing directory intentionally excludes archived people by default.
+    // The directory excludes archived customers by default.
     await expect(updatedRow).not.toBeVisible();
     const session = await page.evaluate(() => localStorage.getItem("dalaly.session"));
     const restored = await page.context().request.patch(createdHttp.url() + `/${created.id}/restore`, { headers: { Authorization: `Bearer ${session}`, "User-Agent": "DalalyRemovalVerification/1.0" } });
     assert.equal(restored.status(), 200);
     assert.equal((await restored.json()).status, "active");
-    await page.getByRole("button", { name: "بحث", exact: true }).click();
+    await commandBar.getByRole("button", { name: "تحديث البيانات", exact: true }).click();
     await expect(updatedRow).toContainText("نشط");
-    await updatedRow.getByRole("link").click();
-    await expect(page.getByRole("tab", { name: "المعلومات الأساسية", exact: true })).toBeVisible();
+    await updatedRow.getByRole("link", { name: updatedName, exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`#/clients/${created.id}$`));
+    await page.getByRole("tab", { name: "البيانات", exact: true }).click();
     await expect(page.locator("body")).toContainText("001234567890");
-    await noContractUi("People UI create, update, archive and details work; API restoration returns the person to the directory");
+    await noRetiredContracts("Customers UI create, update, archive and details work; API restoration returns the customer to the directory");
 
     if (options.uploadDocument !== false) {
       await navigate("/documents");
-      const person = page.getByRole("combobox", { name: "تصفية حسب الشخص" });
-      await person.fill(updatedName);
-      await page.getByRole("option", { name: updatedName, exact: true }).click();
+      const documents = page.getByRole("region", { name: "المستمسكات", exact: true });
+      await documents.getByLabel("الزبون", { exact: true }).fill(updatedName);
+      await page.getByRole("option").filter({ hasText: updatedName }).click();
+      await commandBar.getByRole("button", { name: "إضافة مستمسك", exact: true }).click();
+      const documentDialog = page.getByRole("dialog");
       const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aTWQAAAAASUVORK5CYII=", "base64");
-      await page.locator('input[type="file"]').setInputFiles({ name: "person-document.png", mimeType: "image/png", buffer: png });
-      await page.getByLabel("اسم المستمسك", { exact: true }).fill("مستمسك فحص مستقل");
-      await page.getByLabel("رقم المستمسك", { exact: true }).fill("REMOVAL-UI-001");
-      const documentResponse = page.waitForResponse((response) =>
-        response.url().endsWith("/api/documents") && response.request().method() === "POST",
+      await documentDialog.locator('input[type="file"]').setInputFiles({ name: "person-document.png", mimeType: "image/png", buffer: png });
+      await documentDialog.getByLabel("اسم المستمسك *", { exact: true }).fill("مستمسك فحص مستقل");
+      await documentDialog.getByLabel("رقم المستمسك", { exact: true }).fill("REMOVAL-UI-001");
+      const documentHttp = await responseTo("POST", (url) => url.endsWith("/api/documents"), () =>
+        documentDialog.getByRole("button", { name: "رفع وحفظ", exact: true }).click(),
       );
-      await page.getByRole("button", { name: "إضافة", exact: true }).click();
-      const documentHttp = await documentResponse;
       assert.equal(documentHttp.status(), 201);
+      assert.equal(documentHttp.request().postDataJSON().person_id, created.id, "The document belongs to the customer filtered on");
       const document = await documentHttp.json();
+      await expect(documentDialog).not.toBeVisible();
       await expect(page.locator("tbody tr").filter({ hasText: "REMOVAL-UI-001" })).toBeVisible();
       const session = await page.evaluate(() => localStorage.getItem("dalaly.session"));
       const apiUrl = documentHttp.url().replace(/\/documents$/, "");
       const file = await page.context().request.get(`${apiUrl}/documents/${document.id}/file`, { headers: { authorization: `Bearer ${session ?? ""}` } });
       assert.equal(file.status(), 200);
       assert.deepEqual(await file.body(), png);
-      await noContractUi("Shared person documents still upload and return their original bytes");
+      await noRetiredContracts("Customer documents still upload and return their original bytes");
     }
   }
 
   await navigate(`/clients/${fixture.people[0].id}`);
-  await expect(page.getByRole("tab", { name: "العقارات المرتبطة", exact: true })).toBeVisible();
-  await page.getByRole("tab", { name: "العقارات المرتبطة", exact: true }).click();
-  await expect(page.getByRole("link", { name: fixture.property.name || fixture.property.code || "", exact: true })).toBeVisible();
-  await noContractUi("Person property ownership relationship remains and contract tab is absent");
+  const owned = page.getByRole("tab", { name: /^العروض المملوكة/ });
+  await expect(owned).toBeVisible();
+  await owned.click();
+  await expect(page.getByRole("table", { name: "عروض البيع التي يملكها الزبون" }).getByRole("link", { name: propertyName, exact: true })).toBeVisible();
+  await expect(page.getByRole("table", { name: "عروض الإيجار التي يملكها الزبون" }).getByRole("link", { name: rentalName, exact: true })).toBeVisible();
+  await noRetiredContracts("Customer file lists the owned sale and rental listings");
 
-  await page.locator('.dal-nav-drawer a[href="#/properties"]').click();
-  await expect(page.locator("tbody tr")).toContainText([fixture.property.name || fixture.property.code || ""]);
-  await page.getByRole("link", { name: fixture.property.name || fixture.property.code || "", exact: true }).click();
-  await expect(page.getByRole("tab", { name: "المعلومات الأساسية", exact: true })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "الصور", exact: true })).toBeVisible();
-  await noContractUi("Sales property list and details keep their independent tabs");
-  await page.getByRole("button", { name: "تعديل العقار", exact: true }).click();
-  await expect(page.getByLabel("اسم المالك", { exact: true })).toBeVisible();
-  await noContractUi("Sales property edit form loads without contract controls");
+  await sidebar.getByRole("link", { name: "عروض البيع", exact: true }).click();
+  const propertyRow = page.locator("tbody tr").filter({ hasText: propertyName });
+  await expect(propertyRow).toBeVisible();
+  await propertyRow.getByRole("link", { name: propertyName, exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`#/properties/${fixture.property.id}$`));
+  await expect(page.getByRole("tab", { name: "التفاصيل", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "الصور", exact: true })).toBeVisible();
+  await noRetiredContracts("Sales listing list and details keep their tabs and images");
+  await commandBar.getByRole("button", { name: "تعديل", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`#/properties/${fixture.property.id}/edit$`));
+  await expect(page.getByLabel("اسم المالك *", { exact: true })).toBeVisible();
+  await noRetiredContracts("Sales listing edit form loads");
 
-  await navigate("/rentals");
-  const rentalRow = page.locator("tbody tr").filter({ hasText: fixture.rental.name || fixture.rental.code || "" });
+  await sidebar.getByRole("link", { name: "عروض الإيجار", exact: true }).click();
+  const rentalRow = page.locator("tbody tr").filter({ hasText: rentalName });
   await expect(rentalRow).toBeVisible();
-  await rentalRow.locator('button[title="عرض"]').click();
-  await expect(page.getByRole("dialog").getByRole("tab", { name: "التفاصيل", exact: true })).toBeVisible();
-  await noContractUi("Independent rentals list and detail dialog remain operational");
-  await page.keyboard.press("Escape");
-  await navigate(`/rentals/${fixture.rental.id}/edit`);
-  await expect(page.getByLabel("اسم المالك", { exact: true })).toBeVisible();
-  await noContractUi("Rental edit form loads without contract actions");
+  await rentalRow.getByRole("link", { name: rentalName, exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`#/rentals/${fixture.rental.id}$`));
+  await expect(page.getByRole("region", { name: "بيانات العرض الإيجاري" }).getByRole("tab", { name: "التفاصيل", exact: true })).toBeVisible();
+  await noRetiredContracts("Rental listing list and details page remain operational");
+  await commandBar.getByRole("button", { name: "تعديل", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`#/rentals/${fixture.rental.id}/edit$`));
+  await expect(page.getByLabel("اسم المالك *", { exact: true })).toBeVisible();
+  await noRetiredContracts("Rental listing edit form loads");
 
   await navigate("/settings");
   await expect(page.getByRole("tab", { name: "المظهر", exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "معلومات المكتب", exact: true }).click();
   await expect(page.getByLabel("اسم المكتب", { exact: true })).toBeVisible();
-  await noContractUi("Office settings remain and contract template settings are absent");
-  for (const removed of ["/contracts", "/contracts/create", "/contracts/1/edit", "/contracts/archive/1", "/contract-templates"]) {
-    await page.evaluate((hash) => { window.location.hash = hash; }, removed);
+  await noRetiredContracts("Office information settings remain");
+
+  // The current contracts module (agreements) opens on its own API.
+  const agreementsList = await responseTo("GET", (url) => /\/api\/agreements\/paged(?:\?|$)/.test(url), () =>
+    sidebar.getByRole("link", { name: "العقود", exact: true }).click(),
+  );
+  await expect(page).toHaveURL(/#\/contracts$/);
+  assert.equal(agreementsList.status(), 200);
+  await expect(page.getByRole("heading", { name: "العقود", level: 1 })).toBeVisible();
+  await expect(page.getByRole("region", { name: "العقود", exact: true })).toBeVisible();
+  const agreementTemplates = await responseTo("GET", (url) => /\/api\/agreements\/templates(?:\?|$)/.test(url), () =>
+    commandBar.getByRole("link", { name: "القوالب", exact: true }).click(),
+  );
+  await expect(page).toHaveURL(/#\/contracts\/templates$/);
+  assert.equal(agreementTemplates.status(), 200);
+  await noRetiredContracts("Current contracts list and templates open on /api/agreements, no retired contract API");
+
+  for (const retired of retiredRoutes) {
+    await page.evaluate((hash) => { window.location.hash = hash; }, retired);
     await expect(page).toHaveURL(/#\/$/);
-    await noContractUi(`Removed frontend route redirects through normal catch-all: ${removed}`);
+    await noRetiredContracts(`Retired frontend route falls through the catch-all to the dashboard: ${retired}`);
   }
   await navigate("/people");
   await page.setViewportSize({ width: 720, height: 1000 });
-  await expect(page.getByRole("button", { name: "إضافة شخص", exact: true })).toBeVisible();
-  await noContractUi("Narrow viewport retains the people module without contract controls");
+  await expect(page.getByRole("button", { name: "إضافة زبون", exact: true })).toBeVisible();
+  await noRetiredContracts("Narrow viewport keeps the customers directory");
   await page.setViewportSize({ width: 1440, height: 1000 });
 
   assert.deepEqual(errors, [], "JavaScript errors");
-  assert.deepEqual(serverErrors, [], "Backend 500 responses during remaining module navigation");
-  assert.deepEqual(forbiddenRequests, [], "Contract API requests");
-  return { passed, javascript_errors: errors, backend_errors: serverErrors, contract_api_requests: forbiddenRequests };
+  assert.deepEqual(serverErrors, [], "Backend 5xx responses during navigation");
+  assert.deepEqual(forbiddenRequests, [], "Retired contract API requests");
+  return { passed, javascript_errors: errors, backend_errors: serverErrors, retired_contract_api_requests: forbiddenRequests };
 }
 
 async function main() {
