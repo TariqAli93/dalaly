@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { optionalText } from "../../shared/validation/fields.js";
+import { isoDate, optionalText } from "../../shared/validation/fields.js";
 import { pageFields } from "../../shared/validation/paging.js";
 import {
   BUNDLED_FONTS,
@@ -200,33 +200,29 @@ export const documentSchema = z
     }
   });
 
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .nullable()
-  .default(null);
+const termDate = isoDate.nullable().default(null);
 const amount = z.number().nonnegative().max(1e15).nullable().default(null);
 const termText = (max = 2000) => cleanText(max).nullable().default(null);
 
 export const termsSchema = z.object({
-  contract_date: isoDate,
+  contract_date: termDate,
   contract_place: termText(120),
   currency: z.enum(["IQD", "USD"]).default("IQD"),
   sale_price: amount,
   payment_terms: termText(),
-  delivery_date: isoDate,
+  delivery_date: termDate,
   delivery_terms: termText(),
   down_payment: amount,
   installment_count: z.number().int().min(1).max(600).nullable().default(null),
   installment_frequency: z
     .enum(["monthly", "quarterly", "semi_annual", "annual"])
     .default("monthly"),
-  first_due_date: isoDate,
+  first_due_date: termDate,
   late_terms: termText(),
   rent_amount: amount,
   rent_period: z.enum(["monthly", "semi_annual", "annual"]).default("monthly"),
-  start_date: isoDate,
-  end_date: isoDate,
+  start_date: termDate,
+  end_date: termDate,
   deposit: amount,
   payment_due: termText(300),
   renewal_terms: termText(),

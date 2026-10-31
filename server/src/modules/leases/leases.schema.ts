@@ -6,15 +6,13 @@ import {
 } from "../../shared/money.js";
 import {
   booleanField,
+  isoDate,
   optionalId,
   optionalText,
 } from "../../shared/validation/fields.js";
 import { pageFields } from "../../shared/validation/paging.js";
 import { LEASE_FREQUENCIES } from "./leases.rules.js";
 
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "التاريخ بصيغة YYYY-MM-DD.");
 const id = z.coerce.number().int().positive();
 
 /** What a schedule is computed from. */

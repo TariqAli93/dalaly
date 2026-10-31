@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { CURRENCIES, optionalMoneyField } from "../../shared/money.js";
-import { optionalId, optionalText } from "../../shared/validation/fields.js";
+import {
+  isoDate,
+  optionalId,
+  optionalText,
+} from "../../shared/validation/fields.js";
 import { pageFields } from "../../shared/validation/paging.js";
 
 export const JOURNAL_SOURCES = [
@@ -15,10 +19,6 @@ export const JOURNAL_SOURCES = [
   "reconciliation",
 ] as const;
 export type JournalSource = (typeof JOURNAL_SOURCES)[number];
-
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "التاريخ بصيغة YYYY-MM-DD.");
 
 /** One line: an amount on the debit side or the credit side. */
 const journalLineSchema = z.object({

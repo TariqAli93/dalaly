@@ -8,6 +8,11 @@ export const optionalText = z
   .nullable()
   .transform((value) => value || null);
 
+/** يوم بصيغة YYYY-MM-DD، بلا وقت ولا منطقة زمنية. */
+export const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "التاريخ بصيغة YYYY-MM-DD.");
+
 export const optionalId = z.coerce
   .number()
   .int()
