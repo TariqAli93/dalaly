@@ -47,7 +47,8 @@ Do not rely on this file alone.
 | 8b — dead code                      | `refactor/phase-08b-dead-code`          | [#60](https://github.com/TariqAli93/dalaly/pull/60), merged `bf74c56` | lint, typecheck, build; unit 119; `test:contract` 149 (10 unread routes); `test:dashboard` 4; CI pass                 | Completed |
 | 8c — list reload loop               | `fix/phase-08c-filter-reload-loop`      | [#61](https://github.com/TariqAli93/dalaly/pull/61), merged `162ac6d` | lint, typecheck, build; unit 119; request counts in the web demo; CI pass                                             | Completed |
 | 8d — query-string helper            | `refactor/phase-08d-query-strings`      | [#62](https://github.com/TariqAli93/dalaly/pull/62), merged `609cdfb` | lint, typecheck, build; unit 120; `test:contract` 149; web demo URLs; CI pass                                         | Completed |
-| 8e — shared date schema             | `refactor/phase-08e-date-schemas`       | —                                                                     | deals, accounting, ledger, vouchers, commissions, cash, finance, leases, payments, reports, agreements; contract 149  | In review |
+| 8e — shared date schema             | `refactor/phase-08e-date-schemas`       | [#63](https://github.com/TariqAli93/dalaly/pull/63), merged `9013d0b` | deals, accounting, ledger, vouchers, commissions, cash, finance, leases, payments, reports, agreements; CI pass       | Completed |
+| 8f — renderer helpers               | `refactor/phase-08f-renderer-helpers`   | —                                                                     | lint, typecheck, build; unit 122; web demo (lease, dashboard)                                                         | In review |
 | 8 — refactoring (further PRs)       | `refactor/phase-08-*`                   | —                                                                     | —                                                                                                                     | Pending   |
 | 9 — final verification              | `test/phase-09-*`                       | —                                                                     | —                                                                                                                     | Pending   |
 
@@ -1285,6 +1286,20 @@ Left for later PRs, as they need a decision or a closer look:
   `test:commissions` 10, `test:cash` 9, `test:finance` 9, `test:leases` 9,
   `test:lease-payments` 11, `test:reports` 2, `test:agreements` 11,
   `test:contract` 149.
+
+### 8f — renderer helpers
+
+- Eight files tested an API amount for zero with their own copy of
+  `/^-?0(\.0+)?$/`. They now call `isZeroAmount` (`utils/money.ts`).
+- The report, voucher and listing exports each escaped HTML themselves,
+  and the listing export left quotes as they were. They now share
+  `escapeHtml` (`utils/html.ts`), which escapes `& < > " '`.
+- `renderer-utils.test.ts` covers both. In the web demo the lease page
+  showed its money as before: zero balances hide their payout buttons.
+- The leases list was measured again. It met the 15 ms target on that
+  run (14.5 ms, p95 15.7), with the whole run 20–30% faster than the 8a
+  one. Its time is split between planning and execution, so it is left
+  as it is (`PERFORMANCE.md`, "The leases list, measured again").
 
 ## Database migrations
 
