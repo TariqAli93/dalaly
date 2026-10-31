@@ -1584,3 +1584,59 @@ Checked against the packaged build of 28 October:
 These are single launches, as a check that the harness runs, not a new
 baseline. Marks of builds from before the redesign still compare with
 their own earlier runs.
+
+## Release check: 0.2.0 against the build of 28 October
+
+Phase 9b packaged the current `main` (`b5a008f`, with the business system)
+and ran `pnpm perf` against the build of 28 October (after PR #25, before
+the business system's Phases 1–8). Settings: `--runs 3`, the default 5,000 properties, no
+photos, alternating A, B, A, B.
+
+- One run of the old build timed out at the documents person picker, a
+  step that passed in its other two runs. That step is intermittent.
+- The machine was not steady that day. The same current build showed its
+  login form at 1,156 ms in one run and 2,246 ms in the other. Its API
+  pass varied up to 5× between runs; the properties page's paged request
+  took 8.5 ms in one and 39.9 ms in the other.
+
+So these timings do not separate the builds. The deterministic results
+do:
+
+|                                                            | 28 Oct | current (two runs) |
+| ---------------------------------------------------------- | -----: | -----------------: |
+| Renderer JS, all files (KB)                                |   3704 |               4190 |
+| JS the properties route loads (KB)                         |     99 |                100 |
+| `xlsx` chunk (KB), loaded by the import or an Excel export |    325 |                419 |
+| List requests per step (every step)                        |      1 |                  1 |
+| All API requests, rentals list after a reload              |      4 |                  5 |
+| Renderer private memory on the properties list (MB)        |   98.4 |      108.7 · 107.3 |
+| API connections after the load and after a pause           |  8 / 8 |              8 / 8 |
+
+- **Bundle.** The 486 KB more JS is the new pages' lazy chunks.
+  Startup and the properties route load what they did before.
+- **`xlsx` chunk.** It grew by 94 KB because reports now write Excel
+  files as well as read them. It still loads only for an import or an
+  export.
+- **The extra request** after a reload is the notification bell's
+  alerts (Phase 7b).
+- **Renderer memory** on the properties list was about 10 MB higher in
+  both current runs.
+
+The other timings fell within the spread of the runs, in both
+directions:
+
+| Step                                | 28 Oct | current (two runs) |
+| ----------------------------------- | -----: | -----------------: |
+| Login → dashboard painted           | 962 ms |       548 · 867 ms |
+| Dashboard → properties list painted | 508 ms |       268 · 544 ms |
+| Properties → rentals painted        | 464 ms |       411 · 434 ms |
+| Property edit form ready            | 296 ms |       266 · 338 ms |
+
+`node scripts/perf/compare.mjs perf-results/r2-1028.json
+perf-results/r1-current.json perf-results/r2-current.json` prints every
+row.
+
+The first attempt also found a harness bug. The current build's CSP has
+no `'unsafe-eval'`, so the string that 8i's `firstRowShows` handed to
+`waitForFunction` was refused. Both helpers in `scripts/perf/lib.mjs` are
+now functions, and the pass completes on both builds.
