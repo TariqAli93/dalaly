@@ -21,6 +21,8 @@ import {
   databaseUrl,
   download,
   dropDatabase,
+  firstRowCode,
+  firstRowShows,
   freePort,
   makeTempDir,
   packagedApp,
@@ -95,8 +97,14 @@ const LIST_REQUEST = {
   purchaseRequests: /\/api\/purchase-requests(\/paged)?(\?|$)/,
   documents: /\/api\/documents(\/paged)?(\?|$)/,
 };
+// The properties list's search field: its label since the redesign, its
+// placeholder before it.
+const PROPERTY_SEARCH_LABEL = "بحث في عروض البيع";
 const PROPERTY_SEARCH_PLACEHOLDER = "ابحث باسم المالك، الهاتف، رقم القطعة، المنطقة أو أي وصف";
-// Builds before the operational dashboard said "البحث في العروض العقارية…".
+// The top bar's search field, which filtered the properties list. Builds
+// before the operational dashboard said "البحث في العروض العقارية…". Since
+// the redesign the top bar has a search button (Ctrl+K) that opens a dialog
+// instead, so those builds skip the two top-bar steps.
 const TOPBAR_SEARCH_PLACEHOLDER = /^(البحث في العروض العقارية…|بحث في عروض البيع… \(Ctrl\+K\))$/;
 const PAGE_SEARCH = "بغداد";
 const TOPBAR_SEARCH = "شارع";
@@ -610,7 +618,7 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
     const images = photosPerListing > 0;
     let requests = trackApiRequests(page, LIST_REQUEST.properties);
     const scripts = trackScripts(page);
-    const properties = await openList(page, "#/properties", LIST_REQUEST.properties, "PERF-P", 3, { images });
+    const properties = await openList(page, "#/properties", LIST_REQUEST.properties, "PERF-P", { images });
     Object.assign(marks, stepMarks("dashboardToProperties", properties));
     marks.dashboardToPropertiesScriptKB = scripts();
     Object.assign(marks, requestMarks("dashboardToProperties", await requests()));
@@ -622,13 +630,13 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
     Object.assign(marks, requestMarks("propertiesSearch", await requests()));
 
     requests = trackApiRequests(page, LIST_REQUEST.rentals);
-    const rentals = await openList(page, "#/rentals", LIST_REQUEST.rentals, "PERF-R", 3, { images });
+    const rentals = await openList(page, "#/rentals", LIST_REQUEST.rentals, "PERF-R", { images });
     Object.assign(marks, stepMarks("propertiesToRentals", rentals));
     Object.assign(marks, requestMarks("propertiesToRentals", await requests()));
 
     // Rentals → people → one person's properties → rental requests →
     // purchase requests → documents (first row's code or number on screen).
-    const people = await openList(page, "#/people", LIST_REQUEST.people, "PERF-C", 2);
+    const people = await openList(page, "#/people", LIST_REQUEST.people, "PERF-C");
     marks.rentalsToPeopleData = people.data;
     marks.rentalsToPeoplePainted = people.painted;
     if (sampleAll) memory.idleOnPeople = await sampleProcesses(electron);
@@ -637,16 +645,18 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
     marks.peopleToPersonPropertiesData = person.data;
     marks.peopleToPersonPropertiesPainted = person.painted;
 
-    const rentalRequests = await openList(page, "#/rental-requests", LIST_REQUEST.rentalRequests, "PERF-RQ", 1);
+    const rentalRequests = await openList(page, "#/rental-requests", LIST_REQUEST.rentalRequests, "PERF-RQ");
     marks.personToRentalRequestsData = rentalRequests.data;
     marks.personToRentalRequestsPainted = rentalRequests.painted;
 
-    const purchaseRequests = await openList(page, "#/purchase-requests", LIST_REQUEST.purchaseRequests, "PERF-PQ", 1);
+    const purchaseRequests = await openList(page, "#/purchase-requests", LIST_REQUEST.purchaseRequests, "PERF-PQ");
     marks.rentalToPurchaseRequestsData = purchaseRequests.data;
     marks.rentalToPurchaseRequestsPainted = purchaseRequests.painted;
 
     const documentsBytes = trackApiBytes(page);
-    const documents = await openList(page, "#/documents", LIST_REQUEST.documents, "PERF-N", 3);
+    // The document's number (PERF-N) before the redesign, its code (PERF-D)
+    // since; the number column hides in a narrow window.
+    const documents = await openList(page, "#/documents", LIST_REQUEST.documents, "PERF-[DN]");
     marks.purchaseRequestsToDocumentsData = documents.data;
     marks.purchaseRequestsToDocumentsPainted = documents.painted;
     marks.documentsPageApiKB = await documentsBytes();
@@ -655,7 +665,8 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
     // The person pickers: the documents filter, the request form's customer
     // list, the property and rental edit forms (`…ApiKB`: what each step
     // downloaded from the API, once its requests have settled).
-    const filter = await searchPicker(page, "تصفية حسب الشخص", PERSON_SEARCH);
+    // The documents list's person filter: "الزبون" since the redesign.
+    const filter = await searchPicker(page, /^(تصفية حسب الشخص|الزبون)$/, PERSON_SEARCH);
     marks.documentsPersonSearchShown = filter.shown;
     marks.documentsPersonSearchApiKB = filter.kb;
 
@@ -668,7 +679,7 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
     marks.propertyEditReady = propertyEdit.ready;
     marks.propertyEditApiKB = propertyEdit.kb;
 
-    const rentalEdit = await openEditForm(page, `#/rentals/${build.rentalId}/edit`, "ربط المالك بعميل");
+    const rentalEdit = await openEditForm(page, `#/rentals/${build.rentalId}/edit`, /ربط المالك ب(عميل|زبون)/);
     marks.rentalEditReady = rentalEdit.ready;
     marks.rentalEditOwnerShown = rentalEdit.owner;
     marks.rentalEditApiKB = rentalEdit.kb;
@@ -692,32 +703,12 @@ async function runOnce(electron, { started = performance.now(), login, sampleMem
   }
 }
 
-/** Code of the first row in the list table (third column), if rows are shown. */
-function firstRowCode(page) {
-  return page.evaluate(() =>
-    document.querySelector(".dal-grid tbody tr td:nth-child(3)")?.textContent?.trim(),
-  );
-}
-
-/** The first table row's cell in `column` starts with `prefix`. */
-function firstRowStartsWith(page, column, prefix) {
-  return page.waitForFunction(
-    ([column, prefix]) =>
-      document
-        .querySelector(`.v-data-table tbody tr td:nth-child(${column})`)
-        ?.textContent?.trim()
-        .startsWith(prefix),
-    [column, prefix],
-    { timeout: 60_000 },
-  );
-}
-
 /**
- * Routes to a list page and waits for its first rows: the code in the
- * `column`th cell (the third, in the properties and rentals grids). With
- * `images`, then for every row's photo and the API traffic of the step.
+ * Routes to a list page and waits for its first rows: the first row shows a
+ * code with `codePrefix`. With `images`, then for every row's photo and the
+ * API traffic of the step.
  */
-async function openList(page, hash, request, codePrefix, column = 3, { images = false } = {}) {
+async function openList(page, hash, request, codePrefix, { images = false } = {}) {
   const traffic = images ? trackApi(page, { quietMs: 1000 }) : undefined;
   const started = performance.now();
   const finished = page.waitForEvent("requestfinished", {
@@ -727,7 +718,7 @@ async function openList(page, hash, request, codePrefix, column = 3, { images = 
   await page.evaluate((target) => (location.hash = target), hash);
   await finished;
   const data = performance.now() - started;
-  await firstRowStartsWith(page, column, codePrefix);
+  await firstRowShows(page, codePrefix);
   await painted(page);
   const result = { data, painted: performance.now() - started };
   if (!images) return result;
@@ -767,11 +758,12 @@ async function openPersonProperties(page, build) {
     page.on("requestfinished", onFinished);
   });
   await page.evaluate((target) => (location.hash = target), `#/clients/${build.ownerId}`);
-  const tab = page.getByRole("tab", { name: "العقارات المرتبطة", exact: true });
+  // "العروض المملوكة" since the customer hub.
+  const tab = page.getByRole("tab", { name: /^(العقارات المرتبطة|العروض المملوكة)/ });
   await tab.click({ timeout: 60_000 });
-  // The name cell holds the offer's name and, under it, its code.
+  // The first row shows the offer's name and code.
   await page.waitForFunction(
-    () => document.querySelector(".v-window-item--active .v-data-table tbody tr td")?.textContent?.includes("PERF-P"),
+    () => document.querySelector(".v-window-item--active .v-data-table tbody tr")?.textContent?.includes("PERF-P"),
     undefined,
     { timeout: 60_000 },
   );
@@ -780,10 +772,17 @@ async function openPersonProperties(page, build) {
   return { data: await finished, painted: paintedAt };
 }
 
+/** The properties list's own search field, on builds before and after the redesign. */
+function propertySearch(page) {
+  return page
+    .getByLabel(PROPERTY_SEARCH_LABEL, { exact: true })
+    .or(page.getByPlaceholder(PROPERTY_SEARCH_PLACEHOLDER, { exact: true }));
+}
+
 /** Searches the properties list (Enter skips the 300 ms debounce). */
 async function searchProperties(page, { images = false } = {}) {
   const before = await firstRowCode(page);
-  const field = page.getByPlaceholder(PROPERTY_SEARCH_PLACEHOLDER, { exact: true });
+  const field = propertySearch(page);
   await field.fill(PAGE_SEARCH);
   const traffic = images ? trackApi(page, { quietMs: 1000 }) : undefined;
   const started = performance.now();
@@ -795,14 +794,7 @@ async function searchProperties(page, { images = false } = {}) {
   await field.press("Enter");
   await finished;
   const data = performance.now() - started;
-  await page.waitForFunction(
-    (previous) => {
-      const code = document.querySelector(".dal-grid tbody tr td:nth-child(3)")?.textContent?.trim();
-      return Boolean(code) && code !== previous;
-    },
-    before,
-    { timeout: 60_000 },
-  );
+  await firstRowShows(page, "PERF-P", before);
   await painted(page);
   const result = { data, painted: performance.now() - started };
   if (!images) return result;
@@ -886,14 +878,18 @@ async function repeatedLoads(page) {
   let requests = trackApiRequests(page, LIST_REQUEST.properties);
   await openList(page, "#/properties", LIST_REQUEST.properties, "PERF-P");
   Object.assign(marks, requestMarks("propertiesRevisit", await requests()));
+  // The shell is on screen by now, with or without the field.
+  const hasTopSearch = (await topSearch.count()) > 0;
 
   // Enter right after typing, as with the page's own search field.
-  requests = trackApiRequests(page, LIST_REQUEST.properties);
-  await topSearch.fill(TOPBAR_SEARCH);
-  await topSearch.press("Enter");
-  Object.assign(marks, requestMarks("topbarSearch", await requests()));
+  if (hasTopSearch) {
+    requests = trackApiRequests(page, LIST_REQUEST.properties);
+    await topSearch.fill(TOPBAR_SEARCH);
+    await topSearch.press("Enter");
+    Object.assign(marks, requestMarks("topbarSearch", await requests()));
+  }
 
-  const search = page.getByPlaceholder(PROPERTY_SEARCH_PLACEHOLDER, { exact: true });
+  const search = propertySearch(page);
   await search.fill(NO_MATCH);
   await search.press("Enter");
   const clear = page.getByRole("button", { name: "مسح الفلاتر", exact: true });
@@ -902,36 +898,31 @@ async function repeatedLoads(page) {
   requests = trackApiRequests(page, LIST_REQUEST.properties);
   let started = performance.now();
   await clear.click();
-  await firstRowStartsWith(page, 3, "PERF-P");
+  await firstRowShows(page, "PERF-P");
   await painted(page);
   marks.clearFiltersPainted = performance.now() - started;
   Object.assign(marks, requestMarks("clearFilters", await requests()));
   const unfiltered = await firstRowCode(page);
 
   // From another page the search opens the properties list.
-  await openList(page, "#/rentals", LIST_REQUEST.rentals, "PERF-R");
-  await settle();
-  requests = trackApiRequests(page, LIST_REQUEST.properties);
-  started = performance.now();
-  await topSearch.fill(PAGE_SEARCH);
-  await topSearch.press("Enter");
-  await page.waitForFunction(
-    (previous) => {
-      const code = document.querySelector(".dal-grid tbody tr td:nth-child(3)")?.textContent?.trim();
-      return Boolean(code?.startsWith("PERF-P")) && code !== previous;
-    },
-    unfiltered,
-    { timeout: 60_000 },
-  );
-  await painted(page);
-  marks.topbarSearchFromRentalsPainted = performance.now() - started;
-  Object.assign(marks, requestMarks("topbarSearchFromRentals", await requests()));
+  if (hasTopSearch) {
+    await openList(page, "#/rentals", LIST_REQUEST.rentals, "PERF-R");
+    await settle();
+    requests = trackApiRequests(page, LIST_REQUEST.properties);
+    started = performance.now();
+    await topSearch.fill(PAGE_SEARCH);
+    await topSearch.press("Enter");
+    await firstRowShows(page, "PERF-P", unfiltered);
+    await painted(page);
+    marks.topbarSearchFromRentalsPainted = performance.now() - started;
+    Object.assign(marks, requestMarks("topbarSearchFromRentals", await requests()));
+  }
 
   await openList(page, "#/rentals", LIST_REQUEST.rentals, "PERF-R");
   await settle();
   requests = trackApiRequests(page, LIST_REQUEST.rentals);
   await page.reload();
-  await firstRowStartsWith(page, 3, "PERF-R");
+  await firstRowShows(page, "PERF-R");
   Object.assign(marks, requestMarks("rentalsAfterReload", await requests()));
   return marks;
 }
@@ -943,7 +934,8 @@ async function repeatedLoads(page) {
  */
 async function importParse(page) {
   await openList(page, "#/properties", LIST_REQUEST.properties, "PERF-P");
-  await page.getByRole("button", { name: "استيراد ملف إكسل", exact: true }).click();
+  // "استيراد من إكسل" since the redesign.
+  await page.getByRole("button", { name: /^استيراد (ملف|من) إكسل$/ }).click();
   const dialog = page.getByRole("dialog");
   const input = dialog.locator('input[type="file"]');
   await input.waitFor({ state: "attached", timeout: 60_000 });
@@ -979,10 +971,15 @@ function importSheet() {
 /** Types into a person picker until the matching option shows. */
 async function searchPicker(page, label, name) {
   const bytes = trackApiBytes(page);
-  const field = page.getByRole("combobox", { name: label, exact: true });
+  const field = page.getByRole("combobox", { name: label });
   const started = performance.now();
   await field.fill(name);
-  await page.getByRole("option", { name, exact: true }).waitFor({ state: "visible", timeout: 60_000 });
+  // Since the redesign an option also shows the person's code and phone
+  // under the name: match the name at the start, not followed by a digit.
+  await page
+    .getByRole("option", { name: new RegExp(`^${name}(?!\\d)`) })
+    .first()
+    .waitFor({ state: "visible", timeout: 60_000 });
   const shown = performance.now() - started;
   await page.keyboard.press("Escape");
   return { shown, kb: await bytes() };
@@ -993,16 +990,17 @@ async function searchPicker(page, label, name) {
  * the customer field → its first option on screen. Closes the form again.
  */
 async function openRequestForm(page) {
-  await openList(page, "#/rental-requests", LIST_REQUEST.rentalRequests, "PERF-RQ", 1);
+  await openList(page, "#/rental-requests", LIST_REQUEST.rentalRequests, "PERF-RQ");
   const bytes = trackApiBytes(page);
   let started = performance.now();
-  await page.getByRole("button", { name: "إضافة طلب إيجار", exact: true }).click();
+  // Since the redesign the button's name adds its shortcut, "(Ctrl+N)".
+  await page.getByRole("button", { name: /^إضافة طلب إيجار/ }).click();
   const dialog = page.getByRole("dialog");
   // The field, not its input: older builds use a v-select, whose input is
-  // not "visible" to Playwright.
+  // not "visible" to Playwright. "الزبون *" since the redesign.
   const customer = dialog
     .locator(".v-input")
-    .filter({ has: page.locator(".v-label", { hasText: /^\s*العميل\s*$/ }) })
+    .filter({ has: page.locator(".v-label", { hasText: /^\s*(العميل|الزبون)\s*\*?\s*$/ }) })
     .first();
   await customer.waitFor({ state: "visible", timeout: 60_000 });
   await painted(page);
@@ -1026,7 +1024,8 @@ async function openEditForm(page, hash, ownerPicker) {
   const bytes = trackApiBytes(page);
   const started = performance.now();
   await page.evaluate((target) => (location.hash = target), hash);
-  const ownerName = page.getByLabel("اسم المالك", { exact: true });
+  // "اسم المالك *" since the redesign.
+  const ownerName = page.getByLabel(/^اسم المالك( \*)?$/);
   const deadline = Date.now() + 60_000;
   while (!(await ownerName.inputValue({ timeout: 60_000 })).trim()) {
     if (Date.now() > deadline) throw new Error(`${hash}: the form was not filled in`);

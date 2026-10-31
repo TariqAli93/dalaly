@@ -101,7 +101,8 @@ compare its results only with its own.
    actions that once sent a list twice, each counted until the API has
    been quiet for 800 ms (longer than the filters' 300 ms debounce): a
    second visit to the properties list, the top-bar search there and from
-   the rentals list (`topbarSearchFromRentalsPainted`), clearing the
+   the rentals list (`topbarSearchFromRentalsPainted`; builds since the
+   redesign have a search dialog instead and skip both), clearing the
    filters from an empty list (`clearFiltersPainted`) and the rentals list
    as the first page after a reload; then a three-row .xlsx chosen in the
    import dialog until its columns show (`importFileParsed`). Counts:
@@ -1531,3 +1532,55 @@ After the fix, in the same demo: one list request when each of the six
 views opens and none after; choosing a voucher type sends one request
 (`kind=receipt`), and a status on the properties list, whose filters are
 an object, sends one (`status=available`).
+
+## The harnesses after the redesign, October 2026
+
+Run against a packaged build from after the desktop redesign, `pnpm perf`'s
+startup pass and `scripts/perf/tables.mjs` timed out before their first
+measurement:
+
+- They found a row by the code in a fixed column, the third. The grids now
+  show the code beside the name, in the second column («عقار PERF-P12»).
+- `tables.mjs` waited for `/dashboard/summary` after login. The dashboard
+  has loaded `/dashboard/overview` instead since the operational
+  dashboard.
+
+Each later step had the same kind of drift: a renamed label or button, or
+an option that now shows a code and phone under the name.
+
+Changes (scripts only):
+
+- `firstRowCode` and `firstRowShows` in `scripts/perf/lib.mjs` read the
+  seeded codes from any cell of the first row. `PERF-P` matches PERF-P12,
+  not PERF-PQ12. The documents step accepts the number (`PERF-N`, before)
+  or the code (`PERF-D`, since). The number column hides in a narrow
+  window.
+- `tables.mjs` waits for whichever dashboard request the build sends.
+- Each locator in `measure.mjs` accepts the old and the new text:
+  - the properties search, by its label («بحث في عروض البيع») or its old
+    placeholder;
+  - the customer tab «العروض المملوكة»;
+  - the documents filter «الزبون»;
+  - the request form's «الزبون *» and its button «إضافة طلب إيجار
+    (Ctrl+N)»;
+  - «اسم المالك *» and «ربط المالك بزبون مسجّل» on the edit forms;
+  - «استيراد من إكسل»;
+  - picker options matched by the name at their start.
+- The two top-bar search steps (`topbarSearch…`) run only when the build
+  has the old search field. Since the redesign the top bar opens a search
+  dialog (Ctrl+K), a different action, so there is nothing comparable to
+  measure.
+
+Checked against the packaged build of 28 October:
+
+- `tables.mjs` (300 properties, one photo each) recorded both views.
+- The startup pass (`--runs 1 --skip-api`, the default 5,000 properties)
+  recorded all 62 marks. In the repeat profile:
+  - login → dashboard painted in 430 ms;
+  - dashboard → properties painted in 244 ms;
+  - each list step sent one list request;
+  - the .xlsx was parsed in 113 ms.
+
+These are single launches, as a check that the harness runs, not a new
+baseline. Marks of builds from before the redesign still compare with
+their own earlier runs.

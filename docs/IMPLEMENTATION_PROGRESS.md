@@ -50,7 +50,8 @@ Do not rely on this file alone.
 | 8e — shared date schema             | `refactor/phase-08e-date-schemas`       | [#63](https://github.com/TariqAli93/dalaly/pull/63), merged `9013d0b` | deals, accounting, ledger, vouchers, commissions, cash, finance, leases, payments, reports, agreements; CI pass       | Completed |
 | 8f — renderer helpers               | `refactor/phase-08f-renderer-helpers`   | [#64](https://github.com/TariqAli93/dalaly/pull/64), merged `0497ff4` | lint, typecheck, build; unit 122; web demo (lease, dashboard); CI pass                                                | Completed |
 | 8g — untrack local tool state       | `chore/phase-08g-untrack-tool-state`    | [#65](https://github.com/TariqAli93/dalaly/pull/65), merged `e10fd79` | `git check-ignore` for both files; no code change; CI pass                                                            | Completed |
-| 8h — unused capture flags           | `refactor/phase-08h-capture-flags`      | —                                                                     | lint, typecheck, build; unit 122; web demo restarted and checked                                                      | In review |
+| 8h — unused capture flags           | `refactor/phase-08h-capture-flags`      | [#66](https://github.com/TariqAli93/dalaly/pull/66), merged `f715a6d` | lint, typecheck, build; unit 122; web demo restarted and checked; CI pass                                             | Completed |
+| 8i — perf harnesses                 | `fix/phase-08i-tables-harness`          | —                                                                     | `tables.mjs` and the startup pass run to the end on the 28 Oct build                                                  | In review |
 | 8 — refactoring (further PRs)       | `refactor/phase-08-*`                   | —                                                                     | —                                                                                                                     | Pending   |
 | 9 — final verification              | `test/phase-09-*`                       | —                                                                     | —                                                                                                                     | Pending   |
 
@@ -1333,6 +1334,25 @@ Owner decision, 2026-10-31 (after the Phase 8 audit):
 - Web demo, restarted on the trimmed `.env.web-demo`: the dashboard and
   properties list load from the demo API (port 45699), with no console
   errors.
+
+### 8i — perf harnesses
+
+- `pnpm perf`'s startup pass and `scripts/perf/tables.mjs` timed out on
+  builds after the desktop redesign.
+  - They found rows by a code in the third column. The grids now show it
+    beside the name.
+  - `tables.mjs` waited for `/dashboard/summary`, which the dashboard no
+    longer requests.
+  - Several labels, buttons and picker options had changed.
+- `firstRowCode` and `firstRowShows` (`scripts/perf/lib.mjs`) read the
+  seeded codes from any cell of the first row. Each locator accepts the
+  old and the new text. The top-bar search steps run only on builds that
+  still have that field: the top bar now opens a search dialog.
+- Checked against the packaged build of 28 October:
+  - `tables.mjs` recorded both views;
+  - the startup pass (one launch per mode, 5,000 properties) recorded
+    all 62 marks.
+- `PERFORMANCE.md`, "The harnesses after the redesign".
 
 ## Database migrations
 

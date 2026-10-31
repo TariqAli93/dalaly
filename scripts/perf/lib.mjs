@@ -462,6 +462,39 @@ export async function painted(page) {
 }
 
 /**
+ * In the page: the seeded codes (`PERF-P12`, `PERF-RQ3`…) the first row of
+ * the list table shows, in cell order; empty before rows show. Each cell is
+ * searched on its own: the grids show a code beside a name (one column
+ * since the redesign, as «عقار PERF-P12»), and the row's text runs the
+ * cells together.
+ */
+const FIRST_ROW_CODES = `[...(document.querySelector(".v-data-table tbody tr")?.cells ?? [])].flatMap(
+  (cell) => (cell.textContent ?? "").match(/PERF-[A-Z]+\\d+/g) ?? [],
+)`;
+
+/** The first code the list table's first row shows, if rows are shown. */
+export function firstRowCode(page) {
+  return page.evaluate(`${FIRST_ROW_CODES}[0]`);
+}
+
+/**
+ * Waits until the list table's first row shows a code matching `prefix` (a
+ * pattern: `PERF-P` matches PERF-P12, not PERF-PQ12) and, with `previous`,
+ * starts with a different code than that.
+ */
+export function firstRowShows(page, prefix, previous) {
+  const pattern = JSON.stringify(`^${prefix}\\d`);
+  return page.waitForFunction(
+    `(() => {
+      const codes = ${FIRST_ROW_CODES};
+      return codes.some((code) => new RegExp(${pattern}).test(code)) && codes[0] !== ${JSON.stringify(previous ?? null)};
+    })()`,
+    undefined,
+    { timeout: 60_000 },
+  );
+}
+
+/**
  * Every row of the list grid that is on screen shows a loaded, decoded photo
  * in its first cell (rows below the fold load theirs lazily, if at all).
  * Returns how many rows that was.
