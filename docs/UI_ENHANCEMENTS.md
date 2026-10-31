@@ -1,5 +1,11 @@
 # Dalaly appearance, detail pages, and splash
 
+> **Status (2026-10-31):** history. The desktop redesign of 2026-10-26
+> ([UI_AUDIT_AND_REDESIGN_PLAN.md](UI_AUDIT_AND_REDESIGN_PLAN.md), phases
+> 0–7) replaced the shell, navigation and list pages described here. Where
+> the two disagree, that plan and the code are current. The appearance
+> settings below still exist.
+
 Implemented in the existing Electron/Vue 3/Vuetify 3 application. Arabic RTL,
 existing permissions, service methods, and request payloads are preserved.
 No database migration, API change, or new
@@ -76,10 +82,10 @@ Fonts and their SIL Open Font Licenses are in `src/assets/fonts`, sourced from
 
 ## Detail pages and navigation
 
-| Route                                | Permission         | Behavior                                                                                        |
-| ------------------------------------ | ------------------ | ----------------------------------------------------------------------------------------------- |
-| `/clients/:id` (alias `/people/:id`) | `people.read`      | Basic information, owned properties, and notes                                       |
-| `/properties/:id`                    | `properties.read`  | Basic information, related properties, map, notes, images, follow-ups, and audit log |
+| Route                                | Permission        | Behavior                                                                             |
+| ------------------------------------ | ----------------- | ------------------------------------------------------------------------------------ |
+| `/clients/:id` (alias `/people/:id`) | `people.read`     | Basic information, owned properties, and notes                                       |
+| `/properties/:id`                    | `properties.read` | Basic information, related properties, map, notes, images, follow-ups, and audit log |
 
 Client names open the client page. Property names, table rows, favorites,
 dashboard references, and sales matches open the property page. Archived

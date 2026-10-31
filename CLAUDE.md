@@ -21,6 +21,7 @@ pnpm lint             # ESLint (eslint.config.mjs, defects only), then pnpm type
 pnpm format           # prettier across all three workspaces
 pnpm test             # fast unit tests only; no database required
 pnpm perf -- --app <win-unpacked>  # startup/memory/API timings of a packaged build (docs/PERFORMANCE.md)
+pnpm perf:business    # business lists, reports and postings against the plan's targets (built server/dist)
 pnpm db:migrate       # apply Drizzle migrations
 pnpm db:seed          # (also db:seed:reset)
 pnpm package          # fetches pinned cloudflared, then portable + NSIS installer into apps/desktop/release

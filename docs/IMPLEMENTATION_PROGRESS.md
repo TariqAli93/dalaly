@@ -51,8 +51,8 @@ Do not rely on this file alone.
 | 8f — renderer helpers               | `refactor/phase-08f-renderer-helpers`   | [#64](https://github.com/TariqAli93/dalaly/pull/64), merged `0497ff4` | lint, typecheck, build; unit 122; web demo (lease, dashboard); CI pass                                                | Completed |
 | 8g — untrack local tool state       | `chore/phase-08g-untrack-tool-state`    | [#65](https://github.com/TariqAli93/dalaly/pull/65), merged `e10fd79` | `git check-ignore` for both files; no code change; CI pass                                                            | Completed |
 | 8h — unused capture flags           | `refactor/phase-08h-capture-flags`      | [#66](https://github.com/TariqAli93/dalaly/pull/66), merged `f715a6d` | lint, typecheck, build; unit 122; web demo restarted and checked; CI pass                                             | Completed |
-| 8i — perf harnesses                 | `fix/phase-08i-tables-harness`          | —                                                                     | `tables.mjs` and the startup pass run to the end on the 28 Oct build                                                  | In review |
-| 8 — refactoring (further PRs)       | `refactor/phase-08-*`                   | —                                                                     | —                                                                                                                     | Pending   |
+| 8i — perf harnesses                 | `fix/phase-08i-tables-harness`          | [#67](https://github.com/TariqAli93/dalaly/pull/67), merged `dd56abc` | `tables.mjs` and the startup pass run to the end on the 28 Oct build; CI pass                                         | Completed |
+| 8j — close Phase 8 (docs)           | `docs/phase-08j-close`                  | —                                                                     | docs only                                                                                                             | In review |
 | 9 — final verification              | `test/phase-09-*`                       | —                                                                     | —                                                                                                                     | Pending   |
 
 ## Baseline evidence (Phase 0, `main` at `3e01f9f`)
@@ -1353,6 +1353,55 @@ Owner decision, 2026-10-31 (after the Phase 8 audit):
   - the startup pass (one launch per mode, 5,000 properties) recorded
     all 62 marks.
 - `PERFORMANCE.md`, "The harnesses after the redesign".
+
+### Phase 8 — summary
+
+Phase 8 was split into ten PRs, merged one at a time (8a–8j). Against its
+acceptance criteria:
+
+- **Performance.** On `pnpm perf:business`:
+  - the vouchers, deals and tasks lists, the dashboard summary, alerts and
+    a receipt posting got faster (8a);
+  - no business list or report got slower beyond run-to-run noise;
+  - the vouchers, commissions, journal and leases pages no longer reload
+    their list in a loop (8c).
+
+  The packaged startup pass did not run on any build after the redesign
+  until 8i repaired it, so there is no before/after for startup in this
+  phase. 8i's check used the build of 28 October, from before Phase 8.
+  Phase 9 runs `pnpm perf` on a current packaged build.
+
+- **API contract.** `test:contract` passes on every PR. It runs 149
+  checks, down from 159, because the renderer no longer declares the 10
+  routes whose unused service functions 8b removed. Those routes still
+  answer as before. The one route removed, `/api/stats/summary`, had no
+  caller.
+- **Duplication removed:**
+  - 14 query-string builders (8d);
+  - 5 date schemas, plus 3 variants built on the shared one (8e);
+  - 8 zero-amount tests and 3 HTML escapers (8f);
+  - two dead files and 11 unused service functions (8b);
+  - two unused flags (8h);
+  - a scalar lookup helper in place of a dozen joins per list (8a).
+- **Tests.** Each PR's unit suite and the database suites for what it
+  touched passed locally and in CI.
+
+Not done in Phase 8, with the reason:
+
+- **Tailwind** stays (owner decision, 2026-10-31). Only its Preflight
+  reset is in effect, and removing it needs a visual check of every page.
+- **Legacy contract fixtures** (`server/scripts/fixtures/legacy-contract-*.sql`)
+  stay, per `CONTRACT_SYSTEM_REMOVAL_MAP.md`.
+- **The leases list** was not rewritten. It met its target on the latest
+  run, and the rewrite carries a column-qualification risk (8f, and
+  `PERFORMANCE.md`).
+- **`/api/dashboard/summary`** stays (see Known issues).
+- **Smaller renderer repeats** were not verified or changed: dialog focus
+  return, the Ctrl+S handlers and the mapping of API validation issues
+  onto form fields. The audit listed them.
+- `UI_REDESIGN.md` and `UI_ENHANCEMENTS.md` now say they are history (8j).
+  `MAPS.md` matches the code and `AUDIT_AND_ROADMAP.md` is kept current,
+  so both stay as they are.
 
 ## Database migrations
 

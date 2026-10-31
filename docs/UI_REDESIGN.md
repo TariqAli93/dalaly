@@ -3,7 +3,9 @@
 This document records the earlier presentation pass. The current appearance,
 detail-page routes and splash implementation are documented
 in [UI_ENHANCEMENTS.md](UI_ENHANCEMENTS.md), which supersedes the corresponding
-palette and workflow descriptions below.
+palette and workflow descriptions below. Both are history now: the desktop
+redesign of 2026-10-26 ([UI_AUDIT_AND_REDESIGN_PLAN.md](UI_AUDIT_AND_REDESIGN_PLAN.md))
+replaced the shell and list pages, and that plan and the code are current.
 
 The renderer uses a compact application bar, page-level commands, and bordered
 surfaces with a 4px spacing scale. Screen composition follows the supplied
