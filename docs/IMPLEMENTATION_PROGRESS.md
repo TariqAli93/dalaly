@@ -42,8 +42,9 @@ Do not rely on this file alone.
 | 6b — operational reports UI         | `feat/phase-06b-operational-reports-ui` | [#55](https://github.com/TariqAli93/dalaly/pull/55), merged `a687d08` | renderer checks; renderer utils 9/9; web demo; CI pass                                                                | Completed |
 | 7a — navigation and quick add       | `feat/phase-07a-navigation`             | [#56](https://github.com/TariqAli93/dalaly/pull/56), merged `2d5cfd9` | renderer checks; web demo (every quick-add item); CI pass                                                             | Completed |
 | 7b — dashboard (server)             | `feat/phase-07b-dashboard`              | [#57](https://github.com/TariqAli93/dalaly/pull/57), merged `5b5baa6` | `test:dashboard-business` 1/1, `test:reports` 2/2, `test:contract` 159; CI pass                                       | Completed |
-| 7b — dashboard UI                   | `feat/phase-07b-dashboard-ui`           | —                                                                     | renderer checks; web demo at 1366×768 and 1024×720                                                                    | In review |
-| 8 — refactoring and performance     | `refactor/phase-08-*`                   | —                                                                     | —                                                                                                                     | Pending   |
+| 7b — dashboard UI                   | `feat/phase-07b-dashboard-ui`           | [#58](https://github.com/TariqAli93/dalaly/pull/58), merged `c77bf8e` | renderer checks; web demo at 1366×768 and 1024×720; CI pass                                                           | Completed |
+| 8a — business benchmarks            | `perf/phase-08a-business-benchmarks`    | —                                                                     | `perf:business` before/after; deals 15, vouchers 10, tasks 13, paging 17, `test:contract` 159; unit 119               | In review |
+| 8 — refactoring (further PRs)       | `refactor/phase-08-*`                   | —                                                                     | —                                                                                                                     | Pending   |
 | 9 — final verification              | `test/phase-09-*`                       | —                                                                     | —                                                                                                                     | Pending   |
 
 ## Baseline evidence (Phase 0, `main` at `3e01f9f`)
@@ -1178,6 +1179,29 @@ below.
   - the month's money showed October's 3,000,000 collected and 4,500,000
     outstanding;
   - at 1024×720, three panels a row and no sideways scroll.
+
+### 8a — business benchmarks
+
+- `pnpm perf:business` (`scripts/perf/business.mjs`) seeds a year of
+  business records on the 5,000-property dataset and times each business
+  list, report and a receipt posting against the plan's targets
+  (section 7). Method and results: `PERFORMANCE.md`, "Business lists and
+  dashboard, October 2026".
+- On `main` (`c77bf8e`), seven list requests missed the 15 ms median:
+  vouchers 52.5 ms, deals 30.8 (stalled 40.3), tasks 22.1 (overdue 20.0),
+  leases 22.0 and alerts 57.2. For vouchers, `EXPLAIN` showed the time
+  went to planning a dozen joins per page, not to reading.
+- The vouchers and deals lists read linked names with scalar subqueries
+  (`lookupValue` in `infrastructure/database/lookup.ts`). Their counts no
+  longer join. Tasks cut the page before joining names. Alerts skip the
+  month's money, which no alert shows.
+- After: vouchers 7.5 ms, deals 14.8 (stalled 18.0), tasks 10.3, the
+  business summary 59 → 36.5, alerts 47.3, a receipt 19.3 → 13.1. Every
+  report's median is under 50 ms. Still over the 15 ms median: leases (22.7,
+  unchanged, left for a later change) and stalled deals (18.0), both under
+  the 50 ms p95, and alerts (p95 64.4), which no page waits on.
+- Response shapes are unchanged: `test:contract` and the suites of each
+  changed list pass.
 
 ## Database migrations
 

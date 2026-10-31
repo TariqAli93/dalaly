@@ -175,6 +175,15 @@ Conventions:
   condition, including the time-dependent ones (an "expired" document), so
   the total matches the rows. The array endpoints stay for callers that
   need every row (pickers, matching, the dashboard).
+- A paged list that shows the names of many linked records reads each with
+  a scalar subquery, `lookupValue(table, column, key)` from
+  `infrastructure/database/lookup.ts`, not a join per record (vouchers,
+  deals): with a dozen joins PostgreSQL spent 80+ ms planning a page it
+  read in under 1 ms. A raw list (tasks) cuts the page before joining
+  names. Pass the outer column through `qualified("table", "column")`; in
+  a one-table Drizzle select a bare column inside a subquery would resolve
+  to the subquery's own table (`PERFORMANCE.md`, "Business lists and
+  dashboard").
 - Properties and rentals also filter by `owner_person_id`, and
   `include_archived=true` lists archived rows with the rest; person details
   uses both on `/properties/paged`.
