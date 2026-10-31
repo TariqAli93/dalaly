@@ -61,18 +61,24 @@ try {
   await page.waitForLoadState("load");
   await page.reload();
   await page.waitForFunction(() => !!window.dalalyConfig?.getStartupHealth);
+  // The retired system's print bridges stay gone; the current contracts module
+  // (like reports and vouchers) prints and saves through printHtml, exportPdf
+  // and saveFile.
   const bridge = await page.evaluate(() => ({
     nodeRequire: typeof (window as unknown as Record<string, unknown>).require,
     printPdf: typeof (window.dalalyConfig as unknown as Record<string, unknown>).printPdf,
     printDocument: typeof (window.dalalyConfig as unknown as Record<string, unknown>).printDocument,
     exportPdf: typeof window.dalalyConfig?.exportPdf,
+    printHtml: typeof window.dalalyConfig?.printHtml,
+    saveFile: typeof window.dalalyConfig?.saveFile,
     exportFolder: typeof window.dalalyConfig?.exportFolder,
   }));
-  assert.deepEqual(bridge, { nodeRequire: "undefined", printPdf: "undefined", printDocument: "undefined", exportPdf: "function", exportFolder: "function" });
+  assert.deepEqual(bridge, { nodeRequire: "undefined", printPdf: "undefined", printDocument: "undefined", exportPdf: "function", printHtml: "function", saveFile: "function", exportFolder: "function" });
   const health = await page.evaluate(() => window.dalalyConfig!.getStartupHealth!());
   assert.equal(health.startup_state, "READY");
   const base = page.url().split("#")[0];
   const result = await verifyRemovalNavigation(page, base, context, { uploadDocument: false });
+  result.passed.push("Preload bridge has no retired print methods; current PDF, print and file-save bridges are present");
   const sharedPdfPath = path.join(context.root, "shared-property-export.pdf");
   assert.ok(path.resolve(sharedPdfPath).startsWith(path.resolve(context.root) + path.sep));
   await electron.evaluate(({ dialog }, output) => {

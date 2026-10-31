@@ -135,7 +135,11 @@ a PostgreSQL 18 service container. That job runs every suite above except:
 - `test:startup:electron`: launches the real Electron app, so it needs a
   display and the Windows Electron binary.
 - `test:removal:electron` and `test:removal:browser` (not listed above): they
-  drive a packaged Windows build and the renderer in Playwright's Chromium.
+  drive a packaged Windows build (copied to
+  `apps/desktop/release/removal-check/win-unpacked`) and the renderer in
+  Playwright's Chromium through every module, and check that no page uses
+  a retired contract API or route. The current contracts module
+  (`/api/agreements`) is allowed.
 
 Performance of a packaged build (startup, memory, API latency) against a
 seeded throwaway database — see `docs/PERFORMANCE.md`:
