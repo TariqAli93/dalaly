@@ -24,6 +24,7 @@ import {
   api,
   createDatabase,
   dropDatabase,
+  firstRowShows,
   freePort,
   makeTempDir,
   packagedApp,
@@ -151,7 +152,11 @@ async function openTables(browser, apiPort, webPort) {
     await page.goto(`http://127.0.0.1:${webPort}/index.html#/login`);
     await page.getByLabel("اسم المستخدم", { exact: true }).fill(ADMIN.username);
     await page.getByLabel("الرمز السري", { exact: true }).fill(ADMIN.pin);
-    const dashboard = page.waitForResponse((response) => response.url().includes("/api/dashboard/summary"));
+    // The dashboard's first data: /dashboard/overview since the operational
+    // dashboard, /dashboard/summary on builds before it.
+    const dashboard = page.waitForResponse((response) =>
+      /\/api\/dashboard\/(overview|summary)/.test(response.url()),
+    );
     await page.getByRole("button", { name: "تسجيل الدخول", exact: true }).click();
     await dashboard;
     await painted(page);
@@ -176,11 +181,7 @@ async function openList(page, hash, request, codePrefix) {
   await page.evaluate((target) => (location.hash = target), hash);
   await finished;
   const data = performance.now() - started;
-  await page.waitForFunction(
-    (prefix) => document.querySelector(".dal-grid tbody tr td:nth-child(3)")?.textContent?.trim().startsWith(prefix),
-    codePrefix,
-    { timeout: 60_000 },
-  );
+  await firstRowShows(page, codePrefix);
   await painted(page);
   const rowsPainted = performance.now() - started;
   const imageRows = await rowImagesPainted(page);
