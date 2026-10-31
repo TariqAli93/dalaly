@@ -56,7 +56,7 @@ Do not rely on this file alone.
 | 9a — end-to-end workflows           | `test/phase-09a-workflows`              | [#69](https://github.com/TariqAli93/dalaly/pull/69), merged `b5a008f` | `test:workflows` 20/20 (sale 11, rental 7, 2 tests); CI pass                                                          | Completed |
 | 9b — release checks                 | `test/phase-09b-release-checks`         | [#70](https://github.com/TariqAli93/dalaly/pull/70), merged `a138dcb` | packaged build; `pnpm perf` vs 28 Oct; Electron startup 11/11; CI pass                                                | Completed |
 | 9c — removal suites                 | `test/phase-09c-removal-suites`         | [#71](https://github.com/TariqAli93/dalaly/pull/71), merged `64a6c2b` | `test:removal:browser` 16 checks, `test:removal:electron` 17 (packaged); CI pass                                      | Completed |
-| 9d — 0.2.0 prepared                 | `chore/phase-09d-release-0.2.0`         | —                                                                     | lint, unit 122, build; installers built; packaged app reports 0.2.0                                                   | In review |
+| 9d — 0.2.0 prepared                 | `chore/phase-09d-release-0.2.0`         | [#72](https://github.com/TariqAli93/dalaly/pull/72), merged `ae77428` | lint, unit 122, build; installers built; packaged app reports 0.2.0; CI pass                                          | Completed |
 
 ## Baseline evidence (Phase 0, `main` at `3e01f9f`)
 
@@ -1592,7 +1592,8 @@ on a separate go-ahead.
   - the app's reported version fixed;
   - the installers built and checksummed.
 - **Waiting for the owner:** tagging `v0.2.0` and publishing a GitHub
-  release with the two installers.
+  release with the two installers. On 2026-11-01 the owner chose to merge
+  #72 without publishing, so 0.2.0 is on `main` at `ae77428`, untagged.
 
 ## Database migrations
 
