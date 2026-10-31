@@ -46,7 +46,8 @@ Do not rely on this file alone.
 | 8a — business benchmarks            | `perf/phase-08a-business-benchmarks`    | [#59](https://github.com/TariqAli93/dalaly/pull/59), merged `b8bd40f` | `perf:business` before/after; deals 15, vouchers 10, tasks 13, paging 17, `test:contract` 159; unit 119; CI pass      | Completed |
 | 8b — dead code                      | `refactor/phase-08b-dead-code`          | [#60](https://github.com/TariqAli93/dalaly/pull/60), merged `bf74c56` | lint, typecheck, build; unit 119; `test:contract` 149 (10 unread routes); `test:dashboard` 4; CI pass                 | Completed |
 | 8c — list reload loop               | `fix/phase-08c-filter-reload-loop`      | [#61](https://github.com/TariqAli93/dalaly/pull/61), merged `162ac6d` | lint, typecheck, build; unit 119; request counts in the web demo; CI pass                                             | Completed |
-| 8d — query-string helper            | `refactor/phase-08d-query-strings`      | —                                                                     | lint, typecheck, build; unit 120; `test:contract` 149; web demo URLs                                                  | In review |
+| 8d — query-string helper            | `refactor/phase-08d-query-strings`      | [#62](https://github.com/TariqAli93/dalaly/pull/62), merged `609cdfb` | lint, typecheck, build; unit 120; `test:contract` 149; web demo URLs; CI pass                                         | Completed |
+| 8e — shared date schema             | `refactor/phase-08e-date-schemas`       | —                                                                     | deals, accounting, ledger, vouchers, commissions, cash, finance, leases, payments, reports, agreements; contract 149  | In review |
 | 8 — refactoring (further PRs)       | `refactor/phase-08-*`                   | —                                                                     | —                                                                                                                     | Pending   |
 | 9 — final verification              | `test/phase-09-*`                       | —                                                                     | —                                                                                                                     | Pending   |
 
@@ -1266,6 +1267,24 @@ Left for later PRs, as they need a decision or a closer look:
   added the same way (`kind=receipt`, `status=available`).
 - `renderer-utils.test.ts` covers the helper: empty values left out,
   Arabic text encoded, `0` and `false` kept.
+
+### 8e — shared date schema
+
+- Eight request schemas declared their own `YYYY-MM-DD` date: five
+  identical copies (cash, commissions, journal, vouchers, leases) and three
+  variants. `isoDate` is now in `shared/validation/fields.ts` with the
+  Arabic message.
+- The variants build on it:
+  - reports add a calendar check (`reportDate`);
+  - deals keep an optional close date that `""` clears (`closeDate`);
+  - contract terms keep their `null` default (`termDate`).
+- One message changes: an invalid contract term date now reads «التاريخ
+  بصيغة YYYY-MM-DD.» like the others, instead of the generic one.
+- Every suite that sends these dates passes: `test:deals` 15,
+  `test:accounting` 9, `test:ledger` 13, `test:vouchers` 10,
+  `test:commissions` 10, `test:cash` 9, `test:finance` 9, `test:leases` 9,
+  `test:lease-payments` 11, `test:reports` 2, `test:agreements` 11,
+  `test:contract` 149.
 
 ## Database migrations
 
