@@ -9,15 +9,7 @@ import type {
   TaskSource,
 } from "../types";
 import { request } from "./api.service";
-
-function buildQuery(filters: Record<string, string | number | undefined>) {
-  const query = new URLSearchParams(
-    Object.entries(filters)
-      .filter(([, value]) => value !== undefined && value !== "")
-      .map(([key, value]) => [key, String(value)]),
-  );
-  return query.toString() ? `?${query}` : "";
-}
+import { queryString } from "../utils/query";
 
 /** One page of the follow-ups and activities the user may read. */
 export function listTasksPage(
@@ -26,7 +18,7 @@ export function listTasksPage(
   signal?: AbortSignal,
 ) {
   return request<TaskPage>(
-    `/tasks/paged${buildQuery({ ...filters, ...page })}`,
+    `/tasks/paged${queryString({ ...filters, ...page })}`,
     {
       signal,
     },

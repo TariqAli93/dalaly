@@ -8,15 +8,7 @@ import type {
   PersonTimeline,
 } from "../types";
 import { request } from "./api.service";
-
-function buildQuery(filters: Record<string, string | number | undefined>) {
-  const query = new URLSearchParams(
-    Object.entries(filters)
-      .filter(([, value]) => value !== undefined && value !== "")
-      .map(([key, value]) => [key, String(value)]),
-  );
-  return query.toString() ? `?${query}` : "";
-}
+import { queryString } from "../utils/query";
 
 /** صفحة واحدة مع العدد الكلي، لجدول الأشخاص. */
 export function listPeoplePage(
@@ -30,7 +22,7 @@ export function listPeoplePage(
   signal?: AbortSignal,
 ) {
   return request<PagedResult<PersonRecord>>(
-    `/people/paged${buildQuery({ ...filters, ...page })}`,
+    `/people/paged${queryString({ ...filters, ...page })}`,
     { signal },
   );
 }
@@ -48,7 +40,7 @@ export function findDuplicatePeople(query: {
   national_id?: string;
   exclude_id?: number;
 }) {
-  return request<PersonDuplicate[]>(`/people/duplicates${buildQuery(query)}`);
+  return request<PersonDuplicate[]>(`/people/duplicates${queryString(query)}`);
 }
 export function createPerson(payload: unknown) {
   return request<PersonRecord>("/people", {
