@@ -1,6 +1,9 @@
 # Release notes
 
-## 0.2.0 (draft, not released)
+## 0.2.0 (prepared, not published)
+
+The version is set and the installers are built (`IMPLEMENTATION_PROGRESS.md`,
+9d). Tagging and publishing wait for the owner's go-ahead.
 
 The first release since 0.1.0 (June 2026), which had sign-in, roles and
 sale listings only. Since then Dalaly has become a brokerage office system,
@@ -72,12 +75,17 @@ and checks are in [IMPLEMENTATION_PROGRESS.md](IMPLEMENTATION_PROGRESS.md).
 
 ### Installing and upgrading
 
-- **From 0.1.0: not yet decided.** A database created by 0.1.0 cannot be
-  upgraded in place. Its three migrations were replaced by a new baseline
-  in October, so the upgrade stops at «relation "permissions" already
-  exists» and the app shows its startup error. 0.1.0 had no backup
-  feature, so there is no backup to restore either. See
-  `IMPLEMENTATION_PROGRESS.md`, 9b.
+- **From 0.1.0: install fresh.** A database created by 0.1.0 cannot be
+  upgraded in place:
+  - its three migrations were replaced by a new baseline in October, so
+    the upgrade stops at «relation "permissions" already exists» and the
+    app shows its startup error;
+  - 0.1.0 had no backup feature, so there is no backup to restore either.
+
+  Use a new, empty database. 0.1.0's sale listings can be entered again
+  or imported from Excel (عروض البيع → استيراد من إكسل). This was the
+  owner's decision on 2026-10-31.
+
 - **A new install** runs every migration (`0000`–`0015`) on an empty
   database, and the setup screen creates the first administrator.
 - **Permissions.** The **Super Admin** role receives every permission
@@ -85,6 +93,9 @@ and checks are in [IMPLEMENTATION_PROGRESS.md](IMPLEMENTATION_PROGRESS.md).
   an administrator grants them in الأدوار والصلاحيات. The new areas are
   deals, agreements, accounting, vouchers, commissions, cash, leases and
   both reports.
+- **The version shown** in الإعدادات and written into each backup's
+  manifest is now the app's own. Builds before this one showed 0.1.0
+  whatever their version was.
 
 ### Checked before release
 
@@ -93,5 +104,7 @@ Recorded in `IMPLEMENTATION_PROGRESS.md`, Phase 9:
 - the unit and database suites;
 - the sale and rental workflows end to end (`test:workflows`);
 - the real Electron startup scenarios;
+- the browser and packaged-build walks through every module
+  (`test:removal:browser`, `test:removal:electron`);
 - `pnpm perf` on a packaged build of this version against the
   28 October build.
