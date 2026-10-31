@@ -48,7 +48,8 @@ Do not rely on this file alone.
 | 8c — list reload loop               | `fix/phase-08c-filter-reload-loop`      | [#61](https://github.com/TariqAli93/dalaly/pull/61), merged `162ac6d` | lint, typecheck, build; unit 119; request counts in the web demo; CI pass                                             | Completed |
 | 8d — query-string helper            | `refactor/phase-08d-query-strings`      | [#62](https://github.com/TariqAli93/dalaly/pull/62), merged `609cdfb` | lint, typecheck, build; unit 120; `test:contract` 149; web demo URLs; CI pass                                         | Completed |
 | 8e — shared date schema             | `refactor/phase-08e-date-schemas`       | [#63](https://github.com/TariqAli93/dalaly/pull/63), merged `9013d0b` | deals, accounting, ledger, vouchers, commissions, cash, finance, leases, payments, reports, agreements; CI pass       | Completed |
-| 8f — renderer helpers               | `refactor/phase-08f-renderer-helpers`   | —                                                                     | lint, typecheck, build; unit 122; web demo (lease, dashboard)                                                         | In review |
+| 8f — renderer helpers               | `refactor/phase-08f-renderer-helpers`   | [#64](https://github.com/TariqAli93/dalaly/pull/64), merged `0497ff4` | lint, typecheck, build; unit 122; web demo (lease, dashboard); CI pass                                                | Completed |
+| 8g — untrack local tool state       | `chore/phase-08g-untrack-tool-state`    | —                                                                     | `git check-ignore` for both files; no code change                                                                     | In review |
 | 8 — refactoring (further PRs)       | `refactor/phase-08-*`                   | —                                                                     | —                                                                                                                     | Pending   |
 | 9 — final verification              | `test/phase-09-*`                       | —                                                                     | —                                                                                                                     | Pending   |
 
@@ -1300,6 +1301,21 @@ Left for later PRs, as they need a decision or a closer look:
   run (14.5 ms, p95 15.7), with the whole run 20–30% faster than the 8a
   one. Its time is split between planning and execution, so it is left
   as it is (`PERFORMANCE.md`, "The leases list, measured again").
+
+### 8g — untrack local tool state
+
+Owner decision, 2026-10-31 (after the Phase 8 audit):
+
+- `apps/renderer/.impeccable/live/server.json` (the design live server's
+  pid, port and access token, written on each start) and
+  `.swarm/ewc-fisher.json` (a tool's learned weights) are no longer
+  tracked, and `.gitignore` lists them. Both stay on disk. History keeps
+  the old copies: nothing was rewritten.
+- Left tracked, as decided: `.claude-flow/*`, `.claude/settings.json` and
+  the proven-config files, and `apps/renderer/.impeccable/live/config.json`
+  (project configuration, not runtime state).
+- Also decided: keep the web demo and remove only capture leftovers
+  nothing references (8h); leave Tailwind for a later cleanup.
 
 ## Database migrations
 
