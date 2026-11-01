@@ -1,0 +1,3032 @@
+{
+  "auditDate": "2026-11-01",
+  "timezone": "Asia/Baghdad",
+  "runtime": "Real development Electron 39.8.10, Vite 5173, local Fastify 34567, existing dalaly_demo",
+  "routeDefinitions": 43,
+  "functionalElectronRoutes": 41,
+  "browserRoutes": 0,
+  "sourceOnlyRoutes": 2,
+  "workflowCoverage": {
+    "examined": 6,
+    "safelyExercised": 5,
+    "completedBusinessSaves": 0,
+    "contractCompletion": "unverified"
+  },
+  "migrationCountBefore": 16,
+  "migrationCountAfter": 16,
+  "businessIntegrity": [
+    {
+      "table": "properties",
+      "count": 12,
+      "unchanged": true
+    },
+    {
+      "table": "rentals",
+      "count": 3,
+      "unchanged": true
+    },
+    {
+      "table": "people",
+      "count": 4,
+      "unchanged": true
+    },
+    {
+      "table": "purchase_requests",
+      "count": 2,
+      "unchanged": true
+    },
+    {
+      "table": "rental_requests",
+      "count": 2,
+      "unchanged": true
+    },
+    {
+      "table": "deals",
+      "count": 4,
+      "unchanged": true
+    },
+    {
+      "table": "agreements",
+      "count": 0,
+      "unchanged": true
+    },
+    {
+      "table": "leases",
+      "count": 3,
+      "unchanged": true
+    },
+    {
+      "table": "commissions",
+      "count": 2,
+      "unchanged": true
+    },
+    {
+      "table": "vouchers",
+      "count": 5,
+      "unchanged": true
+    },
+    {
+      "table": "journal_entries",
+      "count": 8,
+      "unchanged": true
+    },
+    {
+      "table": "identity_documents",
+      "count": 2,
+      "unchanged": true
+    },
+    {
+      "table": "property_followups",
+      "count": 6,
+      "unchanged": true
+    },
+    {
+      "table": "rental_followups",
+      "count": 2,
+      "unchanged": true
+    }
+  ],
+  "blockedAutomaticMutations": [
+    {
+      "method": "PUT",
+      "path": "/api/properties/8/images/35/thumbnail"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/properties/8/images/36/thumbnail"
+    }
+  ],
+  "contrastSamples": [
+    {
+      "text": "العقارات والطلبات",
+      "font": "12px",
+      "weight": "600",
+      "color": "rgb(237, 245, 245)",
+      "opacity": 0.78,
+      "background": [
+        25,
+        54,
+        56
+      ],
+      "contrast": 7.75
+    },
+    {
+      "text": "الزبائن",
+      "font": "12px",
+      "weight": "600",
+      "color": "rgb(237, 245, 245)",
+      "opacity": 0.78,
+      "background": [
+        25,
+        54,
+        56
+      ],
+      "contrast": 7.75
+    },
+    {
+      "text": "الصفقات والعقود",
+      "font": "12px",
+      "weight": "600",
+      "color": "rgb(237, 245, 245)",
+      "opacity": 0.78,
+      "background": [
+        25,
+        54,
+        56
+      ],
+      "contrast": 7.75
+    },
+    {
+      "text": "الحسابات والتقارير",
+      "font": "12px",
+      "weight": "600",
+      "color": "rgb(237, 245, 245)",
+      "opacity": 0.78,
+      "background": [
+        25,
+        54,
+        56
+      ],
+      "contrast": 7.75
+    },
+    {
+      "text": "الحقول المعلّمة بـ * مطلوبة.",
+      "font": "12px",
+      "weight": "400",
+      "color": "rgb(91, 102, 106)",
+      "opacity": 1,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 5.91
+    },
+    {
+      "text": "الموقع والقطعة",
+      "font": "14px",
+      "weight": "700",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 1,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 14.64
+    },
+    {
+      "text": "المحافظة",
+      "font": "13px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.72,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 5.89
+    },
+    {
+      "text": "المحافظة",
+      "font": "9.75px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.72,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 5.89
+    },
+    {
+      "text": "المنطقة",
+      "font": "13px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.2736,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 1.74
+    },
+    {
+      "text": "المنطقة",
+      "font": "9.75px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.2736,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 1.74
+    },
+    {
+      "text": "اختر المحافظة أولاً أو أدخل المنطقة يدوياً",
+      "font": "12px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.38,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 2.24
+    },
+    {
+      "text": "الحي",
+      "font": "13px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.2736,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 1.74
+    },
+    {
+      "text": "الحي",
+      "font": "9.75px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.2736,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 1.74
+    },
+    {
+      "text": "اختر المنطقة أولاً أو أدخل الحي يدوياً",
+      "font": "12px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.38,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 2.24
+    },
+    {
+      "text": "رقم القطعة",
+      "font": "13px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.72,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 5.89
+    },
+    {
+      "text": "رقم القطعة",
+      "font": "9.75px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.72,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 5.89
+    },
+    {
+      "text": "حرف القطعة",
+      "font": "13px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.72,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 5.89
+    },
+    {
+      "text": "حرف القطعة",
+      "font": "9.75px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.72,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 5.89
+    },
+    {
+      "text": "رقم المقاطعة",
+      "font": "13px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.72,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 5.89
+    },
+    {
+      "text": "رقم المقاطعة",
+      "font": "9.75px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.72,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 5.89
+    },
+    {
+      "text": "اسم المقاطعة",
+      "font": "13px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.72,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 5.89
+    },
+    {
+      "text": "اسم المقاطعة",
+      "font": "9.75px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.72,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 5.89
+    },
+    {
+      "text": "العرض",
+      "font": "14px",
+      "weight": "700",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 1,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 14.64
+    },
+    {
+      "text": "نوع العقار *",
+      "font": "13px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.72,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 5.89
+    },
+    {
+      "text": "نوع العقار *",
+      "font": "9.75px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.72,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 5.89
+    },
+    {
+      "text": "الصفة القانونية *",
+      "font": "13px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.72,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 5.89
+    },
+    {
+      "text": "الصفة القانونية *",
+      "font": "9.75px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.72,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 5.89
+    },
+    {
+      "text": "الحالة *",
+      "font": "13px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.72,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 5.89
+    },
+    {
+      "text": "الحالة *",
+      "font": "9.75px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.72,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 5.89
+    },
+    {
+      "text": "اسم العرض",
+      "font": "13px",
+      "weight": "400",
+      "color": "rgb(27, 43, 48)",
+      "opacity": 0.72,
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "contrast": 5.89
+    }
+  ],
+  "windowChecks": [
+    {
+      "outer": {
+        "w": 1440,
+        "h": 900
+      },
+      "route": "/",
+      "metrics": {
+        "viewport": {
+          "w": 1424,
+          "h": 861
+        },
+        "pageHeight": 1438,
+        "overflow": false,
+        "buttons": 41,
+        "fields": 2
+      }
+    },
+    {
+      "outer": {
+        "w": 1440,
+        "h": 900
+      },
+      "route": "/properties/new",
+      "metrics": {
+        "viewport": {
+          "w": 1424,
+          "h": 861
+        },
+        "pageHeight": 1630,
+        "overflow": false,
+        "buttons": 14,
+        "fields": 33
+      }
+    },
+    {
+      "outer": {
+        "w": 1440,
+        "h": 900
+      },
+      "route": "/deals",
+      "metrics": {
+        "viewport": {
+          "w": 1424,
+          "h": 861
+        },
+        "pageHeight": 861,
+        "overflow": false,
+        "buttons": 18,
+        "fields": 5
+      }
+    },
+    {
+      "outer": {
+        "w": 1440,
+        "h": 900
+      },
+      "route": "/contracts/templates/sale",
+      "metrics": {
+        "viewport": {
+          "w": 1424,
+          "h": 861
+        },
+        "pageHeight": 861,
+        "overflow": false,
+        "buttons": 72,
+        "fields": 12
+      }
+    },
+    {
+      "outer": {
+        "w": 1920,
+        "h": 1080
+      },
+      "route": "/",
+      "metrics": {
+        "viewport": {
+          "w": 1904,
+          "h": 1041
+        },
+        "pageHeight": 1398,
+        "overflow": false,
+        "buttons": 41,
+        "fields": 2
+      }
+    },
+    {
+      "outer": {
+        "w": 1920,
+        "h": 1080
+      },
+      "route": "/properties/new",
+      "metrics": {
+        "viewport": {
+          "w": 1904,
+          "h": 1041
+        },
+        "pageHeight": 1638,
+        "overflow": false,
+        "buttons": 14,
+        "fields": 33
+      }
+    },
+    {
+      "outer": {
+        "w": 1920,
+        "h": 1080
+      },
+      "route": "/deals",
+      "metrics": {
+        "viewport": {
+          "w": 1904,
+          "h": 1041
+        },
+        "pageHeight": 1041,
+        "overflow": false,
+        "buttons": 18,
+        "fields": 5
+      }
+    },
+    {
+      "outer": {
+        "w": 1920,
+        "h": 1080
+      },
+      "route": "/contracts/templates/sale",
+      "metrics": {
+        "viewport": {
+          "w": 1904,
+          "h": 1041
+        },
+        "pageHeight": 1041,
+        "overflow": false,
+        "buttons": 72,
+        "fields": 12
+      }
+    }
+  ],
+  "screens": [
+    {
+      "route": "/rentals",
+      "actual": "/rentals",
+      "id": "E08-rental-list",
+      "note": "Rental offers list",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 27,
+        "fields": 16
+      }
+    },
+    {
+      "route": "/rentals/new",
+      "actual": "/rentals/new",
+      "id": "E09-rental-form",
+      "note": "New rental form",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 1368,
+        "overflow": false,
+        "buttons": 14,
+        "fields": 27
+      }
+    },
+    {
+      "route": "/rentals/1",
+      "actual": "/rentals/1",
+      "id": "E10-rental-details",
+      "note": "Rental details",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 863,
+        "overflow": false,
+        "buttons": 20,
+        "fields": 0
+      }
+    },
+    {
+      "route": "/purchase-requests",
+      "actual": "/purchase-requests",
+      "id": "E13-purchase-requests",
+      "note": "Purchase requests list",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 19,
+        "fields": 6
+      }
+    },
+    {
+      "route": "/purchase-requests/2",
+      "actual": "/purchase-requests/2",
+      "id": "E15-purchase-request-details",
+      "note": "Matched purchase request details",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 12,
+        "fields": 0
+      }
+    },
+    {
+      "route": "/rental-requests",
+      "actual": "/rental-requests",
+      "id": "E16-rental-requests",
+      "note": "Rental requests list",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 19,
+        "fields": 6
+      }
+    },
+    {
+      "route": "/rental-requests/1",
+      "actual": "/rental-requests/1",
+      "id": "E17-rental-request-details",
+      "note": "Unmatched rental request details",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 10,
+        "fields": 0
+      }
+    },
+    {
+      "route": "/deals/1",
+      "actual": "/deals/1",
+      "id": "E20-deal-details",
+      "note": "Deal record",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 21,
+        "fields": 2
+      }
+    },
+    {
+      "route": "/documents",
+      "actual": "/documents",
+      "id": "E21-documents",
+      "note": "Documents list",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 18,
+        "fields": 4
+      }
+    },
+    {
+      "route": "/contracts",
+      "actual": "/contracts",
+      "id": "E23-contracts-empty",
+      "note": "Empty contracts list",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 12,
+        "fields": 5
+      }
+    },
+    {
+      "route": "/contracts/templates",
+      "actual": "/contracts/templates",
+      "id": "E25-contract-templates",
+      "note": "Four contract templates",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 19,
+        "fields": 0
+      }
+    },
+    {
+      "route": "/contracts/templates/sale",
+      "actual": "/contracts/templates/sale",
+      "id": "E26-template-studio",
+      "note": "Sale contract template studio, read-only inspection",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 72,
+        "fields": 17
+      }
+    },
+    {
+      "route": "/accounting?view=commissions",
+      "actual": "/accounting?view=commissions",
+      "id": "E28-commissions",
+      "note": "Accounting commissions view",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 991,
+        "overflow": false,
+        "buttons": 28,
+        "fields": 4
+      }
+    },
+    {
+      "route": "/accounting?view=vouchers",
+      "actual": "/accounting?view=vouchers",
+      "id": "E29-vouchers",
+      "note": "Accounting vouchers view",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 991,
+        "overflow": false,
+        "buttons": 29,
+        "fields": 7
+      }
+    },
+    {
+      "route": "/accounting/commissions/1",
+      "actual": "/accounting/commissions/1",
+      "id": "E30-commission-details",
+      "note": "Commission record and collection",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 9,
+        "fields": 0
+      }
+    },
+    {
+      "route": "/accounting/vouchers/1",
+      "actual": "/accounting/vouchers/1",
+      "id": "E32-voucher-details",
+      "note": "Issued voucher details",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 10,
+        "fields": 0
+      }
+    },
+    {
+      "route": "/accounting/accounts",
+      "actual": "/accounting/accounts",
+      "id": "E34-accounts",
+      "note": "Chart of accounts",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 1807,
+        "overflow": false,
+        "buttons": 86,
+        "fields": 2
+      }
+    },
+    {
+      "route": "/accounting/accounts/1",
+      "actual": "/accounting/accounts/1",
+      "id": "E35-account-statement",
+      "note": "Account statement",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 7,
+        "fields": 2
+      }
+    },
+    {
+      "route": "/accounting/journal/1",
+      "actual": "/accounting/journal/1",
+      "id": "E37-journal-entry",
+      "note": "Issued journal entry",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 7,
+        "fields": 0
+      }
+    },
+    {
+      "route": "/leases/1",
+      "actual": "/leases/1",
+      "id": "E39-lease-details",
+      "note": "Lease instalments and owner settlement",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 1364,
+        "overflow": false,
+        "buttons": 20,
+        "fields": 0
+      }
+    },
+    {
+      "route": "/help",
+      "actual": "/help",
+      "id": "E43-help",
+      "note": "Help and keyboard shortcuts",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 1782,
+        "overflow": false,
+        "buttons": 18,
+        "fields": 1
+      }
+    },
+    {
+      "route": "/locations",
+      "actual": "/locations",
+      "id": "E46-locations",
+      "note": "Governorates districts and neighborhoods",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 113,
+        "fields": 34
+      }
+    },
+    {
+      "route": "/properties/1/edit",
+      "actual": "/properties/1/edit",
+      "id": "E47-sale-edit",
+      "note": "Existing sale form, no changes",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 1608,
+        "overflow": false,
+        "buttons": 14,
+        "fields": 36
+      }
+    },
+    {
+      "route": "/rentals/1/edit",
+      "actual": "/rentals/1/edit",
+      "id": "E48-rental-edit",
+      "note": "Existing rental form, no changes",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 1346,
+        "overflow": false,
+        "buttons": 14,
+        "fields": 27
+      }
+    },
+    {
+      "route": "/reports",
+      "actual": "/reports",
+      "id": "E40-reports",
+      "note": "Reports",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 1354,
+        "overflow": false,
+        "buttons": 24,
+        "fields": 3
+      }
+    },
+    {
+      "route": "/reports?report=sale-listings",
+      "actual": "/reports?report=sale-listings",
+      "id": "R01-sale-listings",
+      "note": "Report: sale-listings",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 1965,
+        "overflow": false,
+        "buttons": 24,
+        "fields": 2
+      }
+    },
+    {
+      "route": "/reports?report=rental-listings",
+      "actual": "/reports?report=rental-listings",
+      "id": "R02-rental-listings",
+      "note": "Report: rental-listings",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 1805,
+        "overflow": false,
+        "buttons": 24,
+        "fields": 2
+      }
+    },
+    {
+      "route": "/reports?report=leases",
+      "actual": "/reports?report=leases",
+      "id": "R03-leases",
+      "note": "Report: leases",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 1142,
+        "overflow": false,
+        "buttons": 24,
+        "fields": 2
+      }
+    },
+    {
+      "route": "/reports?report=customers",
+      "actual": "/reports?report=customers",
+      "id": "R04-customers",
+      "note": "Report: customers",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 1262,
+        "overflow": false,
+        "buttons": 24,
+        "fields": 3
+      }
+    },
+    {
+      "route": "/reports?report=income-statement",
+      "actual": "/reports?report=income-statement",
+      "id": "R05-income-statement",
+      "note": "Report: income-statement",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 24,
+        "fields": 3
+      }
+    },
+    {
+      "route": "/reports?report=balance-sheet",
+      "actual": "/reports?report=balance-sheet",
+      "id": "R06-balance-sheet",
+      "note": "Report: balance-sheet",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 986,
+        "overflow": false,
+        "buttons": 24,
+        "fields": 3
+      }
+    },
+    {
+      "route": "/reports?report=cash-flow",
+      "actual": "/reports?report=cash-flow",
+      "id": "R07-cash-flow",
+      "note": "Report: cash-flow",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 734,
+        "overflow": false,
+        "buttons": 24,
+        "fields": 3
+      }
+    },
+    {
+      "route": "/reports?report=commissions",
+      "actual": "/reports?report=commissions",
+      "id": "R08-commissions",
+      "note": "Report: commissions",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 24,
+        "fields": 4
+      }
+    },
+    {
+      "route": "/reports?report=receivables",
+      "actual": "/reports?report=receivables",
+      "id": "R09-receivables",
+      "note": "Report: receivables",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 24,
+        "fields": 3
+      }
+    },
+    {
+      "route": "/reports?report=payables",
+      "actual": "/reports?report=payables",
+      "id": "R10-payables",
+      "note": "Report: payables",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 826,
+        "overflow": false,
+        "buttons": 24,
+        "fields": 3
+      }
+    },
+    {
+      "route": "/reports?report=trial-balance",
+      "actual": "/reports?report=trial-balance",
+      "id": "R11-trial-balance",
+      "note": "Report: trial-balance",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 842,
+        "overflow": false,
+        "buttons": 24,
+        "fields": 3
+      }
+    },
+    {
+      "route": "/reports?report=ledger",
+      "actual": "/reports?report=ledger",
+      "id": "R12-ledger",
+      "note": "Report: ledger",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 24,
+        "fields": 4
+      }
+    },
+    {
+      "route": "/clients/1",
+      "actual": "/clients/1",
+      "id": "E12-client-details",
+      "note": "Client record",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 21,
+        "fields": 0
+      }
+    },
+    {
+      "route": "/properties/1",
+      "actual": "/properties/1",
+      "id": "E07-sale-details",
+      "note": "Property details, media paths isolated",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 860,
+        "overflow": false,
+        "buttons": 26,
+        "fields": 0
+      }
+    },
+    {
+      "route": "/people",
+      "actual": "/people",
+      "id": "E11-clients",
+      "note": "Clients",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 20,
+        "fields": 5
+      }
+    },
+    {
+      "route": "/tasks",
+      "actual": "/tasks",
+      "id": "E41-tasks",
+      "note": "Tasks",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 45,
+        "fields": 6
+      }
+    },
+    {
+      "route": "/properties/new",
+      "actual": "/properties/new",
+      "id": "E05-sale-form",
+      "note": "New sale form",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 1630,
+        "overflow": false,
+        "buttons": 14,
+        "fields": 33
+      }
+    },
+    {
+      "route": "/deals",
+      "actual": "/deals",
+      "id": "E18-deals",
+      "note": "Deals nine-stage board",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 12,
+        "fields": 3
+      }
+    },
+    {
+      "route": "/",
+      "actual": "/",
+      "id": "Z1440-dashboard",
+      "note": "Native Electron outer 1440×900",
+      "metrics": {
+        "viewport": {
+          "w": 1424,
+          "h": 861
+        },
+        "pageHeight": 1438,
+        "overflow": false,
+        "buttons": 41,
+        "fields": 2
+      }
+    },
+    {
+      "route": "/properties/new",
+      "actual": "/properties/new",
+      "id": "Z1440-sale-form",
+      "note": "Native Electron outer 1440×900",
+      "metrics": {
+        "viewport": {
+          "w": 1424,
+          "h": 861
+        },
+        "pageHeight": 1630,
+        "overflow": false,
+        "buttons": 14,
+        "fields": 33
+      }
+    },
+    {
+      "route": "/deals",
+      "actual": "/deals",
+      "id": "Z1440-deals-table",
+      "note": "Persisted deals table view at native outer 1440",
+      "metrics": {
+        "viewport": {
+          "w": 1424,
+          "h": 861
+        },
+        "pageHeight": 861,
+        "overflow": false,
+        "buttons": 18,
+        "fields": 5
+      }
+    },
+    {
+      "route": "/contracts/templates/sale",
+      "actual": "/contracts/templates/sale",
+      "id": "Z1440-template-studio",
+      "note": "Native Electron outer 1440×900",
+      "metrics": {
+        "viewport": {
+          "w": 1424,
+          "h": 861
+        },
+        "pageHeight": 861,
+        "overflow": false,
+        "buttons": 72,
+        "fields": 12
+      }
+    },
+    {
+      "route": "/",
+      "actual": "/",
+      "id": "Z1920-dashboard",
+      "note": "Native Electron outer 1920×1080",
+      "metrics": {
+        "viewport": {
+          "w": 1904,
+          "h": 1041
+        },
+        "pageHeight": 1398,
+        "overflow": false,
+        "buttons": 41,
+        "fields": 2
+      }
+    },
+    {
+      "route": "/properties/new",
+      "actual": "/properties/new",
+      "id": "Z1920-sale-form",
+      "note": "Native Electron outer 1920×1080",
+      "metrics": {
+        "viewport": {
+          "w": 1904,
+          "h": 1041
+        },
+        "pageHeight": 1638,
+        "overflow": false,
+        "buttons": 14,
+        "fields": 33
+      }
+    },
+    {
+      "route": "/deals",
+      "actual": "/deals",
+      "id": "Z1920-deals-table",
+      "note": "Persisted deals table view at native outer 1920",
+      "metrics": {
+        "viewport": {
+          "w": 1904,
+          "h": 1041
+        },
+        "pageHeight": 1041,
+        "overflow": false,
+        "buttons": 18,
+        "fields": 5
+      }
+    },
+    {
+      "route": "/contracts/templates/sale",
+      "actual": "/contracts/templates/sale",
+      "id": "Z1920-template-studio",
+      "note": "Native Electron outer 1920×1080",
+      "metrics": {
+        "viewport": {
+          "w": 1904,
+          "h": 1041
+        },
+        "pageHeight": 1041,
+        "overflow": false,
+        "buttons": 72,
+        "fields": 12
+      }
+    },
+    {
+      "route": "/properties/new",
+      "actual": "/properties/new",
+      "id": "Z1366-sale-form",
+      "note": "Native Electron 1366×768 sale form",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 1630,
+        "overflow": false,
+        "buttons": 14,
+        "fields": 33
+      }
+    },
+    {
+      "route": "/users",
+      "actual": "/users",
+      "id": "E44-users",
+      "note": "Users",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 16,
+        "fields": 1
+      }
+    },
+    {
+      "route": "/roles",
+      "actual": "/roles",
+      "id": "E45-roles",
+      "note": "Roles",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 172,
+        "fields": 2
+      }
+    },
+    {
+      "route": "/accounting/cash",
+      "actual": "/accounting/cash",
+      "id": "E33-cash",
+      "note": "Cash",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 23,
+        "fields": 2
+      }
+    },
+    {
+      "route": "/accounting",
+      "actual": "/accounting",
+      "id": "E27-accounting-summary",
+      "note": "Accounting",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 991,
+        "overflow": false,
+        "buttons": 29,
+        "fields": 7
+      }
+    },
+    {
+      "route": "/accounting/journal",
+      "actual": "/accounting/journal",
+      "id": "E36-journal",
+      "note": "Journal",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 13,
+        "fields": 7
+      }
+    },
+    {
+      "route": "/settings",
+      "actual": "/settings",
+      "id": "E42-settings-appearance",
+      "note": "Appearance",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 19,
+        "fields": 2
+      }
+    },
+    {
+      "route": "/",
+      "actual": "/",
+      "id": "D01-dashboard-dark",
+      "note": "Dashboard in dark theme, isolated profile",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 1456,
+        "overflow": false,
+        "buttons": 41,
+        "fields": 2
+      }
+    },
+    {
+      "route": "/properties/new",
+      "actual": "/properties/new",
+      "id": "D02-sale-dark",
+      "note": "Sale form in dark theme",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 1630,
+        "overflow": false,
+        "buttons": 14,
+        "fields": 33
+      }
+    },
+    {
+      "route": "/settings",
+      "actual": "/settings",
+      "id": "D03-settings-dark",
+      "note": "Dark appearance settings",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 19,
+        "fields": 2
+      }
+    },
+    {
+      "route": "/leases",
+      "actual": "/leases",
+      "id": "E38-leases",
+      "note": "Leases",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 14,
+        "fields": 3
+      }
+    },
+    {
+      "route": "/accounting?view=shares",
+      "actual": "/accounting?view=shares",
+      "id": "E57-employee-shares",
+      "note": "Accounting employee shares",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 991,
+        "overflow": false,
+        "buttons": 23,
+        "fields": 0
+      }
+    },
+    {
+      "route": "/reports?report=ledger&account=3",
+      "actual": "/reports?report=ledger&account=3",
+      "id": "R13-ledger-selected",
+      "note": "Ledger with selected posting account",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 24,
+        "fields": 4
+      }
+    },
+    {
+      "route": "/contracts/new",
+      "actual": "/contracts/new",
+      "id": "E24-contract-new",
+      "note": "Contract chooser after dev prebundle settles",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 11,
+        "fields": 0
+      }
+    },
+    {
+      "route": "/contracts/999999",
+      "actual": "/contracts/999999",
+      "id": "E58-contract-missing",
+      "note": "Missing contract error; real contract content unavailable",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 8,
+        "fields": 0
+      }
+    },
+    {
+      "route": "/properties",
+      "actual": "/properties",
+      "id": "E04-sales-list",
+      "note": "Sales list",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 729,
+        "overflow": false,
+        "buttons": 52,
+        "fields": 17
+      }
+    },
+    {
+      "route": "/",
+      "actual": "/",
+      "id": "E03-dashboard-1366x768",
+      "note": "Dashboard top",
+      "metrics": {
+        "viewport": {
+          "w": 1350,
+          "h": 729
+        },
+        "pageHeight": 1456,
+        "overflow": false,
+        "buttons": 41,
+        "fields": 2
+      }
+    }
+  ],
+  "screenshots": [
+    {
+      "id": "C01-client-tab",
+      "file": "screenshots/C01-client-tab.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 62981,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Client tab الصفقات"
+    },
+    {
+      "id": "C02-client-tab",
+      "file": "screenshots/C02-client-tab.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 59055,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Client tab الإيجارات"
+    },
+    {
+      "id": "C03-client-tab",
+      "file": "screenshots/C03-client-tab.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 65512,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Client tab المال"
+    },
+    {
+      "id": "C04-client-tab",
+      "file": "screenshots/C04-client-tab.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 66489,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Client tab الطلبات"
+    },
+    {
+      "id": "C05-client-tab",
+      "file": "screenshots/C05-client-tab.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 66853,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Client tab العروض المملوكة (1)"
+    },
+    {
+      "id": "C06-client-tab",
+      "file": "screenshots/C06-client-tab.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 59901,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Client tab المستمسكات (1)"
+    },
+    {
+      "id": "C07-client-tab",
+      "file": "screenshots/C07-client-tab.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 59429,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Client tab الملاحظات"
+    },
+    {
+      "id": "C08-client-tab",
+      "file": "screenshots/C08-client-tab.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 65549,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Client tab البيانات"
+    },
+    {
+      "id": "D01-dashboard-dark",
+      "file": "screenshots/D01-dashboard-dark.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 143169,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Dashboard in dark theme, isolated profile"
+    },
+    {
+      "id": "D02-sale-dark",
+      "file": "screenshots/D02-sale-dark.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 75658,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Sale form in dark theme"
+    },
+    {
+      "id": "D03-settings-dark",
+      "file": "screenshots/D03-settings-dark.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 77476,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Dark appearance settings"
+    },
+    {
+      "id": "E01-login",
+      "file": "screenshots/E01-login.png",
+      "width": 1304,
+      "height": 821,
+      "bytes": 696027,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Initial real Electron login"
+    },
+    {
+      "id": "E02-login-api-origin-error",
+      "file": "screenshots/E02-login-api-origin-error.png",
+      "width": 1304,
+      "height": 821,
+      "bytes": 702905,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Audit launch CORS mismatch, recovered by process-only configuration"
+    },
+    {
+      "id": "E03-dashboard-1366x768",
+      "file": "screenshots/E03-dashboard-1366x768.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 142099,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Dashboard top"
+    },
+    {
+      "id": "E04-sales-list",
+      "file": "screenshots/E04-sales-list.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 120665,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Sales list"
+    },
+    {
+      "id": "E05-sale-form",
+      "file": "screenshots/E05-sale-form.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 74830,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "New sale form"
+    },
+    {
+      "id": "E06-sale-validation",
+      "file": "screenshots/E06-sale-validation.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 71410,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Arabic required validation and first-invalid-field focus"
+    },
+    {
+      "id": "E07-sale-details",
+      "file": "screenshots/E07-sale-details.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 105094,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Property details, media paths isolated"
+    },
+    {
+      "id": "E08-rental-list",
+      "file": "screenshots/E08-rental-list.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 71375,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Rental offers list"
+    },
+    {
+      "id": "E09-rental-form",
+      "file": "screenshots/E09-rental-form.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 73559,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "New rental form"
+    },
+    {
+      "id": "E10-rental-details",
+      "file": "screenshots/E10-rental-details.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 85632,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Rental details"
+    },
+    {
+      "id": "E11-clients",
+      "file": "screenshots/E11-clients.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 56283,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Clients"
+    },
+    {
+      "id": "E12-client-details",
+      "file": "screenshots/E12-client-details.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 63718,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Client record"
+    },
+    {
+      "id": "E13-purchase-requests",
+      "file": "screenshots/E13-purchase-requests.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 56921,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Purchase requests list"
+    },
+    {
+      "id": "E14-purchase-request-form",
+      "file": "screenshots/E14-purchase-request-form.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 108057,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Purchase request dialog"
+    },
+    {
+      "id": "E15-purchase-request-details",
+      "file": "screenshots/E15-purchase-request-details.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 86425,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Matched purchase request details"
+    },
+    {
+      "id": "E16-rental-requests",
+      "file": "screenshots/E16-rental-requests.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 57090,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Rental requests list"
+    },
+    {
+      "id": "E17-rental-request-details",
+      "file": "screenshots/E17-rental-request-details.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 74374,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Unmatched rental request details"
+    },
+    {
+      "id": "E18-deals",
+      "file": "screenshots/E18-deals.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 60637,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Deals nine-stage board"
+    },
+    {
+      "id": "E19-deal-dialog",
+      "file": "screenshots/E19-deal-dialog.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 91579,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Deal creation dialog"
+    },
+    {
+      "id": "E20-deal-details",
+      "file": "screenshots/E20-deal-details.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 98443,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Deal record"
+    },
+    {
+      "id": "E21-documents",
+      "file": "screenshots/E21-documents.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 57755,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Documents list"
+    },
+    {
+      "id": "E22-document-form",
+      "file": "screenshots/E22-document-form.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 85007,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Document creation dialog"
+    },
+    {
+      "id": "E23-contracts-empty",
+      "file": "screenshots/E23-contracts-empty.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 56703,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Empty contracts list"
+    },
+    {
+      "id": "E24-contract-new",
+      "file": "screenshots/E24-contract-new.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 58009,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Contract chooser after dev prebundle settles"
+    },
+    {
+      "id": "E25-contract-templates",
+      "file": "screenshots/E25-contract-templates.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 72120,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Four contract templates"
+    },
+    {
+      "id": "E26-template-studio",
+      "file": "screenshots/E26-template-studio.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 142928,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Sale contract template studio, read-only inspection"
+    },
+    {
+      "id": "E27-accounting-summary",
+      "file": "screenshots/E27-accounting-summary.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 97787,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Accounting"
+    },
+    {
+      "id": "E28-commissions",
+      "file": "screenshots/E28-commissions.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 73921,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Accounting commissions view"
+    },
+    {
+      "id": "E29-vouchers",
+      "file": "screenshots/E29-vouchers.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 97799,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Accounting vouchers view"
+    },
+    {
+      "id": "E30-commission-details",
+      "file": "screenshots/E30-commission-details.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 59620,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Commission record and collection"
+    },
+    {
+      "id": "E31-commission-collection",
+      "file": "screenshots/E31-commission-collection.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 89685,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Prefilled commission receipt dialog"
+    },
+    {
+      "id": "E32-voucher-details",
+      "file": "screenshots/E32-voucher-details.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 60648,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Issued voucher details"
+    },
+    {
+      "id": "E33-cash",
+      "file": "screenshots/E33-cash.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 64709,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Cash"
+    },
+    {
+      "id": "E34-accounts",
+      "file": "screenshots/E34-accounts.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 91773,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Chart of accounts"
+    },
+    {
+      "id": "E35-account-statement",
+      "file": "screenshots/E35-account-statement.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 53995,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Account statement"
+    },
+    {
+      "id": "E36-journal",
+      "file": "screenshots/E36-journal.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 89500,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Journal"
+    },
+    {
+      "id": "E37-journal-entry",
+      "file": "screenshots/E37-journal-entry.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 59835,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Issued journal entry"
+    },
+    {
+      "id": "E38-leases",
+      "file": "screenshots/E38-leases.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 64416,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Leases"
+    },
+    {
+      "id": "E39-lease-details",
+      "file": "screenshots/E39-lease-details.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 85934,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Lease instalments and owner settlement"
+    },
+    {
+      "id": "E40-reports",
+      "file": "screenshots/E40-reports.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 87041,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Reports"
+    },
+    {
+      "id": "E41-tasks",
+      "file": "screenshots/E41-tasks.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 124453,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Tasks"
+    },
+    {
+      "id": "E42-settings-appearance",
+      "file": "screenshots/E42-settings-appearance.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 77056,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Appearance"
+    },
+    {
+      "id": "E43-help",
+      "file": "screenshots/E43-help.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 158626,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Help and keyboard shortcuts"
+    },
+    {
+      "id": "E44-users",
+      "file": "screenshots/E44-users.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 57811,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Users"
+    },
+    {
+      "id": "E45-roles",
+      "file": "screenshots/E45-roles.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 108233,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Roles"
+    },
+    {
+      "id": "E46-locations",
+      "file": "screenshots/E46-locations.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 94140,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Governorates districts and neighborhoods"
+    },
+    {
+      "id": "E47-sale-edit",
+      "file": "screenshots/E47-sale-edit.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 69545,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Existing sale form, no changes"
+    },
+    {
+      "id": "E48-rental-edit",
+      "file": "screenshots/E48-rental-edit.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 70065,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Existing rental form, no changes"
+    },
+    {
+      "id": "E49-settings-office",
+      "file": "screenshots/E49-settings-office.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 71557,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "معلومات المكتب tab, read only"
+    },
+    {
+      "id": "E50-settings-security",
+      "file": "screenshots/E50-settings-security.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 63125,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "الأمان tab, read only"
+    },
+    {
+      "id": "E51-settings-backups",
+      "file": "screenshots/E51-settings-backups.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 91250,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "النسخ الاحتياطي tab, read only"
+    },
+    {
+      "id": "E52-settings-system",
+      "file": "screenshots/E52-settings-system.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 58129,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "النظام والاتصال tab, read only"
+    },
+    {
+      "id": "E53-report-picker",
+      "file": "screenshots/E53-report-picker.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 73690,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Financial reports category picker"
+    },
+    {
+      "id": "E54-deals-table",
+      "file": "screenshots/E54-deals-table.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 60634,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Deals table alternative"
+    },
+    {
+      "id": "E55-dashboard-lower",
+      "file": "screenshots/E55-dashboard-lower.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 128526,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Dashboard lower panels and obsolete feature disclaimer"
+    },
+    {
+      "id": "E56-overdue-instalments",
+      "file": "screenshots/E56-overdue-instalments.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 63880,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Overdue instalments across renewed and ended leases"
+    },
+    {
+      "id": "E57-employee-shares",
+      "file": "screenshots/E57-employee-shares.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 65027,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Accounting employee shares"
+    },
+    {
+      "id": "E58-contract-missing",
+      "file": "screenshots/E58-contract-missing.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 40254,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Missing contract error; real contract content unavailable"
+    },
+    {
+      "id": "F01-client-form",
+      "file": "screenshots/F01-client-form.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 75839,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "New client form, no save"
+    },
+    {
+      "id": "F02-task-form",
+      "file": "screenshots/F02-task-form.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 116165,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Task form, no save"
+    },
+    {
+      "id": "F03-lease-form",
+      "file": "screenshots/F03-lease-form.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 85391,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "New lease without agreement form, no save"
+    },
+    {
+      "id": "F04-user-form",
+      "file": "screenshots/F04-user-form.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 69756,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "User form, no submission or permission changes"
+    },
+    {
+      "id": "F05-role-form",
+      "file": "screenshots/F05-role-form.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 86953,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Role form, no permission edits"
+    },
+    {
+      "id": "F06-transfer-form",
+      "file": "screenshots/F06-transfer-form.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 72147,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Transfer dialog, no transaction"
+    },
+    {
+      "id": "F07-reconciliation-form",
+      "file": "screenshots/F07-reconciliation-form.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 79668,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Cash reconciliation form, no transaction"
+    },
+    {
+      "id": "F08-expense-form",
+      "file": "screenshots/F08-expense-form.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 98521,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Expense receipt form, no issue"
+    },
+    {
+      "id": "F09-journal-form",
+      "file": "screenshots/F09-journal-form.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 78843,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Manual journal form, no save or post"
+    },
+    {
+      "id": "F10-periods",
+      "file": "screenshots/F10-periods.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 92286,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Accounting period dialog read only"
+    },
+    {
+      "id": "F11-customer-drawer",
+      "file": "screenshots/F11-customer-drawer.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 137512,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Customer drawer, including obsolete contact-history copy"
+    },
+    {
+      "id": "F12-import-dialog",
+      "file": "screenshots/F12-import-dialog.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 113378,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Excel import entry; unnamed header Close works; Escape does not dismiss"
+    },
+    {
+      "id": "F13-account-form",
+      "file": "screenshots/F13-account-form.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 97418,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "New account form, not saved"
+    },
+    {
+      "id": "F14-location-form",
+      "file": "screenshots/F14-location-form.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 95573,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "New governorate form, not saved"
+    },
+    {
+      "id": "F15-stage-form",
+      "file": "screenshots/F15-stage-form.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 103684,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Deal-stage form, no transition"
+    },
+    {
+      "id": "F16-commission-form",
+      "file": "screenshots/F16-commission-form.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 90703,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Commission form, not posted"
+    },
+    {
+      "id": "G01-add-menu",
+      "file": "screenshots/G01-add-menu.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 151830,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Global Add menu"
+    },
+    {
+      "id": "G02-notifications",
+      "file": "screenshots/G02-notifications.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 154049,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Global notification menu"
+    },
+    {
+      "id": "K01-filtered-sales",
+      "file": "screenshots/K01-filtered-sales.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 68300,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Code search H-0001 returns two matching records"
+    },
+    {
+      "id": "K02-global-search",
+      "file": "screenshots/K02-global-search.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 69889,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Ctrl+K search dialog"
+    },
+    {
+      "id": "P01-property-tab",
+      "file": "screenshots/P01-property-tab.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 91963,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Property tab الموقع"
+    },
+    {
+      "id": "P02-property-tab",
+      "file": "screenshots/P02-property-tab.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 100636,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Property tab المتابعات"
+    },
+    {
+      "id": "P03-property-tab",
+      "file": "screenshots/P03-property-tab.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 88299,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Property tab الملاحظات"
+    },
+    {
+      "id": "P04-property-tab",
+      "file": "screenshots/P04-property-tab.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 84250,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Property tab السجل"
+    },
+    {
+      "id": "R01-sale-listings",
+      "file": "screenshots/R01-sale-listings.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 78545,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Report: sale-listings"
+    },
+    {
+      "id": "R02-rental-listings",
+      "file": "screenshots/R02-rental-listings.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 81395,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Report: rental-listings"
+    },
+    {
+      "id": "R03-leases",
+      "file": "screenshots/R03-leases.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 86860,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Report: leases"
+    },
+    {
+      "id": "R04-customers",
+      "file": "screenshots/R04-customers.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 87384,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Report: customers"
+    },
+    {
+      "id": "R05-income-statement",
+      "file": "screenshots/R05-income-statement.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 74940,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Report: income-statement"
+    },
+    {
+      "id": "R06-balance-sheet",
+      "file": "screenshots/R06-balance-sheet.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 83938,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Report: balance-sheet"
+    },
+    {
+      "id": "R07-cash-flow",
+      "file": "screenshots/R07-cash-flow.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 91411,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Report: cash-flow"
+    },
+    {
+      "id": "R08-commissions",
+      "file": "screenshots/R08-commissions.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 74809,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Report: commissions"
+    },
+    {
+      "id": "R09-receivables",
+      "file": "screenshots/R09-receivables.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 84230,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Report: receivables"
+    },
+    {
+      "id": "R10-payables",
+      "file": "screenshots/R10-payables.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 83254,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Report: payables"
+    },
+    {
+      "id": "R11-trial-balance",
+      "file": "screenshots/R11-trial-balance.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 92222,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Report: trial-balance"
+    },
+    {
+      "id": "R12-ledger",
+      "file": "screenshots/R12-ledger.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 66355,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Report: ledger"
+    },
+    {
+      "id": "R13-ledger-selected",
+      "file": "screenshots/R13-ledger-selected.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 76028,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Ledger with selected posting account"
+    },
+    {
+      "id": "S01-setup-welcome",
+      "file": "screenshots/S01-setup-welcome.png",
+      "width": 1304,
+      "height": 821,
+      "bytes": 29383,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Real unconfigured Electron profile, welcome"
+    },
+    {
+      "id": "S02-setup-database",
+      "file": "screenshots/S02-setup-database.png",
+      "width": 1304,
+      "height": 821,
+      "bytes": 33919,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Real setup database form; no initialization"
+    },
+    {
+      "id": "S03-startup-error",
+      "file": "screenshots/S03-startup-error.png",
+      "width": 465,
+      "height": 300,
+      "bytes": 104760,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Native failure splash, not the renderer startup-error route"
+    },
+    {
+      "id": "T01-sales-loading",
+      "file": "screenshots/T01-sales-loading.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 115984,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Controlled delayed GET, loading state"
+    },
+    {
+      "id": "T02-sales-error",
+      "file": "screenshots/T02-sales-error.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 121343,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Injected 503 on read GET, existing data retained"
+    },
+    {
+      "id": "T03-sales-recovered",
+      "file": "screenshots/T03-sales-recovered.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 123458,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Retry completed; transient snackbar may remain"
+    },
+    {
+      "id": "T04-sales-empty",
+      "file": "screenshots/T04-sales-empty.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 69442,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "No search results, clear filters recovery"
+    },
+    {
+      "id": "W01-context-deal",
+      "file": "screenshots/W01-context-deal.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 120716,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Prefilled matched deal"
+    },
+    {
+      "id": "W02-match-drawer",
+      "file": "screenshots/W02-match-drawer.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 150032,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Match drawer and outdated contact-history statement"
+    },
+    {
+      "id": "Z125-sale-form",
+      "file": "screenshots/Z125-sale-form.png",
+      "width": 1080,
+      "height": 583,
+      "bytes": 33776,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "1366×768 native window at 125 percent Electron zoom"
+    },
+    {
+      "id": "Z1366-sale-form",
+      "file": "screenshots/Z1366-sale-form.png",
+      "width": 1350,
+      "height": 729,
+      "bytes": 74830,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Native Electron 1366×768 sale form"
+    },
+    {
+      "id": "Z1440-dashboard",
+      "file": "screenshots/Z1440-dashboard.png",
+      "width": 1424,
+      "height": 861,
+      "bytes": 173917,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Native Electron outer 1440×900"
+    },
+    {
+      "id": "Z1440-deals-table",
+      "file": "screenshots/Z1440-deals-table.png",
+      "width": 1424,
+      "height": 861,
+      "bytes": 67697,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Native Electron 1440 outer window, persisted deals table view"
+    },
+    {
+      "id": "Z1440-sale-form",
+      "file": "screenshots/Z1440-sale-form.png",
+      "width": 1424,
+      "height": 861,
+      "bytes": 85305,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Native Electron outer 1440×900"
+    },
+    {
+      "id": "Z1440-template-studio",
+      "file": "screenshots/Z1440-template-studio.png",
+      "width": 1424,
+      "height": 861,
+      "bytes": 172028,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Native Electron outer 1440×900"
+    },
+    {
+      "id": "Z1920-dashboard",
+      "file": "screenshots/Z1920-dashboard.png",
+      "width": 1904,
+      "height": 1041,
+      "bytes": 209144,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Native Electron outer 1920×1080"
+    },
+    {
+      "id": "Z1920-deals-table",
+      "file": "screenshots/Z1920-deals-table.png",
+      "width": 1904,
+      "height": 1041,
+      "bytes": 71164,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Native Electron 1920 outer window, persisted deals table view"
+    },
+    {
+      "id": "Z1920-sale-form",
+      "file": "screenshots/Z1920-sale-form.png",
+      "width": 1904,
+      "height": 1041,
+      "bytes": 96916,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Native Electron outer 1920×1080"
+    },
+    {
+      "id": "Z1920-template-studio",
+      "file": "screenshots/Z1920-template-studio.png",
+      "width": 1904,
+      "height": 1041,
+      "bytes": 205534,
+      "method": "Actual Electron web contents; screenshot privacy masking where needed",
+      "note": "Native Electron outer 1920×1080"
+    }
+  ],
+  "limitations": [
+    "No existing agreements; draft creation, autosave, issue, revisions and contract export not tested",
+    "No standalone browser fallback",
+    "No production package, role variants, screen reader, actual uploads or financial postings tested",
+    "Development Vite import 504 recovered on reload",
+    "Native error splash inspected; renderer startup-error route source-only"
+  ],
+  "developmentErrors": [
+    "Failed to fetch dynamically imported module: http://127.0.0.1:5173/src/pages/ContractWorkspacePage.vue"
+  ],
+  "failedResponses": [
+    {
+      "path": "/node_modules/.vite/deps/chunk-WDYNKFHI.js",
+      "status": 504
+    },
+    {
+      "path": "/node_modules/.vite/deps/chunk-NE3ODJWD.js",
+      "status": 504
+    },
+    {
+      "path": "/api/agreements/999999",
+      "status": 404
+    }
+  ],
+  "screenshotCount": 125,
+  "routeCoverageCounts": {
+    "discovered": 43,
+    "electron": 41,
+    "standaloneBrowser": 0,
+    "sourceOnly": 2
+  },
+  "findingCounts": {
+    "P0": 0,
+    "P1": 5,
+    "P2": 15,
+    "P3": 1,
+    "total": 21
+  },
+  "repositoryHead": "224afb8",
+  "coverageNote": "Read-only runtime audit; contract end-to-end and renderer startup-error route remain unverified. Late native automation binding was recovered via existing Electron CDP; no screenshots from an unrelated window were retained.",
+  "finalVerification": {
+    "businessRowCounts": [
+      {
+        "table": "properties",
+        "count": 12,
+        "matchesBaselineCount": true
+      },
+      {
+        "table": "rentals",
+        "count": 3,
+        "matchesBaselineCount": true
+      },
+      {
+        "table": "people",
+        "count": 4,
+        "matchesBaselineCount": true
+      },
+      {
+        "table": "purchase_requests",
+        "count": 2,
+        "matchesBaselineCount": true
+      },
+      {
+        "table": "rental_requests",
+        "count": 2,
+        "matchesBaselineCount": true
+      },
+      {
+        "table": "deals",
+        "count": 4,
+        "matchesBaselineCount": true
+      },
+      {
+        "table": "agreements",
+        "count": 0,
+        "matchesBaselineCount": true
+      },
+      {
+        "table": "leases",
+        "count": 3,
+        "matchesBaselineCount": true
+      },
+      {
+        "table": "commissions",
+        "count": 2,
+        "matchesBaselineCount": true
+      },
+      {
+        "table": "vouchers",
+        "count": 5,
+        "matchesBaselineCount": true
+      },
+      {
+        "table": "journal_entries",
+        "count": 8,
+        "matchesBaselineCount": true
+      },
+      {
+        "table": "identity_documents",
+        "count": 2,
+        "matchesBaselineCount": true
+      },
+      {
+        "table": "property_followups",
+        "count": 6,
+        "matchesBaselineCount": true
+      },
+      {
+        "table": "rental_followups",
+        "count": 2,
+        "matchesBaselineCount": true
+      }
+    ],
+    "migrationCount": 16,
+    "migrationHashes": [
+      {
+        "tag": "0000_remarkable_shinobi_shaw",
+        "matched": true
+      },
+      {
+        "tag": "0001_default_document_types",
+        "matched": true
+      },
+      {
+        "tag": "0002_restore_property_indexes",
+        "matched": true
+      },
+      {
+        "tag": "0003_search_text",
+        "matched": true
+      },
+      {
+        "tag": "0004_agreements",
+        "matched": true
+      },
+      {
+        "tag": "0005_crm_tasks",
+        "matched": true
+      },
+      {
+        "tag": "0006_customer_crm",
+        "matched": true
+      },
+      {
+        "tag": "0007_deals",
+        "matched": true
+      },
+      {
+        "tag": "0008_chart_of_accounts",
+        "matched": true
+      },
+      {
+        "tag": "0009_general_ledger",
+        "matched": true
+      },
+      {
+        "tag": "0010_vouchers",
+        "matched": true
+      },
+      {
+        "tag": "0011_commissions",
+        "matched": true
+      },
+      {
+        "tag": "0012_expenses_cash",
+        "matched": true
+      },
+      {
+        "tag": "0013_client_funds_held_for",
+        "matched": true
+      },
+      {
+        "tag": "0014_leases",
+        "matched": true
+      },
+      {
+        "tag": "0015_lease_payments",
+        "matched": true
+      }
+    ],
+    "markdownFilesChecked": 6,
+    "brokenLocalLinks": 0,
+    "trailingWhitespaceIssues": 0,
+    "validPngCount": 125,
+    "applicationSourceChangedByAudit": false
+  }
+}

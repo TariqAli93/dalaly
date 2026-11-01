@@ -37,3 +37,5 @@ apps/renderer/.impeccable/live/server.json
 .swarm/
 # Playwright CLI output (may contain credentials)
 .playwright-cli/
+docs/ux-audit/screenshots/*.png
+docs/ux-audit/screenshots/*.webp
