@@ -479,6 +479,7 @@ onBeforeUnmount(() => {
             : 'optional'
           : 'required'
       "
+      intent="task"
       :save="saveTask"
     />
   </AppPage>

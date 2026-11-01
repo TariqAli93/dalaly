@@ -6,10 +6,27 @@ import { splitAmenityKeys } from "../../apps/renderer/src/utils/amenities.js";
 import { escapeHtml } from "../../apps/renderer/src/utils/html.js";
 import { isZeroAmount } from "../../apps/renderer/src/utils/money.js";
 import { queryString } from "../../apps/renderer/src/utils/query.js";
+import { intentStatus, newTaskIntent } from "../../apps/renderer/src/utils/taskIntent.js";
+import { initialStatus } from "../src/modules/tasks/tasks.schema.js";
 
 test("an amount is zero only when the API sends zero", () => {
   for (const value of ["0", "0.00", "-0.00", "0.0"]) assert.ok(isZeroAmount(value), value);
   for (const value of ["0.01", "-0.50", "10.00", "", "00.00"]) assert.ok(!isZeroAmount(value), value);
+});
+
+test("a new task is open until done, dated or not; a logged event is done", () => {
+  // UX-04: «مهمة لزبون» without a date used to be saved as already done.
+  assert.equal(intentStatus(newTaskIntent(null, "task", "")), "open");
+  assert.equal(intentStatus(newTaskIntent(null, "task", "2026-11-03T10:00")), "open");
+  assert.equal(intentStatus(newTaskIntent(null, "log", "2026-11-03T10:00")), "done");
+  // The user's choice wins over the caller's and over the date.
+  assert.equal(newTaskIntent("log", "task", ""), "log");
+  assert.equal(newTaskIntent("task", undefined, ""), "task");
+  // Without a choice or a caller intent, the server's rule for a row sent without a status.
+  for (const date of ["", "2026-11-03T10:00"]) {
+    const scheduled_at = date ? new Date(date).toISOString() : null;
+    assert.equal(intentStatus(newTaskIntent(null, undefined, date)), initialStatus({ scheduled_at }), date || "no date");
+  }
 });
 
 test("printed HTML escapes markup and quotes", () => {
