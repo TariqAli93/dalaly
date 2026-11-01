@@ -106,8 +106,8 @@ const listing = computed(() => {
           </div>
         </dl>
         <p class="details-muted">
-          آخر تحديث للطلب {{ pluralizeDays(daysSince(request.updated_at)) }}. لا
-          يسجّل النظام تاريخ آخر تواصل مع الزبون.
+          آخر تحديث للطلب {{ pluralizeDays(daysSince(request.updated_at)) }}.
+          سجلّ التواصل مع الزبون ومهامه في «ملف الزبون»، تبويب النشاط.
         </p>
       </section>
       <section class="details-block">
