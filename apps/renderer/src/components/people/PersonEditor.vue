@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 import FormSection from "../shared/FormSection.vue";
 import PhoneField from "../app/PhoneField.vue";
 import * as peopleService from "../../services/people.service";
@@ -15,7 +16,14 @@ import type {
   PersonSource,
 } from "../../types";
 const open = defineModel<boolean>({ required: true });
-const props = defineProps<{ person: PersonRecord | null }>();
+const props = defineProps<{
+  person: PersonRecord | null;
+  /**
+   * After adding a customer, the message offers to open their file (from the
+   * customers list; not inside another form, which would be left behind).
+   */
+  offerFile?: boolean;
+}>();
 const emit = defineEmits<{ saved: [PersonRecord] }>();
 
 /**
@@ -40,6 +48,7 @@ const FIELD_DEFAULTS = {
 };
 let opener: HTMLElement | null = null;
 const { notifySuccess } = useSnackbar();
+const router = useRouter();
 const { can } = usePermissions();
 const { assignees, loadAssignees } = useAssignees();
 const duplicates = ref<PersonDuplicate[]>([]);
@@ -168,7 +177,15 @@ async function save() {
       ? await peopleService.updatePerson(props.person.id, form.value)
       : await peopleService.createPerson(form.value);
     open.value = false;
-    notifySuccess(`تم حفظ بيانات ${person.full_name}.`);
+    notifySuccess(
+      `تم حفظ بيانات ${person.full_name}.`,
+      props.offerFile && !props.person
+        ? {
+            label: "فتح ملف الزبون",
+            run: () => void router.push(`/clients/${person.id}`),
+          }
+        : undefined,
+    );
     emit("saved", person);
   } catch (cause) {
     // الخادم يرسل { field, message } (ApiErrorBody)؛ path احتياط لشكل قديم.

@@ -772,6 +772,15 @@ watch(template, () => step.value === "content" && void loadReference());
         @click="issue"
         >إصدار العقد</v-btn
       >
+      <!-- بعد الإصدار أكثر ما يُطلب ملف PDF: زر ظاهر بدل «تصدير» ثم «PDF». -->
+      <v-btn
+        v-if="record.status === 'issued' && can('agreements.export')"
+        color="primary"
+        prepend-icon="mdi-file-pdf-box"
+        :disabled="busy"
+        @click="exportAs('pdf')"
+        >حفظ PDF</v-btn
+      >
       <v-btn
         v-if="record.status === 'issued' && can('agreements.issue')"
         variant="tonal"

@@ -10,6 +10,7 @@ import {
 import { useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import SummaryStrip from "../components/dashboard/SummaryStrip.vue";
+import QuickActions from "../components/dashboard/QuickActions.vue";
 import PriorityStrip from "../components/dashboard/PriorityStrip.vue";
 import MatchWorkspace from "../components/dashboard/MatchWorkspace.vue";
 import DecisionsPanel from "../components/dashboard/DecisionsPanel.vue";
@@ -432,6 +433,7 @@ async function runBackup() {
     </template>
 
     <div class="ops">
+      <QuickActions />
       <SummaryStrip v-if="kpis.length" :items="kpis" @select="openSection" />
       <v-alert
         v-if="overviewError && !overview"

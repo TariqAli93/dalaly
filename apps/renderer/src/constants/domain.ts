@@ -425,15 +425,10 @@ export const QUICK_ADD: QuickAddItem[][] = [
       permissions: ["vouchers.receipt"],
     },
     {
+      // سند صرف يبدأ بغرض «مصروف»، ويُغيَّر غرضه في الحوار نفسه.
       title: "مصروف",
       to: "/accounting?new=expense",
       icon: "mdi-cash-minus",
-      permissions: ["vouchers.payment"],
-    },
-    {
-      title: "سند صرف",
-      to: "/accounting?new=payment",
-      icon: "mdi-cash-refund",
       permissions: ["vouchers.payment"],
     },
   ],

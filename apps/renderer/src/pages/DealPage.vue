@@ -182,7 +182,8 @@ async function prepareContract() {
     deal.value = prepared.deal;
     contractDialog.value = false;
     notifySuccess("أُعدّت مسودة العقد؛ أكمل بياناتها ثم أصدرها.");
-    void router.push(`/contracts/${prepared.agreement_id}`);
+    // الأطراف والعقار من الصفقة: يبدأ العقد بما بقي، «التفاصيل».
+    void router.push(`/contracts/${prepared.agreement_id}?step=details`);
   } catch (cause) {
     notifyError(getErrorMessage(cause));
   } finally {

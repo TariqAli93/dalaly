@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import {
   CURRENCY_LABELS,
   INSTALLMENT_FREQUENCY_LABELS,
@@ -86,6 +86,41 @@ function setLength(months: number) {
   set("end_date", dayBefore.toISOString().slice(0, 10));
 }
 
+// المكتب يحرّر عقوده عادةً في مدينته: آخر مكان كُتب على هذا الجهاز يُقترح
+// بنقرة حين يكون الحقل فارغاً، ولا يُملأ وحده.
+const PLACE_KEY = "dalaly.contract.place.v1";
+function savedPlace() {
+  try {
+    return localStorage.getItem(PLACE_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+const lastPlace = ref(savedPlace());
+watch(
+  () => terms.value.contract_place,
+  (value) => {
+    const place = value?.trim();
+    if (!place) return;
+    try {
+      localStorage.setItem(PLACE_KEY, place);
+    } catch {
+      // The suggestion stays for this session only.
+    }
+  },
+);
+const placeSuggestion = computed(() =>
+  !props.readonly && !terms.value.contract_place && lastPlace.value
+    ? lastPlace.value
+    : null,
+);
+/** An empty delivery date can take the contract's date in one click. */
+const deliverySuggestion = computed(() =>
+  !props.readonly && !terms.value.delivery_date && terms.value.contract_date
+    ? terms.value.contract_date
+    : null,
+);
+
 function witness(index: number) {
   return (
     terms.value.witnesses?.[index] ?? {
@@ -135,8 +170,20 @@ function setWitness(
           label="مكان التحرير (المدينة)"
           :model-value="terms.contract_place ?? ''"
           maxlength="120"
+          :error-messages="errorFor('contract_place')"
           @update:model-value="set('contract_place', text($event))"
-        />
+        >
+          <template v-if="placeSuggestion" #append-inner>
+            <v-btn
+              size="x-small"
+              variant="tonal"
+              color="primary"
+              :title="`«${placeSuggestion}» كالعقد السابق`"
+              @click="set('contract_place', placeSuggestion)"
+              >{{ placeSuggestion }}</v-btn
+            >
+          </template>
+        </v-text-field>
         <v-select
           label="العملة"
           :items="CURRENCIES"
@@ -159,8 +206,20 @@ function setWitness(
             type="date"
             label="تاريخ التسليم"
             :model-value="terms.delivery_date ?? ''"
+            :error-messages="errorFor('delivery_date')"
             @update:model-value="set('delivery_date', date($event))"
-          />
+          >
+            <template v-if="deliverySuggestion" #append-inner>
+              <v-btn
+                size="x-small"
+                variant="tonal"
+                color="primary"
+                title="تاريخ التسليم هو تاريخ العقد"
+                @click="set('delivery_date', deliverySuggestion)"
+                >تاريخ العقد</v-btn
+              >
+            </template>
+          </v-text-field>
           <div />
           <v-textarea
             class="terms__wide"
