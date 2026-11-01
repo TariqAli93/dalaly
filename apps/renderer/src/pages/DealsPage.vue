@@ -171,6 +171,22 @@ const columns = computed(() =>
   }),
 );
 
+/**
+ * شريط المراحل فوق اللوحة (UX-11): كل مرحلة بعددها، والنقر يمرّر اللوحة إلى
+ * عمودها وينقل التركيز إليه، فلا تُبحث المراحل الأخيرة بالتمرير الأفقي.
+ */
+function jumpTo(stage: string) {
+  const column = document.getElementById(`deal-stage-${stage}`);
+  if (!column) return;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  column.scrollIntoView({
+    behavior: reduce ? "auto" : "smooth",
+    block: "nearest",
+    inline: "start",
+  });
+  column.focus({ preventScroll: true });
+}
+
 function reload() {
   return view.value === "board" ? loadBoard() : list.loadFirstPage();
 }
@@ -340,6 +356,31 @@ onBeforeUnmount(() => {
             <v-btn variant="text" @click="loadBoard">إعادة المحاولة</v-btn>
           </template>
         </v-alert>
+        <nav class="deals-stages" aria-label="الانتقال إلى مرحلة">
+          <v-chip
+            v-for="column in columns"
+            :key="column.value"
+            size="small"
+            label
+            :variant="column.count ? 'tonal' : 'outlined'"
+            :color="column.count ? column.color : undefined"
+            :class="{ 'deals-stages__empty': !column.count }"
+            :aria-label="`${column.title}: ${column.count}`"
+            @click="jumpTo(column.value)"
+            >{{ column.title }}
+            <strong class="deals-stages__count">{{
+              column.count
+            }}</strong></v-chip
+          >
+          <v-btn
+            variant="text"
+            size="small"
+            prepend-icon="mdi-table"
+            class="deals-stages__table"
+            @click="view = 'table'"
+            >كل الصفقات في جدول</v-btn
+          >
+        </nav>
         <p v-if="boardTotal > BOARD_LIMIT" class="deals-board__note">
           تعرض اللوحة أقدم {{ BOARD_LIMIT }} صفقة في مراحلها من
           {{ boardTotal }}؛ استخدم الجدول أو الفلاتر للبقية.
@@ -351,9 +392,12 @@ onBeforeUnmount(() => {
         >
           <section
             v-for="column in columns"
+            :id="`deal-stage-${column.value}`"
             :key="column.value"
             class="deals-board__column"
+            :class="{ 'deals-board__column--empty': !column.deals.length }"
             role="listitem"
+            tabindex="-1"
             :aria-label="`${column.title}: ${column.count}`"
           >
             <header class="deals-board__head">
@@ -499,6 +543,23 @@ onBeforeUnmount(() => {
   flex: 1;
   align-items: flex-start;
 }
+.deals-stages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px 0;
+}
+.deals-stages__count {
+  margin-inline-start: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.deals-stages__empty {
+  opacity: 0.7;
+}
+.deals-stages__table {
+  margin-inline-start: auto;
+}
 .deals-board__column {
   flex: 0 0 240px;
   background: rgb(var(--v-theme-surface-variant), 0.35);
@@ -509,6 +570,14 @@ onBeforeUnmount(() => {
   gap: 8px;
   max-height: 100%;
   overflow-y: auto;
+}
+/* مرحلة بلا صفقات ضيّقة: تبقى ظاهرة بعددها، ولا تأخذ عرض عمود كامل. */
+.deals-board__column--empty {
+  flex-basis: 148px;
+}
+.deals-board__column:focus-visible {
+  outline: 2px solid rgb(var(--v-theme-primary));
+  outline-offset: 2px;
 }
 .deals-board__head {
   display: flex;
