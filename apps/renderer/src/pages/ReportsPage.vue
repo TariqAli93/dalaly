@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   computed,
+  nextTick,
   onBeforeUnmount,
   onMounted,
   reactive,
@@ -53,20 +54,26 @@ import {
   type ReportDocument,
 } from "../utils/reportDocument";
 import {
+  EARLIEST_DATE,
   PERIOD_PRESETS,
   periodKeyOf,
   periodRange,
+  periodText,
   type PeriodKey,
 } from "../utils/periods";
+import { formatDate } from "../utils/format";
 import type { CommissionsReport, Currency, DealsReport } from "../types";
 import type { SaveResult } from "../platform/types";
 
 /**
- * التقارير: صفحة واحدة لكل تقارير العمل والمال. في أعلاها نظرة عامة على
- * الفترة (الصفقات المكتملة والعمولات)، ثم شريط فلاتر واحد بفترة جاهزة
- * (هذا الشهر افتراضياً) وتصنيف التقرير، ثم التقرير نفسه يُصدَّر إلى Excel
- * وPDF ويُطبع كما يُعرض. لا يظهر تقرير إلا لمن يملك صلاحيته، والفلاتر في
- * عنوان الصفحة فيُفتح التقرير نفسه من رابط. المعادلات في docs/REPORTS.md.
+ * التقارير: صفحة واحدة لكل تقارير العمل والمال. في أعلاها اسم التقرير
+ * وفترته، ثم شريط فلاتر واحد بفترة جاهزة (هذا الشهر افتراضياً) وتصنيف
+ * التقرير، ثم أرقام التقرير نفسه وجداوله، تُصدَّر إلى Excel وPDF وتُطبع كما
+ * تُعرض. «نظرة عامة على الفترة» (الصفقات المكتملة والعمولات، عبر التقارير)
+ * مطوية ما لم يفتحها المستخدم، ولا تُطلب أرقامها وهي مطوية. تقرير فارغ يقول
+ * فترته ويعرض تغييرها، دون أن يدّعي أن في غيرها بيانات. لا يظهر تقرير إلا
+ * لمن يملك صلاحيته، والفلاتر في عنوان الصفحة فيُفتح التقرير نفسه من رابط.
+ * المعادلات في docs/REPORTS.md.
  */
 const route = useRoute();
 const router = useRouter();
@@ -166,6 +173,46 @@ const onDay = computed(
     financialReportOf(filters.report!).span === "day",
 );
 const defaultDays = computed(() => (filters.report === "leases" ? 60 : 30));
+/** فترة التقرير كما أعادها الخادم، وكما تقولها الفلاتر قبل وصوله. */
+const periodLabel = computed(
+  () =>
+    report.value?.period ??
+    (onDay.value
+      ? `في ${formatDate(filters.to)}`
+      : periodText(filters.from || EARLIEST_DATE, filters.to)),
+);
+
+// ─── التقرير الفارغ (UX-15) ─────────────────────────────────────────────
+const reportEmpty = computed(
+  () => !!report.value && !report.value.sections.length,
+);
+/** فترات جاهزة غير الحالية بجانب تقرير فارغ؛ لا تَعِد بأن فيها بيانات. */
+const otherPeriods = computed(() => [
+  ...PERIOD_CHOICES.filter(
+    (item) => item.value !== "custom" && item.value !== periodChoice.value,
+  ).map((item) => ({
+    title: item.title,
+    run: () => (periodChoice.value = item.value),
+  })),
+  ...(filters.from === EARLIEST_DATE
+    ? []
+    : [
+        {
+          title: "منذ البداية",
+          run: () => {
+            periodChoice.value = "custom";
+            Object.assign(filters, periodRange("all"));
+          },
+        },
+      ]),
+]);
+async function changePeriod() {
+  periodChoice.value = "custom";
+  await nextTick();
+  document
+    .querySelector<HTMLInputElement>(".reports-filters input[type='date']")
+    ?.focus();
+}
 
 // The filters live in the address, so a report opens from a link.
 watch(
@@ -228,6 +275,25 @@ const links: ReportLinks = {
 // ─── النظرة العامة ──────────────────────────────────────────────────────
 const canDeals = computed(() => allowed("deals"));
 const canMoney = computed(() => can("reports.financial"));
+// أرقام عامة لا تخص التقرير المختار (UX-14): مطوية افتراضياً، ويُحفظ اختيار
+// المستخدم على جهازه.
+const OVERVIEW_KEY = "dalaly.reports.overview.v1";
+function savedOverview() {
+  try {
+    return localStorage.getItem(OVERVIEW_KEY) === "open";
+  } catch {
+    return false;
+  }
+}
+const showOverview = ref(savedOverview());
+watch(showOverview, (open) => {
+  try {
+    localStorage.setItem(OVERVIEW_KEY, open ? "open" : "closed");
+  } catch {
+    // يبقى الاختيار لهذه الجلسة.
+  }
+  if (open) void loadOverview();
+});
 const overview = shallowRef<{
   all: DealsReport | null;
   sale: DealsReport | null;
@@ -237,7 +303,7 @@ const overview = shallowRef<{
 const overviewLoading = ref(false);
 let overviewRequest = 0;
 async function loadOverview() {
-  if (!canDeals.value && !canMoney.value) return;
+  if (!showOverview.value || (!canDeals.value && !canMoney.value)) return;
   const current = ++overviewRequest;
   overviewLoading.value = true;
   const period = {
@@ -598,13 +664,10 @@ async function run(kind: "excel" | "pdf" | "print") {
     </v-alert>
 
     <div v-else class="reports">
-      <MoneyStrip
-        v-if="overviewCells.length"
-        :cells="overviewCells"
-        :loading="overviewLoading"
-        label="نظرة عامة على الفترة"
-        @select="onOverview"
-      />
+      <header v-if="spec" class="reports-head">
+        <h2 class="reports-head__title">{{ spec.title }}</h2>
+        <span class="reports-head__period">{{ periodLabel }}</span>
+      </header>
 
       <section class="dal-panel reports-filters" aria-label="فلاتر التقرير">
         <div class="reports-filters__row">
@@ -626,6 +689,17 @@ async function run(kind: "excel" | "pdf" | "print") {
               >{{ item.title }}</v-btn
             >
           </v-btn-toggle>
+          <v-spacer />
+          <v-btn
+            v-if="overviewCells.length"
+            variant="text"
+            size="small"
+            :append-icon="showOverview ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+            :aria-expanded="showOverview"
+            aria-controls="reports-overview"
+            @click="showOverview = !showOverview"
+            >نظرة عامة على الفترة</v-btn
+          >
         </div>
         <div class="reports-filters__row">
           <v-select
@@ -762,6 +836,18 @@ async function run(kind: "excel" | "pdf" | "print") {
         </div>
       </section>
 
+      <div v-if="showOverview && overviewCells.length" id="reports-overview">
+        <MoneyStrip
+          :cells="overviewCells"
+          :loading="overviewLoading"
+          label="نظرة عامة على الفترة"
+          @select="onOverview"
+        />
+        <p class="reports-overview-note">
+          أرقام الفترة عبر التقارير، لا تخص التقرير المختار وحده.
+        </p>
+      </div>
+
       <v-progress-linear v-if="loading" indeterminate />
       <v-alert v-if="error" type="error" variant="tonal">
         {{ error }}
@@ -777,10 +863,43 @@ async function run(kind: "excel" | "pdf" | "print") {
       >
         اختر حساباً لترى حركاته ورصيده، أو افتح حساباً من أي تقرير آخر.
       </p>
-      <template v-else-if="report">
-        <p class="reports-period">{{ report.title }} · {{ report.period }}</p>
-        <ReportView :report="report" :search="search ?? ''" />
-      </template>
+      <section
+        v-else-if="reportEmpty"
+        class="dal-panel reports-empty"
+        aria-live="polite"
+      >
+        <v-icon
+          icon="mdi-calendar-blank-outline"
+          size="32"
+          class="reports-empty__icon"
+          aria-hidden="true"
+        />
+        <p class="reports-empty__title">
+          لا بيانات في {{ report!.title }} {{ report!.period }}.
+        </p>
+        <p class="reports-empty__text">
+          الفترة المختارة فارغة، وليس هذا خطأ في التحميل.
+        </p>
+        <div class="reports-empty__actions">
+          <v-btn
+            variant="tonal"
+            color="primary"
+            prepend-icon="mdi-calendar-edit"
+            @click="changePeriod"
+            >{{ onDay ? "تغيير اليوم" : "تغيير الفترة" }}</v-btn
+          >
+          <template v-if="!onDay">
+            <v-btn
+              v-for="item in otherPeriods"
+              :key="item.title"
+              variant="text"
+              @click="item.run()"
+              >{{ item.title }}</v-btn
+            >
+          </template>
+        </div>
+      </section>
+      <ReportView v-else-if="report" :report="report" :search="search ?? ''" />
     </div>
   </AppPage>
 </template>
@@ -816,9 +935,52 @@ async function run(kind: "excel" | "pdf" | "print") {
   flex-basis: 16rem;
   max-width: 22rem;
 }
-.reports-period {
+.reports-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+.reports-head__title {
   margin: 0;
+  font-size: calc(18px * var(--dal-font-scale));
   font-weight: 700;
+}
+.reports-head__period {
+  font-size: calc(14px * var(--dal-font-scale));
+  color: var(--dal-muted);
+}
+.reports-overview-note {
+  margin: 4px 2px 0;
+  font-size: calc(12px * var(--dal-font-scale));
+  color: var(--dal-muted);
+}
+.reports-empty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 32px 16px;
+  text-align: center;
+}
+.reports-empty__icon {
+  color: var(--dal-muted);
+}
+.reports-empty__title {
+  margin: 0;
+  font-size: calc(15px * var(--dal-font-scale));
+  font-weight: 700;
+}
+.reports-empty__text {
+  margin: 0;
+  font-size: calc(13px * var(--dal-font-scale));
+  color: var(--dal-muted);
+}
+.reports-empty__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
 }
 .reports-hint {
   padding: 24px;
