@@ -512,6 +512,20 @@ body {
   color: var(--dal-muted);
 }
 
+/* قراءة الحقول (UX-19): الوسم العائم فوق الحقل كان 0.75em (9.75px بخط 13px)
+   فصار 0.85em. والإرشاد تحت حقل معطّل يشرح كيف يُفعَّل («اختر المحافظة
+   أولاً»)، فيُقرأ بتباين النص الباهت لا بشفافية الحقل المعطّل؛ الحقل نفسه
+   يبقى باهتاً. */
+.v-field .v-label.v-field-label--floating {
+  --v-field-label-scale: 0.85em;
+}
+.v-input.v-input--disabled .v-input__details {
+  opacity: 1;
+}
+.v-input.v-input--disabled .v-input__details .v-messages {
+  color: var(--dal-muted);
+}
+
 /* لوح مكتبي: حدّ رفيع، بلا ظلّ، حشو مضغوط. بديل البطاقة. */
 .dal-panel {
   border: 1px solid var(--dal-stroke);
@@ -641,6 +655,10 @@ body {
 }
 .listing-record__media {
   padding: 12px;
+}
+/* الصور مطوية في تبويب غير «التفاصيل»: عمودها بعرض عنوانه وزرّه فقط. */
+.listing-record--media-closed {
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 200px);
 }
 @media (max-width: 1100px) {
   .listing-record {
