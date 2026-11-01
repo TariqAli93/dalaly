@@ -32,7 +32,7 @@ import type { PermissionRecord, RoleRecord } from "../types";
  */
 const { can } = usePermissions();
 const { openConfirm } = useConfirm();
-const { notifySuccess } = useSnackbar();
+const { notifySuccess, notifyError } = useSnackbar();
 const { setRefreshHandler } = useRefresh();
 const { t } = useI18n();
 
@@ -170,8 +170,24 @@ function askDeletePermission(permission: PermissionRecord) {
     },
   });
 }
+/** المعرّف التقني للدعم الفني، يُنسخ كما هو (UX-20). */
+async function copyKey(permission: PermissionRecord) {
+  try {
+    await navigator.clipboard.writeText(permission.key);
+    notifySuccess(`نُسخ المعرّف ${permission.key}.`);
+  } catch {
+    notifyError("تعذّر النسخ.");
+  }
+}
 function permissionActions(permission: PermissionRecord): RowAction[] {
-  const actions: RowAction[] = [];
+  const actions: RowAction[] = [
+    {
+      key: "copy",
+      label: "نسخ المعرّف التقني",
+      icon: "mdi-content-copy",
+      run: () => void copyKey(permission),
+    },
+  ];
   if (can("roles.update"))
     actions.push({
       key: "edit",
@@ -317,10 +333,23 @@ onMounted(() => {
           @retry="loadAll"
           @clear-filters="clearPermissionFilters"
         >
+          <!-- الاسم والوصف بالعربية أولاً؛ المعرّف التقني صغير وباهت، ويُنسخ
+               من قائمة الصف. -->
           <template #item.name="{ item }">
             <div class="dal-cell-name">
               <strong>{{ item.name }}</strong>
-              <bdi>{{ item.key }}</bdi>
+              <span
+                v-if="item.description"
+                class="dal-clip text-caption"
+                :title="item.description"
+                >{{ item.description }}</span
+              >
+              <bdi
+                dir="ltr"
+                class="roles-key text-caption text-medium-emphasis"
+                :title="`المعرّف التقني: ${item.key}`"
+                >{{ item.key }}</bdi
+              >
             </div>
           </template>
           <template #item.module="{ item }">{{
@@ -352,6 +381,10 @@ onMounted(() => {
 }
 .roles-layout > .dal-panel {
   min-height: 0;
+}
+.roles-key {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: calc(11px * var(--dal-font-scale)) !important;
 }
 .roles-layout__module {
   max-width: 220px;
