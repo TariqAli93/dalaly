@@ -243,7 +243,7 @@ Every size is `calc(Npx * var(--dal-font-scale))`; scale 0.9 / 1 / 1.125 / 1.25 
 
 - **Title** (700, 16px, 1.4): the page title `h1` in the command bar.
 - **Headline** (600, 17px, 1.65): dialog titles. The brand name in the nav header is 17px / 700.
-- **KPI** (700, 20px, 1.2, tabular): summary-strip values and the emphasised fact (price) in record facts.
+- **KPI** (700, 20px, 1.2, tabular): the emphasised fact (price) in record facts and the dashboard's risk counts. The dashboard summary strip, the top tier of that page, sets its values at 22px; figures inside dashboard panels are 18px.
 - **Section** (700, 14px): panel headers, form-section legends, detail-list titles.
 - **Body** (400, 14px): application base, detail values (600), side-pane values.
 - **Control** (13px): table cells, fields, field labels, buttons (600), tabs, nav items, list items.
@@ -319,7 +319,9 @@ Two radii: 4px (`--dal-radius-control`) for buttons, icon buttons, fields, chips
 ### Panels / Containers
 
 - **Panel** (`.dal-panel`): surface, 1px hairline, 8px, no shadow, clips its content. Header 40px min, 8px 12px padding, section-weight title. Tabs that switch the whole panel (settings, leases, cash transfers) are its first row (`.dal-panel__tabs`, hairline below), never on the canvas above it.
-- **Summary strip:** one panel of equal cells divided by vertical hairlines; label 13px / 600 and note 12px muted at the start, KPI value at the end in `primary-text` (muted at zero, error for alert values). Each cell is a button that opens its filtered list.
+- **Summary strip:** one panel of equal cells (150px basis, labels wrap rather than truncate) divided by vertical hairlines. The value (22px / 700, tabular) leads at the start in a fixed 2.4em column, with the label 13px / 600 and note 12px muted beside it, so the eye never crosses the cell. Value colour is state: `primary-text` for opportunity, `warning` when a human must decide, `error` for overdue work, muted at zero. Each cell is a button that opens its section.
+- **Panel figures:** inside a dashboard panel, a band of equal cells under the header, divided by hairlines, number (18px / 700) above a 12px muted label; each cell links to its filtered list. Same state colours as the summary strip.
+- **Ledger rows:** dashboard lists (tasks, rentals, deals, customers, risks, customers awaiting a decision) share one row anatomy: what and who at the start (13px / 600 over a 12px muted line, both truncating), and one scannable value at the end (time, amount, days; 12px / 600, tabular, with an optional 12px muted caption). Rows are full-bleed with hairlines between them, hover fill, and an inset focus ring. Colour marks only that end value, and only when it carries state the row doesn't already imply.
 - **Record facts:** the same strip form for a record's identity, price, status and owner.
 - **Detail list:** `dl` grid of auto-fill 180px columns, 12px muted label over a 14px / 600 value, hairline under each row.
 
@@ -338,9 +340,11 @@ Two radii: 4px (`--dal-radius-control`) for buttons, icon buttons, fields, chips
 
 `DataGrid` wraps `v-data-table(-server)`: 36px header on surface-variant with muted 12px / 600 titles, 40px rows, 8px cell padding, hover fill, nowrap cells, hairline row borders. Rows are the keyboard unit (roving tabindex). Selection is a teal fill at 12% with `aria-selected`, not a stripe. Listing rows lead with a 36 x 28px thumbnail (4px radius, 6px vertical margin) inside the 40px row; a missing image shows a teal-tinted placeholder icon. Name cells stack a 600 link over a 12px muted code; long text truncates with the full text in `title`. Footer: page sizes 10 / 25 / 50 / 100 with 32px controls.
 
-**Row actions:** up to two inline icon buttons (out of tab order, native `title`), the rest in one shared "⋯" menu with text labels; Shift+F10 or the Menu key opens every action.
+**Row actions:** up to two inline icon buttons (out of tab order, native `title`), the rest in one shared "⋯" menu with text labels; Shift+F10 or the Menu key opens every action. Inline icons rest in `muted` (still 4.5:1) and take full ink on the hovered, focused or selected row; an action with its own colour (favourite, danger) keeps it.
 
-**Four data states:** a skeleton of 8 rows on first load (a progress bar while rows are present); empty with an icon, a title and the next step; no-match with "مسح الفلاتر"; error with "إعادة المحاولة" (inline alert when stale rows remain). All are compact and sit inside the data area.
+**Four data states:** a skeleton of 8 rows on first load (a progress bar while rows are present); empty with an icon, a title and the next step; no-match with "مسح الفلاتر"; error with "إعادة المحاولة" (inline alert when stale rows remain). All are compact and sit inside the data area. `EmptyState` shows a 24px muted icon on a 48px surface-variant tile (8px), a 14px / 700 title and a 12px muted line capped at 44ch.
+
+The footer's page-size select is 32px like its buttons (the compact density's extra 8px top padding is removed).
 
 ### Filter Bar
 
@@ -349,6 +353,14 @@ Inside the list panel above the grid, hairline below: search field (Ctrl+F, ↓ 
 ### Forms
 
 Page forms are one panel (`.dal-form`) of `FormSection` fieldsets (14px / 700 legend, hairline between sections) ending in a sticky `FormActionsBar`: unsaved-changes dot in waiting ochre, then Save (primary, Ctrl+S) and Cancel (text).
+
+### Menus, Tooltips and Dialogs
+
+- **Menus** (row "⋯" menus and select dropdowns): 8px container with the pop shadow, 4px padding inside, and the hovered or active item highlighted as a 4px-radius inset. The keyboard focus ring sits inside the item so the scroll edge never clips it.
+- **Tooltips:** 12px text, 4px 8px padding, a hairline border and a light shadow on the theme's surface-variant, so they don't dissolve into white panels.
+- **Dialogs:** a scrollable dialog's actions row gets a top hairline unless the template already puts a divider there.
+- **Buttons:** the solid primary darkens slightly on hover and further while pressed (light theme).
+- Text selection uses primary at 22%.
 
 ### Global Search
 

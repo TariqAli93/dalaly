@@ -103,25 +103,30 @@ function openViewing(item: DashboardAppointment) {
           class="risk__row"
           @click="emit('request', request)"
         >
-          <span class="risk__row-main">
-            {{ request.person_name }} ·
-            {{ request.kind === "sale" ? "شراء" : "إيجار" }}
-            {{ propertyTypeText(request.kind, request.property_type) }}
+          <span class="risk__row-text">
+            <span class="risk__row-main">
+              {{ request.person_name }} ·
+              {{ request.kind === "sale" ? "شراء" : "إيجار" }}
+              {{ propertyTypeText(request.kind, request.property_type) }}
+            </span>
+            <span class="risk__row-sub">
+              {{
+                [
+                  locationText(
+                    request.governorate,
+                    request.district,
+                    request.neighborhood,
+                  ),
+                  budgetText(request.budget_min, request.budget_max),
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || "بلا شروط موقع أو ميزانية"
+              }}
+            </span>
           </span>
-          <span class="risk__row-sub">
-            {{
-              [
-                locationText(
-                  request.governorate,
-                  request.district,
-                  request.neighborhood,
-                ),
-                budgetText(request.budget_min, request.budget_max),
-              ]
-                .filter(Boolean)
-                .join(" · ") || "بلا شروط موقع أو ميزانية"
-            }}
-            · مفتوح {{ pluralizeDays(daysSince(request.created_at)) }}
+          <span class="risk__row-meta">
+            <small>مفتوح</small>
+            {{ pluralizeDays(daysSince(request.created_at)) }}
           </span>
         </button>
         <div v-if="matching.unmatched.total > EXAMPLES" class="risk__all">
@@ -176,12 +181,17 @@ function openViewing(item: DashboardAppointment) {
           class="risk__row"
           @click="emit('listing', { kind: item.kind, id: item.id })"
         >
-          <span class="risk__row-main">
-            <bdi>{{ item.code }}</bdi> · {{ item.name }}
+          <span class="risk__row-text">
+            <span class="risk__row-main">
+              <bdi>{{ item.code }}</bdi> · {{ item.name }}
+            </span>
+            <span class="risk__row-sub">
+              {{ propertyTypeText(item.kind, item.property_type) }} ·
+              {{ priceText(item.kind, item.price, item.rent_period) }}
+            </span>
           </span>
-          <span class="risk__row-sub">
-            {{ propertyTypeText(item.kind, item.property_type) }} ·
-            {{ priceText(item.kind, item.price, item.rent_period) }} · آخر نشاط
+          <span class="risk__row-meta">
+            <small>آخر نشاط</small>
             {{ lastActivity(item) }}
           </span>
         </button>
@@ -229,13 +239,17 @@ function openViewing(item: DashboardAppointment) {
           class="risk__row"
           @click="openViewing(item)"
         >
-          <span class="risk__row-main">
-            <bdi>{{ item.listing_code }}</bdi> · {{ item.listing_name }}
+          <span class="risk__row-text">
+            <span class="risk__row-main">
+              <bdi>{{ item.listing_code }}</bdi> · {{ item.listing_name }}
+            </span>
+            <span class="risk__row-sub">
+              {{ followupTypeLabel(item.type) }}
+              <template v-if="item.user_name"> · {{ item.user_name }}</template>
+            </span>
           </span>
-          <span class="risk__row-sub">
-            {{ followupTypeLabel(item.type) }}
-            {{ formatShortDate(item.scheduled_at) }}
-            <template v-if="item.user_name"> · {{ item.user_name }}</template>
+          <span class="risk__row-meta">
+            <bdi dir="rtl">{{ formatShortDate(item.scheduled_at) }}</bdi>
           </span>
         </button>
       </section>
@@ -247,17 +261,22 @@ function openViewing(item: DashboardAppointment) {
 .risks {
   min-width: 0;
 }
+/* عرض عمود الرقم؛ السطور والروابط تبدأ بعده فتصطفّ تحت العنوان. */
+.risks {
+  --risk-indent: 48px;
+}
 .risk__all {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 8px;
   padding: 4px 0 0;
+  padding-inline-start: var(--risk-indent);
   font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
 }
 .risk {
-  padding: 10px 14px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--dal-stroke);
 }
 .risk:last-child {
@@ -274,8 +293,10 @@ function openViewing(item: DashboardAppointment) {
   flex: 1;
 }
 .risk__count {
-  min-width: 36px;
+  flex: none;
+  width: 36px;
   font-size: calc(20px * var(--dal-font-scale));
+  font-weight: 700;
   line-height: 1.3;
   font-variant-numeric: tabular-nums;
   color: rgb(var(--v-theme-warning));
@@ -304,22 +325,34 @@ function openViewing(item: DashboardAppointment) {
 .risk__text {
   font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
+  text-wrap: pretty;
 }
 .risk__row {
   display: grid;
-  width: 100%;
-  gap: 1px;
-  padding: 6px 8px;
-  margin-inline-start: 40px;
-  max-width: calc(100% - 40px);
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
+  width: calc(100% - var(--risk-indent) + 8px);
+  margin-inline-start: calc(var(--risk-indent) - 8px);
+  padding: 5px 8px;
   text-align: start;
   border-radius: var(--dal-radius-control);
+  transition: background-color 150ms ease;
 }
 .risk__row:hover {
   background: var(--dal-hover);
 }
+.risk__row:focus-visible {
+  outline-offset: -2px;
+}
+.risk__row-text {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
 .risk__row-main {
-  font-size: calc(12px * var(--dal-font-scale));
+  font-size: calc(13px * var(--dal-font-scale));
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -330,5 +363,19 @@ function openViewing(item: DashboardAppointment) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.risk__row-meta {
+  display: grid;
+  justify-items: end;
+  font-size: calc(12px * var(--dal-font-scale));
+  font-weight: 600;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.risk__row-meta small {
+  font-size: calc(12px * var(--dal-font-scale));
+  font-weight: 400;
+  color: var(--dal-muted);
 }
 </style>

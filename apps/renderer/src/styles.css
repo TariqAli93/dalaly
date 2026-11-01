@@ -877,6 +877,8 @@ body {
 }
 :is(.v-application, .v-overlay) .v-table {
   font-size: calc(13px * var(--dal-font-scale));
+  /* أرقام بعرض ثابت: الأسعار والمساحات تصطفّ خاناتها عمودياً. */
+  font-variant-numeric: tabular-nums;
   --v-table-header-height: var(--dal-head-height);
   --v-table-row-height: var(--dal-row-height);
 }
@@ -972,6 +974,54 @@ body {
 }
 .v-theme--dalalyLight .v-btn.bg-primary:hover {
   filter: brightness(0.94);
+}
+
+/* ===== صقل ثانٍ للعناصر المشتركة (2026-11) =====
+   عرض فقط: لا يغيّر سلوك أي مكوّن. */
+
+/* ضغط مرئي على الزر الأساسي، كما في أزرار Windows. */
+.v-theme--dalalyLight .v-btn.bg-primary:active {
+  filter: brightness(0.88);
+}
+
+/* تحديد النص بلون الهوية بدل أزرق المتصفح. */
+:is(.v-application, .v-overlay) ::selection {
+  background: rgba(var(--v-theme-primary), 0.22);
+}
+
+/* قوائم بأسلوب سطح المكتب: حشو 4px حول العناصر، فيُظلَّل العنصر بزاوية العنصر
+   (4px) داخل القائمة بدل شريط من حافتها إلى حافتها. */
+.v-menu > .v-overlay__content > .v-list {
+  padding: 4px;
+}
+.v-menu > .v-overlay__content > .v-list .v-list-item {
+  border-radius: var(--dal-radius-control);
+}
+/* حلقة التركيز داخل العنصر: خارجه تُقصّ عند حافة القائمة المتمرّرة فلا يبقى
+   منها إلا خطّان. */
+.v-menu > .v-overlay__content .v-list-item:focus-visible {
+  outline-offset: -2px;
+}
+
+/* تلميح مضغوط بحجم الوسوم، بحدّ رفيع وظلّ خفيف: كان بلا حدّ فيذوب في الأسطح
+   الفاتحة، وبحشو 16px أفقياً كتلميحات الويب. */
+.v-tooltip > .v-overlay__content {
+  padding: 4px 8px;
+  border: 1px solid var(--dal-stroke);
+  font-family: var(--dalaly-font);
+  font-size: calc(12px * var(--dal-font-scale));
+  line-height: 1.5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* حوار يتمرّر محتواه: خط رفيع فوق الأوامر يفصل الثابت عن المتحرّك، إلا إن
+   سبقها فاصل في القالب نفسه. */
+.v-dialog--scrollable
+  > .v-overlay__content
+  > .v-card
+  > :not(.v-divider)
+  + .v-card-actions {
+  border-top: 1px solid var(--dal-stroke);
 }
 @media (prefers-reduced-motion: reduce) {
   *,

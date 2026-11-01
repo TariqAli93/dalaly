@@ -62,6 +62,8 @@ const rows = computed(() => {
     <p v-else-if="!rows.length" class="performance__note">
       أرقام العروض والإيجارات غير متاحة لحسابك.
     </p>
+    <!-- الحالات صفوف والنوعان عمودان: يتّسع الجدول للعمود الجانبي (نحو 380px)
+         وتُقارَن أرقام البيع والإيجار في الحالة نفسها على سطر واحد. -->
     <table v-else class="performance__table">
       <caption class="d-sr-only">
         عدد العروض في كل حالة، والمُنجز خلال آخر
@@ -72,18 +74,16 @@ const rows = computed(() => {
       </caption>
       <thead>
         <tr>
-          <th scope="col"><span class="d-sr-only">النوع</span></th>
-          <th scope="col">متاحة</th>
-          <th scope="col">قيد التفاوض</th>
-          <th scope="col">محجوزة</th>
-          <th scope="col">مباعة أو مؤجرة الآن</th>
-          <th scope="col">مُنجز خلال {{ overview.recent_days }} يوماً</th>
+          <th scope="col"><span class="d-sr-only">الحالة</span></th>
+          <th v-for="row in rows" :key="row.kind" scope="col">
+            {{ row.title }}
+          </th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="row in rows" :key="row.kind">
-          <th scope="row">{{ row.title }}</th>
-          <td>
+        <tr>
+          <th scope="row">متاحة</th>
+          <td v-for="row in rows" :key="row.kind">
             <button
               type="button"
               class="performance__link"
@@ -91,13 +91,20 @@ const rows = computed(() => {
             >
               {{ formatNumber(row.available, 0) }}
             </button>
-            <small
-              >{{ row.valueLabel }}
-              <span class="money">{{ formatMoney(row.value) }}</span>
-              د.ع</small
-            >
           </td>
-          <td>
+        </tr>
+        <tr class="performance__sub">
+          <th scope="row">قيمة المتاحة</th>
+          <td v-for="row in rows" :key="row.kind">
+            <span class="money">{{ formatMoney(row.value) }}</span> د.ع
+            <template v-if="row.kind === 'rental'">{{
+              row.valueLabel
+            }}</template>
+          </td>
+        </tr>
+        <tr>
+          <th scope="row">قيد التفاوض</th>
+          <td v-for="row in rows" :key="row.kind">
             <button
               type="button"
               class="performance__link"
@@ -106,7 +113,10 @@ const rows = computed(() => {
               {{ formatNumber(row.negotiating, 0) }}
             </button>
           </td>
-          <td>
+        </tr>
+        <tr>
+          <th scope="row">محجوزة</th>
+          <td v-for="row in rows" :key="row.kind">
             <button
               type="button"
               class="performance__link"
@@ -115,7 +125,10 @@ const rows = computed(() => {
               {{ formatNumber(row.reserved, 0) }}
             </button>
           </td>
-          <td>
+        </tr>
+        <tr>
+          <th scope="row">مباعة أو مؤجرة الآن</th>
+          <td v-for="row in rows" :key="row.kind">
             <button
               type="button"
               class="performance__link"
@@ -125,7 +138,14 @@ const rows = computed(() => {
               {{ formatNumber(row.done, 0) }}
             </button>
           </td>
-          <td class="performance__done">
+        </tr>
+        <tr>
+          <th scope="row">مُنجز خلال {{ overview.recent_days }} يوماً</th>
+          <td
+            v-for="row in rows"
+            :key="row.kind"
+            :class="row.closed ? 'performance__done' : 'performance__zero'"
+          >
             {{ formatNumber(row.closed, 0) }}
           </td>
         </tr>
@@ -159,6 +179,12 @@ const rows = computed(() => {
   text-align: start;
   vertical-align: middle;
 }
+/* أعمدة الأرقام بعرض متساوٍ في الطرف، فيصطفّ البيع تحت البيع. */
+.performance__table thead th:not(:first-child),
+.performance__table td {
+  width: 30%;
+  text-align: end;
+}
 .performance__table thead th {
   height: var(--dal-head-height);
   font-size: calc(12px * var(--dal-font-scale));
@@ -167,16 +193,25 @@ const rows = computed(() => {
   background: var(--dal-hover);
 }
 .performance__table tbody th {
-  font-weight: 700;
+  font-weight: 600;
 }
-.performance__table td small {
-  display: block;
-  color: var(--dal-muted);
+.performance__table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+/* قيمة المتاحة سطر تابع لـ«متاحة»: أصغر وباهت وبلا فاصل بينهما. */
+.performance__table tr:has(+ .performance__sub) > * {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.performance__table .performance__sub > * {
+  padding-top: 0;
   font-size: calc(12px * var(--dal-font-scale));
+  font-weight: 400;
+  color: var(--dal-muted);
 }
 .performance__link {
   padding: 0 6px;
-  margin-inline-start: -6px;
+  margin-inline-end: -6px;
   border-radius: var(--dal-radius-control);
   color: rgb(var(--v-theme-primary-text));
   font-weight: 700;
@@ -189,9 +224,17 @@ const rows = computed(() => {
   color: rgb(var(--v-theme-success));
   font-weight: 700;
 }
+.performance__zero {
+  color: var(--dal-muted);
+  font-weight: 700;
+}
+.performance__table + .performance__note {
+  border-top: 1px solid var(--dal-stroke);
+}
 .performance__note {
   margin: 0;
   padding: 8px 12px;
+  text-wrap: pretty;
   font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
 }

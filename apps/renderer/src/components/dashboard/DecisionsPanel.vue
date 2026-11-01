@@ -52,13 +52,13 @@ function isToday(value: string) {
       density="compact"
       color="primary"
       grow
-      class="decisions__tabs"
+      class="dal-panel__tabs"
     >
       <v-tab value="customers">
         زبائن بانتظار قرار
-        <v-chip v-if="matching?.customers.total" size="x-small" class="ms-2">{{
+        <span v-if="matching?.customers.total" class="dal-count ms-2">{{
           formatNumber(matching.customers.total, 0)
-        }}</v-chip>
+        }}</span>
       </v-tab>
       <v-tab v-if="overview?.appointments !== null" value="appointments">
         المواعيد
@@ -66,6 +66,8 @@ function isToday(value: string) {
           v-if="overview?.appointments?.today"
           size="x-small"
           color="error"
+          variant="tonal"
+          label
           class="ms-2"
           >اليوم {{ overview.appointments.today }}</v-chip
         >
@@ -102,40 +104,47 @@ function isToday(value: string) {
               class="decision"
               @click="emit('customer', customer)"
             >
-              <span class="decision__head">
-                <strong>{{ customer.person_name }}</strong>
-                <v-chip
-                  v-if="customer.requests_with_matches"
-                  size="x-small"
-                  color="primary"
-                  variant="tonal"
-                  label
-                  >مطابقات {{ formatNumber(customer.total_matches, 0) }}</v-chip
-                >
-                <v-chip
-                  v-else
-                  size="x-small"
-                  color="warning"
-                  variant="tonal"
-                  label
-                  >بلا مطابقة</v-chip
-                >
+              <span class="decision__body">
+                <span class="decision__head">
+                  <strong>{{ customer.person_name }}</strong>
+                  <v-chip
+                    v-if="customer.requests_with_matches"
+                    size="x-small"
+                    color="primary"
+                    variant="tonal"
+                    label
+                    >مطابقات
+                    {{ formatNumber(customer.total_matches, 0) }}</v-chip
+                  >
+                  <v-chip
+                    v-else
+                    size="x-small"
+                    color="warning"
+                    variant="tonal"
+                    label
+                    >بلا مطابقة</v-chip
+                  >
+                </span>
+                <span class="decision__line">
+                  {{
+                    customer.requests
+                      .slice(0, 2)
+                      .map(
+                        (request) =>
+                          `${request.kind === "sale" ? "شراء" : "إيجار"} ${propertyTypeText(request.kind, request.property_type)}`,
+                      )
+                      .join("، ")
+                  }}<template v-if="customer.requests.length > 2">
+                    و{{ customer.requests.length - 2 }} غيرها</template
+                  >
+                </span>
+                <span class="decision__line decision__line--muted">
+                  {{ pendingAction(customer) }}
+                </span>
               </span>
-              <span class="decision__line">
-                {{
-                  customer.requests
-                    .slice(0, 2)
-                    .map(
-                      (request) =>
-                        `${request.kind === "sale" ? "شراء" : "إيجار"} ${propertyTypeText(request.kind, request.property_type)}`,
-                    )
-                    .join("، ")
-                }}<template v-if="customer.requests.length > 2">
-                  و{{ customer.requests.length - 2 }} غيرها</template
-                >
-              </span>
-              <span class="decision__line decision__line--muted">
-                {{ pendingAction(customer) }} · أقدم طلب مفتوح:
+              <!-- كم انتظر: عمود في الطرف يُقرأ من أعلى إلى أسفل. -->
+              <span class="decision__meta">
+                <small>أقدم طلب</small>
                 {{ pluralizeDays(daysSince(customer.oldest_request_at)) }}
               </span>
             </button>
@@ -178,36 +187,41 @@ function isToday(value: string) {
               class="decision"
               @click="emit('appointment', item)"
             >
-              <span class="decision__head">
-                <v-icon
-                  :icon="followupTypeIcon(item.type)"
-                  size="16"
-                  class="text-medium-emphasis"
-                />
-                <strong>{{ followupTypeLabel(item.type) }}</strong>
-                <span
-                  class="decision__when"
-                  :class="{
-                    'decision__when--today': isToday(item.scheduled_at),
-                  }"
-                >
-                  {{
-                    isToday(item.scheduled_at)
-                      ? "اليوم"
-                      : formatShortDate(item.scheduled_at)
-                  }}
-                  <bdi dir="rtl">{{ formatTime(item.scheduled_at) }}</bdi>
+              <span class="decision__body">
+                <span class="decision__head">
+                  <v-icon
+                    :icon="followupTypeIcon(item.type)"
+                    size="16"
+                    class="text-medium-emphasis"
+                    aria-hidden="true"
+                  />
+                  <strong>{{ followupTypeLabel(item.type) }}</strong>
                 </span>
-              </span>
-              <span class="decision__line">
-                {{ item.kind === "sale" ? "عرض" : "إيجار" }}
-                <bdi>{{ item.listing_code }}</bdi> · {{ item.listing_name }}
+                <span class="decision__line">
+                  {{ item.kind === "sale" ? "عرض" : "إيجار" }}
+                  <bdi>{{ item.listing_code }}</bdi> · {{ item.listing_name }}
+                </span>
+                <span
+                  v-if="item.notes"
+                  class="decision__line decision__line--muted"
+                  >{{ item.notes }}</span
+                >
               </span>
               <span
-                v-if="item.notes"
-                class="decision__line decision__line--muted"
-                >{{ item.notes }}</span
+                class="decision__meta"
+                :class="{ 'decision__meta--today': isToday(item.scheduled_at) }"
               >
+                <span>{{
+                  isToday(item.scheduled_at)
+                    ? "اليوم"
+                    : formatShortDate(item.scheduled_at)
+                }}</span>
+                <small
+                  ><bdi dir="rtl">{{
+                    formatTime(item.scheduled_at)
+                  }}</bdi></small
+                >
+              </span>
             </button>
           </li>
         </ul>
@@ -224,9 +238,6 @@ function isToday(value: string) {
 .decisions {
   min-width: 0;
 }
-.decisions__tabs {
-  border-bottom: 1px solid var(--dal-stroke);
-}
 .decisions__list {
   list-style: none;
   margin: 0;
@@ -239,13 +250,24 @@ function isToday(value: string) {
 }
 .decision {
   display: grid;
-  gap: 2px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 12px;
   width: 100%;
-  padding: 10px 14px;
+  padding: 10px 12px;
   text-align: start;
+  transition: background-color 150ms ease;
 }
 .decision:hover {
   background: var(--dal-hover);
+}
+.decision:focus-visible {
+  outline-offset: -2px;
+}
+.decision__body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
 }
 .decision__head {
   display: flex;
@@ -259,15 +281,23 @@ function isToday(value: string) {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.decision__when {
-  margin-inline-start: auto;
+.decision__meta {
+  display: grid;
+  justify-items: end;
+  text-align: end;
   font-size: calc(12px * var(--dal-font-scale));
-  color: var(--dal-muted);
+  font-weight: 600;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.decision__when--today {
+.decision__meta small {
+  font-size: calc(12px * var(--dal-font-scale));
+  font-weight: 400;
+  color: var(--dal-muted);
+}
+.decision__meta--today {
   color: rgb(var(--v-theme-error));
-  font-weight: 600;
 }
 .decision__line {
   font-size: calc(12px * var(--dal-font-scale));
@@ -279,7 +309,7 @@ function isToday(value: string) {
   color: var(--dal-muted);
 }
 .decisions__more {
-  padding: 8px 14px;
+  padding: 8px 12px;
   border-top: 1px solid var(--dal-stroke);
   font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);

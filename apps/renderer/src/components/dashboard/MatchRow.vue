@@ -51,6 +51,10 @@ const required = computed(() =>
   props.item.match.reasons.filter((reason) => reason.required),
 );
 const others = computed(() => request.value.match_count - 1);
+// مقياس التفضيلات يرسم العددين المرسلين نفسيهما (المتحقق من المجموع)، لا نسبة.
+const prefSlots = computed(() =>
+  Math.min(props.item.match.preferences_total, 8),
+);
 </script>
 
 <template>
@@ -84,7 +88,12 @@ const others = computed(() => request.value.match_count - 1);
 
     <div class="match__link" aria-hidden="true">
       <v-icon icon="mdi-arrow-left" size="18" />
-      <span v-if="others > 0">+{{ formatNumber(others, 0) }}</span>
+      <span
+        v-if="others > 0"
+        class="match__more"
+        :title="`و${formatNumber(others, 0)} عروض أخرى مطابقة في التفاصيل`"
+        >+{{ formatNumber(others, 0) }}</span
+      >
     </div>
 
     <div class="match__side">
@@ -103,10 +112,10 @@ const others = computed(() => request.value.match_count - 1);
         {{ offer.name }}
       </button>
       <div class="match__line">
-        {{ propertyTypeText(offer.kind, offer.property_type) }} ·
-        <strong>{{
+        <strong class="match__price">{{
           priceText(offer.kind, offer.price, offer.rent_period)
         }}</strong>
+        · {{ propertyTypeText(offer.kind, offer.property_type) }}
         <template v-if="offer.is_negotiable"> · قابل للتفاوض</template>
       </div>
       <div class="match__line match__line--muted">
@@ -122,23 +131,40 @@ const others = computed(() => request.value.match_count - 1);
       </div>
     </div>
 
+    <!-- الدليل ثم الأوامر: الشروط الأساسية سطر هادئ واحد (كلها متحققة في كل
+         صف هنا)، والتفضيلات وحدها تفرّق بين صف وآخر فتأخذ المقياس والعلامات. -->
     <div class="match__why">
       <span class="match__verdict">
-        <v-icon icon="mdi-check-decagram-outline" size="16" color="success" />
-        الشروط الأساسية متحققة
+        <v-icon
+          icon="mdi-check-decagram-outline"
+          size="16"
+          color="success"
+          aria-hidden="true"
+        />
+        <span>الشروط الأساسية متحققة:</span>
+        <span class="match__required">
+          <span
+            v-for="(reason, index) in required"
+            :key="reason.field"
+            :title="reason.detail"
+            >{{ reason.label
+            }}{{ index < required.length - 1 ? "، " : "" }}</span
+          >
+        </span>
       </span>
-      <span
-        v-for="reason in required"
-        :key="reason.field"
-        class="reason reason--required"
-        >{{ reason.label }}</span
-      >
       <template v-if="preferences.length">
-        <span class="match__divider" />
-        <span class="match__prefs"
-          >التفضيلات {{ item.match.preferences_met }} من
-          {{ item.match.preferences_total }}</span
-        >
+        <span class="match__divider" aria-hidden="true" />
+        <span class="match__prefs">
+          <span class="match__meter" aria-hidden="true">
+            <i
+              v-for="n in prefSlots"
+              :key="n"
+              :class="{ 'match__meter-on': n <= item.match.preferences_met }"
+            />
+          </span>
+          التفضيلات {{ item.match.preferences_met }} من
+          {{ item.match.preferences_total }}
+        </span>
         <span
           v-for="reason in preferences"
           :key="reason.field"
@@ -149,27 +175,29 @@ const others = computed(() => request.value.match_count - 1);
           <v-icon
             :icon="reason.matched ? 'mdi-check' : 'mdi-close'"
             size="12"
+            aria-hidden="true"
           />
           {{ reason.label }}
         </span>
       </template>
-      <v-spacer />
-      <v-btn
-        size="small"
-        variant="text"
-        prepend-icon="mdi-text-box-search-outline"
-        @click="emit('details', item)"
-        >التفاصيل</v-btn
-      >
-      <v-btn
-        v-if="canFollowup"
-        size="small"
-        variant="tonal"
-        color="primary"
-        prepend-icon="mdi-phone-plus-outline"
-        @click="emit('followup', item)"
-        >تسجيل متابعة</v-btn
-      >
+      <span class="match__actions">
+        <v-btn
+          size="small"
+          variant="text"
+          prepend-icon="mdi-text-box-search-outline"
+          @click="emit('details', item)"
+          >التفاصيل</v-btn
+        >
+        <v-btn
+          v-if="canFollowup"
+          size="small"
+          variant="tonal"
+          color="primary"
+          prepend-icon="mdi-phone-plus-outline"
+          @click="emit('followup', item)"
+          >تسجيل متابعة</v-btn
+        >
+      </span>
     </div>
   </article>
 </template>
@@ -177,13 +205,18 @@ const others = computed(() => request.value.match_count - 1);
 <style scoped>
 .match {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr);
   gap: 4px 12px;
-  padding: 12px 16px;
+  padding: 12px 16px 10px;
   border-bottom: 1px solid var(--dal-stroke);
+  transition: background-color 150ms ease;
 }
 .match:last-child {
   border-bottom: 0;
+}
+/* تتبّع الصف تحت المؤشر في قائمة طويلة؛ الصف نفسه ليس زراً فالتظليل خفيف. */
+.match:hover {
+  background: rgba(var(--v-theme-on-surface), 0.025);
 }
 .match__side {
   display: grid;
@@ -195,71 +228,108 @@ const others = computed(() => request.value.match_count - 1);
   display: flex;
   align-items: center;
   gap: 6px;
+  min-height: 20px;
   font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
 }
 .match__title {
-  font-size: calc(14px * var(--dal-font-scale));
+  font-size: calc(15px * var(--dal-font-scale));
   font-weight: 700;
+  line-height: 1.5;
   text-align: start;
   color: rgb(var(--v-theme-primary-text));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
+  border-radius: var(--dal-radius-control);
 }
 .match__title:hover {
   text-decoration: underline;
 }
 .match__line {
-  font-size: calc(12px * var(--dal-font-scale));
+  font-size: calc(13px * var(--dal-font-scale));
+  line-height: 1.55;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .match__line--muted {
+  font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
+}
+.match__price {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 .match__link {
   display: grid;
   place-items: center;
   align-content: center;
-  gap: 2px;
-  color: rgb(var(--v-theme-primary));
+  gap: 4px;
+  color: rgb(var(--v-theme-primary-text));
   font-size: calc(12px * var(--dal-font-scale));
   font-variant-numeric: tabular-nums;
 }
-.match__link::before {
-  content: "";
-  width: 1px;
-  height: 14px;
-  background: var(--dal-stroke);
-}
+.match__link::before,
 .match__link::after {
   content: "";
   width: 1px;
-  height: 14px;
+  height: 18px;
   background: var(--dal-stroke);
+}
+.match__more {
+  padding: 0 6px;
+  border-radius: 9999px;
+  background: var(--dal-hover);
+  color: var(--dal-muted);
+  font-weight: 600;
+  line-height: 18px;
 }
 .match__why {
   grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 6px;
-  margin-top: 6px;
+  gap: 6px 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--dal-stroke);
 }
 .match__verdict {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 4px;
   font-size: calc(12px * var(--dal-font-scale));
   font-weight: 600;
   color: rgb(var(--v-theme-success));
 }
+.match__required {
+  font-weight: 400;
+  color: rgb(var(--v-theme-on-surface));
+}
 .match__prefs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: calc(12px * var(--dal-font-scale));
+  font-weight: 600;
   color: var(--dal-muted);
+  font-variant-numeric: tabular-nums;
+}
+/* مقطع لكل تفضيل؛ المتحقق بلون التطابق والناقص خط فارغ. */
+.match__meter {
+  display: inline-flex;
+  gap: 2px;
+}
+.match__meter i {
+  width: 10px;
+  height: 4px;
+  background: var(--dal-stroke);
+}
+.match__meter i.match__meter-on {
+  background: rgb(var(--v-theme-success));
 }
 .match__divider {
   width: 1px;
@@ -272,23 +342,25 @@ const others = computed(() => request.value.match_count - 1);
   align-items: center;
   gap: 2px;
   padding: 0 6px;
-  border-radius: 4px;
+  border-radius: var(--dal-radius-control);
   font-size: calc(12px * var(--dal-font-scale));
   line-height: 20px;
   border: 1px solid var(--dal-stroke);
 }
-.reason--required {
-  background: rgba(var(--v-theme-success), 0.1);
-  border-color: transparent;
-  color: rgb(var(--v-theme-success));
-}
-.reason--met {
+.reason--met .v-icon {
   color: rgb(var(--v-theme-success));
 }
 .reason--missed {
   color: var(--dal-muted);
+  border-style: dashed;
   text-decoration: line-through;
   text-decoration-color: rgba(var(--v-theme-on-surface), 0.3);
+}
+.match__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-start: auto;
 }
 .money {
   font-variant-numeric: tabular-nums;

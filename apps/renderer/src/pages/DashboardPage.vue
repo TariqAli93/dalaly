@@ -37,7 +37,7 @@ import {
   type DashboardSection,
   type KpiItem,
 } from "../utils/dashboardPriority";
-import { formatNumber, formatTime } from "../utils/format";
+import { formatNumber, formatShortDate, formatTime } from "../utils/format";
 import type {
   BusinessSummary,
   DashboardAppointment,
@@ -415,7 +415,10 @@ async function runBackup() {
 <template>
   <AppPage title="لوحة التحكم">
     <template v-if="loadedAt" #status>
-      <span class="ops__updated">آخر تحديث {{ formatTime(loadedAt) }}</span>
+      <span class="ops__updated"
+        ><bdi dir="rtl">{{ formatShortDate(loadedAt) }}</bdi> · آخر تحديث
+        <bdi dir="rtl">{{ formatTime(loadedAt) }}</bdi></span
+      >
     </template>
     <template #header-actions>
       <v-btn
@@ -449,17 +452,13 @@ async function runBackup() {
         :scope="priorityScope"
         @select="openSection"
       />
-      <BusinessPanels
-        :summary="business"
-        :loading="businessLoading"
-        :error="businessError"
-        @retry="loadBusiness"
-      />
 
-      <!-- عمودان: المطابقات (عمل اليوم) ثم حالة العروض، وبجانبهما الزبائن
-           والمواعيد ثم الفرص المعرّضة للضياع. -->
+      <!-- عمودان بحسب الأهمية: الرئيسي للعمل نفسه (المطابقات ثم المهام
+           والإيجارات والصفقات والمال)، والجانبي لمن ينتظر قراراً ثم الفرص
+           المعرّضة للضياع وحالة العروض. كانت ألواح الأعمال فوق المطابقات
+           فتدفعها تحت حافة الشاشة. -->
       <div class="ops__columns">
-        <div class="ops__column">
+        <div class="ops__column ops__column--main">
           <div
             v-if="canMatch"
             id="dash-matches"
@@ -481,12 +480,14 @@ async function runBackup() {
               @followup="recordFollowup"
             />
           </div>
-          <PerformanceSummary
-            :overview="overview"
-            @open="openListingsByStatus"
+          <BusinessPanels
+            :summary="business"
+            :loading="businessLoading"
+            :error="businessError"
+            @retry="loadBusiness"
           />
         </div>
-        <div class="ops__column">
+        <div class="ops__column ops__column--side">
           <div
             v-if="canMatch || canSeeAppointments"
             id="dash-decisions"
@@ -509,6 +510,10 @@ async function runBackup() {
             @request="showUnmatched"
             @listing="openListing"
             @all="openAll"
+          />
+          <PerformanceSummary
+            :overview="overview"
+            @open="openListingsByStatus"
           />
         </div>
       </div>
@@ -549,9 +554,11 @@ async function runBackup() {
   container-type: inline-size;
   container-name: ops;
 }
+/* العمود الرئيسي أعرض بوضوح: المطابقة صفّ بجانبين (الطلب والعرض) يحتاج
+   مكانه، والجانبي قوائم قصيرة لا تحتاج أكثر من 320–420px. */
 .ops__columns {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+  grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr);
   gap: var(--dal-gutter);
   align-items: start;
 }
@@ -568,6 +575,7 @@ async function runBackup() {
 .ops__updated {
   color: var(--dal-muted);
   font-size: calc(12px * var(--dal-font-scale));
+  white-space: nowrap;
 }
 @container ops (max-width: 980px) {
   .ops__columns {

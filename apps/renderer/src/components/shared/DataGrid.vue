@@ -433,10 +433,28 @@ defineExpose({ focusFirstRow, focusRow, remember });
   width: 32px;
   height: 32px;
 }
+/* 24px سطر + 4px + 4px = 32px. الكثافة compact تضيف 8px إلى الحشو العلوي عبر
+   --v-input-padding-top، فكان الحقل 36–40px رغم ضبط الارتفاع. */
 .dal-grid__table :deep(.v-data-table-footer .v-field) {
   --v-input-control-height: 32px;
-  --v-field-padding-top: 2px;
-  --v-field-padding-bottom: 2px;
+  --v-input-padding-top: 0px;
+  --v-field-padding-top: 4px;
+  --v-field-padding-bottom: 4px;
+}
+.dal-grid__table :deep(.v-data-table__th) {
+  border-bottom-color: var(--dal-stroke);
+}
+/* أوامر الصف هادئة حتى يُشار إلى صفها أو يُحدَّد: عمود أيقونات كامل بقوة
+   النص كان يزاحم البيانات. الأمر الملوّن (مفضّل، حذف) يبقى بلونه، ويبقى
+   الباهت بتباين 4.5:1 فلا يختفي. */
+.dal-grid__table :deep(tbody .row-actions .v-btn) {
+  color: var(--dal-muted);
+}
+.dal-grid__table
+  :deep(
+    tbody tr:is(:hover, :focus-within, .dal-row--selected) .row-actions .v-btn
+  ) {
+  color: rgb(var(--v-theme-on-surface));
 }
 @container grid (max-width: 70rem) {
   .dal-grid__table :deep(.dal-col-p2) {

@@ -154,18 +154,38 @@ Layout (phase 5 of the desktop redesign, `docs/UI_AUDIT_AND_REDESIGN_PLAN.md`):
    focus to its section.
 2. `PriorityStrip`: the first action and the next two, worded as actions
    (no repeated counts), settled only after every permitted section loads.
-3. Two columns: the match work queue (5 requests a page) and `حالة العروض`
-   (`PerformanceSummary`, sale and rental rows with available value, open
-   stages and closed in the period; it replaced the separate rental panel,
-   which counted the same statuses again), beside the customers and
-   appointments tabs and `RiskPanel`, whose categories link to the full
-   lists ("عرض الكل"; stale listings open the list sorted by oldest update,
-   labelled as an approximation).
+3. Two columns by importance (November 2026 refinement; presentation only):
+   - **Main** (1.8fr): the match work queue (5 requests a page), then
+     `BusinessPanels` as two stacks: people and follow-up (tasks, customers
+     needing contact) and contracts and money (rentals, deals, this month's
+     money). Each panel is as tall as its content; there is no equal-card
+     grid. The business panels used to sit above the matches and pushed them
+     below the fold.
+   - **Side** (min 320px): the customers and appointments tabs, then
+     `RiskPanel`, whose categories link to the full lists ("عرض الكل"; stale
+     listings open the list sorted by oldest update, labelled as an
+     approximation), then `حالة العروض` (`PerformanceSummary`). That table
+     is transposed for the narrow column: statuses are rows, sale and rental
+     two numeric columns. It replaced the separate rental panel, which
+     counted the same statuses again.
+
+Lists in these panels share one ledger row (what and who at the start, one
+time, amount or duration at the end); see `apps/renderer/DESIGN.md`. Match
+rows state the met required criteria as one line and draw "preferences N of
+M" as a small segmented meter beside the same text; it is the same two
+numbers, not a score.
 
 Below 980 px of content width the columns stack (a container query, so a
-collapsed or expanded sidebar both work). At 1366×688 with the demo data
-the page is 924 px tall (1.34 screens, from 1,415) with no horizontal
-overflow.
+collapsed or expanded sidebar both work), in DOM order: matches, business
+panels, customers and appointments, risks, status. The business stacks
+become one column below about 650 px. With the demo data (which now
+includes the Phase 7b business summary) the page is 1,301 px tall at
+1366×768 (from 1,632 before this change) and 1,283 px at 1920×1080, with
+no horizontal overflow at 1100, 1366 or 1920 px.
+
+There are no charts. The earlier Chart.js charts were removed with the
+analytics dashboard (above), and no figure here reads better as a chart
+than as a number linked to its list.
 
 ## Performance
 
@@ -252,8 +272,9 @@ connection.
 
 **On screen.**
 
-- `BusinessPanels.vue` shows the summary under the priorities. Every figure
-  links to the list that holds it, filtered the same way:
+- `BusinessPanels.vue` shows the summary in the main column under the
+  matches. Every figure links to the list that holds it, filtered the same
+  way:
   - `/tasks?due=…`;
   - `/deals?stalled=1`;
   - `/leases?view=overdue`;

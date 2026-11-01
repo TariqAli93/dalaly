@@ -80,39 +80,42 @@ const filters = computed(() => {
           التفضيلات ترتّبها فقط.
         </p>
       </div>
-      <v-btn-toggle
-        v-if="filters.length"
-        v-model="kind"
-        mandatory
-        density="compact"
-        variant="outlined"
-        divided
-        color="primary"
-        aria-label="نوع المطابقات"
-      >
-        <v-btn
-          v-for="item in filters"
-          :key="item.value"
-          :value="item.value"
-          size="small"
+      <!-- الأداتان معاً: تلتفّان كوحدة واحدة تحت العنوان حين يضيق اللوح. -->
+      <div class="workspace__tools">
+        <v-btn-toggle
+          v-if="filters.length"
+          v-model="kind"
+          mandatory
+          density="compact"
+          variant="outlined"
+          divided
+          color="primary"
+          aria-label="نوع المطابقات"
         >
-          {{ item.title }}
-          <span class="workspace__count">{{
-            formatNumber(item.count, 0)
-          }}</span>
-        </v-btn>
-      </v-btn-toggle>
-      <v-text-field
-        v-model="q"
-        class="workspace__search"
-        density="compact"
-        variant="outlined"
-        hide-details
-        clearable
-        prepend-inner-icon="mdi-magnify"
-        placeholder="اسم الزبون أو هاتفه أو رمز الطلب"
-        aria-label="بحث في المطابقات والزبائن"
-      />
+          <v-btn
+            v-for="item in filters"
+            :key="item.value"
+            :value="item.value"
+            size="small"
+          >
+            {{ item.title }}
+            <span class="workspace__count">{{
+              formatNumber(item.count, 0)
+            }}</span>
+          </v-btn>
+        </v-btn-toggle>
+        <v-text-field
+          v-model="q"
+          class="workspace__search"
+          density="compact"
+          variant="outlined"
+          hide-details
+          clearable
+          prepend-inner-icon="mdi-magnify"
+          placeholder="اسم الزبون أو هاتفه أو رمز الطلب"
+          aria-label="بحث في المطابقات والزبائن"
+        />
+      </div>
     </header>
     <v-progress-linear
       v-if="loading && data"
@@ -134,8 +137,11 @@ const filters = computed(() => {
         </template>
       </EmptyState>
     </div>
-    <div v-else-if="!data">
-      <v-skeleton-loader v-for="n in 3" :key="n" type="list-item-three-line" />
+    <div v-else-if="!data" class="workspace__loading" aria-busy="true">
+      <div v-for="n in 3" :key="n" class="workspace__ghost">
+        <v-skeleton-loader type="list-item-three-line" />
+        <v-skeleton-loader type="list-item-three-line" />
+      </div>
     </div>
     <div v-else-if="!data.kinds.length" class="workspace__state">
       <EmptyState
@@ -212,28 +218,53 @@ const filters = computed(() => {
 }
 .workspace__header {
   flex-wrap: wrap;
-  gap: 8px 12px;
+  gap: 8px 16px;
+  padding-block: 10px;
 }
 .workspace__heading {
-  flex: 1 1 220px;
+  flex: 1 1 260px;
   min-width: 0;
 }
 .workspace__heading p {
   margin: 2px 0 0;
   font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
+  text-wrap: pretty;
+}
+.workspace__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex: 0 1 auto;
 }
 .workspace__count {
   margin-inline-start: 6px;
   font-variant-numeric: tabular-nums;
   opacity: 0.75;
 }
+/* عرض ثابت لا أساس flex: حاوية الأدوات تُقاس بمحتواها، والأساس الأكبر من
+   العرض الطبيعي للحقل كان يدفعه إلى سطر تحت أزرار النوع حتى في 1920px. */
 .workspace__search {
-  flex: 0 1 200px;
-  min-width: 160px;
+  flex: none;
+  width: 220px;
 }
 .workspace__state {
   padding: 8px;
+}
+/* هيكل التحميل بشكل الصف نفسه: طلب بجانب عرض، فلا يقفز التخطيط حين يصل. */
+.workspace__ghost {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 40px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--dal-stroke);
+}
+.workspace__ghost:last-child {
+  border-bottom: 0;
+}
+.workspace__ghost :deep(.v-skeleton-loader) {
+  background: transparent;
 }
 .workspace__footer {
   display: flex;
