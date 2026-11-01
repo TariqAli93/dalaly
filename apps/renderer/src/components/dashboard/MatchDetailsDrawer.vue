@@ -21,12 +21,14 @@ const props = defineProps<{
   match: DashboardMatch | null;
   canFollowup: boolean;
   canOpenPerson: boolean;
+  canDeal?: boolean;
 }>();
 const emit = defineEmits<{
   customer: [number];
   listing: [{ kind: OperationsKind; id: number }];
   request: [{ kind: OperationsKind; id: number }];
   followup: [DashboardMatch];
+  deal: [DashboardMatch];
 }>();
 
 const request = computed(() => props.match?.request ?? null);
@@ -165,6 +167,13 @@ const listing = computed(() => {
           prepend-icon="mdi-phone-plus-outline"
           @click="emit('followup', match)"
           >تسجيل متابعة</v-btn
+        >
+        <v-btn
+          v-if="canDeal"
+          variant="tonal"
+          prepend-icon="mdi-handshake-outline"
+          @click="emit('deal', match)"
+          >صفقة</v-btn
         >
         <v-btn
           variant="tonal"

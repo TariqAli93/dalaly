@@ -17,12 +17,18 @@ import { RENT_PERIOD_LABELS } from "../../constants/domain";
  * مطابقة واحدة: طلب الزبون بجانب أفضل عرض متاح يحقق شروطه الأساسية، ثم
  * ما تحقق وما لم يتحقق. الطلب يظهر مرة واحدة مهما كثرت عروضه.
  */
-const props = defineProps<{ item: DashboardMatch; canFollowup: boolean }>();
+const props = defineProps<{
+  item: DashboardMatch;
+  canFollowup: boolean;
+  /** The request and listing are known: a deal starts with both filled in. */
+  canDeal?: boolean;
+}>();
 const emit = defineEmits<{
   details: [DashboardMatch];
   customer: [number];
   listing: [DashboardMatch["offer"]];
   followup: [DashboardMatch];
+  deal: [DashboardMatch];
 }>();
 
 const request = computed(() => props.item.request);
@@ -187,6 +193,15 @@ const prefSlots = computed(() =>
           prepend-icon="mdi-text-box-search-outline"
           @click="emit('details', item)"
           >التفاصيل</v-btn
+        >
+        <v-btn
+          v-if="canDeal"
+          size="small"
+          variant="text"
+          prepend-icon="mdi-handshake-outline"
+          :aria-label="`صفقة لـ ${request.person_name} على ${offer.code}`"
+          @click="emit('deal', item)"
+          >صفقة</v-btn
         >
         <v-btn
           v-if="canFollowup"

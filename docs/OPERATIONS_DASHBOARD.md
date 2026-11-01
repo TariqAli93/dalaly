@@ -161,7 +161,12 @@ Layout (phase 5 of the desktop redesign, `docs/UI_AUDIT_AND_REDESIGN_PLAN.md`):
      money). Each panel is as tall as its content; there is no equal-card
      grid. The business panels used to sit above the matches and pushed them
      below the fold.
-   - **Side** (min 320px): the customers and appointments tabs, then
+   - **Side** (min 320px): «العمولات غير المستلمة»
+     (`OutstandingCommissions`, with `commissions.read`): the five oldest
+     commissions not yet collected (`/commissions/paged?state=open`,
+     oldest first), each with «تحصيل» (`vouchers.receipt`), which opens the
+     receipt preset like the accounting page; then the customers and
+     appointments tabs, then
      `RiskPanel`, whose categories link to the full lists ("عرض الكل"; stale
      listings open the list sorted by oldest update, labelled as an
      approximation), then `حالة العروض` (`PerformanceSummary`). That table
@@ -173,7 +178,10 @@ Lists in these panels share one ledger row (what and who at the start, one
 time, amount or duration at the end); see `apps/renderer/DESIGN.md`. Match
 rows state the met required criteria as one line and draw "preferences N of
 M" as a small segmented meter beside the same text; it is the same two
-numbers, not a score.
+numbers, not a score. With `deals.create`, a match row and its details
+drawer offer «صفقة»: the deal dialog opens with the request's customer, the
+listing and the request (as the request page does). Above everything,
+`QuickActions` shows the daily «إضافة» items as one-click buttons.
 
 Below 980 px of content width the columns stack (a container query, so a
 collapsed or expanded sidebar both work), in DOM order: matches, business

@@ -133,9 +133,11 @@ are not prefilled.
 | W3 | Add a customer (name and phone) | 1 → 1 | 5 → 4 (−20%) | 2 → 2 | 1 → 1 | 23.2 → 20.5 s (−11%) | Name and phone have to be typed |
 | W4 | Sale deal (deals page / quick action) | 2 → 2 | 9 → 8 (−11%) | 4 → 4 | 1 → 1 | 35.6 → 32.9 s (−7%) | Listing, client, price and commission are the deal itself |
 | W4c | Same, commission from the last-rate chip | 2 → 2 | 9 → 8 (−11%) | 4 → 3 (−25%) | 1 → 1 | 35.6 → 30.2 s (−15%) | No office default rate exists (backend) |
+| W4m | Sale deal from a dashboard match (before: details drawer → request page → «صفقة») | 2 → 1 | 6 → 4 (−33%) | 2 → 2 | 0 → 0 | 23.5 → 17.4 s (−26%) | Agreed price and commission are typed |
 | W5 | Rental deal (deals page / quick menu) | 2 → 2 | 10 → 9 (−10%) | 5 → 5 | 1 → 1 | 38.2 → 35.6 s (−7%) | As W4 |
 | W5r | Rental deal from the rental listing page | 1 → 1 | 12 → 6 (**−50%**) | 4 → 3 | 1 → 1 | 44.4 → 24.9 s (−44%) | The gain is the bug fix: the listing no longer has to be picked again |
 | W6 | Record a received commission | 2 → 1 | 5 → 3 (−40%) | 1 → 1 | 0 → 0 | 17.3 → 11.5 s (−34%) | A search is needed when many commissions are owed |
+| W6v | Same, a commission among the oldest five on the dashboard | 2 → 0 | 4 → 2 (**−50%**) | 0 → 0 | 0 → 0 | 12.4 → 6.1 s (−51%) | Only the five oldest are listed there |
 | W7 | Office expense of a recurring type | 2 → 1 | 8 → 5 (−38%) | 4 → 2 (**−50%**) | 3 → 1 | 34.1 → 17.3 s (−49%) | The amount must be typed |
 | W7n | Office expense, first of its type | 2 → 1 | 8 → 6 (−25%) | 4 → 3 | 3 → 2 | 34.1 → 24.7 s (−28%) | No earlier payee to reuse |
 | W8 | Contract from a deal to a saved PDF | 3 → 3 | 14 → 11 (−21%) | 3 → 3 | 2 → 2 | 46.3 → 34.8 s (−25%) | Issue confirmation and the native save dialog stay |
@@ -153,6 +155,7 @@ Totals over the ten primary paths (W1–W10):
 
 - W10 clicks;
 - W5 from a rental listing (clicks);
+- W6v, a commission collected from the dashboard (clicks and time);
 - W7 manual fields (time −49%);
 - the deal form's visible fields: **13 → 5 (−62%)**.
 
@@ -173,8 +176,8 @@ The changes that could go further need the backend (section 8).
 | Duplicate tabs | Report tabs 13 → 5 categories; favourites and the voucher and commission lists merged; no nested tabs added |
 | Navigation depth | 2 levels; rare pages show only inside their area |
 | Deal creation manual inputs | 4 → 4 (3 with the rate chip); visible fields 13 → 5 |
-| Common operation clicks | −23% overall; ≥50% on 2 of 10 |
-| Common operation time (est.) | −21% overall; 45–49% on W7, W10 and W5r |
+| Common operation clicks | −23% overall; ≥50% on W10 of the ten, and on the variants W5r and W6v |
+| Common operation time (est.) | −21% overall; −51% on W6v, 44–49% on W7, W10 and W5r |
 | Redundant data entry | Owner and asking price no longer asked in the deal form; expense description and payee reused; contract place and delivery date one click |
 | Accounting | One workspace (`/accounting`) |
 | Reports | One page (`/reports`) |
@@ -207,7 +210,8 @@ beside «حفظ». The form keeps a single save and has no confirmation step.
 - `pages/AccountingPage.vue` and `pages/ReportsPage.vue`.
 - In `components/accounting/`: `VoucherList.vue`, `CommissionList.vue`,
   `PayableShares.vue` and `MoneyFlow.vue`.
-- `components/shared/MoneyStrip.vue` and `components/dashboard/QuickActions.vue`.
+- `components/shared/MoneyStrip.vue`, `components/dashboard/QuickActions.vue`
+  and `components/dashboard/OutstandingCommissions.vue`.
 - `composables/useAccountingSummary.ts`.
 - `utils/periods.ts` and `utils/commissionVouchers.ts`.
 - `constants/about.ts`.
@@ -229,6 +233,8 @@ beside «حفظ». The form keeps a single save and has no confirmation step.
     `HelpPage` (rebuilt), `PeoplePage`, `PropertiesPage`, `RentalsPage`;
   - `CommissionPage`, `VoucherPage`, `CashPage`, `JournalPage`,
     `AccountsPage` (parent link);
+  - `MatchRow`, `MatchWorkspace`, `MatchDetailsDrawer` («صفقة» on a
+    match);
   - `DealCommissions`, `BusinessPanels`, `constants/alerts.ts` (links and
     wording);
   - `composables/useNewFromQuery.ts`.
@@ -259,12 +265,9 @@ were three labels before («محصّلة», «غير محصّلة بالكامل
    `reports.financial`.
 6. **The office's city in company settings,** to prefill the contract's
    place of signing for the first contract.
-7. **A one-call «collect commission» from the dashboard,** such as a list
-   of the oldest outstanding commissions in `/dashboard/business`. That
-   would bring W6 to 2 clicks.
-8. **A dedicated "expense category" filter on `/vouchers/paged`.** The
+7. **A dedicated "expense category" filter on `/vouchers/paged`.** The
    payee reuse reads the latest 50 expense vouchers.
-9. **A general «open external link» IPC** for an allow-listed website, so
+8. **A general «open external link» IPC** for an allow-listed website, so
    Codel's site could be a link in About. Only map links are bridged
    today.
 
@@ -289,8 +292,10 @@ were three labels before («محصّلة», «غير محصّلة بالكامل
   the very first navigation after login was sometimes reverted. In-app
   navigation (`router.push`, links) was verified for every redirect.
   Electron has no address bar.
-- **The dashboard was not restructured.** Apart from the quick actions,
-  its panels were refactored just before this pass (`97a9b2c`).
+- **The dashboard was not restructured.** Its panels were refactored just
+  before this pass (`97a9b2c`). This pass only added the quick actions,
+  «العمولات غير المستلمة» (the five oldest, from `/commissions/paged`) and
+  «صفقة» on each match.
   - The repeated appointment counts are still there.
   - So is the «قيمة المتاحة» sum in «حالة العروض».
   - Both are candidates for a follow-up with the owner.
@@ -311,6 +316,9 @@ were three labels before («محصّلة», «غير محصّلة بالكامل
   - expense type prefill (office rent → «صاحب البناية»);
   - a deal from a rental listing keeps its listing;
   - a 2% commission computes;
+  - on the dashboard, «صفقة» on a match opens the deal with its listing,
+    client and owner filled, and «تحصيل» in «العمولات غير المستلمة» opens
+    the receipt with the outstanding amount;
   - contract «حفظ PDF»: checked in the code only; no issued contract was
     opened in the demo.
 - Not run:
