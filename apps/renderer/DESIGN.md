@@ -320,6 +320,7 @@ Two radii: 4px (`--dal-radius-control`) for buttons, icon buttons, fields, chips
 
 - **Panel** (`.dal-panel`): surface, 1px hairline, 8px, no shadow, clips its content. Header 40px min, 8px 12px padding, section-weight title. Tabs that switch the whole panel (settings, leases, cash transfers) are its first row (`.dal-panel__tabs`, hairline below), never on the canvas above it.
 - **Summary strip:** one panel of equal cells (150px basis, labels wrap rather than truncate) divided by vertical hairlines. The value (22px / 700, tabular) leads at the start in a fixed 2.4em column, with the label 13px / 600 and note 12px muted beside it, so the eye never crosses the cell. Value colour is state: `primary-text` for opportunity, `warning` when a human must decide, `error` for overdue work, muted at zero. Each cell is a button that opens its section.
+- **Money strip** (`MoneyStrip`, accounting and reports): the same panel of equal cells (170px basis), but the label sits above the value because amounts are long: one 20px / 700 tabular line per currency (dinars and dollars are never added), a 12px muted note under it saying what the figure covers ("حتى اليوم", "هذا الشهر"). A count cell shows one number instead. `warning` marks money still owed; zero is muted. Cells that open a list are buttons.
 - **Panel figures:** inside a dashboard panel, a band of equal cells under the header, divided by hairlines, number (18px / 700) above a 12px muted label; each cell links to its filtered list. Same state colours as the summary strip.
 - **Ledger rows:** dashboard lists (tasks, rentals, deals, customers, risks, customers awaiting a decision) share one row anatomy: what and who at the start (13px / 600 over a 12px muted line, both truncating), and one scannable value at the end (time, amount, days; 12px / 600, tabular, with an optional 12px muted caption). Rows are full-bleed with hairlines between them, hover fill, and an inset focus ring. Colour marks only that end value, and only when it carries state the row doesn't already imply.
 - **Record facts:** the same strip form for a record's identity, price, status and owner.
@@ -335,6 +336,8 @@ Two radii: 4px (`--dal-radius-control`) for buttons, icon buttons, fields, chips
 ### Navigation
 
 - **Pane:** nav-teal with white text, items 36px with 4px radius and 18px icons, 13px labels. Hover is white at 8%. Active is a teal fill with white text at 600 plus a 3px leading indicator. In the rail, items centre their icon and show tooltips.
+- **Sub-items:** an item's rare pages (cash boxes, journal and chart under الحسابات; templates under العقود; users, roles and locations under الإعدادات) show beneath it, indented 28px and 32px high, only while the user is inside that area. The parent then keeps 600 weight without the fill; the page itself carries the fill.
+- **Footer:** «المساعدة وحول التطبيق» is pinned below the list, under a hairline, so it is one click from every page without taking a navigation slot.
 
 ### Data Grid (signature)
 
