@@ -17,7 +17,9 @@ import type { PropertyRecord, RentalRecord } from "../../types";
 type Listing = PropertyRecord | RentalRecord;
 const model = defineModel<number | null>({ default: null });
 const props = defineProps<{ kind: "sale" | "rent" }>();
-const emit = defineEmits<{ picked: [Listing | null] }>();
+// picked: the user chose a listing. loaded: one given by id was fetched (a
+// preset), so a form can show its owner and price without refilling fields.
+const emit = defineEmits<{ picked: [Listing | null]; loaded: [Listing] }>();
 
 const results = ref<Listing[]>([]);
 const selected = ref<Listing | null>(null);
@@ -120,7 +122,10 @@ watch(
         props.kind === "sale"
           ? await propertiesService.getProperty(id)
           : await rentalsService.getRental(id);
-      if (model.value === id) selected.value = item;
+      if (model.value === id) {
+        selected.value = item;
+        emit("loaded", item);
+      }
     } catch {
       // A listing deleted since: the id stays until another is picked.
     }
