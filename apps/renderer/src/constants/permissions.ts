@@ -50,3 +50,15 @@ const ROLE_LABELS: Record<string, string> = { "Super Admin": "مدير النظ�
 export function roleLabel(name: string) {
   return ROLE_LABELS[name] ?? name;
 }
+
+/** أي مفتاح منها يفتح «الحسابات»؛ الصفحة تعرض من أجزائها ما يسمح به كل مفتاح. */
+export const ACCOUNTING_PERMISSIONS = [
+  "vouchers.read",
+  "commissions.read",
+  "cash.read",
+  "accounting.read",
+  "reports.financial",
+];
+
+/** أي مفتاح منهما يفتح «التقارير»؛ يظهر من تصنيفاتها ما يسمح به. */
+export const REPORT_PERMISSIONS = ["reports.operations", "reports.financial"];

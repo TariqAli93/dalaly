@@ -8,6 +8,7 @@ import { usePermissions } from "../../composables/usePermissions";
 import { useSnackbar } from "../../composables/useSnackbar";
 import { dealPartyLabels } from "../../constants/deals";
 import { formatAmount } from "../../utils/format";
+import { commissionCollection } from "../../utils/commissionVouchers";
 import type {
   CommissionDetail,
   CommissionRecord,
@@ -72,14 +73,9 @@ const collectDialog = ref(false);
 const collectPreset = ref<Partial<VoucherPayload> | null>(null);
 const collectNote = ref("");
 function collect(commission: CommissionRecord) {
-  collectPreset.value = {
-    purpose: "commission",
-    currency: commission.currency,
-    commission_id: commission.id,
-    amount: commission.outstanding,
-    description: `عمولة ${commission.code} على الصفقة ${props.deal.code}`,
-  };
-  collectNote.value = `تحصيل العمولة ${commission.code} من ${commission.payer_name ?? ""}؛ المتبقي ${formatAmount(commission.outstanding, commission.currency)}.`;
+  const { preset, note } = commissionCollection(commission);
+  collectPreset.value = preset;
+  collectNote.value = note;
   collectDialog.value = true;
 }
 function onCollected(voucher: VoucherDetail) {

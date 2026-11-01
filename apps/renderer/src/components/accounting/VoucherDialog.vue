@@ -13,7 +13,7 @@ import {
   VOUCHER_PURPOSES,
   voucherKindLabel,
 } from "../../constants/accounting";
-import { formatAmount, todayIso } from "../../utils/format";
+import { formatAmount, formatDate, todayIso } from "../../utils/format";
 import { amountToMinor } from "../../utils/money";
 import type {
   AccountRecord,
@@ -23,6 +23,7 @@ import type {
   VoucherDetail,
   VoucherKind,
   VoucherPayload,
+  VoucherRecord,
   ExpenseCategoryRecord,
 } from "../../types";
 
@@ -230,6 +231,9 @@ watch(open, async (isOpen) => {
   error.value = "";
   fieldErrors.value = {};
   held.value = [];
+  more.value = false;
+  filledFromCategory.value = { description: "", payee: null };
+  lastExpenses = null;
   try {
     const [accounts, fullChart, expenseKinds] = await Promise.all([
       vouchersService.listMoneyAccounts(),
@@ -244,10 +248,96 @@ watch(open, async (isOpen) => {
     chart.value = fullChart;
     categories.value = expenseKinds;
     pickMoneyAccount();
+    // No cash or bank account of the currency: the user has to choose one.
+    if (!form.value.money_account_id) more.value = true;
   } catch (cause) {
     error.value = getErrorMessage(cause);
   }
 });
+
+// التاريخ والعملة والصندوق مملوءة مسبقاً (اليوم، الدينار، أول صندوق)، فتُطوى في
+// سطر واحد يذكرها ويُفتح بنقرة؛ تُفتح وحدها إن رفض الخادم أحدها.
+const more = ref(false);
+const MORE_FIELDS = [
+  "voucher_date",
+  "currency",
+  "money_account_id",
+  "reference",
+  "other_account_id",
+];
+watch(fieldErrors, (errors) => {
+  if (MORE_FIELDS.some((field) => errors[field]?.length)) more.value = true;
+});
+const moreSummary = computed(() =>
+  [
+    form.value.voucher_date === todayIso()
+      ? "اليوم"
+      : formatDate(form.value.voucher_date),
+    selectedMoney.value?.name ?? "اختر الصندوق أو المصرف",
+    ACCOUNT_CURRENCIES.find((item) => item.value === form.value.currency)
+      ?.title,
+  ]
+    .filter(Boolean)
+    .join(" · "),
+);
+
+/**
+ * مصروف بتصنيف: «وذلك عن» يأخذ اسم التصنيف، والمستلم يؤخذ من آخر مصروف صدر
+ * بالتصنيف نفسه (إيجار المكتب لصاحب البناية نفسه كل شهر)، ما لم يكتب المستخدم
+ * غيرهما. كلاهما ظاهر ويُعدَّل قبل الإصدار.
+ */
+const filledFromCategory = ref<{
+  description: string;
+  payee: { person_id: number | null; party_name: string } | null;
+}>({ description: "", payee: null });
+let lastExpenses: Promise<VoucherRecord[]> | null = null;
+function recentExpenses() {
+  lastExpenses ??= vouchersService
+    .listVouchersPage(
+      { kind: "payment", purpose: "expense", status: "posted" },
+      { page: 1, page_size: 50, sort_by: "voucher_date", sort_order: "desc" },
+    )
+    .then((page) => page.items)
+    .catch(() => []);
+  return lastExpenses;
+}
+watch(
+  () => form.value.expense_category_id,
+  async (id) => {
+    if (!expensePayment.value || !id) return;
+    const name = categories.value.find((item) => item.id === id)?.name ?? "";
+    const description = form.value.description.trim();
+    if (!description || description === filledFromCategory.value.description) {
+      form.value.description = name;
+      filledFromCategory.value.description = name;
+    }
+    const filled = filledFromCategory.value.payee;
+    const untouched = filled
+      ? form.value.person_id === filled.person_id &&
+        form.value.party_name === filled.party_name
+      : !form.value.person_id && !form.value.party_name.trim();
+    if (!untouched) return;
+    const last = (await recentExpenses()).find(
+      (voucher) => voucher.expense_category_id === id,
+    );
+    if (form.value.expense_category_id !== id) return;
+    const payee = {
+      person_id: last?.person_id ?? null,
+      party_name: last && !last.person_id ? last.party_name : "",
+    };
+    form.value.person_id = payee.person_id;
+    form.value.party_name = payee.party_name;
+    filledFromCategory.value.payee = last ? payee : null;
+  },
+);
+
+/** A commission receipt with no recorded commission: income on its own. */
+const unallocatedCommission = computed(
+  () =>
+    props.kind === "receipt" &&
+    form.value.purpose === "commission" &&
+    !allocated.value,
+);
 
 /** The first cash account of the currency, unless one of it is chosen. */
 function pickMoneyAccount() {
@@ -391,17 +481,27 @@ function onKeydown(event: KeyboardEvent) {
               persistent-hint
               :disabled="allocated || leaseBound"
             />
-            <v-text-field
-              v-model="form.voucher_date"
-              type="date"
-              label="التاريخ *"
-              :error-messages="fieldErrors.voucher_date"
-            />
+            <v-alert
+              v-if="unallocatedCommission"
+              class="form-section__wide"
+              type="warning"
+              variant="tonal"
+              density="compact"
+              >لقبض عمولة مسجّلة على صفقة استخدم «تسديد عمولة» أو «تحصيل» في
+              صفّها، فينقص المتبقي منها. هذا السند يُسجَّل إيراداً لا يرتبط
+              بعمولة.</v-alert
+            >
             <v-select
-              v-model="form.currency"
-              :items="ACCOUNT_CURRENCIES"
-              label="العملة"
-              :disabled="allocated || leaseBound"
+              v-if="expensePayment"
+              v-model="form.expense_category_id"
+              :items="categoryOptions"
+              label="نوع المصروف"
+              placeholder="إيجار، كهرباء، رواتب…"
+              persistent-placeholder
+              hint="يحدد حساب المصروف، ويملأ البيان والمستلم من آخر مصروف مثله"
+              persistent-hint
+              clearable
+              no-data-text="لا تصنيف بحساب بهذه العملة"
             />
             <NumberField
               v-model="form.amount"
@@ -411,16 +511,45 @@ function onKeydown(event: KeyboardEvent) {
                 fieldErrors.amount ?? (overLimit ? [overLimit] : undefined)
               "
             />
-            <v-select
-              v-model="form.money_account_id"
-              :items="moneyOptions"
-              :label="kind === 'receipt' ? 'يُقبض في *' : 'يُصرف من *'"
-              no-data-text="لا صندوق ولا مصرف فعّال بهذه العملة"
-            >
-              <template #item="{ props: itemProps, item }">
-                <v-list-item v-bind="itemProps" :subtitle="item.raw.subtitle" />
-              </template>
-            </v-select>
+            <div v-if="!more" class="voucher-more form-section__wide">
+              <span class="voucher-more__text">{{ moreSummary }}</span>
+              <v-btn
+                variant="text"
+                size="small"
+                prepend-icon="mdi-pencil-outline"
+                aria-label="تغيير التاريخ أو العملة أو الصندوق، أو إضافة مرجع"
+                @click="more = true"
+                >تغيير</v-btn
+              >
+            </div>
+            <template v-else>
+              <v-text-field
+                v-model="form.voucher_date"
+                type="date"
+                label="التاريخ *"
+                :error-messages="fieldErrors.voucher_date"
+              />
+              <v-select
+                v-model="form.currency"
+                :items="ACCOUNT_CURRENCIES"
+                label="العملة"
+                :disabled="allocated || leaseBound"
+              />
+              <v-select
+                v-model="form.money_account_id"
+                :items="moneyOptions"
+                :label="kind === 'receipt' ? 'يُقبض في *' : 'يُصرف من *'"
+                no-data-text="لا صندوق ولا مصرف فعّال بهذه العملة"
+                :error-messages="fieldErrors.money_account_id"
+              >
+                <template #item="{ props: itemProps, item }">
+                  <v-list-item
+                    v-bind="itemProps"
+                    :subtitle="item.raw.subtitle"
+                  />
+                </template>
+              </v-select>
+            </template>
           </FormSection>
           <FormSection
             v-if="!allocated"
@@ -437,8 +566,12 @@ function onKeydown(event: KeyboardEvent) {
             <v-text-field
               v-if="!form.person_id"
               v-model="form.party_name"
-              label="أو الاسم"
+              label="أو الاسم *"
               placeholder="لمن ليس زبوناً مسجلاً"
+              :hint="
+                filledFromCategory.payee ? 'من آخر مصروف بهذا النوع' : undefined
+              "
+              :persistent-hint="Boolean(filledFromCategory.payee)"
               :error-messages="fieldErrors.party_name"
             />
             <template v-if="clientFunds">
@@ -475,21 +608,14 @@ function onKeydown(event: KeyboardEvent) {
               :error-messages="fieldErrors.description"
             />
             <v-text-field
+              v-if="more"
               v-model="form.reference"
               label="مرجع (اختياري)"
               placeholder="رقم صك أو حوالة"
             />
-            <v-select
-              v-if="expensePayment"
-              v-model="form.expense_category_id"
-              :items="categoryOptions"
-              label="تصنيف المصروف"
-              placeholder="يحدد حساب المصروف"
-              clearable
-              no-data-text="لا تصنيف بحساب بهذه العملة"
-            />
             <v-autocomplete
               v-if="
+                more &&
                 can('accounting.read') &&
                 !allocated &&
                 !form.expense_category_id
@@ -527,3 +653,25 @@ function onKeydown(event: KeyboardEvent) {
     </v-card>
   </v-dialog>
 </template>
+
+<style scoped>
+/* ما مُلئ مسبقاً (التاريخ والصندوق والعملة) سطر واحد يُفتح بنقرة. */
+.voucher-more {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding-inline: 12px 4px;
+  border: 1px solid var(--dal-stroke);
+  border-radius: var(--dal-radius-control);
+}
+.voucher-more__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: calc(13px * var(--dal-font-scale));
+  color: var(--dal-muted);
+}
+</style>

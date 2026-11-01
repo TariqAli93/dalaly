@@ -1,90 +1,226 @@
 <script setup lang="ts">
+import { computed, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
+import PhoneLink from "../components/shared/PhoneLink.vue";
+import { CODEL, CODEL_LOGO } from "../constants/about";
+import { usePermissions } from "../composables/usePermissions";
+import { useSetup } from "../composables/useSetup";
 
 /**
- * المساعدة: دليل مختصر لكل قسم في البرنامج، وجدول اختصارات لوحة المفاتيح
- * كما هي مطبّقة فعلاً. الاختصارات تُطابَق بموضع المفتاح لا بحرفه، فتعمل مع
- * لوحة المفاتيح العربية أيضاً.
+ * المساعدة وحول التطبيق: قسمان في صفحة واحدة بالمبدّل نفسه المستعمل في بقية
+ * البرنامج (?section=about للثاني). المساعدة: خطوات قصيرة لكل عمل يومي مع زر
+ * يفتح شاشته، وأسئلة شائعة، واختصارات لوحة المفاتيح كما هي مطبّقة فعلاً (تُطابَق
+ * بموضع المفتاح، فتعمل مع العربية)، وبحث يصفّيها كلها. حول التطبيق: الإصدار
+ * من حالة الخادم نفسها التي يقرؤها البرنامج عند التشغيل، والمطوّر شركة كودل.
  */
-type Guide = { id: string; title: string; points: string[] };
+const route = useRoute();
+const router = useRouter();
+const { can } = usePermissions();
+const { status } = useSetup();
 
-const guides: Guide[] = [
+type Section = "help" | "about";
+const section = ref<Section>(
+  route.query.section === "about" ? "about" : "help",
+);
+watch(section, (value) => {
+  void router.replace({
+    query: value === "about" ? { section: "about" } : {},
+  });
+});
+watch(
+  () => route.query.section,
+  (value) => (section.value = value === "about" ? "about" : "help"),
+);
+
+const search = ref<string | null>("");
+const query = computed(() => (search.value ?? "").trim());
+const matches = (...texts: string[]) =>
+  !query.value || texts.some((text) => text.includes(query.value));
+
+// ─── خطوات سريعة ────────────────────────────────────────────────────────
+type Guide = {
+  id: string;
+  title: string;
+  steps: string[];
+  action: { label: string; to: string; permission?: string | string[] };
+};
+const GUIDES: Guide[] = [
   {
-    id: "dashboard",
-    title: "لوحة التحكم",
-    points: [
-      "شريط الملخّص في الأعلى يعدّ ما يحتاج عملاً: مواعيد اليوم، والطلبات التي لها عروض مطابقة أو بلا مطابقة، والمعاينات بلا نتيجة، والعروض الراكدة. اضغط أي رقم لتنتقل إلى قسمه.",
-      "«ابدأ بـ» يقترح أهم عمل الآن، ثم ما بعده.",
-      "قائمة المطابقات تعرض كل طلب مفتوح مع العرض الذي يحقق شروطه الأساسية؛ سجّل متابعة من الصف نفسه بعد الاتصال بالزبون.",
-      "«حالة العروض» تعدّ العروض في كل حالة، وكل رقم يفتح قائمته.",
+    id: "property",
+    title: "إضافة عقار للبيع",
+    steps: [
+      "اضغط «عرض بيع» في «عمليات سريعة» بلوحة التحكم، أو «إضافة» في الشريط العلوي ثم «عرض بيع».",
+      "إن كان المالك زبوناً مسجلاً فاختره من «ربط المالك بزبون مسجّل» فيُملأ اسمه وهاتفه، وإلا فاكتبهما.",
+      "اكتب المساحة والسعر. النوع والسند ووحدة المساحة وطريقة التسعير مملوءة بأشيع قيمها؛ غيّرها إن لزم.",
+      "اضغط «حفظ» (Ctrl+S): تُفتح صفحة العرض لتضيف صوره، ويُعرض لك من يطلب مثله إن وُجد.",
     ],
+    action: {
+      label: "إضافة عرض بيع",
+      to: "/properties/new",
+      permission: "properties.create",
+    },
   },
   {
-    id: "sale",
-    title: "عروض البيع",
-    points: [
-      "ابحث بالمالك أو الهاتف أو رقم القطعة أو الرمز، وصفِّ بالمحافظة والمنطقة والنوع والحالة. بقية الفلاتر في «فلاتر إضافية»، ولكل فلتر فعّال شريحة تزيله.",
-      "النقر على صف يفتح ملخّصه في اللوحة الجانبية؛ النقر المزدوج أو Enter يفتح صفحة العرض.",
-      "صفحة العرض فيها السعر والقطعة والمالك مع أزرار الاتصال وواتساب، والتفاصيل والموقع والمتابعات والملاحظات والسجل، والصور بجانبها.",
-      "عند إضافة عرض ينبّهك النموذج إن كانت القطعة نفسها مسجّلة في عرض آخر. بعد الحفظ تُفتح صفحة العرض لتضيف صوره.",
-      "أوامر الصف (تعديل، تصدير، أرشفة، حذف) في زر «⋯» أو بـ Shift+F10.",
+    id: "request",
+    title: "تسجيل طلب زبون ورؤية ما يطابقه",
+    steps: [
+      "«إضافة» ثم «طلب شراء» أو «طلب إيجار»، أو «طلب جديد» من ملف الزبون فيُختار الزبون وحده.",
+      "اختر الزبون، ثم النوع والموقع والميزانية. الزبون غير المسجّل يُضاف من «زبون جديد» داخل النموذج نفسه.",
+      "«حفظ ومطابقة» يعرض العروض المتاحة التي تحقق الطلب فوراً، وصفحة الطلب تعرضها دائماً ومنها تبدأ صفقة.",
     ],
+    action: {
+      label: "طلب شراء جديد",
+      to: "/purchase-requests?new=1",
+      permission: "requests.create",
+    },
   },
   {
-    id: "rentals",
-    title: "عروض الإيجار",
-    points: [
-      "بالطريقة نفسها: قائمة بفلاترها، ولوحة ملخّص، وصفحة لكل عرض إيجاري فيها صوره ومتابعاته وملاحظاته.",
-      "الفلاتر تشمل نوع الإيجار والسعر والمساحة والغرف والمميزات المطلوبة.",
-      "«المفضلة» عرض سريع في القائمة، وتجد المفضلة كاملة في «مفضلة الإيجارات».",
+    id: "customer",
+    title: "إضافة زبون",
+    steps: [
+      "«زبون» في «عمليات سريعة» أو في «إضافة».",
+      "الاسم وحده مطلوب؛ الهاتف يتيح الاتصال وواتساب من أي شاشة.",
+      "بعد الحفظ يعرض الإشعار «فتح ملف الزبون» لتسجّل طلبه أو مستمسكاته.",
     ],
+    action: {
+      label: "زبون جديد",
+      to: "/people?new=1",
+      permission: "people.create",
+    },
   },
   {
-    id: "people",
-    title: "الزبائن",
-    points: [
-      "ابحث بالاسم أو الهاتف أو الرمز. المؤرشفون لا يظهرون إلا باختيار «المؤرشفون» في الحالة، والأرشفة يمكن التراجع عنها من الإشعار.",
-      "ملف الزبون يجمع هاتفه وطلباته (شراء وإيجار) وما يملكه من عروض ومستمسكاته وملاحظاته. «طلب جديد» يفتح نموذج الطلب والزبون مختار فيه.",
+    id: "deal",
+    title: "صفقة بيع أو إيجار",
+    steps: [
+      "أسرع طريق: اضغط «صفقة» في مطابقة بلوحة التحكم أو في صفحة العرض أو الطلب، فيُملأ العرض والزبون.",
+      "أو «صفقة بيع» في «عمليات سريعة»: اختر العرض ثم الزبون. المالك والسعر المطلوب يؤخذان من العرض.",
+      "اكتب السعر المتفق عليه إن اتُّفق، والعمولة المتوقعة مبلغاً أو نسبة (%). بقية الخيارات في «خيارات إضافية».",
+      "«حفظ» يفتح صفحة الصفقة: منها تنقل مرحلتها وتسجّل عمولتها وتُعدّ عقدها.",
     ],
+    action: {
+      label: "صفقة بيع جديدة",
+      to: "/deals?new=sale",
+      permission: "deals.create",
+    },
   },
   {
-    id: "requests",
-    title: "طلبات الشراء والإيجار والمطابقة",
-    points: [
-      "سجّل ما يريده الزبون: النوع والموقع والميزانية والمساحة والمميزات. إن لم يكن الزبون مسجّلاً فأضفه من زر «زبون جديد» داخل النموذج نفسه.",
-      "«حفظ ومطابقة» يحفظ الطلب ثم يعرض العروض المتاحة التي تحقق شروطه الأساسية (النوع والموقع والميزانية، ونوع الإيجار). التفضيلات ترتّب النتائج ولا تستبعدها.",
-      "صفحة الطلب تعرض الزبون وهاتفه والعروض المطابقة الآن، ومنها تغيّر الحالة إلى «تمت المطابقة» أو «مغلق». المطابقة تشمل الطلبات المفتوحة وحدها.",
+    id: "collect",
+    title: "قبض عمولة من الزبون",
+    steps: [
+      "أقدم العمولات غير المستلمة في لوحة التحكم ولكل منها «تحصيل». لغيرها: «الحسابات» ثم «تسديد عمولة» فتظهر المتبقية وحدها، وابحث برقمها أو باسم الدافع.",
+      "اضغط «تحصيل» في صفّ العمولة: المبلغ المتبقي والصندوق وتاريخ اليوم مملوءة.",
+      "«إصدار» يسجّل سند القبض، و«فتح السند للطباعة» في الإشعار يطبعه للزبون.",
     ],
+    action: {
+      label: "تسديد عمولة",
+      to: "/accounting?new=commission",
+      permission: "vouchers.receipt",
+    },
   },
   {
-    id: "documents",
-    title: "المستندات",
-    points: [
-      "ارفع مستمسكات الزبون (هوية، بطاقة سكن، سند) مع رقمها وتاريخ انتهائها، وتظهر المنتهية بحالة «منتهي».",
-      "تجد مستمسكات كل زبون أيضاً في ملفه.",
+    id: "expense",
+    title: "تسجيل مصروف للمكتب",
+    steps: [
+      "«الحسابات» ثم «تسجيل مصروف»، أو «مصروف» في «عمليات سريعة».",
+      "اختر نوع المصروف (إيجار، كهرباء، رواتب…): يُملأ البيان والمستلم من آخر مصروف مثله.",
+      "اكتب المبلغ ثم «إصدار». التاريخ والصندوق في سطر واحد، و«تغيير» يفتحهما.",
     ],
+    action: {
+      label: "تسجيل مصروف",
+      to: "/accounting?new=expense",
+      permission: "vouchers.payment",
+    },
   },
   {
-    id: "settings",
-    title: "الإعدادات والنسخ الاحتياطي",
-    points: [
-      "«المظهر»: الوضع الفاتح أو الداكن ولوحات الألوان والخط وحجم النص، على هذا الجهاز وحده.",
-      "«النسخ الاحتياطي»: أنشئ نسخة كاملة في مجلد النسخ، أو استرجع نسخة. قبل أي استرجاع تُحفظ نسخة من البيانات الحالية، ويظهر مسارها بعد الاسترجاع.",
-      "النسخ المجدول بالبريد يرسل قاعدة البيانات فقط مشفّرة بكلمة مرور؛ احفظ الكلمة خارج الجهاز، فبدونها لا تُفتح النسخة.",
-      "«الأمان»: تغيير الرمز السري والقفل التلقائي بعد مدة بلا استخدام. تعديلات النموذج المفتوح تُحفظ عند القفل وتستعيدها بعد الدخول.",
+    id: "contract",
+    title: "إنشاء عقد وتصديره",
+    steps: [
+      "من صفحة الصفقة اضغط «إعداد العقد» ثم «إعداد المسودة»: الأطراف والعقار والسعر تُنقل من الصفقة، ويُفتح العقد على «التفاصيل».",
+      "أكمل ما ينقص (الرقم الأحمر على الخطوة يعدّه): مكان التحرير، تاريخ التسليم… ويُحفظ كل تغيير وحده.",
+      "«إصدار العقد» ثم «حفظ PDF»، أو «تصدير» لملف Word أو للطباعة.",
     ],
+    action: { label: "الصفقات", to: "/deals", permission: "deals.read" },
+  },
+  {
+    id: "outstanding",
+    title: "معرفة العمولات التي لم تُقبض",
+    steps: [
+      "«الحسابات»: بطاقة «العمولات المتبقية» تعرض ما بقي حتى اليوم وعدد عمولاته.",
+      "اضغط البطاقة لتظهر قائمتها، ومنها «تحصيل» لكل عمولة.",
+    ],
+    action: {
+      label: "العمولات المتبقية",
+      to: "/accounting?view=commissions&state=open",
+      permission: "commissions.read",
+    },
+  },
+  {
+    id: "report",
+    title: "فتح تقرير لفترة محددة",
+    steps: [
+      "«التقارير»: اختر التصنيف (العقارات، الصفقات، الإيجارات، العمولات والحسابات، الزبائن) ثم التقرير.",
+      "اختر الفترة: هذا الشهر، الشهر الماضي، هذه السنة، أو «مخصص» لتاريخين.",
+      "Excel أو PDF أو «طباعة» في أعلى الصفحة تُخرج التقرير كما يُعرض.",
+    ],
+    action: {
+      label: "التقارير",
+      to: "/reports",
+      permission: ["reports.operations", "reports.financial"],
+    },
   },
 ];
+const guides = computed(() =>
+  GUIDES.filter((guide) => matches(guide.title, ...guide.steps)),
+);
+const allowed = (guide: Guide) =>
+  !guide.action.permission || can(guide.action.permission);
 
-/** رابط في فهرس الدليل: ينقل التركيز إلى القسم (والتمرير معه). */
-function jump(id: string) {
-  document.getElementById(`help-${id}`)?.focus();
-}
+// ─── أسئلة شائعة ────────────────────────────────────────────────────────
+const FAQ: Array<{ q: string; a: string }> = [
+  {
+    q: "ما الفرق بين العمولات المقبوضة والمتبقية؟",
+    a: "المقبوضة ما دخل الصندوق أو المصرف بسند قبض على العمولة نفسها. المتبقية ما سُجّل على الصفقات ولم يُقبض بعد. و«إجمالي العمولات» ما سُجّل خلال الفترة المختارة، مقبوضاً كان أو لا.",
+  },
+  {
+    q: "قبضت عمولة ولم ينقص المتبقي منها، لماذا؟",
+    a: "لأن السند سُجّل من «تسجيل قبض» بغرض «عمولة المكتب» دون اختيار العمولة، فصار إيراداً مستقلاً. ألغِ السند من صفحته، ثم سجّله من «تسديد عمولة» أو «تحصيل» في صفّ العمولة.",
+  },
+  {
+    q: "كيف أصحح سنداً أو مبلغاً خاطئاً؟",
+    a: "السند لا يُعدَّل بعد إصداره حتى تبقى الحسابات سليمة: افتحه واضغط «إلغاء السند» واذكر السبب، ثم سجّل سنداً صحيحاً. القيد اليدوي يُصحَّح بقيد عكسي من صفحته.",
+  },
+  {
+    q: "ماذا يشمل «صافي الرصيد»؟",
+    a: "كل ما في الصناديق والمصارف في آخر الفترة، ومنه أمانات الزبائن (عربون، إيجار يُسلَّم للمؤجر، ثمن يُسلَّم للبائع) التي ليست مال المكتب. مقدارها مكتوب تحت البطاقات.",
+  },
+  {
+    q: "لماذا لا يُجمع الدينار والدولار؟",
+    a: "لا سعر صرف في البرنامج، فكل مبلغ يبقى بعملته: يظهر سطر للدينار وسطر للدولار في كل رقم.",
+  },
+  {
+    q: "كيف أصدّر تقريراً أو أطبعه؟",
+    a: "افتح «التقارير»، اختر التقرير والفترة، ثم Excel أو PDF أو «طباعة» في أعلى الصفحة. يخرج التقرير كما هو على الشاشة.",
+  },
+  {
+    q: "أين الصناديق والقيود ودليل الحسابات؟",
+    a: "في «الحسابات» ثم «عرض التفاصيل». وحين تكون داخل الحسابات تظهر أيضاً تحتها في القائمة الجانبية.",
+  },
+  {
+    q: "أين المفضلة؟",
+    a: "زر «المفضلة» في قائمتي عروض البيع وعروض الإيجار، وقلب أي عرض يضيفه إليها.",
+  },
+  {
+    q: "كيف آخذ نسخة احتياطية؟",
+    a: "«نسخة احتياطية» في لوحة التحكم، أو الإعدادات ثم «النسخ الاحتياطي» لاسترجاع نسخة أو جدولة النسخ.",
+  },
+];
+const faq = computed(() => FAQ.filter((item) => matches(item.q, item.a)));
 
+// ─── الاختصارات ─────────────────────────────────────────────────────────
 type Shortcut = { keys: string[][]; action: string; where: string };
-
 // كل سطر في keys بديل؛ المفاتيح داخل السطر تُضغط معاً.
-const shortcuts: Shortcut[] = [
+const SHORTCUTS: Shortcut[] = [
   {
     keys: [["Ctrl", "K"]],
     action: "البحث الشامل في العروض والزبائن والطلبات",
@@ -94,9 +230,13 @@ const shortcuts: Shortcut[] = [
   {
     keys: [["Ctrl", "N"]],
     action: "سجل جديد من نوع الصفحة",
-    where: "عروض البيع والإيجار، الزبائن، الطلبات",
+    where: "عروض البيع والإيجار، الزبائن، الطلبات، المستخدمون",
   },
-  { keys: [["Ctrl", "S"]], action: "حفظ", where: "النماذج وحوارات النماذج" },
+  {
+    keys: [["Ctrl", "S"]],
+    action: "حفظ أو إصدار",
+    where: "النماذج وحوارات النماذج",
+  },
   {
     keys: [["Esc"]],
     action: "إغلاق الحوار أو اللوحة الجانبية، أو مسح البحث",
@@ -132,83 +272,287 @@ const shortcuts: Shortcut[] = [
     where: "صور العرض",
   },
 ];
+const shortcuts = computed(() =>
+  SHORTCUTS.filter((item) =>
+    matches(item.action, item.where, ...item.keys.flat()),
+  ),
+);
+const nothingFound = computed(
+  () =>
+    Boolean(query.value) &&
+    !guides.value.length &&
+    !faq.value.length &&
+    !shortcuts.value.length,
+);
+
+// ─── حول التطبيق ────────────────────────────────────────────────────────
+const version = computed(() => status.value?.app_version ?? null);
+const year = new Date().getFullYear();
+const hasContact = Boolean(CODEL.website || CODEL.email || CODEL.phone);
 </script>
 
 <template>
-  <AppPage title="المساعدة">
+  <AppPage title="المساعدة وحول التطبيق">
     <div class="help">
-      <section class="dal-panel help__guide" aria-labelledby="help-guide-title">
-        <div class="dal-panel__header">
-          <h2 id="help-guide-title" class="dal-section-title">
-            دليل الاستخدام
-          </h2>
-        </div>
-        <nav class="help__toc" aria-label="أقسام الدليل">
-          <a
-            v-for="guide in guides"
-            :key="guide.id"
-            :href="`#help-${guide.id}`"
-            class="record-link"
-            @click.prevent="jump(guide.id)"
-            >{{ guide.title }}</a
-          >
-        </nav>
-        <section
-          v-for="guide in guides"
-          :id="`help-${guide.id}`"
-          :key="guide.id"
-          class="help__topic"
-          tabindex="-1"
-          :aria-labelledby="`help-${guide.id}-title`"
+      <div class="help__bar">
+        <v-btn-toggle
+          v-model="section"
+          mandatory
+          divided
+          density="compact"
+          variant="outlined"
+          color="primary"
+          aria-label="القسم"
         >
-          <h3 :id="`help-${guide.id}-title`">{{ guide.title }}</h3>
-          <ul>
-            <li v-for="(point, index) in guide.points" :key="index">
-              {{ point }}
-            </li>
-          </ul>
-        </section>
-      </section>
+          <v-btn value="help" prepend-icon="mdi-lifebuoy">المساعدة</v-btn>
+          <v-btn value="about" prepend-icon="mdi-information-outline"
+            >حول التطبيق</v-btn
+          >
+        </v-btn-toggle>
+        <v-text-field
+          v-if="section === 'help'"
+          v-model="search"
+          class="help__search"
+          label="ابحث في المساعدة"
+          placeholder="مثلاً: عمولة، مصروف، تقرير"
+          prepend-inner-icon="mdi-magnify"
+          density="compact"
+          hide-details
+          clearable
+        />
+      </div>
 
-      <section class="dal-panel help__keys" aria-labelledby="help-keys-title">
-        <div class="dal-panel__header">
-          <h2 id="help-keys-title" class="dal-section-title">
-            اختصارات لوحة المفاتيح
-          </h2>
-        </div>
-        <p class="help__note">
-          تعمل الاختصارات مع لوحة المفاتيح العربية أيضاً، ولا تعمل وحوار مفتوح
-          فوق الصفحة (عدا Ctrl+S داخل حوار النموذج).
+      <template v-if="section === 'help'">
+        <p v-if="nothingFound" class="help__empty">
+          لا شيء في المساعدة عن «{{ query }}». جرّب كلمة أخرى، أو تواصل مع الدعم
+          في أسفل الصفحة.
         </p>
-        <table class="help__table">
-          <caption class="d-sr-only">
-            اختصارات لوحة المفاتيح
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col">المفاتيح</th>
-              <th scope="col">ما يفعله</th>
-              <th scope="col">أين</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(shortcut, index) in shortcuts" :key="index">
-              <td class="help__combo">
-                <template v-for="(combo, c) in shortcut.keys" :key="c">
-                  <span v-if="c" class="help__or">أو</span>
-                  <span class="help__keys-group" dir="ltr">
-                    <template v-for="(key, k) in combo" :key="key">
-                      <span v-if="k" aria-hidden="true">+</span>
-                      <kbd>{{ key }}</kbd>
-                    </template>
-                  </span>
-                </template>
-              </td>
-              <td>{{ shortcut.action }}</td>
-              <td class="help__where">{{ shortcut.where }}</td>
-            </tr>
-          </tbody>
-        </table>
+
+        <div class="help__columns">
+          <div class="help__main">
+            <section
+              v-if="guides.length"
+              class="dal-panel"
+              aria-labelledby="help-guides-title"
+            >
+              <header class="dal-panel__header">
+                <h2 id="help-guides-title" class="dal-section-title">
+                  خطوات سريعة
+                </h2>
+              </header>
+              <article
+                v-for="guide in guides"
+                :key="guide.id"
+                class="help__guide"
+                :aria-labelledby="`guide-${guide.id}`"
+              >
+                <div class="help__guide-head">
+                  <h3 :id="`guide-${guide.id}`">{{ guide.title }}</h3>
+                  <v-btn
+                    v-if="allowed(guide)"
+                    variant="tonal"
+                    color="primary"
+                    size="small"
+                    append-icon="mdi-arrow-left"
+                    @click="router.push(guide.action.to)"
+                    >{{ guide.action.label }}</v-btn
+                  >
+                </div>
+                <ol>
+                  <li v-for="(step, index) in guide.steps" :key="index">
+                    {{ step }}
+                  </li>
+                </ol>
+              </article>
+            </section>
+
+            <section
+              v-if="faq.length"
+              class="dal-panel"
+              aria-labelledby="help-faq-title"
+            >
+              <header class="dal-panel__header">
+                <h2 id="help-faq-title" class="dal-section-title">
+                  أسئلة شائعة
+                </h2>
+              </header>
+              <details
+                v-for="item in faq"
+                :key="item.q"
+                class="help__faq"
+                :open="Boolean(query)"
+              >
+                <summary>{{ item.q }}</summary>
+                <p>{{ item.a }}</p>
+              </details>
+            </section>
+          </div>
+
+          <div class="help__side">
+            <section
+              v-if="shortcuts.length"
+              class="dal-panel"
+              aria-labelledby="help-keys-title"
+            >
+              <header class="dal-panel__header">
+                <h2 id="help-keys-title" class="dal-section-title">
+                  اختصارات لوحة المفاتيح
+                </h2>
+              </header>
+              <p class="help__note">
+                تعمل مع لوحة المفاتيح العربية أيضاً، ولا تعمل وحوار مفتوح فوق
+                الصفحة (عدا Ctrl+S داخل الحوار).
+              </p>
+              <table class="help__table">
+                <caption class="d-sr-only">
+                  اختصارات لوحة المفاتيح
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">المفاتيح</th>
+                    <th scope="col">ما يفعله</th>
+                    <th scope="col">أين</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(shortcut, index) in shortcuts" :key="index">
+                    <td class="help__combo">
+                      <template v-for="(combo, c) in shortcut.keys" :key="c">
+                        <span v-if="c" class="help__or">أو</span>
+                        <span class="help__keys-group" dir="ltr">
+                          <template v-for="(key, k) in combo" :key="key">
+                            <span v-if="k" aria-hidden="true">+</span>
+                            <kbd>{{ key }}</kbd>
+                          </template>
+                        </span>
+                      </template>
+                    </td>
+                    <td>{{ shortcut.action }}</td>
+                    <td class="help__where">{{ shortcut.where }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+
+            <section class="dal-panel" aria-labelledby="help-support-title">
+              <header class="dal-panel__header">
+                <h2 id="help-support-title" class="dal-section-title">الدعم</h2>
+              </header>
+              <div class="help__support">
+                <div class="codel-mark codel-mark--small">
+                  <img
+                    v-if="CODEL_LOGO"
+                    :src="CODEL_LOGO"
+                    alt="شعار شركة كودل (Codel)"
+                  />
+                  <bdi v-else dir="ltr" class="codel-mark__text">{{
+                    CODEL.nameEn
+                  }}</bdi>
+                </div>
+                <p>
+                  للمساعدة أو الإبلاغ عن مشكلة تواصل مع {{ CODEL.nameAr }} (<bdi
+                    dir="ltr"
+                    >{{ CODEL.nameEn }}</bdi
+                  >)، مطوّرة البرنامج.
+                </p>
+                <dl v-if="hasContact" class="help__contact">
+                  <template v-if="CODEL.phone">
+                    <dt>الهاتف وواتساب</dt>
+                    <dd>
+                      <PhoneLink :phone="CODEL.phone" :name="CODEL.nameAr" />
+                    </dd>
+                  </template>
+                  <template v-if="CODEL.email">
+                    <dt>البريد</dt>
+                    <dd>
+                      <bdi>{{ CODEL.email }}</bdi>
+                    </dd>
+                  </template>
+                  <template v-if="CODEL.website">
+                    <dt>الموقع</dt>
+                    <dd>
+                      <bdi>{{ CODEL.website }}</bdi>
+                    </dd>
+                  </template>
+                </dl>
+                <p v-else class="help__note help__note--flat">
+                  بيانات التواصل مع كودل لم تُضف إلى هذا الإصدار بعد.
+                </p>
+              </div>
+            </section>
+          </div>
+        </div>
+      </template>
+
+      <section v-else class="dal-panel about" aria-labelledby="about-title">
+        <div class="about__app">
+          <span class="about__logo" aria-hidden="true">
+            <v-icon icon="mdi-home-city-outline" size="40" />
+          </span>
+          <div>
+            <h2 id="about-title" class="about__name">
+              دلالي <bdi dir="ltr" class="about__latin">Dalaly</bdi>
+            </h2>
+            <p class="about__desc">
+              برنامج مكتبي لإدارة مكتب العقارات: العروض والطلبات والزبائن
+              والصفقات والعقود والحسابات والتقارير، على هذا الجهاز ودون إنترنت.
+            </p>
+            <p class="about__version">
+              الإصدار
+              <bdi dir="ltr">{{ version ?? "—" }}</bdi>
+            </p>
+          </div>
+        </div>
+
+        <div class="about__credit">
+          <div class="codel-mark">
+            <img
+              v-if="CODEL_LOGO"
+              :src="CODEL_LOGO"
+              alt="شعار شركة كودل (Codel)"
+            />
+            <bdi v-else dir="ltr" class="codel-mark__text">{{
+              CODEL.nameEn
+            }}</bdi>
+          </div>
+          <div class="about__credit-text">
+            <p class="about__credit-ar">
+              تم تطوير هذا التطبيق بواسطة {{ CODEL.nameAr }} (<bdi dir="ltr">{{
+                CODEL.nameEn
+              }}</bdi
+              >)
+            </p>
+            <p class="about__credit-en" dir="ltr" lang="en">
+              Developed by {{ CODEL.nameEn }}
+            </p>
+            <dl v-if="hasContact" class="help__contact">
+              <template v-if="CODEL.website">
+                <dt>الموقع</dt>
+                <dd>
+                  <bdi>{{ CODEL.website }}</bdi>
+                </dd>
+              </template>
+              <template v-if="CODEL.email">
+                <dt>البريد</dt>
+                <dd>
+                  <bdi>{{ CODEL.email }}</bdi>
+                </dd>
+              </template>
+              <template v-if="CODEL.phone">
+                <dt>الهاتف وواتساب</dt>
+                <dd><PhoneLink :phone="CODEL.phone" :name="CODEL.nameAr" /></dd>
+              </template>
+            </dl>
+            <p v-else class="help__note help__note--flat">
+              بيانات التواصل مع كودل لم تُضف إلى هذا الإصدار بعد.
+            </p>
+          </div>
+        </div>
+
+        <p class="about__copyright">
+          <bdi dir="ltr">© {{ year }} {{ CODEL.nameEn }}.</bdi>
+          جميع الحقوق محفوظة.
+        </p>
       </section>
     </div>
   </AppPage>
@@ -217,55 +561,91 @@ const shortcuts: Shortcut[] = [
 <style scoped>
 .help {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 480px);
+  gap: var(--dal-gutter);
+}
+.help__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.help__search {
+  flex: 0 1 360px;
+}
+.help__empty {
+  margin: 0;
+  color: var(--dal-muted);
+}
+.help__columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 460px);
   gap: var(--dal-gutter);
   align-items: start;
 }
-.help__toc {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 16px;
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--dal-stroke);
-  font-size: calc(13px * var(--dal-font-scale));
+.help__main,
+.help__side {
+  display: grid;
+  gap: var(--dal-gutter);
+  min-width: 0;
 }
-.help__topic {
-  padding: 12px 16px;
+.help__guide {
+  padding: 10px 16px 12px;
   border-bottom: 1px solid var(--dal-stroke);
-  scroll-margin-top: calc(var(--dal-bar-height) + var(--dal-gutter));
 }
-.help__topic:last-child {
+.help__guide:last-child {
   border-bottom: 0;
 }
-.help__topic:focus {
-  outline: none;
+.help__guide-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
 }
-.help__topic:focus-visible {
-  outline: 2px solid rgb(var(--v-theme-primary));
-  outline-offset: -2px;
-}
-.help__topic h3 {
-  margin: 0 0 6px;
+.help__guide h3 {
+  margin: 0;
   font-size: calc(14px * var(--dal-font-scale));
   font-weight: 700;
 }
-.help__topic ul {
+.help__guide ol {
   margin: 0;
-  padding-inline-start: 20px;
+  padding-inline-start: 22px;
+  /* Preflight يزيل الترقيم؛ الخطوات مرقّمة بأرقام لاتينية. */
+  list-style: decimal;
   display: grid;
-  gap: 4px;
-  font-size: calc(14px * var(--dal-font-scale));
+  gap: 2px;
+  font-size: calc(13px * var(--dal-font-scale));
   line-height: 1.7;
 }
-.help__keys {
-  position: sticky;
-  top: calc(var(--dal-bar-height) + var(--dal-gutter));
+.help__faq {
+  border-bottom: 1px solid var(--dal-stroke);
+}
+.help__faq:last-child {
+  border-bottom: 0;
+}
+.help__faq summary {
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: calc(13px * var(--dal-font-scale));
+  font-weight: 600;
+}
+.help__faq summary:hover {
+  background: var(--dal-hover);
+}
+.help__faq p {
+  margin: 0;
+  padding: 0 16px 12px;
+  font-size: calc(13px * var(--dal-font-scale));
+  line-height: 1.7;
 }
 .help__note {
   margin: 0;
   padding: 8px 16px;
   color: var(--dal-muted);
   font-size: calc(12px * var(--dal-font-scale));
+}
+.help__note--flat {
+  padding: 0;
 }
 .help__table {
   width: 100%;
@@ -318,12 +698,130 @@ kbd {
   line-height: 1.6;
   text-align: center;
 }
+.help__support {
+  display: grid;
+  gap: 8px;
+  padding: 12px 16px;
+  font-size: calc(13px * var(--dal-font-scale));
+}
+.help__support p {
+  margin: 0;
+  line-height: 1.7;
+}
+.help__contact {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0;
+  font-size: calc(13px * var(--dal-font-scale));
+}
+.help__contact dt {
+  color: var(--dal-muted);
+}
+.help__contact dd {
+  margin: 0;
+}
+
+/* شعار كودل على سطح محايد ثابت، فيبقى مقروءاً في الوضعين، بنسبته كما هي. */
+.codel-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 132px;
+  height: 64px;
+  padding: 8px 12px;
+  border: 1px solid var(--dal-stroke);
+  border-radius: var(--dal-radius-card);
+  background: #ffffff;
+  flex: none;
+}
+.codel-mark--small {
+  width: 104px;
+  height: 48px;
+}
+.codel-mark img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.codel-mark__text {
+  color: #1a1a1a;
+  font-size: calc(20px * var(--dal-font-scale));
+  font-weight: 700;
+}
+.codel-mark--small .codel-mark__text {
+  font-size: calc(16px * var(--dal-font-scale));
+}
+
+.about {
+  display: grid;
+  max-width: 760px;
+}
+.about__app,
+.about__credit {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px;
+  border-bottom: 1px solid var(--dal-stroke);
+}
+.about__logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  flex: none;
+  border-radius: var(--dal-radius-card);
+  background: rgb(var(--v-theme-sidebar));
+  color: rgb(var(--v-theme-on-sidebar));
+}
+.about__name {
+  margin: 0;
+  font-size: calc(18px * var(--dal-font-scale));
+  font-weight: 700;
+}
+.about__latin {
+  margin-inline-start: 6px;
+  color: var(--dal-muted);
+  font-size: calc(14px * var(--dal-font-scale));
+  font-weight: 600;
+}
+.about__desc,
+.about__version,
+.about__credit-ar,
+.about__credit-en {
+  margin: 4px 0 0;
+  font-size: calc(13px * var(--dal-font-scale));
+  line-height: 1.7;
+}
+.about__version {
+  color: var(--dal-muted);
+}
+.about__credit-text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.about__credit-ar {
+  margin: 0;
+  font-size: calc(14px * var(--dal-font-scale));
+  font-weight: 700;
+}
+.about__credit-en {
+  margin: 0 0 6px;
+  text-align: end;
+  color: var(--dal-muted);
+}
+.about__copyright {
+  margin: 0;
+  padding: 12px 16px;
+  color: var(--dal-muted);
+  font-size: calc(12px * var(--dal-font-scale));
+}
 @media (max-width: 1100px) {
-  .help {
+  .help__columns {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .help__keys {
-    position: static;
   }
 }
 </style>

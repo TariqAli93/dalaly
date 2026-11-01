@@ -144,7 +144,11 @@ onMounted(() => setRefreshHandler(list.reload));
 </script>
 
 <template>
-  <AppPage title="القيود" :count="total || null">
+  <AppPage
+    title="القيود"
+    :parent="{ to: '/accounting', label: 'الحسابات' }"
+    :count="total || null"
+  >
     <template #header-actions>
       <v-btn
         variant="text"

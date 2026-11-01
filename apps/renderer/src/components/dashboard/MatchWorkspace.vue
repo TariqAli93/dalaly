@@ -19,6 +19,7 @@ const props = defineProps<{
   loading: boolean;
   error: string | null;
   canFollowup: (kind: OperationsKind) => boolean;
+  canDeal?: boolean;
 }>();
 const kind = defineModel<"all" | OperationsKind>("kind", { required: true });
 const q = defineModel<string>("q", { required: true });
@@ -29,6 +30,7 @@ const emit = defineEmits<{
   customer: [number];
   listing: [DashboardMatch["offer"]];
   followup: [DashboardMatch];
+  deal: [DashboardMatch];
 }>();
 
 const pages = computed(() =>
@@ -185,10 +187,12 @@ const filters = computed(() => {
           :key="`${item.request.kind}-${item.request.id}`"
           :item="item"
           :can-followup="canFollowup(item.offer.kind)"
+          :can-deal="canDeal"
           @details="emit('details', $event)"
           @customer="emit('customer', $event)"
           @listing="emit('listing', $event)"
           @followup="emit('followup', $event)"
+          @deal="emit('deal', $event)"
         />
       </div>
       <!-- العدد في شريط الملخّص؛ هنا الصفحات وحدها حين تزيد على صفحة. -->

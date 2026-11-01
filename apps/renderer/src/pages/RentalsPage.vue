@@ -158,6 +158,9 @@ if (linkedStatus) {
   showOnly({ status: linkedStatus });
   void router.replace({ query: {} });
 }
+// ?view=favorites (رابط «مفضلة الإيجارات» القديم): القائمة تبدأ بالمفضلة.
+// يبقى في العنوان: استبدال العنوان أثناء تحويل الرابط القديم يلغي التحويل.
+if (route.query.view === "favorites") favoritesOnly.value = true;
 // قبل أن يُظهر الجدول خياراته الأولى، فلا يطلب الصفحة نفسها مرتين.
 void reloadRentals();
 onMounted(() => {

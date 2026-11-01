@@ -350,6 +350,11 @@ onBeforeUnmount(() => {
         </template>
       </DataGrid>
     </section>
-    <PersonEditor v-model="dialog" :person="editing" @saved="list.reload" />
+    <PersonEditor
+      v-model="dialog"
+      :person="editing"
+      offer-file
+      @saved="list.reload"
+    />
   </AppPage>
 </template>

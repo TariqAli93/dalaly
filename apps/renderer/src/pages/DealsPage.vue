@@ -24,10 +24,12 @@ import {
 import { formatAmount, formatDate } from "../utils/format";
 import type {
   DealFilters,
+  DealPayload,
   DealPipeline,
   DealRecord,
   DealSortKey,
   DealStage,
+  DealType,
   ListSortOption,
 } from "../types";
 
@@ -181,8 +183,14 @@ watch(q, () => {
 
 // ─── الأوامر ───────────────────────────────────────────────────────────
 const dealDialog = ref(false);
-useNewFromQuery(() => {
-  if (can("deals.create")) dealDialog.value = true;
+/** ?new=sale or ?new=rent (from «إضافة»): the dialog opens on that kind. */
+const dealPreset = ref<Partial<DealPayload> | null>(null);
+function newDeal(kind: DealType = "sale") {
+  dealPreset.value = { deal_type: kind };
+  dealDialog.value = true;
+}
+useNewFromQuery((value) => {
+  if (can("deals.create")) newDeal(value === "rent" ? "rent" : "sale");
 });
 const stageDialog = ref(false);
 const moving = ref<DealRecord | null>(null);
@@ -267,7 +275,7 @@ onBeforeUnmount(() => {
         v-if="can('deals.create')"
         color="primary"
         prepend-icon="mdi-handshake-outline"
-        @click="dealDialog = true"
+        @click="newDeal()"
         >صفقة جديدة</v-btn
       >
     </template>
@@ -472,7 +480,7 @@ onBeforeUnmount(() => {
       </DataGrid>
     </section>
 
-    <DealDialog v-model="dealDialog" @saved="onSaved" />
+    <DealDialog v-model="dealDialog" :preset="dealPreset" @saved="onSaved" />
     <DealStageDialog
       v-model="stageDialog"
       :deal="moving"

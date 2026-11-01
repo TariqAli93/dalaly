@@ -79,7 +79,7 @@ const dealRows = computed(() =>
 const showingStalled = computed(() => !!deals.value?.stalled.items.length);
 const monthLink = computed(() =>
   money.value
-    ? `/reports/financial?report=income-statement&from=${money.value.from}&to=${money.value.to}`
+    ? `/reports?report=income-statement&from=${money.value.from}&to=${money.value.to}`
     : "",
 );
 </script>
@@ -219,14 +219,14 @@ const monthLink = computed(() =>
             زبائن بحاجة إلى تواصل
           </h2>
           <router-link
-            :to="reports ? '/reports/operations?report=customers' : '/people'"
+            :to="reports ? '/reports?report=customers' : '/people'"
             class="biz__all"
             >الكل</router-link
           >
         </header>
         <div class="biz__figures">
           <router-link
-            :to="reports ? '/reports/operations?report=customers' : '/people'"
+            :to="reports ? '/reports?report=customers' : '/people'"
             class="biz__figure biz__figure--wide"
             :class="
               customers.needing_contact.total
@@ -312,7 +312,7 @@ const monthLink = computed(() =>
           <router-link
             :to="
               reports
-                ? `/reports/operations?report=leases&days=${leases.expiring_days}`
+                ? `/reports?report=leases&days=${leases.expiring_days}`
                 : '/leases'
             "
             class="biz__figure"
@@ -421,7 +421,7 @@ const monthLink = computed(() =>
             ><span>راكدة منذ {{ deals.stalled_days }} يوماً</span></router-link
           >
           <router-link
-            :to="reports ? '/reports/operations?report=deals' : '/deals'"
+            :to="reports ? '/reports?report=deals' : '/deals'"
             class="biz__figure"
             :class="
               deals.recently_won.total
@@ -504,8 +504,8 @@ const monthLink = computed(() =>
           <div>
             <dt>
               <router-link
-                :to="`/reports/financial?report=commissions&from=${money.from}&to=${money.to}`"
-                >عمولات محصَّلة</router-link
+                :to="`/reports?report=commissions&from=${money.from}&to=${money.to}`"
+                >عمولات مقبوضة</router-link
               >
             </dt>
             <dd
@@ -522,11 +522,11 @@ const monthLink = computed(() =>
             <dt>
               <router-link
                 v-if="can('commissions.read')"
-                to="/accounting/commissions?state=open"
-                >عمولات لم تُحصَّل ({{ row.commissions_open }})</router-link
+                to="/accounting?state=open"
+                >عمولات متبقية ({{ row.commissions_open }})</router-link
               >
               <template v-else
-                >عمولات لم تُحصَّل ({{ row.commissions_open }})</template
+                >عمولات متبقية ({{ row.commissions_open }})</template
               >
             </dt>
             <dd

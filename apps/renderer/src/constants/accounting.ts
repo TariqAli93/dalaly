@@ -1,5 +1,6 @@
 import type {
   AccountType,
+  CommissionState,
   Currency,
   JournalSource,
   JournalStatus,
@@ -160,4 +161,28 @@ export function voucherPurposeLabel(kind: string, value: string) {
     VOUCHER_PURPOSES[kind as VoucherKind]?.find((item) => item.value === value)
       ?.title ?? value
   );
+}
+
+/**
+ * حالة العمولة بكلمتين لا تتغيّران في أي شاشة: «مقبوضة» ما قُبض كله،
+ * و«متبقية» ما بقي منه شيء لم يُقبض.
+ */
+export const COMMISSION_STATES: Array<{
+  value: CommissionState;
+  title: string;
+}> = [
+  { value: "open", title: "متبقية (لم تُقبض كلها)" },
+  { value: "settled", title: "مقبوضة" },
+  { value: "cancelled", title: "ملغاة" },
+];
+
+export function commissionStateOf(commission: {
+  status: string;
+  outstanding: string;
+}) {
+  if (commission.status === "cancelled")
+    return { title: "ملغاة", color: "error" };
+  return commission.outstanding === "0.00"
+    ? { title: "مقبوضة", color: "success" }
+    : { title: "متبقية", color: "warning" };
 }

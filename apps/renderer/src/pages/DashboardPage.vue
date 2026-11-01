@@ -10,12 +10,16 @@ import {
 import { useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import SummaryStrip from "../components/dashboard/SummaryStrip.vue";
+import QuickActions from "../components/dashboard/QuickActions.vue";
 import PriorityStrip from "../components/dashboard/PriorityStrip.vue";
 import MatchWorkspace from "../components/dashboard/MatchWorkspace.vue";
 import DecisionsPanel from "../components/dashboard/DecisionsPanel.vue";
 import RiskPanel from "../components/dashboard/RiskPanel.vue";
 import PerformanceSummary from "../components/dashboard/PerformanceSummary.vue";
 import BusinessPanels from "../components/dashboard/BusinessPanels.vue";
+import OutstandingCommissions from "../components/dashboard/OutstandingCommissions.vue";
+import DealDialog from "../components/deals/DealDialog.vue";
+import VoucherDialog from "../components/accounting/VoucherDialog.vue";
 import { fetchBusinessSummary } from "../services/dashboard.service";
 import MatchDetailsDrawer from "../components/dashboard/MatchDetailsDrawer.vue";
 import CustomerDrawer from "../components/dashboard/CustomerDrawer.vue";
@@ -38,14 +42,20 @@ import {
   type KpiItem,
 } from "../utils/dashboardPriority";
 import { formatNumber, formatShortDate, formatTime } from "../utils/format";
+import { commissionCollection } from "../utils/commissionVouchers";
 import type {
   BusinessSummary,
   DashboardAppointment,
   DashboardCustomer,
   DashboardMatch,
   DashboardRequest,
+  DealPayload,
+  DealRecord,
+  CommissionRecord,
   FollowupTarget,
   OperationsKind,
+  VoucherDetail,
+  VoucherPayload,
 } from "../types";
 
 const router = useRouter();
@@ -397,6 +407,47 @@ function openAppointment(item: DashboardAppointment) {
   openListing({ kind: item.kind, id: item.listing_id });
 }
 
+// ─── من المطابقة إلى صفقة، ومن العمولة إلى قبضها ───────────────────────
+// الطلب والعرض معروفان في المطابقة، فتبدأ الصفقة بزبونها وعرضها وطلبها.
+const canDeal = computed(() => can("deals.create"));
+const dealOpen = ref(false);
+const dealPreset = ref<Partial<DealPayload> | null>(null);
+function startDeal(match: DashboardMatch) {
+  const sale = match.request.kind === "sale";
+  dealPreset.value = {
+    deal_type: sale ? "sale" : "rent",
+    client_person_id: match.request.person_id,
+    ...(sale
+      ? { property_id: match.offer.id, purchase_request_id: match.request.id }
+      : { rental_id: match.offer.id, rental_request_id: match.request.id }),
+  };
+  matchOpen.value = false;
+  dealOpen.value = true;
+}
+function onDealSaved(deal: DealRecord) {
+  notifySuccess(`أُنشئت الصفقة ${deal.code}.`);
+  void router.push(`/deals/${deal.id}`);
+}
+
+const owed = ref<{ reload: () => Promise<void> } | null>(null);
+const collectOpen = ref(false);
+const collectPreset = ref<Partial<VoucherPayload> | null>(null);
+const collectNote = ref("");
+function collect(commission: CommissionRecord) {
+  const { preset, note } = commissionCollection(commission);
+  collectPreset.value = preset;
+  collectNote.value = note;
+  collectOpen.value = true;
+}
+function onCollected(voucher: VoucherDetail) {
+  notifySuccess(`صدر سند القبض ${voucher.code}.`, {
+    label: "فتح السند للطباعة",
+    run: () => void router.push(`/accounting/vouchers/${voucher.id}`),
+  });
+  void owed.value?.reload();
+  void loadBusiness();
+}
+
 // ─── أوامر الترويسة ──────────────────────────────────────────────────────
 const backupRunning = ref(false);
 async function runBackup() {
@@ -432,6 +483,7 @@ async function runBackup() {
     </template>
 
     <div class="ops">
+      <QuickActions />
       <SummaryStrip v-if="kpis.length" :items="kpis" @select="openSection" />
       <v-alert
         v-if="overviewError && !overview"
@@ -473,11 +525,13 @@ async function runBackup() {
               :loading="matchingLoading"
               :error="matchingError"
               :can-followup="canFollowup"
+              :can-deal="canDeal"
               @retry="dashboard.loadMatching()"
               @details="showMatch"
               @customer="showCustomerById"
               @listing="openListing"
               @followup="recordFollowup"
+              @deal="startDeal"
             />
           </div>
           <BusinessPanels
@@ -488,6 +542,11 @@ async function runBackup() {
           />
         </div>
         <div class="ops__column ops__column--side">
+          <OutstandingCommissions
+            v-if="can('commissions.read')"
+            ref="owed"
+            @collect="collect"
+          />
           <div
             v-if="canMatch || canSeeAppointments"
             id="dash-decisions"
@@ -526,10 +585,20 @@ async function runBackup() {
         selectedMatch ? canFollowup(selectedMatch.offer.kind) : false
       "
       :can-open-person="can('people.read')"
+      :can-deal="canDeal"
       @customer="showCustomerById"
       @listing="openListing"
       @request="openRequest"
       @followup="recordFollowup"
+      @deal="startDeal"
+    />
+    <DealDialog v-model="dealOpen" :preset="dealPreset" @saved="onDealSaved" />
+    <VoucherDialog
+      v-model="collectOpen"
+      kind="receipt"
+      :preset="collectPreset"
+      :allocation-note="collectNote"
+      @saved="onCollected"
     />
     <CustomerDrawer
       v-model="customerOpen"

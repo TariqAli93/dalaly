@@ -139,3 +139,92 @@ export const LISTING_AGE_LABELS: Record<string, string> = {
   days_181_365: "181–365 يوماً",
   over_365: "أكثر من سنة",
 };
+
+/** أي تقرير في صفحة التقارير الواحدة: مالي أو تقرير عمل. */
+export type ReportKey = FinancialReportKey | OperationsReportKey;
+
+export type ReportCategory =
+  "listings" | "deals" | "leases" | "money" | "customers";
+
+/**
+ * تصنيفات صفحة التقارير (شريط واحد، لا تبويبات متداخلة). تصنيف بأكثر من تقرير
+ * يختار تقريره من قائمة «التقرير» في شريط الفلاتر؛ أولها هو الافتراضي.
+ */
+export const REPORT_CATEGORIES: Array<{
+  value: ReportCategory;
+  title: string;
+  icon: string;
+  reports: ReportKey[];
+}> = [
+  {
+    value: "listings",
+    title: "العقارات",
+    icon: "mdi-home-city-outline",
+    reports: ["sale-listings", "rental-listings"],
+  },
+  {
+    value: "deals",
+    title: "الصفقات",
+    icon: "mdi-handshake-outline",
+    reports: ["deals"],
+  },
+  {
+    value: "leases",
+    title: "الإيجارات",
+    icon: "mdi-home-clock-outline",
+    reports: ["leases"],
+  },
+  {
+    value: "money",
+    title: "العمولات والحسابات",
+    icon: "mdi-percent-circle-outline",
+    reports: [
+      "commissions",
+      "income-statement",
+      "cash-flow",
+      "receivables",
+      "payables",
+      "balance-sheet",
+      "trial-balance",
+      "ledger",
+    ],
+  },
+  {
+    value: "customers",
+    title: "الزبائن",
+    icon: "mdi-account-group-outline",
+    reports: ["customers"],
+  },
+];
+
+export function reportCategoryOf(report: string): ReportCategory {
+  return (
+    REPORT_CATEGORIES.find((category) =>
+      category.reports.includes(report as ReportKey),
+    )?.value ?? "deals"
+  );
+}
+
+/** Its title, and the keys that let the user open it. */
+export function reportSpec(report: ReportKey): {
+  title: string;
+  icon: string;
+  permissions: string[];
+  financial: boolean;
+} {
+  const operations = OPERATIONS_REPORTS.find((item) => item.value === report);
+  if (operations)
+    return {
+      title: operations.title,
+      icon: operations.icon,
+      permissions: ["reports.operations", operations.permission],
+      financial: false,
+    };
+  const financial = financialReportOf(report);
+  return {
+    title: financial.title,
+    icon: financial.icon,
+    permissions: ["reports.financial"],
+    financial: true,
+  };
+}

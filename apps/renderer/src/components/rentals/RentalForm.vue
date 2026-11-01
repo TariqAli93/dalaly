@@ -202,6 +202,15 @@ defineExpose({ validate, focusField });
         </FormSection>
 
         <FormSection title="المالك">
+          <!-- أولاً: مالك مسجّل يملأ الاسم والهاتف باختيار واحد بدل كتابتهما. -->
+          <PersonPicker
+            v-model="model.owner_person_id"
+            clearable
+            label="ربط المالك بزبون مسجّل"
+            hint="يملأ الاسم والهاتف إن كانا فارغين"
+            persistent-hint
+            @picked="ownerPicked"
+          />
           <v-text-field
             v-model="model.owner_name"
             name="owner_name"
@@ -215,14 +224,6 @@ defineExpose({ validate, focusField });
             :rules="[required]"
             :error-messages="errorsOf('owner_phone')"
             label="هاتف المالك *"
-          />
-          <PersonPicker
-            v-model="model.owner_person_id"
-            clearable
-            label="ربط المالك بزبون مسجّل"
-            hint="يملأ الاسم والهاتف إن كانا فارغين"
-            persistent-hint
-            @picked="ownerPicked"
           />
         </FormSection>
 

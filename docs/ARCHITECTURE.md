@@ -458,7 +458,14 @@ price when the payload leaves them empty.
 - In the renderer, `pages/DealsPage.vue` is the board (open stages, one
   column each, totals from `/deals/pipeline`) and the table, and
   `pages/DealPage.vue` the deal's page; `components/deals/DealDialog.vue`
-  and `DealStageDialog.vue` create, edit and move deals. Amounts are shown
+  and `DealStageDialog.vue` create, edit and move deals. `DealDialog` asks
+  for the kind, listing, client, agreed price and expected commission (an
+  amount, or a percentage of the agreed or asking price through
+  `percentOfAmount`, the server's rounding); the owner and asking price
+  are the listing's unless changed, and title, priority, assignee, close
+  date, currency, asking price and notes are under «خيارات إضافية».
+  `ListingPicker` emits `loaded` for a listing given by id, so the dialog
+  can show its owner and price without refilling fields. Amounts are shown
   with `formatAmount` (`utils/format.ts`), which groups the decimal string
   itself rather than going through a number.
 
@@ -665,13 +672,44 @@ EXCLUSIVE`; reads continue), so two saves cannot make a cycle or reuse a
     Its balance uses `utils/money.ts` (bigint hundredths, as on the server),
     so "متوازن" there means the server will accept the post.
   - `PeriodsDialog.vue` closes and reopens months.
-- The vouchers pages are under "المالية" too:
-  - `VouchersPage.vue` lists receipts and payments.
-  - `VoucherPage.vue` shows one, prints it or saves it as PDF, and voids it.
-  - `components/accounting/VoucherDialog.vue` issues one. It shows each
-    cash or bank account's balance, the client funds held for the chosen
-    person, and the purpose's hint, and warns before an amount the server
-    would refuse.
+- `pages/AccountingPage.vue` (`/accounting`, «الحسابات») is the one
+  accounting workspace. It is open to any of `ACCOUNTING_PERMISSIONS`
+  (`constants/permissions.ts`) and shows the parts each key allows:
+  - with `reports.financial`, a strip of figures the server computes, per
+    currency and never added across currencies
+    (`composables/useAccountingSummary.ts`,
+    `components/shared/MoneyStrip.vue`): the cash and bank balance at the
+    end of the period (cash-flow `closing`, with the client funds held in
+    it from the payables report), commissions outstanding now
+    (`/dashboard/business` `money`), the period's recorded and collected
+    commissions (commissions report) and expenses (income statement); and
+    «من أين جاء المال وأين صُرف» (`MoneyFlow.vue`, cash-flow categories
+    and expense categories). The period is a preset (`utils/periods.ts`),
+    remembered per machine;
+  - one panel whose tabs (`?view=vouchers|commissions|shares`) are
+    `VoucherList.vue` (receipts and payments, each with the deal,
+    commission, lease or expense category it came from),
+    `CommissionList.vue` (`?state=open` from the dashboard, a «تحصيل»
+    button on every row still owed) and `PayableShares.vue`;
+  - «تسجيل قبض», «تسجيل مصروف» (a payment preset to `expense`) and
+    «تسديد عمولة» (the commissions still owed, search focused) in the
+    command bar; cash boxes, journal, chart, expense categories and other
+    payments under «عرض التفاصيل». After issuing, the page stays and the
+    message offers «فتح السند للطباعة»;
+  - it takes `?new=receipt|expense|payment|commission`. The old
+    `/accounting/vouchers` and `/accounting/commissions` lists redirect
+    to it with their query.
+- `VoucherPage.vue` shows one voucher, prints it or saves it as PDF, and
+  voids it.
+- `components/accounting/VoucherDialog.vue` issues one. It shows each cash
+  or bank account's balance, the client funds held for the chosen person,
+  and the purpose's hint, and warns before an amount the server would
+  refuse. The prefilled date, currency and cash box fold into one line
+  («تغيير» opens them, as does a server error on one). An expense picks its
+  category first; the category fills «وذلك عن» and the payee of the latest
+  posted expense of that category (from `/vouchers/paged`), unless the
+  user typed them. A commission receipt with no `commission_id` warns that
+  it will not reduce what is outstanding.
   - The printed copy is `utils/voucherPrint.ts`: A5, the office header (sent
     with the voucher, so a cashier without the settings permission can print
     it), the amount in figures and words, signature lines, and "ملغى" across
@@ -686,12 +724,13 @@ EXCLUSIVE`; reads continue), so two saves cannot make a cycle or reuse a
     against it), so what it shows is what is recorded. Employees come from
     `GET /api/commissions/staff` (`commissions.manage`); the tasks list of
     assignees needs a follow-up permission.
-  - `pages/CommissionsPage.vue` lists commissions, and the employees' shares
-    still owed with a "دفع" on each.
+  - `/accounting` lists commissions, and the employees' shares still owed
+    with a "دفع" on each (above).
   - `pages/CommissionPage.vue` shows one, with its shares, vouchers, and
     collecting, paying and cancelling.
   - Collecting and paying open `VoucherDialog` with the allocation preset
-    (`commission_id` or `commission_split_id`). The purpose and currency are
+    (`commission_id` or `commission_split_id`, built by
+    `utils/commissionVouchers.ts` for every caller). The purpose and currency are
     then fixed and the payer and other account are left to the server.
 - Cash and bank in the renderer:
   - `pages/CashPage.vue` ("الصناديق والمصارف") shows each cash or bank
@@ -839,8 +878,17 @@ period, from when to when (migration `0014_leases`).
     listing and matching definitions (`requestMatchSummaries`). The pure
     rates, medians and buckets are in `operations.rules.ts`.
 - Renderer: `types/report.types.ts` and `services/reports.service.ts`.
-  - `pages/FinancialReportsPage.vue` (`/reports/financial`) has a tab per
-    report, with its filters in the query.
+  - `pages/ReportsPage.vue` (`/reports`) holds every report, financial
+    and operational. On top, an overview of the period (sale and rent deals
+    won and all deals won from the deals report, commissions collected and
+    outstanding from the commissions report). Under it one filter bar: a
+    five-way category switch (`REPORT_CATEGORIES` in `constants/reports.ts`:
+    listings, deals, leases, commissions and accounts, customers), a report
+    picker when a category has more than one, a period preset (this month
+    by default, last month, this year, custom; a one-day report reads
+    `to`) and the report's own filters, all in the query. A report shows
+    only with all of its keys (`reportSpec`). The old `/reports/financial`
+    and `/reports/operations` redirect with their query.
   - `utils/financialReports.ts` maps each response to a `ReportDocument`
     (`utils/reportDocument.ts`): figures and tables per currency, plus
     links to records the viewer may open (`can`). An account's link opens
@@ -852,9 +900,8 @@ period, from when to when (migration `0014_leases`).
     per currency).
   - A new report needs a service call and a mapping function. The screen,
     exports and printing then come with it.
-  - `pages/OperationsReportsPage.vue` (`/reports/operations`) does the same
-    for the operational reports, via `utils/operationsReports.ts`. It shows
-    only the tabs whose area the user may read.
+  - The operational reports map through `utils/operationsReports.ts` the
+    same way.
   - The model has `percent` columns. A row (`currency`) or a column
     (`currency`) can set its amounts' currency where a table mixes dinars
     and dollars. A section can carry a `title` in place of its currency's.
@@ -947,15 +994,29 @@ stays mounted while the user moves between pages and keeps its state (an
 expanded sidebar, which is also remembered between launches in
 `localStorage`). The sidebar's groups, order and permissions are
 `NAV_SECTIONS` in `constants/domain.ts`, grouped by business area; create
-pages are not navigation items.
+pages are not navigation items. Rare pages are an item's `children` (cash
+boxes, journal and chart under «الحسابات», templates under «العقود», users,
+roles and locations under «الإعدادات»): they show under it only while the
+user is inside its area (`isNavOpen`), and an item the user may not open
+leads to its first allowed child. «المساعدة وحول التطبيق» is a fixed item
+in the drawer's footer, not a navigation item.
 
 - `Ctrl+K` opens `GlobalSearch`, which queries sale and rental listings,
   customers and both request types through their paged endpoints.
 - «إضافة» in the command bar (`QuickAdd.vue`, items in `QUICK_ADD`) starts
   any record from any page, by permission. It links to the record's page
-  with `?new=`.
+  with `?new=`. The dashboard shows the daily ones (`QUICK_ACTIONS`) as
+  «عمليات سريعة».
 - `useNewFromQuery` opens the page's add dialog for that parameter, also
-  when the page is already open, and removes it from the address.
+  when the page is already open, and removes it from the address. When the
+  page opens with it, the dialog opens after the page mounts: a dialog
+  mounted already open never sees its `v-model` change, so it would not
+  fill from its preset or load its lists.
+- `/help` is «المساعدة وحول التطبيق» (`?section=about`): steps per daily
+  task with a button to its screen, FAQ, shortcuts and search; the version
+  from the startup status, and the developer credit from
+  `constants/about.ts` (Codel's logo is picked up from
+  `assets/brand/codel-logo.svg|png` when present; contacts are TODO).
 
 Records have their own routes: `/properties/:id`, `/rentals/:id`,
 `/clients/:id` (the customer hub: requests, owned listings, documents),
@@ -965,8 +1026,11 @@ matches). The global router guard turns the older `?open=<id>` links on
 query changes. `/rentals?status=<status>` starts the list with that status;
 the request lists take `?new=1&person=<id>` and `/documents` takes
 `?person=<id>&new=1` to open their add dialog with the customer chosen.
-`/people`, `/deals`, `/leases` and `/tasks` take `?new=1`, and
-`/accounting/vouchers` takes `?new=receipt` or `?new=payment`.
+`/people`, `/leases` and `/tasks` take `?new=1`, `/deals` takes
+`?new=sale` or `?new=rent`, and `/accounting` takes `?new=receipt`,
+`expense`, `payment` or `commission`. `/properties` and `/rentals`
+take `?view=favorites` (the old `/favorites` and `/rental-favorites`
+redirect there). Merged routes stay as redirects, never as pages.
 
 Each page wraps its content in `components/app/AppPage.vue`, which writes
 the title, parent link and count into the 48px command bar
