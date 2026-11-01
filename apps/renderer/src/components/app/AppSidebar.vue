@@ -118,7 +118,7 @@ const helpActive = computed(() => route.path === "/help");
     <nav aria-label="التنقل الرئيسي" @keydown="onNavKeydown">
       <v-list nav density="compact">
         <template v-for="(section, index) in sections" :key="section.key">
-          <v-divider v-if="index && (isRail || !section.title)" class="my-2" />
+          <v-divider v-if="index && (isRail || !section.title)" class="my-1" />
           <v-list-subheader
             v-if="section.title && !isRail"
             class="dal-nav-section"
@@ -207,20 +207,20 @@ const helpActive = computed(() => route.path === "/help");
 </template>
 
 <style scoped>
-.dal-nav-section {
-  min-height: 28px;
+.v-list .v-list-subheader.dal-nav-section {
+  min-height: 24px;
   font-size: calc(12px * var(--dal-font-scale));
   font-weight: 600;
   color: rgb(var(--v-theme-on-sidebar));
   opacity: 0.78;
   letter-spacing: 0;
 }
-.dal-nav-item {
-  min-height: 36px;
+.v-list-item.dal-nav-item {
+  min-height: 32px;
 }
 /* أبناء العنصر داخل مجاله: أصغر قليلاً ومزاحة إلى الداخل. */
-.dal-nav-item--child {
-  min-height: 32px;
+.v-list-item.dal-nav-item--child {
+  min-height: 28px;
   padding-inline-start: 28px !important;
 }
 .v-navigation-drawer--rail .dal-nav-item--child {

@@ -231,11 +231,13 @@ body {
   .v-list-item__content {
   display: none;
 }
-/* Compact navigation with aligned icon, title, and disclosure columns. */
-.dal-nav-drawer .v-list-item {
+/* Compact navigation with aligned icon, title, and disclosure columns. 32px
+   rows with 1px gaps fit all 14 destinations at 1366×768 (UX-10). `.v-list`
+   outranks Vuetify's compact one-line 40px, whatever order the styles load. */
+.dal-nav-drawer .v-list.v-list--nav .v-list-item {
   border-radius: var(--dal-radius-control);
-  margin-block: 2px;
-  min-height: 36px;
+  margin-block: 1px;
+  min-height: 32px;
   padding-block: 0;
   transition:
     background-color 180ms ease,
