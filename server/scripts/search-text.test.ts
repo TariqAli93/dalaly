@@ -358,6 +358,42 @@ test("property and rental search: the same rows as the per-column ILIKE search",
       await pool.query("DELETE FROM rentals WHERE id = $1", [rental]);
     });
 
+    await t.test("a whole listing code puts that listing first, other matches stay", async () => {
+      // UX-01: H-0001 also matched an owner phone holding 0001, and that newer
+      // row came first, so Enter on the first result opened the wrong listing.
+      const insert = async (code: string, phone: string, total: number, age: string) =>
+        Number(
+          (await pool.query(
+            `INSERT INTO properties(code, property_type, legal_type, area_value, area_unit, pricing_method,
+               total_price, owner_name, owner_phone, created_at)
+             VALUES ($1, 'بيت', 'طابو ملك صرف', 200, 'متر', 'سعر إجمالي مباشر', $2, 'Code Owner', $3,
+               now() - $4::interval) RETURNING id`,
+            [code, total, phone, age],
+          )).rows[0].id,
+        );
+      const exact = await insert("ZX-4242", "0791 555 7777", 900, "2 days");
+      const byPhone = await insert("ZY-0002", "0770 424 2999", 100, "0 seconds");
+      try {
+        const codes = (rows: Array<{ code: string }>) => rows.map((row) => row.code);
+        for (const query of ["ZX-4242", "zx-4242", "بيت ZX-4242"]) {
+          const q = encodeURIComponent(query);
+          const paged = await get(`/properties/paged?q=${q}&include_archived=true`);
+          assert.equal(paged.items[0]?.code, "ZX-4242", `${query}: paged, exact code first`);
+          assert.ok(codes(paged.items).includes("ZY-0002"), `${query}: the phone match is still listed`);
+          assert.deepEqual(ids(paged.items), await referenceIds("properties", query), `${query}: same rows`);
+          const sorted = await get(`/properties/paged?q=${q}&include_archived=true&sort_by=total_price&sort_order=asc`);
+          assert.equal(sorted.items[0]?.code, "ZX-4242", `${query}: before the chosen sort`);
+          assert.equal(codes(await get(`/properties?search=${q}&include_archived=true`))[0], "ZX-4242", `${query}: full list`);
+        }
+        // A phone and part of a code still find their listings.
+        const phone = await get(`/properties/paged?q=${encodeURIComponent("0770 424 2999")}&include_archived=true`);
+        assert.ok(ids(phone.items).includes(byPhone), "the phone still finds its listing");
+        assert.deepEqual(codes((await get(`/properties/paged?q=zx-&include_archived=true`)).items), ["ZX-4242"]);
+      } finally {
+        await pool.query("DELETE FROM properties WHERE id = ANY($1)", [[exact, byPhone]]);
+      }
+    });
+
     await t.test("every search form can use the trigram index on search_text", async () => {
       await pool.query("ANALYZE properties, rentals");
       const searches = [
