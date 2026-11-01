@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import PersonEditor from "../components/people/PersonEditor.vue";
 import PersonActivity from "../components/people/PersonActivity.vue";
+import PersonOpenWork from "../components/people/PersonOpenWork.vue";
 import PersonDeals from "../components/deals/PersonDeals.vue";
 import PersonMoney from "../components/people/PersonMoney.vue";
 import LeaseList from "../components/leases/LeaseList.vue";
@@ -382,6 +383,17 @@ const documentHeaders: GridHeader[] = [
 const place = (...parts: (string | null | undefined)[]) =>
   parts.filter(Boolean).join(" · ") || "—";
 
+/** الطلبات المحمّلة في الصفحة، لـ«مفتوح الآن مع الزبون». */
+const loadedRequests = computed(() => [
+  ...purchaseList.items.value.map((item) => ({
+    mode: "purchase" as RequestMode,
+    item,
+  })),
+  ...rentalRequestList.items.value.map((item) => ({
+    mode: "rental" as RequestMode,
+    item,
+  })),
+]);
 const requestsCount = computed(
   () => purchaseList.total.value + rentalRequestList.total.value,
 );
@@ -529,6 +541,11 @@ const listLabel = (count: number, label: string) =>
         <v-divider />
         <v-window v-model="tab" class="person-hub__body">
           <v-window-item v-if="canSeeActivity" value="activity">
+            <PersonOpenWork
+              :person-id="person.id"
+              :requests="can('requests.read') ? loadedRequests : []"
+              @tab="tab = $event"
+            />
             <PersonActivity
               :person-id="person.id"
               :person-name="person.full_name"
