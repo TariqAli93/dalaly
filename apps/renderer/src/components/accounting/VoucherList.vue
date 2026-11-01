@@ -13,6 +13,7 @@ import {
   voucherPurposeLabel,
 } from "../../constants/accounting";
 import { formatAmount, formatDate } from "../../utils/format";
+import { periodText } from "../../utils/periods";
 import type {
   Currency,
   ListSortOption,
@@ -27,7 +28,14 @@ import type {
  * أين جاء (الصفقة أو العمولة أو الإيجار أو تصنيف المصروف)، فيُتتبَّع كل مبلغ
  * إلى سجله. القبض يضيف إلى الصندوق أو المصرف، والصرف ينقص منه. السند الملغى
  * يبقى في القائمة.
+ *
+ * للقائمة تواريخها الخاصة، مستقلة عن فترة ملخّص الصفحة (`period`)؛ سطر النطاق
+ * فوقها يقول أيّها تعرض، و«حركات الفترة فقط» يطبّق فترة الملخّص صراحةً.
  */
+const props = defineProps<{
+  /** فترة ملخّص الصفحة؛ all: «منذ البداية». */
+  period?: { from: string; to: string; label: string; all: boolean } | null;
+}>();
 const router = useRouter();
 const grid = useTemplateRef<DataGridApi>("grid");
 
@@ -106,6 +114,32 @@ function clear() {
   to.value = "";
 }
 
+// ─── نطاق التواريخ ──────────────────────────────────────────────────────
+const allDates = computed(() => !from.value && !to.value);
+const rangeText = computed(() =>
+  from.value && to.value
+    ? periodText(from.value, to.value)
+    : from.value
+      ? `من ${formatDate(from.value)}`
+      : `حتى ${formatDate(to.value)}`,
+);
+/** هل تعرض القائمة فترة الملخّص نفسها؟ «منذ البداية» = كل التواريخ. */
+const onPeriod = computed(() => {
+  const period = props.period;
+  if (!period) return false;
+  if (period.all) return allDates.value;
+  return from.value === period.from && to.value === period.to;
+});
+function applyPeriod() {
+  if (!props.period) return;
+  from.value = props.period.all ? "" : props.period.from;
+  to.value = props.period.all ? "" : props.period.to;
+}
+function showAllDates() {
+  from.value = "";
+  to.value = "";
+}
+
 const headers: GridHeader[] = [
   { key: "code", title: "السند", sortable: true },
   { key: "voucher_date", title: "التاريخ", sortable: true },
@@ -150,6 +184,41 @@ defineExpose({ reload: list.reload, total });
 </script>
 
 <template>
+  <div v-if="period" class="dal-scope" aria-live="polite">
+    <v-icon icon="mdi-calendar-range" size="16" class="dal-scope__icon" />
+    <span v-if="allDates"
+      ><strong>كل الحركات</strong>، بكل التواريخ<span
+        v-if="!period.all"
+        class="dal-scope__muted"
+      >
+        — لا تتبع فترة الملخّص</span
+      ></span
+    >
+    <span v-else
+      ><strong>الحركات {{ rangeText }}</strong
+      ><span v-if="onPeriod" class="dal-scope__muted">
+        — فترة الملخّص ({{ period.label }})</span
+      ></span
+    >
+    <v-spacer />
+    <v-btn
+      v-if="!onPeriod"
+      size="small"
+      variant="text"
+      color="primary"
+      prepend-icon="mdi-calendar-filter-outline"
+      @click="applyPeriod"
+      >حركات {{ period.label }} فقط</v-btn
+    >
+    <v-btn
+      v-if="!allDates"
+      size="small"
+      variant="text"
+      prepend-icon="mdi-calendar-remove-outline"
+      @click="showAllDates"
+      >كل التواريخ</v-btn
+    >
+  </div>
   <FilterBar
     v-model:search="search"
     :filters="[kind, currency, status, from, to]"

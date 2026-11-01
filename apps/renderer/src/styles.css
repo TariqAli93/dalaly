@@ -489,6 +489,27 @@ body {
   color: var(--dal-muted);
 }
 
+/* نطاق ما تعرضه قائمة أو تقرير (فترته، أو «كل التواريخ») في سطر فوقه، مع
+   أزرار تغييره الصريحة. */
+.dal-scope {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  min-height: 36px;
+  padding: 2px 12px;
+  border-bottom: 1px solid var(--dal-stroke);
+  font-size: calc(13px * var(--dal-font-scale));
+  color: rgb(var(--v-theme-on-surface));
+}
+.dal-scope strong {
+  font-weight: 600;
+}
+.dal-scope__icon,
+.dal-scope__muted {
+  color: var(--dal-muted);
+}
+
 /* لوح مكتبي: حدّ رفيع، بلا ظلّ، حشو مضغوط. بديل البطاقة. */
 .dal-panel {
   border: 1px solid var(--dal-stroke);

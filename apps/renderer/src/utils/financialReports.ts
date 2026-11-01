@@ -5,6 +5,7 @@
  */
 import { AGING_LABELS, payerRoleLabel } from "../constants/reports";
 import { dealTypeLabel } from "../constants/deals";
+import { periodText } from "./periods";
 import { formatDate } from "./format";
 import { isZeroAmount, minorToAmount, signedAmountToMinor } from "./money";
 import type {
@@ -53,8 +54,6 @@ const MONTHS = [
 export const monthLabel = (month: string) =>
   `${MONTHS[Number(month.slice(5, 7)) - 1]} ${month.slice(0, 4)}`;
 
-const periodText = (from: string, to: string) =>
-  `من ${formatDate(from)} إلى ${formatDate(to)}`;
 const dayText = (day: string) => `في ${formatDate(day)}`;
 const negative = (value: string) => value.startsWith("-");
 

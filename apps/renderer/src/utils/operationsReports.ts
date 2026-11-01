@@ -8,7 +8,8 @@ import { dealStageLabel, dealTypeLabel } from "../constants/deals";
 import { statusLabel } from "../constants/domain";
 import { followupTypeLabel } from "../constants/crm";
 import { leaseFrequencyLabel } from "../constants/leases";
-import { formatDate, formatMoney } from "./format";
+import { periodText } from "./periods";
+import { formatMoney } from "./format";
 import { requestPath, requestPropertyTypeLabel } from "./requestForm";
 import type {
   Currency,
@@ -23,8 +24,6 @@ export interface OperationsLinks {
   can: (permission: string) => boolean;
 }
 
-const periodText = (from: string, to: string) =>
-  `من ${formatDate(from)} إلى ${formatDate(to)}`;
 const currencyLabel = (currency: Currency) =>
   currency === "USD" ? "دولار" : "دينار";
 const count = (label: string, value: number): ReportFigure => ({
