@@ -25,11 +25,16 @@ import { followupTypeLabel } from "../../constants/crm";
  * فرص قد تضيع، كل فئة بتعريفها المكتوب وأمثلة منها: طلبات بلا عرض مطابق،
  * عروض متاحة بلا نشاط مسجّل، ومعاينات مضى موعدها بلا متابعة لاحقة.
  */
-const props = defineProps<{
-  matching: DashboardMatching | null;
-  overview: DashboardOverview | null;
-  staleOptions: readonly number[];
-}>();
+const props = withDefaults(
+  defineProps<{
+    matching: DashboardMatching | null;
+    overview: DashboardOverview | null;
+    staleOptions: readonly number[];
+    /** false حين تظهر المعاينات بلا نتيجة في مكان آخر (يحتاج متابعتك). */
+    showViewings?: boolean;
+  }>(),
+  { showViewings: true },
+);
 const staleDays = defineModel<number>("staleDays", { required: true });
 const emit = defineEmits<{
   request: [DashboardRequest];
@@ -55,8 +60,10 @@ const stale = computed(() => {
     .slice(0, EXAMPLES);
   return { total: (sale?.total ?? 0) + (rental?.total ?? 0), items };
 });
-const viewings = computed(
-  () => props.overview?.viewings_without_outcome ?? null,
+const viewings = computed(() =>
+  props.showViewings
+    ? (props.overview?.viewings_without_outcome ?? null)
+    : null,
 );
 function lastActivity(item: DashboardStaleListing) {
   const last =

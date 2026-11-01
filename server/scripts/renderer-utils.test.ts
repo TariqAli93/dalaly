@@ -219,3 +219,84 @@ test("operational reports map to tables, request columns only with the requests"
   assert.deepEqual(bands.rows.map((row) => row.cells.band), ["1,000,000 – 1,500,000 شهرياً", "3,000,000 فأكثر شهرياً"]);
   assert.ok(!rental.figures.some((figure) => figure.label === "طلبات مفتوحة"));
 });
+
+test("the attention queue orders by tier then date, once per record, with the right action", async () => {
+  const { attentionItems, attentionTotals } = await import("../../apps/renderer/src/utils/attentionQueue.js");
+  const task = (id: number, scheduled_at: string, extra: object = {}) => ({
+    source: "sale_followup", id, type: "visit", notes: null, scheduled_at, status: "open", priority: "normal",
+    overdue: true, person_id: null, person_name: null, property_id: 7, rental_id: null, listing_code: "H-0007",
+    listing_name: "بيت", request_code: null, ...extra,
+  });
+  const business = {
+    tasks: {
+      overdue: { total: 9, items: [task(2, "2026-10-28T09:00:00Z"), task(1, "2026-10-20T09:00:00Z", { person_id: 4, person_name: "سارة" })] },
+      today: { total: 1, items: [task(3, "2026-11-02T10:00:00Z", { overdue: false })] },
+      week: { total: 2, items: [] },
+    },
+    leases: {
+      expiring_days: 30,
+      expiring: { total: 1, items: [{ id: 5, code: "LS-5", end_date: "2026-11-20", days_left: 18, tenant_name: "علي" }] },
+      overdue: { total: 8, by_currency: [], items: [{ id: 11, seq: 1, due_date: "2026-10-01", left: "350000.00", days_overdue: 32, lease_id: 5, lease_code: "LS-5", currency: "IQD", tenant_name: "علي" }] },
+    },
+    customers: { contact_days: 30, needing_contact: { total: 2, rows: [
+      { person_id: 4, person_name: "سارة", phone: "0780", open_requests: 1, open_deals: 0, last_contact: null },
+      { person_id: 6, person_name: "محمد", phone: null, open_requests: 0, open_deals: 1, last_contact: "2026-09-01T00:00:00Z" },
+    ] } },
+    deals: { stalled_days: 14, stalled: { total: 1, items: [{ id: 3, code: "D-3", title: null, client_name: "كاظم", stage: "negotiating", stage_changed_at: "2026-10-01T00:00:00Z" }] } },
+  };
+  const overview = {
+    appointments: { today: 1, items: [] },
+    // Listing follow-up 2 is also an overdue task: one line, as the task.
+    viewings_without_outcome: { total: 2, days: 30, items: [
+      { id: 2, kind: "sale", listing_id: 7, listing_code: "H-0007", listing_name: "بيت", type: "visit", scheduled_at: "2026-10-28T09:00:00Z" },
+      { id: 9, kind: "rental", listing_id: 8, listing_code: "R-0008", listing_name: "شقة", type: "visit", scheduled_at: "2026-10-30T09:00:00Z" },
+    ] },
+  };
+  const matching = { customers: { total: 2, items: [
+    { person_id: 4, person_name: "سارة", person_phone: "0780", total_matches: 2, last_request_update_at: "2026-10-31" },
+    { person_id: 12, person_name: "زبون مطابق", person_phone: null, total_matches: 1, last_request_update_at: "2026-10-30" },
+  ] } };
+  const commissions = [{ id: 1, code: "CM-1", payer_name: "أحمد", deal_code: "D-1", commission_date: "2026-06-20", outstanding: "2500000.00", currency: "IQD" }];
+  const all = new Set(["people.read", "vouchers.receipt"]);
+  const permissions = { can: (p: string) => all.has(p), canFollowup: () => true };
+  const sources = { business, overview, matching, commissions } as never;
+  const items = attentionItems(sources, permissions);
+
+  assert.deepEqual(
+    items.map((item) => item.key),
+    [
+      "installment:11", "task:sale_followup:1", "task:sale_followup:2", // overdue, oldest first
+      "task:sale_followup:3", // today
+      "commission:1", // to collect
+      "person:4", "person:6", "person:12", // never contacted, then the longest silence
+      "deal:3", "task:rental_followup:9", "lease:5", // follow-up, by date
+    ],
+  );
+  const byKey = Object.fromEntries(items.map((item) => [item.key, item]));
+  assert.equal(byKey["installment:11"].action.type, "collect-installment");
+  assert.equal(byKey["commission:1"].action.type, "collect-commission");
+  assert.equal(byKey["task:sale_followup:1"].link, "/clients/4");
+  assert.equal(byKey["task:sale_followup:2"].link, "/properties/7");
+  // Sara waits on a call and has matches: one line, both reasons, the options drawer.
+  assert.equal(byKey["person:4"].action.type, "customer");
+  assert.match(byKey["person:4"].reason, /عروض مطابقة/);
+  assert.match(byKey["person:4"].reason, /لم يُتواصل معه/);
+  assert.equal(byKey["task:rental_followup:9"].action.type, "viewing");
+
+  // Without receipts the money rows open their records instead.
+  const readOnly = attentionItems(sources, { can: (p: string) => p === "people.read", canFollowup: () => false });
+  const ro = Object.fromEntries(readOnly.map((item) => [item.key, item]));
+  assert.deepEqual(ro["installment:11"].action, { type: "route", to: "/leases/5" });
+  assert.deepEqual(ro["commission:1"].action, { type: "route", to: "/accounting/commissions/1" });
+  assert.deepEqual(ro["task:rental_followup:9"].action, { type: "route", to: "/rentals/8" });
+
+  // Tier counts are the server's totals, not the five loaded rows.
+  assert.deepEqual(attentionTotals({ ...(sources as object), commissionTotal: 2 } as never), {
+    overdue: 17, today: 1, collect: 2, contact: 3, followup: 4,
+  });
+  // A failed business summary leaves today's appointments from the overview.
+  const now = new Date();
+  const appointment = { id: 40, kind: "sale", listing_id: 7, listing_code: "H-0007", listing_name: "بيت", type: "phone_call", scheduled_at: now.toISOString() };
+  const degraded = attentionItems({ business: null, overview: { appointments: { today: 1, items: [appointment] } }, matching: null, commissions: null } as never, permissions);
+  assert.deepEqual(degraded.map((item) => [item.key, item.tier]), [["task:sale_followup:40", "today"]]);
+});

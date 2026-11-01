@@ -101,11 +101,25 @@ All times use the office's time zone, Asia/Baghdad.
 | Value of available sale listings   | Sum of `total_price` of available sale listings.                                                                                                                                                                                                        |
 | Monthly rental values              | Rent per month: annual ÷ 12, semi-annual ÷ 6, monthly as is; of available and of rented listings.                                                                                                                                                       |
 
-**Priority** (`utils/dashboardPriority.ts`): the first that applies, then the
-next two as links — appointments today; viewings without a later follow-up;
-requests with matches; requests without a match; listings without activity.
-No scores: time-bound commitments first, then overdue outcomes, then sales
-opportunities, then risks.
+**«يحتاج متابعتك»** (`utils/attentionQueue.ts`, November 2026, UX-02): one
+list of what is waiting, from data the page already loads (no new endpoint).
+Each line is one obligation with its tier, reason, date and one next action:
+
+| Tier    | Lines                                                                                   | Action                                                                           |
+| ------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| متأخر   | open tasks past their date; overdue lease instalments                                   | open the customer or listing; «تحصيل القسط» (rent receipt held for the landlord) |
+| اليوم   | open tasks due today (the overview's appointments only if the tasks section is missing) | open the customer or listing                                                     |
+| للتحصيل | the five oldest commissions not fully collected                                         | «تحصيل» (the same receipt preset as accounting)                                  |
+| تواصل   | customers needing contact; customers whose requests have matches (one line per person)  | open the customer; «عرض الخيارات» (customer drawer)                              |
+| متابعة  | viewings without an outcome; leases ending within 30 days; stalled deals                | «تسجيل النتيجة» (follow-up on the listing); open the lease or deal               |
+
+No scores: tier order, then the oldest date first. A record that comes from
+two sources is one line (a viewing that is also an overdue task; a customer
+who needs a call and has matches). Tier counts are the server's totals, not
+the five loaded rows. A source that fails to load is named in the list with
+a retry, so a failure never reads as «لا شيء ينتظرك»; the empty state lists
+what was checked. The «الكل» view starts with up to three lines per tier so
+today's work and collections show even when overdue items pile up.
 
 **Matching workspace**: one row per request with matches, showing the
 request beside its best listing (most preferences met, then the most
@@ -115,10 +129,8 @@ meets (a request with none counts as fully met), then by the request's last
 update. Filters: all, sale, rental; search by customer name, code or phone,
 or request code.
 
-**Customers awaiting a decision**: customers with open requests, those with
-matches first, then whoever's oldest open request has waited longest. The
-next action is stated from the data: "show the matching options" or "no
-match: review the requirements or look for a listing".
+**Customers awaiting a decision**: those with matches are «تواصل» lines in
+the queue; those without a match are the at-risk requests in `RiskPanel`.
 
 ## Permissions
 
@@ -146,33 +158,27 @@ one before). Overview and matching load independently, each with its own
 skeleton, error and retry. Search waits 300 ms. Drawers are `SideSheet`
 (a `v-dialog`: focus trapped, `Esc` closes, focus returns to the opener).
 
-Layout (phase 5 of the desktop redesign, `docs/UI_AUDIT_AND_REDESIGN_PLAN.md`):
+Layout (November 2026, UX-02; replaced phase 5's priority strip, business
+panels, outstanding commissions and customers/appointments tabs):
 
-1. `SummaryStrip`: one bordered row of five figures (appointments today,
-   requests with and without a match, viewings without an outcome, stale
-   listings). Each figure appears only here; each is a button that moves
-   focus to its section.
-2. `PriorityStrip`: the first action and the next two, worded as actions
-   (no repeated counts), settled only after every permitted section loads.
-3. Two columns by importance (November 2026 refinement; presentation only):
-   - **Main** (1.8fr): the match work queue (5 requests a page), then
-     `BusinessPanels` as two stacks: people and follow-up (tasks, customers
-     needing contact) and contracts and money (rentals, deals, this month's
-     money). Each panel is as tall as its content; there is no equal-card
-     grid. The business panels used to sit above the matches and pushed them
-     below the fold.
-   - **Side** (min 320px): «العمولات غير المستلمة»
-     (`OutstandingCommissions`, with `commissions.read`): the five oldest
-     commissions not yet collected (`/commissions/paged?state=open`,
-     oldest first), each with «تحصيل» (`vouchers.receipt`), which opens the
-     receipt preset like the accounting page; then the customers and
-     appointments tabs, then
-     `RiskPanel`, whose categories link to the full lists ("عرض الكل"; stale
-     listings open the list sorted by oldest update, labelled as an
-     approximation), then `حالة العروض` (`PerformanceSummary`). That table
-     is transposed for the narrow column: statuses are rows, sale and rental
-     two numeric columns. It replaced the separate rental panel, which
-     counted the same statuses again.
+1. `QuickActions`, then `SummaryStrip`: five figures that can be acted on,
+   each a link to its full list — tasks past their date (`/tasks?due=overdue`),
+   tasks and appointments today with the week's count (`/tasks?due=today`),
+   overdue lease instalments with the amount per currency
+   (`/leases?view=overdue`), commissions not collected
+   (`/accounting?view=commissions&state=open`), and requests with matches
+   (scrolls to the matching workspace). A figure without its permission is
+   not shown.
+2. Two columns (container query; one column below 980 px):
+   - **Start** (min 340px): `AttentionQueue` («يحتاج متابعتك»), then
+     `WorkSummary` (open deals by state; this month's money per currency with
+     its dates, client funds excluded) and `PerformanceSummary` (listing
+     status).
+   - **Main**: the match work queue, then `RiskPanel` (requests without a
+     match, listings without activity; viewings are in the queue).
+
+At 1366×768 the first screen shows the five figures, eight queue lines
+covering overdue, today, collection and contact, and the first match.
 
 Lists in these panels share one ledger row (what and who at the start, one
 time, amount or duration at the end); see `apps/renderer/DESIGN.md`. Match
@@ -280,13 +286,13 @@ connection.
 
 **On screen.**
 
-- `BusinessPanels.vue` shows the summary in the main column under the
-  matches. Every figure links to the list that holds it, filtered the same
-  way:
+- The dashboard reads the summary in three places: the summary strip's
+  figures, the attention queue's lines and `WorkSummary`. Every figure links
+  to the list that holds it, filtered the same way:
   - `/tasks?due=…`;
   - `/deals?stalled=1`;
   - `/leases?view=overdue`;
-  - `/accounting/commissions?state=open`;
+  - `/accounting?view=commissions&state=open`;
   - the month's income statement.
 - `NotificationBell.vue` in the command bar shows the alerts. Its badge
   counts the error and warning ones; it refreshes every two minutes and on

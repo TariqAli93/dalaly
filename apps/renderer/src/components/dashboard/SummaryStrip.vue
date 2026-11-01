@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import type { DashboardSection, KpiItem } from "../../utils/dashboardPriority";
+import type { DashboardSection, KpiItem } from "../../utils/dashboardKpi";
 import { formatNumber } from "../../utils/format";
 
 /**
  * شريط الملخّص: صف واحد مفصول بخطوط رفيعة، لكل رقم وسمه وسطر يشرحه، وكل رقم
- * زر يفتح قسمه وينقل التركيز إليه. هنا وحده يظهر كل عدد في اللوحة. null يعني
+ * رابط إلى قائمته الكاملة أو زر يمرّر إلى قسمه في اللوحة. null يعني
  * أن قسمه لم يُحمَّل بعد؛ ما لا يملك المستخدم صلاحيته لا يُمرَّر أصلاً.
  * الرقم بجانب وسمه لا في طرف الخلية الآخر، فلا تقفز العين عبر 300px في شاشة
  * عريضة. اللون للحالة لا للزينة: أحمر لما فات موعده، وأوكر لما ينتظر قراراً،
@@ -24,14 +24,16 @@ function toneClass(item: KpiItem) {
 
 <template>
   <section class="dal-panel summary" aria-label="ملخّص اليوم">
-    <button
+    <component
+      :is="item.to ? 'router-link' : 'button'"
       v-for="item in items"
       :key="item.key"
-      type="button"
+      :to="item.to"
+      :type="item.to ? undefined : 'button'"
       class="summary__item"
       :class="toneClass(item)"
       :aria-label="`${item.label}: ${item.value ?? 'قيد التحميل'}${item.note ? '، ' + item.note : ''}`"
-      @click="emit('select', item.target)"
+      @click="!item.to && item.target && emit('select', item.target)"
     >
       <strong v-if="item.value !== null" class="summary__value">{{
         formatNumber(item.value, 0)
@@ -44,7 +46,7 @@ function toneClass(item: KpiItem) {
       />
       <span class="summary__label">{{ item.label }}</span>
       <span v-if="item.note" class="summary__note">{{ item.note }}</span>
-    </button>
+    </component>
   </section>
 </template>
 
@@ -70,6 +72,8 @@ function toneClass(item: KpiItem) {
   padding: 8px 16px;
   text-align: start;
   border-inline-start: 1px solid var(--dal-stroke);
+  color: inherit;
+  text-decoration: none;
   transition: background-color 150ms ease;
 }
 .summary__item:first-child {
