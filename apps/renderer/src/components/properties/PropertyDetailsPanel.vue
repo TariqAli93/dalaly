@@ -31,6 +31,13 @@ const emit = defineEmits<{ edit: [PropertyRecord] }>();
 const { can } = usePermissions();
 
 const tab = ref("details");
+
+// الصور كاملة في «التفاصيل»؛ في التبويبات الأخرى تُطوى إلى عنوانها فتتسع
+// المتابعات والخريطة والسجل، و«عرض الصور» يعيدها (UX-16). ListingImages يبقى
+// مركّباً، فاللصق والرفع والترتيب والصورة الرئيسية تعمل كما هي.
+const mediaChoice = ref<boolean | null>(null);
+const mediaOpen = computed(() => mediaChoice.value ?? tab.value === "details");
+watch(tab, () => (mediaChoice.value = null));
 const mapVisited = ref(false);
 const auditLogs = ref<AuditLogRecord[]>([]);
 const auditLoading = ref(false);
@@ -170,7 +177,10 @@ defineExpose({ followupSaved });
 </script>
 
 <template>
-  <div class="listing-record">
+  <div
+    class="listing-record"
+    :class="{ 'listing-record--media-closed': !mediaOpen }"
+  >
     <section class="dal-panel" aria-label="بيانات العرض">
       <v-tabs v-model="tab" color="primary" show-arrows>
         <v-tab value="details">التفاصيل</v-tab>
@@ -233,8 +243,18 @@ defineExpose({ followupSaved });
     <aside class="dal-panel" aria-labelledby="media-title">
       <div class="dal-panel__header">
         <h2 id="media-title" class="dal-section-title">الصور</h2>
+        <v-spacer />
+        <v-btn
+          size="small"
+          variant="text"
+          :append-icon="mediaOpen ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+          :aria-expanded="mediaOpen"
+          aria-controls="media-body"
+          @click="mediaChoice = !mediaOpen"
+          >{{ mediaOpen ? "طيّ" : "عرض الصور" }}</v-btn
+        >
       </div>
-      <div class="listing-record__media">
+      <div v-show="mediaOpen" id="media-body" class="listing-record__media">
         <ListingImages
           kind="sale"
           :listing-id="property.id"
