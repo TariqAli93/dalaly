@@ -7,6 +7,10 @@ import {
 import { useSetup } from "../composables/useSetup";
 import { useAuth } from "../composables/useAuth";
 import { usePermissions } from "../composables/usePermissions";
+import {
+  ACCOUNTING_PERMISSIONS,
+  REPORT_PERMISSIONS,
+} from "../constants/permissions";
 
 declare module "vue-router" {
   interface RouteMeta {
@@ -134,15 +138,10 @@ const appPages: RouteRecordRaw[] = [
       titleKey: "routes.rentalEdit",
     },
   },
+  // المفضلة عرض سريع في قائمتها؛ الرابط القديم يفتح القائمة عليه.
   {
     path: "/rental-favorites",
-    name: "rental-favorites",
-    component: () => import("../pages/RentalFavoritesPage.vue"),
-    meta: {
-      requiresAuth: true,
-      permission: "rentals.read",
-      titleKey: "routes.rentalFavorites",
-    },
+    redirect: () => ({ path: "/rentals", query: { view: "favorites" } }),
   },
   {
     path: "/people",
@@ -239,25 +238,31 @@ const appPages: RouteRecordRaw[] = [
       titleKey: "routes.accountStatement",
     },
   },
+  // التقارير كلها صفحة واحدة؛ أسماء التقارير في الصفحتين القديمتين لا تتكرر،
+  // فيحمل الرابط القديم استعلامه كما هو.
   {
-    path: "/reports/operations",
-    name: "operations-reports",
-    component: () => import("../pages/OperationsReportsPage.vue"),
+    path: "/reports",
+    name: "reports",
+    component: () => import("../pages/ReportsPage.vue"),
     meta: {
       requiresAuth: true,
-      permission: "reports.operations",
-      titleKey: "routes.operationsReports",
+      permission: REPORT_PERMISSIONS,
+      titleKey: "routes.reports",
     },
   },
   {
+    path: "/reports/operations",
+    redirect: (to) => ({
+      path: "/reports",
+      query: { report: "deals", ...to.query },
+    }),
+  },
+  {
     path: "/reports/financial",
-    name: "financial-reports",
-    component: () => import("../pages/FinancialReportsPage.vue"),
-    meta: {
-      requiresAuth: true,
-      permission: "reports.financial",
-      titleKey: "routes.financialReports",
-    },
+    redirect: (to) => ({
+      path: "/reports",
+      query: { report: "income-statement", ...to.query },
+    }),
   },
   {
     path: "/leases",
@@ -279,6 +284,18 @@ const appPages: RouteRecordRaw[] = [
       titleKey: "routes.leases",
     },
   },
+  // الحسابات: مساحة واحدة (الملخّص والحركات والعمولات)؛ قائمتا السندات
+  // والعمولات القديمتان عرضان فيها.
+  {
+    path: "/accounting",
+    name: "accounting",
+    component: () => import("../pages/AccountingPage.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: ACCOUNTING_PERMISSIONS,
+      titleKey: "routes.accounting",
+    },
+  },
   {
     path: "/accounting/cash",
     name: "cash",
@@ -291,13 +308,10 @@ const appPages: RouteRecordRaw[] = [
   },
   {
     path: "/accounting/commissions",
-    name: "commissions",
-    component: () => import("../pages/CommissionsPage.vue"),
-    meta: {
-      requiresAuth: true,
-      permission: "commissions.read",
-      titleKey: "routes.commissions",
-    },
+    redirect: (to) => ({
+      path: "/accounting",
+      query: { view: "commissions", ...to.query },
+    }),
   },
   {
     path: "/accounting/commissions/:id(\\d+)",
@@ -311,13 +325,10 @@ const appPages: RouteRecordRaw[] = [
   },
   {
     path: "/accounting/vouchers",
-    name: "vouchers",
-    component: () => import("../pages/VouchersPage.vue"),
-    meta: {
-      requiresAuth: true,
-      permission: "vouchers.read",
-      titleKey: "routes.vouchers",
-    },
+    redirect: (to) => ({
+      path: "/accounting",
+      query: { view: "vouchers", ...to.query },
+    }),
   },
   {
     path: "/accounting/vouchers/:id(\\d+)",
@@ -444,13 +455,7 @@ const appPages: RouteRecordRaw[] = [
   },
   {
     path: "/favorites",
-    name: "favorites",
-    component: () => import("../pages/FavoritesPage.vue"),
-    meta: {
-      requiresAuth: true,
-      permission: "properties.read",
-      titleKey: "routes.favorites",
-    },
+    redirect: () => ({ path: "/properties", query: { view: "favorites" } }),
   },
   {
     path: "/locations",

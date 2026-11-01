@@ -129,7 +129,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <AppPage title="دليل الحسابات" :count="accounts.length || null">
+  <AppPage
+    title="دليل الحسابات"
+    :parent="{ to: '/accounting', label: 'الحسابات' }"
+    :count="accounts.length || null"
+  >
     <template #header-actions>
       <v-btn
         v-if="can('accounting.accounts.manage')"

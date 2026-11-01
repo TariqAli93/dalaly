@@ -181,7 +181,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <AppPage title="الصناديق والمصارف">
+  <AppPage
+    title="الصناديق والمصارف"
+    :parent="{ to: '/accounting', label: 'الحسابات' }"
+  >
     <template #header-actions>
       <v-btn
         v-if="can('cash.manage')"

@@ -1,4 +1,5 @@
 import type { ListSortOption, PropertySortKey, RentalSortKey } from "../types";
+import { ACCOUNTING_PERMISSIONS, REPORT_PERMISSIONS } from "./permissions";
 
 export const DIRECT_PRICE = "سعر إجمالي مباشر";
 
@@ -151,15 +152,24 @@ export type NavItem = {
   icon: string;
   /** A key, or keys of which any one shows the item. */
   permission?: string | string[];
+  /**
+   * Pages of the same area that are not everyday work (the cash boxes, the
+   * journal, the templates, users and roles). They show under the item only
+   * while the user is inside its area, so the pane stays short.
+   */
+  children?: NavItem[];
 };
 
 export type NavSection = { title: string | null; items: NavItem[] };
 
 /**
  * التنقّل الجانبي بمجالات العمل: العمل اليومي أولاً (لوحة التحكم والمهام)،
- * ثم العقارات، فالزبائن وطلباتهم، فالصفقات والعقود والإيجارات السارية،
- * فالحسابات، فالتقارير، فالإعدادات والإدارة. صفحات الإنشاء ليست هنا: تُفتح
- * من «إضافة» في شريط الأوامر أو من صفحتها. تُخفى العناصر بلا صلاحية.
+ * ثم العقارات والطلبات، فالزبائن، فالصفقات والعقود والإيجارات السارية،
+ * فالحسابات والتقارير (صفحة واحدة لكل منهما)، فالإعدادات. صفحات الإنشاء ليست
+ * هنا: تُفتح من «إضافة» في شريط الأوامر أو من صفحتها، والمفضلة عرض سريع في
+ * قائمتها. الصفحات النادرة (الصناديق والقيود والقوالب والمستخدمون…) أبناء
+ * عنصرها تظهر تحته داخل مجاله فقط. المساعدة في أسفل اللوح، لا هنا. تُخفى
+ * العناصر بلا صلاحية.
  */
 export const NAV_SECTIONS: NavSection[] = [
   {
@@ -175,7 +185,7 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: "العقارات",
+    title: "العقارات والطلبات",
     items: [
       {
         title: "عروض البيع",
@@ -190,29 +200,6 @@ export const NAV_SECTIONS: NavSection[] = [
         permission: "rentals.read",
       },
       {
-        title: "المفضلة",
-        to: "/favorites",
-        icon: "mdi-heart-outline",
-        permission: "properties.read",
-      },
-      {
-        title: "مفضلة الإيجارات",
-        to: "/rental-favorites",
-        icon: "mdi-heart-multiple-outline",
-        permission: "rentals.read",
-      },
-    ],
-  },
-  {
-    title: "الزبائن والطلبات",
-    items: [
-      {
-        title: "الزبائن",
-        to: "/people",
-        icon: "mdi-account-box-multiple-outline",
-        permission: "people.read",
-      },
-      {
         title: "طلبات الشراء",
         to: "/purchase-requests",
         icon: "mdi-home-search-outline",
@@ -223,6 +210,17 @@ export const NAV_SECTIONS: NavSection[] = [
         to: "/rental-requests",
         icon: "mdi-text-box-search-outline",
         permission: "requests.read",
+      },
+    ],
+  },
+  {
+    title: "الزبائن",
+    items: [
+      {
+        title: "الزبائن",
+        to: "/people",
+        icon: "mdi-account-box-multiple-outline",
+        permission: "people.read",
       },
       {
         title: "المستمسكات",
@@ -246,6 +244,14 @@ export const NAV_SECTIONS: NavSection[] = [
         to: "/contracts",
         icon: "mdi-file-sign",
         permission: "agreements.read",
+        children: [
+          {
+            title: "قوالب العقود",
+            to: "/contracts/templates",
+            icon: "mdi-file-document-edit-outline",
+            permission: "agreements.templates",
+          },
+        ],
       },
       {
         title: "الإيجارات السارية",
@@ -253,94 +259,74 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: "mdi-home-clock-outline",
         permission: "leases.read",
       },
-      {
-        title: "قوالب العقود",
-        to: "/contracts/templates",
-        icon: "mdi-file-document-edit-outline",
-        permission: "agreements.templates",
-      },
     ],
   },
   {
-    title: "الحسابات",
+    title: "الحسابات والتقارير",
     items: [
       {
-        title: "الصناديق والمصارف",
-        to: "/accounting/cash",
-        icon: "mdi-safe-square-outline",
-        permission: "cash.read",
-      },
-      {
-        title: "سندات القبض والصرف",
-        to: "/accounting/vouchers",
+        title: "الحسابات",
+        to: "/accounting",
         icon: "mdi-cash-register",
-        permission: "vouchers.read",
+        permission: ACCOUNTING_PERMISSIONS,
+        children: [
+          {
+            title: "الصناديق والمصارف",
+            to: "/accounting/cash",
+            icon: "mdi-safe-square-outline",
+            permission: "cash.read",
+          },
+          {
+            title: "القيود",
+            to: "/accounting/journal",
+            icon: "mdi-book-open-variant",
+            permission: "accounting.read",
+          },
+          {
+            title: "دليل الحسابات",
+            to: "/accounting/accounts",
+            icon: "mdi-file-tree-outline",
+            permission: "accounting.read",
+          },
+        ],
       },
       {
-        title: "العمولات",
-        to: "/accounting/commissions",
-        icon: "mdi-percent-circle-outline",
-        permission: "commissions.read",
-      },
-      {
-        title: "القيود",
-        to: "/accounting/journal",
-        icon: "mdi-book-open-variant",
-        permission: "accounting.read",
-      },
-      {
-        title: "دليل الحسابات",
-        to: "/accounting/accounts",
-        icon: "mdi-file-tree-outline",
-        permission: "accounting.read",
-      },
-    ],
-  },
-  {
-    title: "التقارير",
-    items: [
-      {
-        title: "التقارير المالية",
-        to: "/reports/financial",
+        title: "التقارير",
+        to: "/reports",
         icon: "mdi-chart-box-outline",
-        permission: "reports.financial",
-      },
-      {
-        title: "تقارير العمل",
-        to: "/reports/operations",
-        icon: "mdi-chart-timeline-variant",
-        permission: "reports.operations",
+        permission: REPORT_PERMISSIONS,
       },
     ],
   },
   {
-    title: "الإعدادات والإدارة",
+    title: null,
     items: [
-      {
-        title: "المستخدمون",
-        to: "/users",
-        icon: "mdi-account-cog-outline",
-        permission: "users.read",
-      },
-      {
-        title: "الأدوار والصلاحيات",
-        to: "/roles",
-        icon: "mdi-shield-key-outline",
-        permission: "roles.read",
-      },
-      {
-        title: "المحافظات والمناطق",
-        to: "/locations",
-        icon: "mdi-map-marker-outline",
-        permission: "locations.manage",
-      },
       {
         title: "الإعدادات",
         to: "/settings",
         icon: "mdi-cog-outline",
         permission: "settings.read",
+        children: [
+          {
+            title: "المستخدمون",
+            to: "/users",
+            icon: "mdi-account-cog-outline",
+            permission: "users.read",
+          },
+          {
+            title: "الأدوار والصلاحيات",
+            to: "/roles",
+            icon: "mdi-shield-key-outline",
+            permission: "roles.read",
+          },
+          {
+            title: "المحافظات والمناطق",
+            to: "/locations",
+            icon: "mdi-map-marker-outline",
+            permission: "locations.manage",
+          },
+        ],
       },
-      { title: "المساعدة", to: "/help", icon: "mdi-help-circle-outline" },
     ],
   },
 ];
@@ -355,7 +341,8 @@ export type QuickAddItem = {
 
 /**
  * «إضافة» في شريط الأوامر، من أي صفحة: كل بند يفتح صفحته وحوار الإضافة فيها
- * (?new=)، أو نموذجه. مجموعات بفواصل بينها، وتُخفى البنود بلا صلاحية.
+ * (?new=)، أو نموذجه. مجموعات بفواصل بينها، وتُخفى البنود بلا صلاحية. لوحة
+ * التحكم تعرض أكثرها استعمالاً أزراراً ظاهرة (QUICK_ACTIONS).
  */
 export const QUICK_ADD: QuickAddItem[][] = [
   [
@@ -406,9 +393,15 @@ export const QUICK_ADD: QuickAddItem[][] = [
   ],
   [
     {
-      title: "صفقة",
-      to: "/deals?new=1",
+      title: "صفقة بيع",
+      to: "/deals?new=sale",
       icon: "mdi-handshake-outline",
+      permissions: ["deals.create"],
+    },
+    {
+      title: "صفقة إيجار",
+      to: "/deals?new=rent",
+      icon: "mdi-key-outline",
       permissions: ["deals.create"],
     },
     {
@@ -420,28 +413,72 @@ export const QUICK_ADD: QuickAddItem[][] = [
   ],
   [
     {
+      title: "تسديد عمولة",
+      to: "/accounting?new=commission",
+      icon: "mdi-percent-circle-outline",
+      permissions: ["vouchers.receipt", "commissions.read"],
+    },
+    {
       title: "سند قبض",
-      to: "/accounting/vouchers?new=receipt",
+      to: "/accounting?new=receipt",
       icon: "mdi-cash-plus",
       permissions: ["vouchers.receipt"],
     },
     {
-      title: "سند صرف",
-      to: "/accounting/vouchers?new=payment",
+      title: "مصروف",
+      to: "/accounting?new=expense",
       icon: "mdi-cash-minus",
+      permissions: ["vouchers.payment"],
+    },
+    {
+      title: "سند صرف",
+      to: "/accounting?new=payment",
+      icon: "mdi-cash-refund",
       permissions: ["vouchers.payment"],
     },
   ],
 ];
 
-/** هل المسار الحالي داخل قسم العنصر (القائمة نفسها أو تفاصيلها أو نموذجها). */
+/**
+ * العمليات اليومية أزراراً ظاهرة في لوحة التحكم: نقرة واحدة بدل فتح «إضافة»
+ * ثم الاختيار. بنود من QUICK_ADD نفسها، فلا يختلف ما تفتحه.
+ */
+const QUICK_ACTION_PATHS = [
+  "/properties/new",
+  "/rentals/new",
+  "/people?new=1",
+  "/purchase-requests?new=1",
+  "/deals?new=sale",
+  "/accounting?new=commission",
+  "/accounting?new=expense",
+];
+export const QUICK_ACTIONS: QuickAddItem[] = QUICK_ACTION_PATHS.map((to) =>
+  QUICK_ADD.flat().find((item) => item.to === to)!,
+);
+
+/** The page itself, or a record or form under it. */
+function underPath(to: string, path: string) {
+  if (to === "/") return path === "/";
+  return path === to || path.startsWith(`${to}/`);
+}
+
+/**
+ * هل المسار الحالي صفحة العنصر نفسه (أو تفاصيلها أو نموذجها)، لا صفحة أحد
+ * أبنائه: ملف الزبون تحت «الزبائن»، والصناديق تحت «الصناديق والمصارف» لا تحت
+ * «الحسابات».
+ */
 export function isNavActive(item: NavItem, path: string) {
-  if (item.to === "/") return path === "/";
   if (item.to === "/people" && path.startsWith("/clients/")) return true;
-  // القوالب تحت /contracts لكنها عنصر مستقل في القائمة.
-  if (item.to === "/contracts" && path.startsWith("/contracts/templates"))
-    return false;
-  return path === item.to || path.startsWith(`${item.to}/`);
+  if (item.children?.some((child) => underPath(child.to, path))) return false;
+  return underPath(item.to, path);
+}
+
+/** هل المسار داخل مجال العنصر: صفحته أو صفحة أحد أبنائه. */
+export function isNavOpen(item: NavItem, path: string) {
+  return (
+    isNavActive(item, path) ||
+    Boolean(item.children?.some((child) => underPath(child.to, path)))
+  );
 }
 
 export function statusLabel(status: string) {

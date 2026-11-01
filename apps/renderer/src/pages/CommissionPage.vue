@@ -10,6 +10,10 @@ import { useRefresh } from "../composables/useRefresh";
 import { useSnackbar } from "../composables/useSnackbar";
 import { voucherKindLabel } from "../constants/accounting";
 import { formatAmount, formatDate, todayIso } from "../utils/format";
+import {
+  commissionCollection,
+  sharePayment,
+} from "../utils/commissionVouchers";
 import type {
   CommissionDetail,
   CommissionSplitRecord,
@@ -65,28 +69,17 @@ const voucherKind = ref<VoucherKind>("receipt");
 const voucherPreset = ref<Partial<VoucherPayload> | null>(null);
 const voucherNote = ref("");
 function collect() {
-  const current = commission.value!;
+  const { preset, note } = commissionCollection(commission.value!);
   voucherKind.value = "receipt";
-  voucherPreset.value = {
-    purpose: "commission",
-    currency: current.currency,
-    commission_id: current.id,
-    amount: current.outstanding,
-    description: `عمولة ${current.code}${current.deal_code ? ` على الصفقة ${current.deal_code}` : ""}`,
-  };
-  voucherNote.value = `تحصيل العمولة ${current.code} من ${current.payer_name ?? ""}؛ المتبقي ${money(current.outstanding)}.`;
+  voucherPreset.value = preset;
+  voucherNote.value = note;
   voucherDialog.value = true;
 }
 function pay(share: CommissionSplitRecord) {
+  const { preset, note } = sharePayment(share);
   voucherKind.value = "payment";
-  voucherPreset.value = {
-    purpose: "commission",
-    currency: share.currency,
-    commission_split_id: share.id,
-    amount: share.outstanding,
-    description: `حصة ${share.user_name} من العمولة ${share.commission_code}`,
-  };
-  voucherNote.value = `دفع حصة ${share.user_name}؛ المتبقي ${money(share.outstanding)}.`;
+  voucherPreset.value = preset;
+  voucherNote.value = note;
   voucherDialog.value = true;
 }
 function onIssued(voucher: VoucherDetail) {
@@ -133,7 +126,7 @@ async function confirmCancel() {
 <template>
   <AppPage
     :title="commission ? `العمولة ${commission.code}` : 'العمولة'"
-    :parent="{ to: '/accounting/commissions', label: 'العمولات' }"
+    :parent="{ to: '/accounting?view=commissions', label: 'العمولات' }"
   >
     <template v-if="commission && active" #header-actions>
       <v-btn

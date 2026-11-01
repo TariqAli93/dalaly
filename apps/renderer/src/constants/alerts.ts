@@ -37,16 +37,12 @@ export const ALERTS: Record<
     title: "إيجارات تنتهي خلال 30 يوماً",
     icon: "mdi-calendar-end",
     to: (can) =>
-      can("reports.operations")
-        ? "/reports/operations?report=leases&days=30"
-        : "/leases",
+      can("reports.operations") ? "/reports?report=leases&days=30" : "/leases",
   },
   customers_needing_contact: {
     title: "زبائن بلا تواصل منذ 30 يوماً",
     icon: "mdi-account-clock-outline",
     to: (can) =>
-      can("reports.operations")
-        ? "/reports/operations?report=customers"
-        : "/people",
+      can("reports.operations") ? "/reports?report=customers" : "/people",
   },
 };

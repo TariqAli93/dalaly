@@ -7,7 +7,7 @@ import {
   useTemplateRef,
   watch,
 } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import PropertyFilters from "../components/properties/PropertyFilters.vue";
 import PropertiesTable from "../components/properties/PropertiesTable.vue";
@@ -176,6 +176,9 @@ function onShortcut(event: KeyboardEvent) {
   createProperty();
 }
 
+// ?view=favorites (رابط «المفضلة» القديم والمساعدة): القائمة تبدأ بالمفضلة.
+// يبقى في العنوان: استبدال العنوان أثناء تحويل الرابط القديم يلغي التحويل.
+if (useRoute().query.view === "favorites") favoritesOnly.value = true;
 // نفس الصفحة والفلاتر من الزيارة السابقة، قبل أن يُظهر الجدول خياراته الأولى
 // فلا يطلب الصفحة نفسها مرتين.
 void reloadProperties();

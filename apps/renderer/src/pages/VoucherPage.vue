@@ -107,7 +107,7 @@ async function confirmVoid() {
     :title="
       voucher ? `${voucherKindLabel(voucher.kind)} ${voucher.code}` : 'السند'
     "
-    :parent="{ to: '/accounting/vouchers', label: 'السندات' }"
+    :parent="{ to: '/accounting', label: 'الحسابات' }"
   >
     <template v-if="voucher" #header-actions>
       <v-btn
