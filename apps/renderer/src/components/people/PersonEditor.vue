@@ -8,6 +8,7 @@ import { getErrorMessage } from "../../services/api.service";
 import { useSnackbar } from "../../composables/useSnackbar";
 import { useAssignees } from "../../composables/useAssignees";
 import { usePermissions } from "../../composables/usePermissions";
+import { useFormSections } from "../../composables/useFormSections";
 import { PERSON_ROLES, PERSON_SOURCES } from "../../constants/crm";
 import type {
   PersonDuplicate,
@@ -27,10 +28,13 @@ const props = defineProps<{
 const emit = defineEmits<{ saved: [PersonRecord] }>();
 
 /**
- * إضافة زبون وتعديله: أقسام الاتصال والهوية والسكن وعلاقته بالمكتب (صفاته،
- * ومن أين جاء، والموظف المتابع)، والاسم وحده مطلوب. يُنبّه، دون أن يمنع،
- * إن كان للهاتف أو رقم الهوية زبون مسجل آخر. لا يُغلق بـ Esc أو بالنقر خارجه
- * بعد أي تعديل؛ Ctrl+S وEnter يحفظان، والتركيز يعود بعد الإغلاق إلى ما فتحه.
+ * إضافة زبون وتعديله، والاسم وحده مطلوب. يبدأ مختصراً: الاسم والهاتف وصفة
+ * الزبون؛ والاتصال الإضافي والهوية والسكن وعلاقته بالمكتب والملاحظات أقسام
+ * مطوية تفتح بنقرة، وتفتح وحدها حين فيها بيانات (تعديل زبون) أو خطأ من
+ * الخادم. فيُسجَّل زبون من داخل طلب دون ملفه كاملاً، وما يحتاجه العقد يُكمَل
+ * لاحقاً (فحوص إصدار العقد كما هي). يُنبّه، دون أن يمنع، إن كان للهاتف أو رقم
+ * الهوية زبون مسجل آخر. لا يُغلق بـ Esc أو بالنقر خارجه بعد أي تعديل؛ Ctrl+S
+ * وEnter يحفظان، والتركيز يعود بعد الإغلاق إلى ما فتحه.
  */
 const PERSON_TYPES = [
   { title: "فرد", value: "individual" },
@@ -217,6 +221,25 @@ function onKeydown(event: KeyboardEvent) {
   event.preventDefault();
   void save();
 }
+// النوع والحالة لهما قيمة افتراضية فلا تفتحان قسميهما.
+const sections = useFormSections(
+  form,
+  {
+    contact: ["phone_secondary", "email"],
+    identity: [
+      "national_id",
+      "residence_card_number",
+      "governorate",
+      "district",
+      "neighborhood",
+      "alley",
+      "house_number",
+      "address",
+    ],
+    office: ["source", "assigned_user_id", "notes"],
+  },
+  () => fieldErrors.value,
+);
 const nameError = computed(() =>
   submitted.value && !form.value.full_name.trim()
     ? ["اسم الزبون مطلوب."]
@@ -246,7 +269,7 @@ const nameError = computed(() =>
             <p class="dal-form__hint">
               الاسم وحده مطلوب؛ الباقي يُكمَل لاحقاً.
             </p>
-            <FormSection title="الاتصال" :columns="2">
+            <FormSection title="الاسم والاتصال" :columns="2">
               <v-text-field
                 v-model="form.full_name"
                 name="full_name"
@@ -261,23 +284,14 @@ const nameError = computed(() =>
                 label="الهاتف"
                 :error-messages="fieldErrors.phone_primary"
               />
-              <PhoneField
-                v-model="form.phone_secondary"
-                name="phone_secondary"
-                label="هاتف إضافي"
-                :error-messages="fieldErrors.phone_secondary"
-              />
-              <v-text-field
-                v-model="form.email"
-                name="email"
-                type="email"
-                label="البريد الإلكتروني"
-                :error-messages="fieldErrors.email"
-              />
               <v-select
-                v-model="form.person_type"
-                :items="PERSON_TYPES"
-                label="النوع"
+                v-model="form.roles"
+                :items="PERSON_ROLES"
+                label="صفة الزبون"
+                hint="قد تجتمع أكثر من صفة؛ مالك العرض وصاحب الطلب يُعرفان من سجلاتهما أيضاً."
+                multiple
+                chips
+                closable-chips
               />
             </FormSection>
             <v-alert
@@ -301,10 +315,46 @@ const nameError = computed(() =>
                 </li>
               </ul>
             </v-alert>
-            <FormSection title="الهوية" :columns="2">
+            <FormSection
+              title="هاتف إضافي والبريد ونوع الزبون"
+              :columns="2"
+              section="contact"
+              collapsible
+              :open="sections.isOpen('contact')"
+              :summary="sections.summary('contact')"
+              @update:open="sections.setOpen('contact', $event)"
+            >
+              <PhoneField
+                v-model="form.phone_secondary"
+                name="phone_secondary"
+                label="هاتف إضافي"
+                :error-messages="fieldErrors.phone_secondary"
+              />
+              <v-text-field
+                v-model="form.email"
+                name="email"
+                type="email"
+                label="البريد الإلكتروني"
+                :error-messages="fieldErrors.email"
+              />
+              <v-select
+                v-model="form.person_type"
+                :items="PERSON_TYPES"
+                label="النوع"
+              />
+            </FormSection>
+            <FormSection
+              title="الهوية والسكن"
+              section="identity"
+              collapsible
+              :open="sections.isOpen('identity')"
+              :summary="sections.summary('identity')"
+              @update:open="sections.setOpen('identity', $event)"
+            >
               <v-text-field
                 v-model="form.national_id"
                 name="national_id"
+                class="form-section__wide"
                 label="رقم البطاقة الوطنية أو هوية الأحوال المدنية"
                 :error-messages="fieldErrors.national_id"
               />
@@ -314,8 +364,6 @@ const nameError = computed(() =>
                 label="رقم بطاقة السكن"
                 :error-messages="fieldErrors.residence_card_number"
               />
-            </FormSection>
-            <FormSection title="السكن">
               <v-text-field v-model="form.governorate" label="المحافظة" />
               <v-text-field v-model="form.district" label="القضاء أو الناحية" />
               <v-text-field
@@ -324,30 +372,21 @@ const nameError = computed(() =>
               />
               <v-text-field v-model="form.alley" label="الزقاق" />
               <v-text-field v-model="form.house_number" label="الدار" />
-              <v-select
-                v-if="person && person.status !== 'archived'"
-                v-model="form.status"
-                :items="STATUSES"
-                label="الحالة"
-              />
               <v-text-field
                 v-model="form.address"
                 class="form-section__wide"
                 label="محل الإقامة الحالي وتفاصيل العنوان"
               />
             </FormSection>
-            <FormSection title="علاقته بالمكتب" :columns="2">
-              <v-select
-                v-model="form.roles"
-                :items="PERSON_ROLES"
-                class="form-section__wide"
-                label="صفة الزبون"
-                hint="قد تجتمع أكثر من صفة؛ مالك العرض وصاحب الطلب يُعرفان من سجلاتهما أيضاً."
-                persistent-hint
-                multiple
-                chips
-                closable-chips
-              />
+            <FormSection
+              title="علاقته بالمكتب والملاحظات"
+              :columns="2"
+              section="office"
+              collapsible
+              :open="sections.isOpen('office')"
+              :summary="sections.summary('office')"
+              @update:open="sections.setOpen('office', $event)"
+            >
               <v-select
                 v-model="form.source"
                 :items="PERSON_SOURCES"
@@ -363,10 +402,15 @@ const nameError = computed(() =>
                 label="الموظف المتابع"
                 clearable
               />
-            </FormSection>
-            <FormSection title="الملاحظات" :columns="1">
+              <v-select
+                v-if="person && person.status !== 'archived'"
+                v-model="form.status"
+                :items="STATUSES"
+                label="الحالة"
+              />
               <v-textarea
                 v-model="form.notes"
+                class="form-section__wide"
                 label="ملاحظات"
                 rows="2"
                 auto-grow

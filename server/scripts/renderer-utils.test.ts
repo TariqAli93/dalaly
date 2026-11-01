@@ -300,3 +300,34 @@ test("the attention queue orders by tier then date, once per record, with the ri
   const degraded = attentionItems({ business: null, overview: { appointments: { today: 1, items: [appointment] } }, matching: null, commissions: null } as never, permissions);
   assert.deepEqual(degraded.map((item) => [item.key, item.tier]), [["task:sale_followup:40", "today"]]);
 });
+
+test("an optional form section opens for data, an error, the user or edit mode, never hiding a value", async () => {
+  const { ref } = await import("vue");
+  const { hasValue, useFormSections } = await import("../../apps/renderer/src/composables/useFormSections.js");
+  for (const value of ["x", 0, 3, ["a"], { wifi: true }]) assert.ok(hasValue(value), JSON.stringify(value));
+  for (const value of ["", "  ", null, undefined, false, [], {}, { wifi: false }]) assert.ok(!hasValue(value), JSON.stringify(value));
+
+  const model = ref({ plot_number: "", notes: "", amenities: {} as Record<string, boolean> });
+  const errors = ref<Record<string, string[]>>({});
+  const sections = useFormSections(model, { parcel: ["plot_number"], notes: ["notes", "amenities"] }, () => errors.value);
+  // A new, empty form starts with the optional sections closed.
+  assert.equal(sections.isOpen("parcel"), false);
+  assert.equal(sections.summary("parcel"), "اختياري");
+  // A record that has a value shows it (editing, a restored draft).
+  model.value.amenities = { wifi: true };
+  assert.equal(sections.isOpen("notes"), true);
+  assert.equal(sections.summary("notes"), "فيه بيانات");
+  // The user's choice wins over the data…
+  sections.setOpen("notes", false);
+  assert.equal(sections.isOpen("notes"), false);
+  // …but never over an error from the server on one of its fields.
+  errors.value = { notes: ["طويل جداً"] };
+  assert.equal(sections.isOpen("notes"), true);
+  // Edit mode can open a section with defaults only (the request's status).
+  assert.equal(sections.isOpen("parcel", true), true);
+  sections.setOpen("parcel", false);
+  assert.equal(sections.isOpen("parcel", true), false);
+  // Closing keeps the value: the fields stay mounted and in the model.
+  model.value.plot_number = "88";
+  assert.equal(model.value.plot_number, "88");
+});
