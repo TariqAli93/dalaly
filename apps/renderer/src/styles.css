@@ -1003,7 +1003,6 @@ body {
    ("24p 11:58:31 ،2026/10/"). */
 :is(.v-application, .v-overlay) input[type="tel"],
 :is(.v-application, .v-overlay) input[type="email"],
-:is(.v-application, .v-overlay) input[type="date"],
 :is(.v-application, .v-overlay) bdi:not([dir]) {
   direction: ltr;
   unicode-bidi: isolate;

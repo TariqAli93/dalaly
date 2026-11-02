@@ -34,6 +34,7 @@ import type {
   JournalStatus,
   ListSortOption,
 } from "../types";
+import DateField from "../components/app/DateField.vue";
 
 /**
  * دفتر القيود: كل قيد بتاريخه وبيانه وعملته ومبلغه وحالته، الأحدث أولاً.
@@ -203,17 +204,15 @@ onMounted(() => setRefreshHandler(list.reload));
             clearable
             class="dal-toolbar__filter"
           />
-          <v-text-field
+          <DateField
             v-model="from"
-            type="date"
             label="من تاريخ"
             hide-details
             clearable
             class="dal-toolbar__filter"
           />
-          <v-text-field
+          <DateField
             v-model="to"
-            type="date"
             label="إلى تاريخ"
             hide-details
             clearable

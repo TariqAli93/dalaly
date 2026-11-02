@@ -16,6 +16,7 @@ import {
 } from "../utils/format";
 import { exportVoucherPdf, printVoucher } from "../utils/voucherPrint";
 import type { VoucherDetail } from "../types";
+import DateField from "../components/app/DateField.vue";
 
 /**
  * صفحة السند: بياناته ومبلغه كتابةً وقيده في اليومية، وطباعته أو حفظه PDF.
@@ -296,9 +297,8 @@ async function confirmVoid() {
           <v-alert v-if="voidError" type="error" variant="tonal" class="mb-3">{{
             voidError
           }}</v-alert>
-          <v-text-field
+          <DateField
             v-model="voidDate"
-            type="date"
             label="تاريخ الإلغاء"
             class="mb-3"
             hide-details

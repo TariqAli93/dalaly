@@ -22,6 +22,7 @@ import type {
   VoucherSortKey,
   VoucherStatus,
 } from "../../types";
+import DateField from "../app/DateField.vue";
 
 /**
  * الحركات المالية: كل سند قبض أو صرف برقمه وتاريخه وطرفه وغرضه ومبلغه، ومن
@@ -257,20 +258,8 @@ defineExpose({ reload: list.reload, total });
         hide-details
         clearable
       />
-      <v-text-field
-        v-model="from"
-        type="date"
-        label="من تاريخ"
-        hide-details
-        clearable
-      />
-      <v-text-field
-        v-model="to"
-        type="date"
-        label="إلى تاريخ"
-        hide-details
-        clearable
-      />
+      <DateField v-model="from" label="من تاريخ" hide-details clearable />
+      <DateField v-model="to" label="إلى تاريخ" hide-details clearable />
     </template>
   </FilterBar>
 

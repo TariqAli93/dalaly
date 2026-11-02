@@ -29,6 +29,7 @@ import {
 import { readFileAsDataUrl } from "../../utils/files";
 import { useSnackbar } from "../../composables/useSnackbar";
 import type { StudioSelection } from "./studio";
+import NumberField from "../app/NumberField.vue";
 
 /**
  * Properties of the selection: a block's typography, spacing, border,
@@ -420,9 +421,8 @@ const NUMBERING = [
         </template>
         <template v-else-if="block.type === 'table'">
           <div class="inspector__grid">
-            <v-text-field
+            <NumberField
               label="الصفوف"
-              type="number"
               :model-value="block.rows.length"
               min="1"
               max="200"
@@ -434,9 +434,8 @@ const NUMBERING = [
                 )
               "
             />
-            <v-text-field
+            <NumberField
               label="الأعمدة"
-              type="number"
               :model-value="block.rows[0]?.length ?? 1"
               min="1"
               max="8"
@@ -498,12 +497,10 @@ const NUMBERING = [
           >
           <div class="inspector__label">نسب عرض الأعمدة (من اليمين)</div>
           <div class="inspector__grid">
-            <v-text-field
+            <NumberField
               v-for="(width, index) in block.widths"
               :key="index"
               :label="`العمود ${index + 1}`"
-              type="number"
-              step="0.5"
               :model-value="width"
               :disabled="readonly"
               @update:model-value="setWidth(index, $event)"
@@ -538,10 +535,9 @@ const NUMBERING = [
             density="compact"
             @update:model-value="patchBlock({ logo: Boolean($event) })"
           />
-          <v-text-field
+          <NumberField
             v-if="block.logo"
             label="عرض الشعار (مم)"
-            type="number"
             :model-value="block.logo_width"
             :disabled="readonly"
             @update:model-value="
@@ -573,9 +569,8 @@ const NUMBERING = [
             prepend-inner-icon="mdi-image-plus-outline"
             @update:model-value="uploadImage"
           />
-          <v-text-field
+          <NumberField
             label="العرض (مم)"
-            type="number"
             :model-value="block.width"
             :disabled="readonly"
             @update:model-value="
@@ -662,20 +657,16 @@ const NUMBERING = [
             @update:model-value="setStyle({ font_family: $event ?? undefined })"
           />
           <div class="inspector__grid">
-            <v-text-field
+            <NumberField
               label="الحجم (نقطة)"
-              type="number"
-              step="0.5"
               :model-value="style.font_size"
               placeholder="حجم المستند"
               clearable
               :disabled="readonly"
               @update:model-value="setStyle({ font_size: number($event) })"
             />
-            <v-text-field
+            <NumberField
               label="تباعد الأسطر"
-              type="number"
-              step="0.05"
               :model-value="style.line_height"
               placeholder="المستند"
               clearable
@@ -734,43 +725,38 @@ const NUMBERING = [
 
           <div class="inspector__section">المسافات</div>
           <div class="inspector__grid">
-            <v-text-field
+            <NumberField
               label="قبل (نقطة)"
-              type="number"
               :model-value="style.space_before"
               clearable
               :disabled="readonly"
               @update:model-value="setStyle({ space_before: number($event) })"
             />
-            <v-text-field
+            <NumberField
               label="بعد (نقطة)"
-              type="number"
               :model-value="style.space_after"
               clearable
               :disabled="readonly"
               @update:model-value="setStyle({ space_after: number($event) })"
             />
-            <v-text-field
+            <NumberField
               label="إزاحة من اليمين (مم)"
-              type="number"
               :model-value="style.indent"
               clearable
               :disabled="readonly"
               @update:model-value="setStyle({ indent: number($event) })"
             />
-            <v-text-field
+            <NumberField
               label="حشو داخلي (مم)"
-              type="number"
               :model-value="style.padding"
               clearable
               :disabled="readonly"
               @update:model-value="setStyle({ padding: number($event) })"
             />
           </div>
-          <v-text-field
+          <NumberField
             v-if="block.type === 'table' || block.type === 'signatures'"
             label="العرض (% من عرض النص)"
-            type="number"
             :model-value="style.width"
             placeholder="100"
             clearable
@@ -791,10 +777,8 @@ const NUMBERING = [
             "
           />
           <div v-if="style.border" class="inspector__grid">
-            <v-text-field
+            <NumberField
               label="السماكة (نقطة)"
-              type="number"
-              step="0.25"
               :model-value="style.border.width"
               :disabled="readonly"
               @update:model-value="
@@ -859,30 +843,26 @@ const NUMBERING = [
       <div class="inspector__body">
         <div class="inspector__section">هوامش A4 (مم)</div>
         <div class="inspector__grid">
-          <v-text-field
+          <NumberField
             label="أعلى"
-            type="number"
             :model-value="document.page.margins.top"
             :disabled="readonly"
             @update:model-value="setMargin('top', $event)"
           />
-          <v-text-field
+          <NumberField
             label="أسفل"
-            type="number"
             :model-value="document.page.margins.bottom"
             :disabled="readonly"
             @update:model-value="setMargin('bottom', $event)"
           />
-          <v-text-field
+          <NumberField
             label="يمين"
-            type="number"
             :model-value="document.page.margins.start"
             :disabled="readonly"
             @update:model-value="setMargin('start', $event)"
           />
-          <v-text-field
+          <NumberField
             label="يسار"
-            type="number"
             :model-value="document.page.margins.end"
             :disabled="readonly"
             @update:model-value="setMargin('end', $event)"
@@ -898,10 +878,8 @@ const NUMBERING = [
           @update:model-value="setTheme({ font_family: $event })"
         />
         <div class="inspector__grid">
-          <v-text-field
+          <NumberField
             label="الحجم (نقطة)"
-            type="number"
-            step="0.5"
             :model-value="document.theme.font_size"
             :disabled="readonly"
             @update:model-value="
@@ -910,10 +888,8 @@ const NUMBERING = [
               })
             "
           />
-          <v-text-field
+          <NumberField
             label="تباعد الأسطر"
-            type="number"
-            step="0.05"
             :model-value="document.theme.line_height"
             :disabled="readonly"
             @update:model-value="
@@ -922,9 +898,8 @@ const NUMBERING = [
               })
             "
           />
-          <v-text-field
+          <NumberField
             label="بين الفقرات (نقطة)"
-            type="number"
             :model-value="document.theme.paragraph_spacing"
             :disabled="readonly"
             @update:model-value="
@@ -978,10 +953,8 @@ const NUMBERING = [
           "
         />
         <div class="inspector__grid">
-          <v-text-field
+          <NumberField
             label="حجم العنوان"
-            type="number"
-            step="0.5"
             :model-value="document.clause_settings.title_style.font_size"
             placeholder="المستند"
             clearable
@@ -990,10 +963,8 @@ const NUMBERING = [
               setClauseStyle('title_style', { font_size: number($event) })
             "
           />
-          <v-text-field
+          <NumberField
             label="حجم النص"
-            type="number"
-            step="0.5"
             :model-value="document.clause_settings.body_style.font_size"
             placeholder="المستند"
             clearable

@@ -331,3 +331,29 @@ test("an optional form section opens for data, an error, the user or edit mode, 
   model.value.plot_number = "88";
   assert.equal(model.value.plot_number, "88");
 });
+
+test("date and time fields read any digits and separators and store the native input formats", async () => {
+  const { parseDateInput, formatDateInput, withinBounds } = await import("../../apps/renderer/src/utils/dateInput.js");
+  // Day first, as written in Iraq; a four-digit first part is a year.
+  for (const text of ["2/11/2026", "02-11-2026", "٢/١١/٢٠٢٦", "2.11.26", "2026-11-02", "2026/11/2", " 2 / 11 / 2026 "])
+    assert.equal(parseDateInput(text, "date"), "2026-11-02", text);
+  for (const text of ["31/2/2026", "29/2/2025", "2/13/2026", "2/11", "x/11/2026", "0/1/2026"])
+    assert.equal(parseDateInput(text, "date"), null, text);
+  assert.equal(parseDateInput("29/2/2024", "date"), "2024-02-29");
+  assert.equal(parseDateInput("", "date"), "");
+  assert.equal(formatDateInput("2026-11-02", "date"), "02/11/2026");
+  assert.equal(formatDateInput(null, "date"), "");
+  // Times: 24 hours, with or without a separator, Arabic-Indic digits too.
+  for (const [text, value] of [["9:30", "09:30"], ["0930", "09:30"], ["٢٣:٠٥", "23:05"], ["930", "09:30"]] as const)
+    assert.equal(parseDateInput(text, "time"), value, text);
+  for (const text of ["24:00", "9:7", "9", "12:60"]) assert.equal(parseDateInput(text, "time"), null, text);
+  assert.equal(formatDateInput("09:30:00", "time"), "09:30");
+  // Months.
+  assert.equal(parseDateInput("11/2026", "month"), "2026-11");
+  assert.equal(parseDateInput("2026-1", "month"), "2026-01");
+  assert.equal(parseDateInput("13/2026", "month"), null);
+  assert.equal(formatDateInput("2026-11", "month"), "11/2026");
+  // Bounds compare the stored ISO text.
+  assert.ok(withinBounds("2026-11-02", "2026-11-01", "2026-11-30"));
+  assert.ok(!withinBounds("2026-12-01", undefined, "2026-11-30"));
+});

@@ -15,6 +15,7 @@ import type {
   LeaseRenewPayload,
   LeaseSchedule,
 } from "../../types";
+import DateField from "../app/DateField.vue";
 
 /**
  * تجديد الإيجار: إيجار جديد بالطرفين والعرض والعملة نفسها، يبدأ في اليوم
@@ -178,9 +179,8 @@ async function save() {
               :items="LEASE_FREQUENCIES"
               label="دورية الدفع"
             />
-            <v-text-field
+            <DateField
               v-model="form.end_date"
-              type="date"
               label="آخر يوم في الإيجار الجديد *"
               :min="start"
               :error-messages="fieldErrors.end_date"

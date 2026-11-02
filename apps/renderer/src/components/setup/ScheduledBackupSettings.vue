@@ -8,6 +8,7 @@ import type { ScheduledBackupConfig } from "../../types";
 import SettingsSection from "../settings/SettingsSection.vue";
 import FormSection from "../shared/FormSection.vue";
 import { formatDateTime } from "../../utils/format";
+import DateField from "../app/DateField.vue";
 
 const { can } = usePermissions();
 const { notifySuccess, notifyError } = useSnackbar();
@@ -183,10 +184,10 @@ onMounted(load);
               label="التكرار"
               hide-details="auto"
             />
-            <v-text-field
+            <DateField
+              kind="time"
               v-model="config.time"
               label="وقت التنفيذ"
-              type="time"
               hide-details="auto"
             />
           </FormSection>

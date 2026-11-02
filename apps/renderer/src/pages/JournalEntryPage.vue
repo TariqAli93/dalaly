@@ -22,6 +22,7 @@ import {
 } from "../utils/format";
 import { minorToAmount, sumAmounts } from "../utils/money";
 import type { JournalEntryDetail } from "../types";
+import DateField from "../components/app/DateField.vue";
 
 /**
  * صفحة القيد: سطوره بمدينها ودائنها ومجموعيهما. المسودة تُعدَّل وتُرحَّل
@@ -356,9 +357,8 @@ async function reverse() {
             class="mb-3"
             >{{ reverseError }}</v-alert
           >
-          <v-text-field
+          <DateField
             v-model="reverseDate"
-            type="date"
             label="تاريخ القيد العكسي"
             class="mb-3"
             hide-details

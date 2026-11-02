@@ -26,6 +26,7 @@ import type {
   VoucherRecord,
   ExpenseCategoryRecord,
 } from "../../types";
+import DateField from "../app/DateField.vue";
 
 /**
  * إصدار سند قبض أو صرف. الغرض يحدد الحساب المقابل (عمولة المكتب إيراد، ومال
@@ -523,9 +524,8 @@ function onKeydown(event: KeyboardEvent) {
               >
             </div>
             <template v-else>
-              <v-text-field
+              <DateField
                 v-model="form.voucher_date"
-                type="date"
                 label="التاريخ *"
                 :error-messages="fieldErrors.voucher_date"
               />

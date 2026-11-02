@@ -64,6 +64,8 @@ import {
 import { formatDate } from "../utils/format";
 import type { CommissionsReport, Currency, DealsReport } from "../types";
 import type { SaveResult } from "../platform/types";
+import DateField from "../components/app/DateField.vue";
+import NumberField from "../components/app/NumberField.vue";
 
 /**
  * التقارير: صفحة واحدة لكل تقارير العمل والمال. في أعلاها اسم التقرير
@@ -728,18 +730,16 @@ async function run(kind: "excel" | "pdf" | "print") {
             >
           </v-btn-toggle>
           <template v-if="periodChoice === 'custom'">
-            <v-text-field
+            <DateField
               v-if="!onDay"
               v-model="filters.from"
-              type="date"
               label="من"
               density="compact"
               hide-details
               class="reports-filters__field"
             />
-            <v-text-field
+            <DateField
               v-model="filters.to"
-              type="date"
               :label="onDay ? 'في يوم' : 'إلى'"
               density="compact"
               hide-details
@@ -787,10 +787,10 @@ async function run(kind: "excel" | "pdf" | "print") {
             clearable
             class="reports-filters__field"
           />
-          <v-text-field
+          <NumberField
             v-if="filters.report === 'customers' || filters.report === 'leases'"
-            v-model.number="filters.days"
-            type="number"
+            :model-value="filters.days"
+            :decimals="false"
             min="1"
             max="365"
             :label="
@@ -803,6 +803,7 @@ async function run(kind: "excel" | "pdf" | "print") {
             density="compact"
             hide-details
             class="reports-filters__field"
+            @update:model-value="filters.days = Number($event) || null"
           />
           <v-autocomplete
             v-if="filters.report === 'ledger'"

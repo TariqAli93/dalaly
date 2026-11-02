@@ -13,6 +13,7 @@ import type {
   JournalEntryDetail,
   JournalEntryPayload,
 } from "../../types";
+import DateField from "../app/DateField.vue";
 
 /**
  * قيد يدوي جديد أو تعديل مسودة. كل سطر مبلغ في المدين أو في الدائن على حساب
@@ -238,9 +239,8 @@ function onKeydown(event: KeyboardEvent) {
           error
         }}</v-alert>
         <div class="journal-head">
-          <v-text-field
+          <DateField
             v-model="form.entry_date"
-            type="date"
             label="تاريخ القيد *"
             hide-details="auto"
           />

@@ -12,6 +12,7 @@ import type {
   MoneyAccount,
   TransferPayload,
 } from "../../types";
+import DateField from "../app/DateField.vue";
 
 /**
  * تحويل بين صندوق ومصرف بالعملة نفسها: إيداع النقد في المصرف أو سحبه منه.
@@ -162,9 +163,8 @@ async function save() {
       <v-card-text class="transfer-form">
         <v-alert v-if="error" type="error" variant="tonal">{{ error }}</v-alert>
         <div class="transfer-form__pair">
-          <v-text-field
+          <DateField
             v-model="form.transfer_date"
-            type="date"
             label="التاريخ *"
             hide-details="auto"
           />

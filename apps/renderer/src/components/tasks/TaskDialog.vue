@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue";
 import PersonPicker from "../people/PersonPicker.vue";
+import DateField from "../app/DateField.vue";
 import { getErrorMessage } from "../../services/api.service";
 import { useAssignees } from "../../composables/useAssignees";
 import {
@@ -97,8 +98,31 @@ watch(open, (value) => {
     outcome: initial.outcome ?? "",
   };
   chosenIntent.value = null;
+  timeOnly.value = "";
   error.value = null;
   void loadAssignees();
+});
+
+// الموعد تاريخاً ووقتاً بحقلين بأرقام لاتينية، والقيمة datetime-local محلية كما
+// كانت. وقت يُكتب قبل التاريخ ينتظره؛ وتاريخ بلا وقت يبدأ بالتاسعة صباحاً،
+// ظاهرةً في حقل الوقت.
+const DEFAULT_TIME = "09:00";
+const timeOnly = ref("");
+const scheduledDate = computed({
+  get: () => form.value.scheduled_at.slice(0, 10),
+  set: (date: string | null | undefined) => {
+    form.value.scheduled_at = date
+      ? `${date}T${scheduledTime.value || DEFAULT_TIME}`
+      : "";
+  },
+});
+const scheduledTime = computed({
+  get: () => form.value.scheduled_at.slice(11, 16) || timeOnly.value,
+  set: (time: string | null | undefined) => {
+    timeOnly.value = time ?? "";
+    if (scheduledDate.value)
+      form.value.scheduled_at = `${scheduledDate.value}T${time || DEFAULT_TIME}`;
+  },
 });
 
 /** سجل جديد إما مهمة يجب إنجازها أو أمر حدث، يختاره المستخدم ظاهراً. */
@@ -228,16 +252,24 @@ function onKeydown(event: KeyboardEvent) {
           auto-grow
           hide-details="auto"
         />
-        <v-text-field
-          v-model="form.scheduled_at"
-          type="datetime-local"
-          :label="
-            choosingIntent && intent === 'task'
-              ? 'موعد الإنجاز (اختياري)'
-              : 'الموعد (اختياري)'
-          "
-          hide-details="auto"
-        />
+        <div class="task-dialog__when">
+          <DateField
+            v-model="scheduledDate"
+            :label="
+              choosingIntent && intent === 'task'
+                ? 'موعد الإنجاز (اختياري)'
+                : 'الموعد (اختياري)'
+            "
+            clearable
+            hide-details="auto"
+          />
+          <DateField
+            v-model="scheduledTime"
+            kind="time"
+            label="الساعة"
+            hide-details="auto"
+          />
+        </div>
         <v-select
           v-model="form.assigned_user_id"
           :items="assignees"
@@ -302,6 +334,11 @@ function onKeydown(event: KeyboardEvent) {
 }
 .task-dialog__wide {
   grid-column: 1 / -1;
+}
+.task-dialog__when {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 8px;
 }
 .task-dialog__intent {
   display: flex;

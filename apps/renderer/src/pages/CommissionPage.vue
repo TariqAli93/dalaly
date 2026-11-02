@@ -21,6 +21,7 @@ import type {
   VoucherKind,
   VoucherPayload,
 } from "../types";
+import DateField from "../components/app/DateField.vue";
 
 /**
  * صفحة العمولة: مبلغها وما حُصِّل منها والمتبقي، وحصص الموظفين بما دُفع
@@ -392,9 +393,8 @@ async function confirmCancel() {
             class="mb-3"
             >{{ cancelError }}</v-alert
           >
-          <v-text-field
+          <DateField
             v-model="cancelDate"
-            type="date"
             label="تاريخ الإلغاء"
             class="mb-3"
             hide-details

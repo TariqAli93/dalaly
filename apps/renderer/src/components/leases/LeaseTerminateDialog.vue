@@ -6,6 +6,7 @@ import { installmentCount } from "../../constants/leases";
 import { formatAmount, formatDate, todayIso } from "../../utils/format";
 import { minorToAmount, sumAmounts } from "../../utils/money";
 import type { LeaseDetail } from "../../types";
+import DateField from "../app/DateField.vue";
 
 /**
  * إنهاء الإيجار قبل آخر يوم فيه: تسقط الأقساط المستحقة بعد تاريخ الإنهاء،
@@ -128,9 +129,8 @@ async function save() {
         <v-alert v-if="error" type="error" variant="tonal" class="mb-3">{{
           error
         }}</v-alert>
-        <v-text-field
+        <DateField
           v-model="date"
-          type="date"
           label="آخر يوم في الإيجار *"
           :min="lease.start_date"
           :max="lastDay"

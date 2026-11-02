@@ -16,6 +16,7 @@ import {
 } from "@contract-document/index";
 import FormSection from "../shared/FormSection.vue";
 import NumberField from "../app/NumberField.vue";
+import DateField from "../app/DateField.vue";
 
 /**
  * The deal: date and place, amounts, payment, dates and conditions, as the
@@ -159,8 +160,7 @@ function setWitness(
   >
     <fieldset class="terms" :disabled="readonly">
       <FormSection title="العقد" :columns="3">
-        <v-text-field
-          type="date"
+        <DateField
           label="تاريخ العقد"
           :model-value="terms.contract_date ?? ''"
           :error-messages="errorFor('contract_date')"
@@ -202,8 +202,7 @@ function setWitness(
             :error-messages="errorFor('sale_price')"
             @update:model-value="set('sale_price', amount($event))"
           />
-          <v-text-field
-            type="date"
+          <DateField
             label="تاريخ التسليم"
             :model-value="terms.delivery_date ?? ''"
             :error-messages="errorFor('delivery_date')"
@@ -219,7 +218,7 @@ function setWitness(
                 >تاريخ العقد</v-btn
               >
             </template>
-          </v-text-field>
+          </DateField>
           <div />
           <v-textarea
             class="terms__wide"
@@ -252,9 +251,8 @@ function setWitness(
             :error-messages="errorFor('down_payment')"
             @update:model-value="set('down_payment', amount($event))"
           />
-          <v-text-field
+          <NumberField
             label="عدد الأقساط"
-            type="number"
             min="1"
             max="600"
             :model-value="terms.installment_count ?? ''"
@@ -272,8 +270,7 @@ function setWitness(
             :model-value="terms.installment_frequency"
             @update:model-value="set('installment_frequency', $event)"
           />
-          <v-text-field
-            type="date"
+          <DateField
             label="تاريخ استحقاق أول قسط"
             :model-value="terms.first_due_date ?? ''"
             :error-messages="errorFor('first_due_date')"
@@ -334,15 +331,13 @@ function setWitness(
             :suffix="CURRENCY_LABELS[terms.currency]"
             @update:model-value="set('deposit', amount($event))"
           />
-          <v-text-field
-            type="date"
+          <DateField
             label="تاريخ بدء الإيجار"
             :model-value="terms.start_date ?? ''"
             :error-messages="errorFor('start_date')"
             @update:model-value="set('start_date', date($event))"
           />
-          <v-text-field
-            type="date"
+          <DateField
             label="تاريخ انتهاء الإيجار"
             :model-value="terms.end_date ?? ''"
             :error-messages="errorFor('end_date')"
@@ -371,9 +366,8 @@ function setWitness(
             maxlength="300"
             @update:model-value="set('payment_due', text($event))"
           />
-          <v-text-field
+          <NumberField
             label="مدة الإشعار بالإخلاء (أيام)"
-            type="number"
             min="0"
             :model-value="terms.notice_days ?? ''"
             @update:model-value="

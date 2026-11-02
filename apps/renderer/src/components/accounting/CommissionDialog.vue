@@ -21,6 +21,7 @@ import type {
   PayerRole,
   ShareBasis,
 } from "../../types";
+import DateField from "../app/DateField.vue";
 
 /**
  * تسجيل عمولة المكتب على صفقة: يدفعها المشتري أو المستأجر، أو البائع أو
@@ -235,11 +236,7 @@ function onKeydown(event: KeyboardEvent) {
                 >{{ basis.title }}</v-btn
               >
             </v-btn-toggle>
-            <v-text-field
-              v-model="form.commission_date"
-              type="date"
-              label="التاريخ *"
-            />
+            <DateField v-model="form.commission_date" label="التاريخ *" />
             <template v-if="form.basis === 'percent'">
               <v-text-field
                 v-model="form.rate"
@@ -388,10 +385,9 @@ function onKeydown(event: KeyboardEvent) {
 <style scoped>
 .share-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) auto minmax(0, 1fr) minmax(
-      0,
-      1fr
-    ) auto;
+  grid-template-columns:
+    minmax(0, 1.4fr) auto minmax(0, 1fr) minmax(0, 1fr)
+    auto;
   gap: 8px;
   align-items: center;
 }

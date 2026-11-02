@@ -7,6 +7,7 @@ import { useConfirm } from "../../composables/useConfirm";
 import { useSnackbar } from "../../composables/useSnackbar";
 import { formatDateTime, todayIso } from "../../utils/format";
 import type { AccountingPeriod } from "../../types";
+import DateField from "../app/DateField.vue";
 
 /**
  * الأشهر المقفلة: الشهر المقفل لا يُرحَّل إليه قيد حتى يُعاد فتحه. يُقفل الشهر
@@ -115,9 +116,9 @@ function reopen(period: AccountingPeriod) {
           class="periods-close"
           @submit.prevent="close"
         >
-          <v-text-field
+          <DateField
+            kind="month"
             v-model="month"
-            type="month"
             label="الشهر"
             density="compact"
             hide-details
