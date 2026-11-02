@@ -63,7 +63,6 @@ function metOf(match: MatchResult) {
       <template #append>
         <v-btn
           v-if="canDeal"
-          size="small"
           variant="tonal"
           prepend-icon="mdi-handshake-outline"
           class="me-2"
@@ -72,7 +71,6 @@ function metOf(match: MatchResult) {
           >صفقة</v-btn
         >
         <v-chip
-          size="small"
           :color="match.required_met ? 'success' : 'warning'"
           variant="tonal"
           label

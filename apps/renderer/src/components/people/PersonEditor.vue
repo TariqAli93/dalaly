@@ -399,7 +399,7 @@ const nameError = computed(() =>
                 :items="assignees"
                 item-title="display_name"
                 item-value="id"
-                label="الموظف المتابع"
+                label="الموظف المسؤول"
                 clearable
               />
               <v-select

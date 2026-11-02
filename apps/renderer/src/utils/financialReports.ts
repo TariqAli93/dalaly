@@ -83,7 +83,7 @@ export function trialBalanceDocument(
     period: periodText(report.from, report.to),
     fileName: `ميزان-المراجعة-${report.to}`,
     notes: [
-      "رصيد أول المدة موجب للمدين وسالب للدائن. القيود المرحَّلة وحدها تدخل الميزان.",
+      "رصيد بداية الفترة موجب للمدين وسالب للدائن. القيود المرحَّلة وحدها تدخل الميزان.",
     ],
     sections: report.sections.map((section) => ({
       currency: section.currency,
@@ -91,14 +91,14 @@ export function trialBalanceDocument(
         ? null
         : "مجموع المدين لا يساوي مجموع الدائن: راجع القيود.",
       figures: [
-        { label: "مجموع المدين في المدة", value: section.totals.debit },
-        { label: "مجموع الدائن في المدة", value: section.totals.credit },
+        { label: "مجموع المدين خلال الفترة", value: section.totals.debit },
+        { label: "مجموع الدائن خلال الفترة", value: section.totals.credit },
         {
-          label: "الأرصدة المدينة آخر المدة",
+          label: "الأرصدة المدينة في نهاية الفترة",
           value: section.totals.closing_debit,
         },
         {
-          label: "الأرصدة الدائنة آخر المدة",
+          label: "الأرصدة الدائنة في نهاية الفترة",
           value: section.totals.closing_credit,
         },
       ],
@@ -108,7 +108,7 @@ export function trialBalanceDocument(
           columns: [
             ...ACCOUNT_COLUMNS,
             { key: "heading", title: "المجموعة" },
-            { key: "opening", title: "أول المدة", kind: "money" },
+            { key: "opening", title: "بداية الفترة", kind: "money" },
             { key: "debit", title: "مدين", kind: "money" },
             { key: "credit", title: "دائن", kind: "money" },
             { key: "closing_debit", title: "رصيد مدين", kind: "money" },
@@ -135,7 +135,7 @@ export function trialBalanceDocument(
             closing_debit: section.totals.closing_debit,
             closing_credit: section.totals.closing_credit,
           },
-          empty: "لا قيود مرحَّلة حتى نهاية المدة.",
+          empty: "لا قيود مرحَّلة حتى نهاية الفترة.",
         },
       ],
     })),
@@ -176,7 +176,7 @@ export function incomeStatementDocument(
       links: { name: links.ledger(row.account_id, range) },
     })),
     total: { name: "المجموع", amount: total },
-    empty: "لا حركة في المدة.",
+    empty: "لا حركة خلال الفترة.",
   });
   return {
     title: "الإيرادات والمصروفات",
@@ -282,9 +282,7 @@ export function balanceSheetDocument(
     title: "الميزانية العمومية",
     period: dayText(report.as_of),
     fileName: `الميزانية-${report.as_of}`,
-    notes: [
-      "الأرباح غير المقفلة: كل الإيرادات ناقص كل المصروفات حتى هذا اليوم، إذ لا يُقيد إقفال سنوي.",
-    ],
+    notes: ["الأرباح المتراكمة: كل الإيرادات ناقص كل المصروفات حتى هذا اليوم."],
     sections: report.sections.map((section) => ({
       currency: section.currency,
       warning: section.balanced
@@ -295,7 +293,7 @@ export function balanceSheetDocument(
         { label: "الالتزامات", value: section.totals.liabilities },
         { label: "حقوق الملكية", value: section.totals.equity },
         {
-          label: "أرباح لم تُقفل",
+          label: "الأرباح المتراكمة",
           value: section.totals.earnings,
           tone: negative(section.totals.earnings) ? "bad" : "good",
         },
@@ -310,7 +308,7 @@ export function balanceSheetDocument(
           [
             {
               cells: {
-                name: "أرباح لم تُقفل",
+                name: "الأرباح المتراكمة",
                 balance: section.totals.earnings,
               },
               tone: "strong",
@@ -345,13 +343,13 @@ export function cashFlowDocument(
       currency: section.currency,
       warning: section.balanced
         ? null
-        : "أول المدة مع صافي الحركة لا يساوي آخرها: راجع القيود.",
+        : "رصيد بداية الفترة مع صافي الحركة لا يساوي رصيد نهايتها: راجع القيود.",
       figures: [
-        { label: "أول المدة", value: section.totals.opening },
+        { label: "بداية الفترة", value: section.totals.opening },
         { label: "المقبوض", value: section.totals.money_in, tone: "good" },
         { label: "المدفوع", value: section.totals.money_out, tone: "bad" },
         { label: "صافي الحركة", value: section.totals.net },
-        { label: "آخر المدة", value: section.totals.closing },
+        { label: "نهاية الفترة", value: section.totals.closing },
       ],
       tables: [
         {
@@ -376,16 +374,16 @@ export function cashFlowDocument(
             money_out: section.totals.money_out,
             net: section.totals.net,
           },
-          empty: "لا مقبوض ولا مدفوع في المدة.",
+          empty: "لا مقبوض ولا مدفوع خلال الفترة.",
         },
         {
           title: "الصناديق والمصارف",
           columns: [
             ...ACCOUNT_COLUMNS,
-            { key: "opening", title: "أول المدة", kind: "money" },
+            { key: "opening", title: "بداية الفترة", kind: "money" },
             { key: "money_in", title: "داخل", kind: "money" },
             { key: "money_out", title: "خارج", kind: "money" },
-            { key: "closing", title: "آخر المدة", kind: "money" },
+            { key: "closing", title: "نهاية الفترة", kind: "money" },
           ],
           rows: section.accounts.map((row) => ({
             cells: {
@@ -416,10 +414,10 @@ export function commissionsDocument(
   employeeName?: string | null,
 ): ReportDocument {
   const notes = [
-    "العمولات المسجّلة بتاريخها في المدة. المحصَّل والمدفوع من الحصص: السندات غير الملغاة حتى نهاية المدة. الملغاة تظهر ولا تدخل المجاميع.",
+    "العمولات المسجّلة بتاريخها خلال الفترة. المقبوض والمدفوع من الحصص: السندات غير الملغاة حتى نهاية الفترة. الملغاة تظهر ولا تدخل المجاميع.",
   ];
   if (report.truncated)
-    notes.unshift("أكثر من 2000 عمولة: ضيّق المدة لترى كلها.");
+    notes.unshift("أكثر من 2000 عمولة: اختر فترة أقصر لتراها كلها.");
   return {
     title: employeeName ? `العمولات — ${employeeName}` : "العمولات",
     period: periodText(report.from, report.to),
@@ -429,7 +427,7 @@ export function commissionsDocument(
       currency: section.currency,
       figures: [
         { label: "المسجّل", value: section.totals.recorded },
-        { label: "المحصَّل", value: section.totals.collected, tone: "good" },
+        { label: "المقبوض", value: section.totals.collected, tone: "good" },
         {
           label: "المتبقي على الزبائن",
           value: section.totals.outstanding,
@@ -456,7 +454,7 @@ export function commissionsDocument(
             { key: "deal", title: "الصفقة" },
             { key: "payer", title: "الدافع" },
             { key: "amount", title: "المبلغ", kind: "money" },
-            { key: "collected", title: "المحصَّل", kind: "money" },
+            { key: "collected", title: "المقبوض", kind: "money" },
             { key: "outstanding", title: "المتبقي", kind: "money" },
             { key: "shares", title: "الحصص", kind: "money" },
           ],
@@ -489,7 +487,7 @@ export function commissionsDocument(
             outstanding: section.totals.outstanding,
             shares: section.totals.shares,
           },
-          empty: "لا عمولات في المدة.",
+          empty: "لا عمولات خلال الفترة.",
         },
         {
           title: "حسب نوع الصفقة",
@@ -497,7 +495,7 @@ export function commissionsDocument(
             { key: "type", title: "النوع" },
             { key: "count", title: "العدد", kind: "number" },
             { key: "recorded", title: "المسجّل", kind: "money" },
-            { key: "collected", title: "المحصَّل", kind: "money" },
+            { key: "collected", title: "المقبوض", kind: "money" },
           ],
           rows: section.by_deal_type.map((row) => ({
             cells: {
@@ -526,7 +524,7 @@ export function commissionsDocument(
               owed: row.owed,
             },
           })),
-          empty: "لا حصص لموظفين في المدة.",
+          empty: "لا حصص لموظفين خلال الفترة.",
         },
       ],
     })),
@@ -543,7 +541,7 @@ export function receivablesDocument(
     period: dayText(report.as_of),
     fileName: `الذمم-المدينة-${report.as_of}`,
     notes: [
-      "ما على كل زبون للمكتب من حسابات الذمم المدينة. يُعمَّر بأقدم قيد أولاً: كل دفعة تسدد أقدم ما عليه، وما بقي يُحسب بعمره في هذا اليوم.",
+      "ما على كل زبون للمكتب. كل دفعة تسدّد أقدم ما عليه أولاً، وما بقي يوزَّع على الأعمدة بحسب عمره في هذا اليوم.",
     ],
     sections: report.sections.map((section) => ({
       currency: section.currency,
@@ -701,22 +699,22 @@ export function ledgerDocument(
       : "الرصيد = الدائن − المدين.",
   ];
   if (statement.truncated)
-    notes.unshift("أكثر من 2000 سطر: ضيّق المدة لترى كلها.");
+    notes.unshift("أكثر من 2000 سطر: اختر فترة أقصر لتراها كلها.");
   return {
     title: `دفتر حساب ${account.code} ${account.name}`,
     period: statement.from
       ? periodText(statement.from, statement.to ?? statement.from)
       : statement.to
         ? `حتى ${formatDate(statement.to)}`
-        : "كل المدة",
+        : "كل التواريخ",
     fileName: `دفتر-${account.code}`,
     notes,
     sections: [
       {
         currency,
         figures: [
-          { label: "أول المدة", value: statement.opening_balance },
-          { label: "آخر المدة", value: statement.closing_balance },
+          { label: "بداية الفترة", value: statement.opening_balance },
+          { label: "نهاية الفترة", value: statement.closing_balance },
         ],
         tables: [
           {
@@ -744,7 +742,7 @@ export function ledgerDocument(
                 ? { code: `/accounting/journal/${line.entry_id}` }
                 : undefined,
             })),
-            empty: "لا حركة على الحساب في المدة.",
+            empty: "لا حركة على الحساب خلال الفترة.",
           },
         ],
       },

@@ -187,13 +187,13 @@ test("operational reports map to tables, request columns only with the requests"
   };
   const document = dealsDocument(deals, { can: (key: string) => key === "deals.read" });
   const [section] = document.sections;
-  assert.equal(section.figures.find((figure) => figure.label === "نسبة الفوز")?.kind, "percent");
-  assert.equal(section.figures.find((figure) => figure.label === "متوسط مدة الإغلاق")?.value, "—");
+  assert.equal(section.figures.find((figure) => figure.label === "نسبة الإتمام")?.kind, "percent");
+  assert.equal(section.figures.find((figure) => figure.label === "متوسط مدة الإتمام")?.value, "—");
   const staff = section.tables.find((table) => table.title === "أداء الموظفين")!;
-  assert.equal(staff.rows[0].cells.name, "غير مسند");
+  assert.equal(staff.rows[0].cells.name, "بلا موظف مسؤول");
   assert.equal(staff.rows[0].tone, "muted");
   assert.equal(staff.columns.find((column) => column.key === "usd")?.currency, "USD");
-  const closed = section.tables.find((table) => table.title === "الصفقات المغلقة في المدة")!;
+  const closed = section.tables.find((table) => table.title === "الصفقات المغلقة خلال الفترة")!;
   assert.deepEqual(closed.rows[0].links, { code: "/deals/4" }, "no customer link without people.read");
   assert.equal(closed.rows[0].currency, "USD");
 

@@ -34,7 +34,7 @@ export const colorFields: { key: keyof AppearanceColors; label: string }[] = [
   { key: "secondary", label: "اللون الثانوي" },
   { key: "accent", label: "لون التمييز" },
   { key: "background", label: "خلفية التطبيق" },
-  { key: "surface", label: "البطاقات والأسطح" },
+  { key: "surface", label: "البطاقات واللوحات" },
   { key: "sidebar", label: "الشريط الجانبي" },
 ];
 function defaultColors(mode: AppearanceMode): AppearanceColors {

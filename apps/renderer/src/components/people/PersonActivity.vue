@@ -189,7 +189,7 @@ defineExpose({ reload: load });
               · موعد: <bdi dir="rtl">{{ fmt(task.scheduled_at) }}</bdi></span
             >
             <span v-if="task.assigned_user_name">
-              · المكلّف: {{ task.assigned_user_name }}</span
+              · الموظف المسؤول: {{ task.assigned_user_name }}</span
             >
           </p>
         </div>

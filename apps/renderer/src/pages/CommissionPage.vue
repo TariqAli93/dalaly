@@ -191,8 +191,8 @@ async function confirmCancel() {
               !active
                 ? "ملغاة"
                 : commission.outstanding === "0.00"
-                  ? "محصّلة"
-                  : "غير محصّلة بالكامل"
+                  ? "مقبوضة"
+                  : "لم تُقبض كلها"
             }}</v-chip
           >
         </div>
@@ -203,7 +203,7 @@ async function confirmCancel() {
             <bdi>{{ money(commission.amount) }}</bdi>
           </div>
           <div v-if="active">
-            <span>حُصِّل</span>
+            <span>قُبض</span>
             <bdi>{{ money(commission.collected) }}</bdi>
           </div>
           <div v-if="active">

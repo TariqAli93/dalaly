@@ -24,12 +24,12 @@ export function neighborhoodOf(p: PropertyRecord) {
 /** نص تفصيلي كامل مناسب للدلال العراقي. */
 export function buildPropertyText(p: PropertyRecord) {
   let text = "";
-  text += line("كود العرض", p.code);
+  text += line("رمز العرض", p.code);
   text += line("نوع العقار", p.property_type);
   text += line("المحافظة", governorateOf(p));
   text += line("المنطقة", districtOf(p));
   text += line("الحي", neighborhoodOf(p));
-  text += line("الجنس", p.legal_type);
+  text += line("جنس العقار", p.legal_type);
   text += line("المساحة", `${p.area_value} ${p.area_unit}`);
   text += line("السعر", `${formatMoney(p.total_price)} دينار`);
   if (p.is_negotiable) text += "السعر قابل للتفاوض\n";
@@ -59,7 +59,7 @@ export function buildWhatsappText(p: PropertyRecord) {
   text += line("المحافظة", governorateOf(p));
   text += line("المنطقة", districtOf(p));
   text += line("الحي", neighborhoodOf(p));
-  text += line("الجنس", p.legal_type);
+  text += line("جنس العقار", p.legal_type);
   text += line("المساحة", `${p.area_value} ${p.area_unit}`);
   text += line("رقم القطعة", formatPlot(p.plot_number, p.plot_letter));
   if (p.frontage || p.nazal)
@@ -70,7 +70,7 @@ export function buildWhatsappText(p: PropertyRecord) {
   text += line("السعر", `${formatMoney(p.total_price)} دينار`);
   if (p.is_negotiable) text += "💬 السعر قابل للتفاوض\n";
   if (p.notes) text += line("ملاحظات", p.notes);
-  text += `\nكود العرض: ${p.code}`;
+  text += `\nرمز العرض: ${p.code}`;
   return text.trim();
 }
 

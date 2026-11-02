@@ -153,7 +153,6 @@ const tierTitle = (value: AttentionTier) =>
           >
         </div>
         <v-btn
-          size="small"
           variant="tonal"
           class="queue__action"
           :aria-label="`${item.actionLabel}: ${item.title}`"

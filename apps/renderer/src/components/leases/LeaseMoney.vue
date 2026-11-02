@@ -144,7 +144,7 @@ defineExpose({ collect, reload: loadVouchers });
           <dd>
             <bdi>{{ money(lease.due_to_date) }}</bdi>
             <small
-              >حُصِّل <bdi>{{ money(lease.collected) }}</bdi></small
+              >قُبض <bdi>{{ money(lease.collected) }}</bdi></small
             >
           </dd>
         </div>

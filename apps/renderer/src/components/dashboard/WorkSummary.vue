@@ -68,7 +68,7 @@ const monthLink = computed(() =>
               : 'work__figure--zero'
           "
           ><strong>{{ formatNumber(deals.recently_won.total, 0) }}</strong
-          ><span>رُبحت خلال {{ deals.recent_days }} يوماً</span></router-link
+          ><span>اكتملت خلال {{ deals.recent_days }} يوماً</span></router-link
         >
       </div>
     </template>
@@ -192,7 +192,7 @@ const monthLink = computed(() =>
 }
 .work__figures {
   display: flex;
-  border-bottom: 1px solid var(--dal-stroke);
+  border-block: 1px solid var(--dal-stroke);
 }
 .work__figure {
   flex: 1 1 0;

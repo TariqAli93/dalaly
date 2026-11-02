@@ -182,7 +182,7 @@ onMounted(() => {
     <MasterDetailLayout
       fill
       :open="paneOpen && !!selected"
-      detail-label="ملخّص العرض الإيجاري المحدد"
+      detail-label="ملخّص عرض الإيجار المحدد"
       @close="closePane"
     >
       <template #main>

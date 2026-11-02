@@ -75,12 +75,12 @@ function textFile(text: string): FolderExportFile {
 function propertyText(property: PropertyRecord) {
   let text = "";
   text += line("الاسم", property.name ?? `عقار ${property.code}`);
-  text += line("كود العرض", property.code);
+  text += line("رمز العرض", property.code);
   text += line("نوع العقار", property.property_type);
   text += line("المحافظة", property.governorate || property.governorate_text);
   text += line("المنطقة", property.district || property.district_text);
   text += line("الحي", neighborhoodOf(property));
-  text += line("الجنس", property.legal_type);
+  text += line("جنس العقار", property.legal_type);
   text += line("المساحة", `${property.area_value} ${property.area_unit}`);
   text += line("السعر الكلي", `${formatMoney(property.total_price)} دينار`);
   text += line(
@@ -115,7 +115,7 @@ function propertyText(property: PropertyRecord) {
 function rentalText(rental: RentalRecord) {
   let text = "";
   text += line("الاسم", rental.name ?? `إيجار ${rental.code}`);
-  text += line("كود الإيجار", rental.code);
+  text += line("رمز الإيجار", rental.code);
   text += line("نوع العقار", rental.property_type);
   text += line("سعر الإيجار", `${formatMoney(rental.rent_price)} دينار`);
   text += line("نوع الإيجار", rental.rent_period);

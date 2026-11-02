@@ -154,7 +154,7 @@ const facts = computed(() => {
           : `${listing.rooms_count ?? "—"} / ${listing.bathrooms_count ?? "—"}`,
       },
       {
-        label: "البدل المعروض",
+        label: "بدل الإيجار المطلوب",
         value:
           listing.rent_price !== null ? formatMoney(listing.rent_price) : null,
       },

@@ -188,7 +188,7 @@ defineExpose({ validate, focusField, computedTotal });
             :items="LEGAL_TYPES"
             :rules="[required]"
             :error-messages="errorsOf('legal_type')"
-            label="الصفة القانونية *"
+            label="جنس العقار *"
           />
           <v-select
             v-model="model.status"

@@ -65,8 +65,8 @@ const validity = () => {
   if (parsed.value === null) return INVALID[props.kind];
   if (parsed.value && !withinBounds(parsed.value, props.min, props.max))
     return props.kind === "time"
-      ? "الوقت خارج المدة المسموحة"
-      : "التاريخ خارج المدة المسموحة";
+      ? "الوقت خارج النطاق المسموح"
+      : "التاريخ خارج النطاق المسموح";
   return true;
 };
 const rules = computed(() => [

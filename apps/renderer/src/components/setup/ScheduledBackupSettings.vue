@@ -187,7 +187,7 @@ onMounted(load);
             <DateField
               kind="time"
               v-model="config.time"
-              label="وقت التنفيذ"
+              label="وقت النسخ"
               hide-details="auto"
             />
           </FormSection>

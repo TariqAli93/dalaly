@@ -203,7 +203,7 @@ defineExpose({
     :empty="{
       icon: 'mdi-key-plus',
       title: emptyTitle ?? 'لا توجد عروض إيجار بعد',
-      text: emptyText ?? 'أضف أول عرض إيجاري ليظهر في القائمة.',
+      text: emptyText ?? 'أضف أول عرض إيجار ليظهر في القائمة.',
     }"
     :no-match="{ title: 'لا توجد عروض إيجار مطابقة للبحث والفلاتر الحالية' }"
     @open="emit('view', $event)"

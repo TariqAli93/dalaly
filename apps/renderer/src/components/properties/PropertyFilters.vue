@@ -229,7 +229,7 @@ defineExpose({ focusSearch: () => bar.value?.focusSearch() });
       <v-select
         :model-value="model.legal_type || null"
         :items="LEGAL_TYPES"
-        label="الصفة القانونية"
+        label="جنس العقار"
         hide-details
         clearable
         @update:model-value="model.legal_type = $event ?? ''"

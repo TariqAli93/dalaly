@@ -71,7 +71,7 @@ const stalled = ref(useRoute().query.stalled === "1");
 const q = ref("");
 const assigneeFilters = computed(() => [
   { title: "صفقاتي", value: "me" },
-  { title: "بلا مسؤول", value: "unassigned" },
+  { title: "بلا موظف مسؤول", value: "unassigned" },
   ...assignees.value.map((user) => ({
     title: user.display_name,
     value: user.id,
@@ -122,7 +122,7 @@ const headers: GridHeader[] = [
   { key: "client_name", title: "الزبون" },
   { key: "listing_name", title: "العرض", priority: 2 },
   { key: "asking_price", title: "السعر", sortable: true },
-  { key: "assigned_user_name", title: "المسؤول", priority: 2 },
+  { key: "assigned_user_name", title: "الموظف المسؤول", priority: 2 },
   { key: "updated_at", title: "آخر تحديث", sortable: true, priority: 3 },
   { key: "actions", title: "", align: "end", width: 96 },
 ];
@@ -209,7 +209,10 @@ function newDeal(kind: DealType = "sale") {
 useNewFromQuery((value) => {
   if (can("deals.create")) newDeal(value === "rent" ? "rent" : "sale");
 });
-useCreateShortcut(() => newDeal(), () => can("deals.create"));
+useCreateShortcut(
+  () => newDeal(),
+  () => can("deals.create"),
+);
 const stageDialog = ref(false);
 const moving = ref<DealRecord | null>(null);
 const movingTo = ref<DealStage | null>(null);
@@ -331,7 +334,7 @@ onBeforeUnmount(() => {
           <v-select
             v-model="assigned"
             :items="assigneeFilters"
-            label="المسؤول"
+            label="الموظف المسؤول"
             hide-details
             clearable
             class="dal-toolbar__filter"
@@ -386,8 +389,8 @@ onBeforeUnmount(() => {
           >
         </nav>
         <p v-if="boardTotal > BOARD_LIMIT" class="deals-board__note">
-          تعرض اللوحة أقدم {{ BOARD_LIMIT }} صفقة في مراحلها من
-          {{ boardTotal }}؛ استخدم الجدول أو الفلاتر للبقية.
+          تعرض اللوحة أقدم {{ BOARD_LIMIT }} صفقة مفتوحة من {{ boardTotal }}؛
+          استخدم الجدول أو الفلاتر للبقية.
         </p>
         <div
           class="deals-board"

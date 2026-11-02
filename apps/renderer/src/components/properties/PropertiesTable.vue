@@ -200,7 +200,7 @@ defineExpose({
     :empty="{
       icon: 'mdi-home-plus-outline',
       title: emptyTitle ?? 'لا توجد عروض بعد',
-      text: emptyText ?? 'أضف أول عرض عقاري ليظهر في القائمة.',
+      text: emptyText ?? 'أضف أول عرض بيع ليظهر في القائمة.',
     }"
     :no-match="{ title: 'لا توجد عروض مطابقة للبحث والفلاتر الحالية' }"
     @open="emit('view', $event)"

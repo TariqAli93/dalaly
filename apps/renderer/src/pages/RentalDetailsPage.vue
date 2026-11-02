@@ -30,7 +30,7 @@ import type {
 } from "../types";
 
 /**
- * صفحة العرض الإيجاري، بدل حوار التفاصيل (1120px): رابط ثابت، وعودة بـ Alt+←
+ * صفحة عرض الإيجار، بدل حوار التفاصيل (1120px): رابط ثابت، وعودة بـ Alt+←
  * إلى الصف نفسه، وتخطيط صفحة عرض البيع نفسه.
  */
 const route = useRoute();
@@ -69,7 +69,7 @@ async function load() {
   try {
     const id = Number(route.params.id);
     if (!Number.isSafeInteger(id) || id <= 0)
-      throw new Error("رقم العرض الإيجاري غير صالح.");
+      throw new Error("رقم عرض الإيجار غير صالح.");
     const [record, favorites] = await Promise.all([
       rentals.getRental(id),
       rentals.listRentalFavoriteIds().catch(() => ({ ids: [] as number[] })),
@@ -131,7 +131,7 @@ onMounted(() => setRefreshHandler(load));
 const title = computed(() =>
   rental.value
     ? rental.value.name || `إيجار ${rental.value.code}`
-    : "تفاصيل العرض الإيجاري",
+    : "تفاصيل عرض الإيجار",
 );
 const showCode = computed(
   () => rental.value && !title.value.includes(rental.value.code),
@@ -238,7 +238,7 @@ const followupTarget = computed<FollowupTarget | null>(() =>
             v-bind="menu"
             icon="mdi-dots-horizontal"
             variant="text"
-            aria-label="أوامر أخرى للعرض الإيجاري"
+            aria-label="أوامر أخرى لعرض الإيجار"
             title="أوامر أخرى"
           />
         </template>
@@ -282,7 +282,7 @@ const followupTarget = computed<FollowupTarget | null>(() =>
       ></v-alert
     >
     <template v-else-if="rental">
-      <RecordFacts :facts="facts" label="هوية العرض الإيجاري">
+      <RecordFacts :facts="facts" label="هوية عرض الإيجار">
         <template #owner>
           <router-link
             v-if="rental.owner_person_id && can('people.read')"

@@ -49,7 +49,7 @@ const rows = computed(() => {
     },
     { label: "الواجهة", value: p.frontage || "—" },
     { label: "النزال", value: p.nazal || "—" },
-    { label: "الصفة القانونية", value: p.legal_type || "—" },
+    { label: "جنس العقار", value: p.legal_type || "—" },
     {
       label: "سعر الوحدة",
       value: p.unit_price ? `${formatMoney(p.unit_price)} د.ع` : "—",

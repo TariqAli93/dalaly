@@ -13,7 +13,7 @@ import { amenitiesText } from "../../utils/amenities";
 import RentalExportMenu from "./RentalExportMenu.vue";
 
 /**
- * ملخّص العرض الإيجاري المحدد في اللوحة الجانبية، من بيانات الصف نفسه بلا
+ * ملخّص عرض الإيجار المحدد في اللوحة الجانبية، من بيانات الصف نفسه بلا
  * طلب. الأوامر تُصدَّر للأب ليعيد استخدام معالجاته.
  */
 const props = defineProps<{ rental: RentalRecord; favorite?: boolean }>();
@@ -178,7 +178,7 @@ const rows = computed(() => {
           variant="text"
           color="error"
           icon="mdi-delete-outline"
-          aria-label="حذف العرض الإيجاري"
+          aria-label="حذف عرض الإيجار"
           title="حذف"
           @click="emit('delete')"
         />

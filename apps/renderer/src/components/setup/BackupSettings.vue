@@ -85,7 +85,7 @@ const JOB_TYPES: Record<string, string> = {
 const JOB_STATUSES: Record<string, string> = {
   success: "ناجحة",
   failure: "فشلت",
-  pruned: "حُذفت (حدّ الاحتفاظ)",
+  pruned: "حُذفت تلقائياً",
 };
 const jobType = (type: string) => JOB_TYPES[type] ?? type;
 const jobStatus = (status: string) => JOB_STATUSES[status] ?? status;

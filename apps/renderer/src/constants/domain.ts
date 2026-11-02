@@ -69,7 +69,7 @@ export const RENT_PERIODS = [
   { title: "سنوي", value: "annual" },
 ];
 
-/** حالات العرض الإيجاري (RENTAL_STATUSES في الخادم): لا «مباع» ولا «مغلق». */
+/** حالات عرض الإيجار (RENTAL_STATUSES في الخادم): لا «مباع» ولا «مغلق». */
 export const RENTAL_STATUSES = [
   { title: "متاح", value: "available" },
   { title: "محجوز", value: "reserved" },

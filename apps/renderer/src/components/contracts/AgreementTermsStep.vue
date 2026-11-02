@@ -265,7 +265,7 @@ function setWitness(
             "
           />
           <v-select
-            label="دورية القسط"
+            label="دورية الدفع"
             :items="FREQUENCIES"
             :model-value="terms.installment_frequency"
             @update:model-value="set('installment_frequency', $event)"
@@ -361,7 +361,7 @@ function setWitness(
             </span>
           </div>
           <v-text-field
-            label="موعد دفع البدل"
+            label="موعد دفع بدل الإيجار"
             :model-value="terms.payment_due ?? ''"
             maxlength="300"
             @update:model-value="set('payment_due', text($event))"

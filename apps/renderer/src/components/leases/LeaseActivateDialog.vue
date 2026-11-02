@@ -143,7 +143,7 @@ function openExisting() {
                 <dd>{{ nameOf("tenant") }}</dd>
               </div>
               <div>
-                <dt>البدل</dt>
+                <dt>بدل الإيجار</dt>
                 <dd>
                   <bdi>{{
                     formatAmount(draft.lease.rent_amount, draft.lease.currency)

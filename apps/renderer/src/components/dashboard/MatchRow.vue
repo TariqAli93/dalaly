@@ -182,7 +182,6 @@ const prefSlots = computed(() =>
       </template>
       <span class="match__actions">
         <v-btn
-          size="small"
           variant="text"
           prepend-icon="mdi-text-box-search-outline"
           @click="emit('details', item)"
@@ -190,7 +189,6 @@ const prefSlots = computed(() =>
         >
         <v-btn
           v-if="canDeal"
-          size="small"
           variant="text"
           prepend-icon="mdi-handshake-outline"
           :aria-label="`صفقة لـ ${request.person_name} على ${offer.code}`"
@@ -199,7 +197,6 @@ const prefSlots = computed(() =>
         >
         <v-btn
           v-if="canFollowup"
-          size="small"
           variant="tonal"
           color="primary"
           prepend-icon="mdi-phone-plus-outline"

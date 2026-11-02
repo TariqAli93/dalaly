@@ -55,10 +55,10 @@ export function dealsDocument(
 ): ReportDocument {
   const t = report.totals;
   const notes = [
-    "نسبة الفوز: الرابحة ÷ (الرابحة + الخاسرة) مما أُغلق في المدة؛ الملغاة لا تُحسب. تحويل صفقات المدة: ما رُبح حتى الآن مما أُنشئ في المدة. مدة الإغلاق: من إنشاء الصفقة إلى ربحها.",
+    "نسبة الإتمام: المكتملة ÷ (المكتملة + التي لم تتم) مما أُغلق خلال الفترة؛ الملغاة لا تُحسب. أُتمّت من الجديدة: ما اكتمل حتى الآن من الصفقات المضافة خلال الفترة. مدة الإتمام: من إضافة الصفقة إلى اكتمالها.",
   ];
   if (report.closed_truncated)
-    notes.unshift("أكثر من 1000 صفقة مغلقة: ضيّق المدة لترى كلها.");
+    notes.unshift("أكثر من 1000 صفقة مغلقة: اختر فترة أقصر لتراها كلها.");
   const scope = [
     employeeName,
     report.deal_type ? dealTypeLabel(report.deal_type) : null,
@@ -73,15 +73,14 @@ export function dealsDocument(
         currency: "IQD",
         title: "الصفقات",
         figures: [
-          count("أُنشئت في المدة", t.created),
-          count("رُبحت", t.won),
-          count("خُسرت", t.lost),
-          count("أُلغيت", t.cancelled),
+          count("صفقات جديدة", t.created),
+          count("مكتملة", t.won),
+          count("لم تتم", t.lost),
+          count("ملغاة", t.cancelled),
           count("مفتوحة الآن", t.open_now),
-          percent("نسبة الفوز", t.win_rate),
-          percent("تحويل صفقات المدة", t.cohort_conversion),
-          daysFigure("متوسط مدة الإغلاق", t.cycle_days_average),
-          daysFigure("وسيط مدة الإغلاق", t.cycle_days_median),
+          percent("نسبة الإتمام", t.win_rate),
+          percent("أُتمّت من الجديدة", t.cohort_conversion),
+          daysFigure("متوسط مدة الإتمام", t.cycle_days_average),
         ],
         tables: [
           {
@@ -121,27 +120,31 @@ export function dealsDocument(
             })),
           },
           {
-            title: "أسباب الخسارة",
+            title: "أسباب عدم الإتمام",
             columns: [
               { key: "reason", title: "السبب" },
               { key: "deals", title: "الصفقات", kind: "number" },
-              { key: "share", title: "من الخسائر", kind: "percent" },
+              { key: "share", title: "النسبة", kind: "percent" },
             ],
             rows: report.lost_reasons.map((row) => ({
               cells: { reason: row.reason, deals: row.deals, share: row.share },
             })),
-            empty: "لم تُخسر صفقة في المدة.",
+            empty: "لا صفقات «لم تتم» خلال الفترة.",
           },
           {
             title: "أداء الموظفين",
             columns: [
               { key: "name", title: "الموظف" },
               { key: "open", title: "مفتوحة", kind: "number" },
-              { key: "created", title: "أُنشئت", kind: "number" },
-              { key: "won", title: "رُبحت", kind: "number" },
-              { key: "lost", title: "خُسرت", kind: "number" },
-              { key: "rate", title: "نسبة الفوز", kind: "percent" },
-              { key: "cycle", title: "متوسط الأيام", kind: "number" },
+              { key: "created", title: "جديدة", kind: "number" },
+              { key: "won", title: "مكتملة", kind: "number" },
+              { key: "lost", title: "لم تتم", kind: "number" },
+              { key: "rate", title: "نسبة الإتمام", kind: "percent" },
+              {
+                key: "cycle",
+                title: "متوسط مدة الإتمام (يوماً)",
+                kind: "number",
+              },
               {
                 key: "iqd",
                 title: "عمولات بالدينار",
@@ -157,7 +160,7 @@ export function dealsDocument(
             ],
             rows: report.employees.map((row) => ({
               cells: {
-                name: row.display_name ?? "غير مسند",
+                name: row.display_name ?? "بلا موظف مسؤول",
                 open: row.open_now,
                 created: row.created,
                 won: row.won,
@@ -171,7 +174,7 @@ export function dealsDocument(
             })),
           },
           {
-            title: "العمولات المسجّلة في المدة",
+            title: "العمولات المسجّلة خلال الفترة",
             columns: [
               { key: "type", title: "نوع الصفقة" },
               { key: "currency", title: "العملة" },
@@ -187,10 +190,10 @@ export function dealsDocument(
               },
               currency: row.currency,
             })),
-            empty: "لا عمولات في المدة.",
+            empty: "لا عمولات خلال الفترة.",
           },
           {
-            title: "الصفقات المغلقة في المدة",
+            title: "الصفقات المغلقة خلال الفترة",
             columns: [
               { key: "closed", title: "أُغلقت", kind: "date" },
               { key: "code", title: "الصفقة" },
@@ -198,8 +201,8 @@ export function dealsDocument(
               { key: "stage", title: "النتيجة" },
               { key: "client", title: "الزبون" },
               { key: "user", title: "الموظف" },
-              { key: "days", title: "الأيام", kind: "number" },
-              { key: "reason", title: "سبب الخسارة" },
+              { key: "days", title: "مدتها (يوماً)", kind: "number" },
+              { key: "reason", title: "سبب عدم الإتمام" },
               { key: "price", title: "السعر المتفق", kind: "money" },
             ],
             rows: report.closed.map((row) => ({
@@ -226,7 +229,7 @@ export function dealsDocument(
               }),
               tone: row.stage === "won" ? undefined : "muted",
             })),
-            empty: "لم تُغلق صفقة في المدة.",
+            empty: "لم تُغلق صفقة خلال الفترة.",
           },
         ],
       },
@@ -245,7 +248,7 @@ export function customersDocument(
     link(links.can("people.read"), `/clients/${id}`);
   const tables: ReportDocument["sections"][number]["tables"] = [
     {
-      title: `لهم ما هو مفتوح ولا تواصل منذ ${report.days} يوماً`,
+      title: `لهم طلب أو صفقة مفتوحة ولا تواصل منذ ${report.days} يوماً`,
       columns: [
         { key: "person", title: "الزبون" },
         { key: "phone", title: "الهاتف" },
@@ -268,11 +271,11 @@ export function customersDocument(
       empty: "تواصل المكتب مع كل من له طلب أو صفقة مفتوحة.",
     },
     {
-      title: "زبائن متكررون (صفقتان رابحتان أو أكثر)",
+      title: "زبائن متكررون (صفقتان مكتملتان أو أكثر)",
       columns: [
         { key: "person", title: "الزبون" },
         { key: "phone", title: "الهاتف" },
-        { key: "won", title: "صفقات رابحة", kind: "number" },
+        { key: "won", title: "صفقات مكتملة", kind: "number" },
         { key: "last", title: "آخرها", kind: "date" },
       ],
       rows: report.repeat.map((row) => ({
@@ -284,10 +287,10 @@ export function customersDocument(
         },
         links: only({ person: person(row.person_id) }),
       })),
-      empty: "لا زبون له أكثر من صفقة رابحة.",
+      empty: "لا زبون له أكثر من صفقة مكتملة.",
     },
     {
-      title: "التواصل في المدة حسب النوع",
+      title: "التواصل خلال الفترة حسب النوع",
       columns: [
         { key: "type", title: "النوع" },
         { key: "contacts", title: "مرات التواصل", kind: "number" },
@@ -300,10 +303,10 @@ export function customersDocument(
           customers: row.customers,
         },
       })),
-      empty: "لا تواصل مسجّل في المدة.",
+      empty: "لا تواصل مسجّل خلال الفترة.",
     },
     {
-      title: "التواصل في المدة حسب الموظف",
+      title: "التواصل خلال الفترة حسب الموظف",
       columns: [
         { key: "name", title: "الموظف" },
         { key: "contacts", title: "مرات التواصل", kind: "number" },
@@ -311,7 +314,7 @@ export function customersDocument(
       ],
       rows: report.contacts_by_user.map((row) => ({
         cells: {
-          name: row.display_name ?? "بلا موظف",
+          name: row.display_name ?? "بلا موظف مسؤول",
           contacts: row.contacts,
           customers: row.customers,
         },
@@ -320,14 +323,14 @@ export function customersDocument(
   ];
   if (report.requests)
     tables.push({
-      title: "الطلبات وتحوّلها إلى صفقات",
+      title: "الطلبات وما صار منها صفقات",
       columns: [
         { key: "kind", title: "الطلبات" },
         { key: "open", title: "مفتوحة الآن", kind: "number" },
-        { key: "created", title: "أُضيفت في المدة", kind: "number" },
+        { key: "created", title: "جديدة", kind: "number" },
         { key: "with_deal", title: "لها صفقة", kind: "number" },
-        { key: "won", title: "صفقتها رابحة", kind: "number" },
-        { key: "rate", title: "التحويل", kind: "percent" },
+        { key: "won", title: "صفقتها مكتملة", kind: "number" },
+        { key: "rate", title: "نسبة الإتمام", kind: "percent" },
       ],
       rows: report.requests.map((row) => ({
         cells: {
@@ -345,7 +348,7 @@ export function customersDocument(
     period: periodText(report.from, report.to),
     fileName: `تقرير-الزبائن-${report.from}-${report.to}`,
     notes: [
-      "التواصل: نشاط أو متابعة على عرض تذكر الزبون. «بلا تواصل»: زبون نشِط له صفقة أو طلب مفتوح ولم يُتواصل معه في الأيام الأخيرة من المدة، أو لم يُتواصل معه قط.",
+      "التواصل: نشاط أو متابعة على عرض تذكر الزبون. «بلا تواصل»: زبون نشِط له صفقة أو طلب مفتوح ولم يُتواصل معه في الأيام الأخيرة من الفترة، أو لم يُتواصل معه قط.",
       ...(report.requests ? [] : ["أرقام الطلبات تحتاج صلاحية عرض الطلبات."]),
     ],
     sections: [
@@ -354,11 +357,11 @@ export function customersDocument(
         title: "الزبائن",
         figures: [
           count("نشِطون", t.active),
-          count("جدد في المدة", t.new),
+          count("زبائن جدد", t.new),
           count("تواصلنا معهم", t.contacted),
           count(`بلا تواصل منذ ${report.days} يوماً`, t.uncontacted),
           count("متكررون", t.repeat),
-          percent("تحوّل الجدد إلى صفقة رابحة", t.new_conversion),
+          percent("الجدد الذين أتمّوا صفقة", t.new_conversion),
         ],
         tables,
       },
@@ -384,9 +387,8 @@ export function listingsDocument(
   };
   const figures: ReportFigure[] = [
     count("متاحة", t.available),
-    count(sale ? "بِيعت في المدة" : "أُجِّرت في المدة", t.closed),
+    count(sale ? "بِيعت خلال الفترة" : "أُجِّرت خلال الفترة", t.closed),
     count("بلا نشاط منذ 30 يوماً", t.stale),
-    daysFigure("وسيط عمر المتاح", t.age_median),
   ];
   if (t.open_requests !== null)
     figures.push(count("طلبات مفتوحة", t.open_requests));
@@ -438,13 +440,13 @@ export function listingsDocument(
         ? "المعروض والمطلوب حسب السعر (دينار)"
         : "المعروض والمطلوب حسب الإيجار الشهري (دينار)",
       columns: [
-        { key: "band", title: "النطاق" },
+        { key: "band", title: "السعر" },
         { key: "available", title: "متاح", kind: "number" },
         ...(t.open_requests !== null
           ? [
               {
                 key: "requests",
-                title: "مطلوب (بأعلى ميزانية)",
+                title: "مطلوب (حسب أعلى ميزانية)",
                 kind: "number" as const,
               },
             ]
@@ -505,7 +507,7 @@ export function listingsDocument(
       empty: "كل طلب مفتوح يطابقه عرض متاح.",
     });
   tables.push({
-    title: sale ? "بِيعت في المدة" : "أُجِّرت في المدة",
+    title: sale ? "بِيعت خلال الفترة" : "أُجِّرت خلال الفترة",
     columns: [
       { key: "date", title: "التاريخ", kind: "date" },
       { key: "code", title: "العرض" },
@@ -527,7 +529,7 @@ export function listingsDocument(
           : link(links.can("rentals.read"), `/rentals/${row.id}`),
       }),
     })),
-    empty: sale ? "لم يُبع عرض في المدة." : "لم يُؤجَّر عرض في المدة.",
+    empty: sale ? "لم يُبع عرض خلال الفترة." : "لم يُؤجَّر عرض خلال الفترة.",
   });
   return {
     title: sale ? "عروض البيع" : "عروض الإيجار",
@@ -535,8 +537,8 @@ export function listingsDocument(
     fileName: `${sale ? "عروض-البيع" : "عروض-الإيجار"}-${report.from}-${report.to}`,
     notes: [
       sale
-        ? "بِيعت في المدة: عروض حالتها مباعة الآن وسُجّل تغيير حالتها إلى مباع في المدة. بلا نشاط: متاح لم يُعدَّل ولم تُسجَّل عليه متابعة منذ 30 يوماً."
-        : "أُجِّرت في المدة: عروض حالتها مؤجرة الآن وسُجّل تغيير حالتها إلى مؤجر في المدة. الإيجار الشهري: السنوي ÷ 12 ونصف السنوي ÷ 6.",
+        ? "بِيعت خلال الفترة: عروض حالتها الآن مباعة وتغيّرت إلى مباع خلال الفترة. بلا نشاط: متاح لم يُعدَّل ولم تُسجَّل عليه متابعة منذ 30 يوماً."
+        : "أُجِّرت خلال الفترة: عروض حالتها الآن مؤجرة وتغيّرت إلى مؤجر خلال الفترة. الإيجار الشهري: السنوي ÷ 12 ونصف السنوي ÷ 6.",
       ...(t.open_requests === null
         ? ["أرقام الطلب تحتاج صلاحية عرض الطلبات."]
         : []),
@@ -563,7 +565,7 @@ export function leasesDocument(
     period: periodText(report.from, report.to),
     fileName: `تقرير-الإيجارات-${report.from}-${report.to}`,
     notes: [
-      "السارية والقادمة وما ينتهي قريباً بحسب اليوم. المستحق في المدة والمحصَّل منه: أقساط الإيجارات التي يقبضها المكتب. انتهت في المدة: بيوم إنهائها أو آخر يوم فيها؛ نسبة التجديد: المجدَّدة منها ÷ كلها.",
+      "السارية والتي لم تبدأ وما ينتهي قريباً: بحسب اليوم. المستحق والمقبوض: أقساط الإيجارات التي يقبضها المكتب، المستحقة خلال الفترة. انتهت خلال الفترة: بيوم إنهائها أو آخر يوم فيها؛ نسبة التجديد: المجدَّدة منها ÷ كلها.",
     ],
     sections: [
       {
@@ -573,12 +575,12 @@ export function leasesDocument(
           count("سارية اليوم", sum(report.in_force.map((row) => row.current))),
           count("لم تبدأ", sum(report.in_force.map((row) => row.upcoming))),
           count(`تنتهي خلال ${report.days} يوماً`, report.expiring.length),
-          count("انتهت في المدة", report.ended.ended),
+          count("انتهت خلال الفترة", report.ended.ended),
           count("جُدِّدت منها", report.ended.renewed),
           percent("نسبة التجديد", report.ended.renewal_rate),
           count("أُنهيت مبكراً", report.ended.terminated),
-          count("فُعِّلت في المدة", report.brokerage.activated),
-          count("صفقات إيجار رابحة", report.brokerage.rent_deals_won),
+          count("إيجارات جديدة", report.brokerage.activated),
+          count("صفقات إيجار مكتملة", report.brokerage.rent_deals_won),
         ],
         tables: [
           {
@@ -601,12 +603,12 @@ export function leasesDocument(
             empty: "لا إيجارات سارية.",
           },
           {
-            title: "الأقساط المستحقة في المدة",
+            title: "الأقساط المستحقة خلال الفترة",
             columns: [
               { key: "currency", title: "العملة" },
               { key: "count", title: "الأقساط", kind: "number" },
               { key: "amount", title: "المستحق", kind: "money" },
-              { key: "paid", title: "المحصَّل", kind: "money" },
+              { key: "paid", title: "المقبوض", kind: "money" },
               { key: "rate", title: "نسبة التحصيل", kind: "percent" },
             ],
             rows: report.due.map((row) => ({
@@ -619,7 +621,7 @@ export function leasesDocument(
               },
               currency: row.currency,
             })),
-            empty: "لا أقساط مستحقة في المدة يقبضها المكتب.",
+            empty: "لا أقساط مستحقة خلال الفترة يقبضها المكتب.",
           },
           {
             title: "المتأخر اليوم",
@@ -627,7 +629,7 @@ export function leasesDocument(
               { key: "currency", title: "العملة" },
               { key: "count", title: "الأقساط", kind: "number" },
               { key: "left", title: "المتبقي", kind: "money" },
-              { key: "oldest", title: "أقدمها (يوماً)", kind: "number" },
+              { key: "oldest", title: "أطول تأخير (يوماً)", kind: "number" },
             ],
             rows: report.overdue.map((row) => ({
               cells: {
@@ -647,9 +649,9 @@ export function leasesDocument(
               { key: "tenant", title: "المستأجر" },
               { key: "landlord", title: "المؤجر" },
               { key: "end", title: "آخر يوم", kind: "date" },
-              { key: "left", title: "بعد (يوماً)", kind: "number" },
-              { key: "rent", title: "البدل", kind: "money" },
-              { key: "frequency", title: "الدورية" },
+              { key: "left", title: "الأيام المتبقية", kind: "number" },
+              { key: "rent", title: "بدل الإيجار", kind: "money" },
+              { key: "frequency", title: "دورية الدفع" },
             ],
             rows: report.expiring.map((row) => ({
               cells: {
@@ -675,7 +677,7 @@ export function leasesDocument(
             empty: "لا إيجار ينتهي قريباً.",
           },
           {
-            title: "عمولات صفقات الإيجار في المدة",
+            title: "عمولات صفقات الإيجار خلال الفترة",
             columns: [
               { key: "currency", title: "العملة" },
               { key: "count", title: "العمولات", kind: "number" },
@@ -689,7 +691,7 @@ export function leasesDocument(
               },
               currency: row.currency,
             })),
-            empty: "لا عمولات على صفقات إيجار في المدة.",
+            empty: "لا عمولات على صفقات إيجار خلال الفترة.",
           },
         ],
       },

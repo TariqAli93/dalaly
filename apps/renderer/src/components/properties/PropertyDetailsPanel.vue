@@ -93,7 +93,7 @@ const sections = computed<DetailSection[]>(() => {
         },
         { label: "الزقاق", value: p.alley },
         { label: "رقم الدار", value: p.house_number },
-        { label: "أقرب معلم", value: p.nearest_landmark },
+        { label: "أقرب نقطة دالة", value: p.nearest_landmark },
         { label: "العنوان التفصيلي", value: p.address_details },
         { label: "المدينة", value: p.city },
       ],
@@ -102,7 +102,7 @@ const sections = computed<DetailSection[]>(() => {
       title: "المساحة والسعر",
       items: [
         { label: "نوع العقار", value: p.property_type },
-        { label: "الصفة القانونية", value: p.legal_type },
+        { label: "جنس العقار", value: p.legal_type },
         {
           label: "المساحة",
           value: `${formatNumber(p.area_value)} ${p.area_unit ?? ""}`.trim(),

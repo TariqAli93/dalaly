@@ -371,7 +371,7 @@ watch(
 
 <template>
   <AppPage
-    :title="isEditing ? 'تعديل عرض عقاري' : 'إضافة عرض عقاري'"
+    :title="isEditing ? 'تعديل عرض بيع' : 'إضافة عرض بيع'"
     :parent="
       isEditing
         ? { to: `/properties/${editingId}`, label: 'العرض' }

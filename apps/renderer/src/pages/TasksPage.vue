@@ -89,7 +89,7 @@ const type = ref<FollowupType | null>(null);
 const q = ref("");
 const assigneeFilters = computed(() => [
   { title: "مهامي", value: "me" },
-  { title: "بلا مكلّف", value: "unassigned" },
+  { title: "بلا موظف مسؤول", value: "unassigned" },
   ...assignees.value.map((user) => ({
     title: user.display_name,
     value: user.id,
@@ -141,7 +141,7 @@ const headers: GridHeader[] = [
   { key: "priority", title: "الأولوية", sortable: true, priority: 2 },
   { key: "status", title: "الحالة" },
   { key: "linked", title: "تخص", priority: 1 },
-  { key: "assigned_user_name", title: "المكلّف", priority: 2 },
+  { key: "assigned_user_name", title: "الموظف المسؤول", priority: 2 },
   { key: "actions", title: "", align: "end", width: 96 },
 ];
 
@@ -355,7 +355,7 @@ onBeforeUnmount(() => {
           <v-select
             v-model="assigned"
             :items="assigneeFilters"
-            label="المكلّف"
+            label="الموظف المسؤول"
             hide-details
             clearable
             class="dal-toolbar__filter"

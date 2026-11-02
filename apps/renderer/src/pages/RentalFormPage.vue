@@ -134,7 +134,7 @@ async function save() {
     if (savedId !== null) {
       await rentals.updateRental(savedId, payload);
       changes.markSaved();
-      notifySuccess("تم تحديث العرض الإيجاري.");
+      notifySuccess("تم تحديث عرض الإيجار.");
     } else {
       const created = await rentals.createRental(payload);
       savedId = created.id;
@@ -144,7 +144,7 @@ async function save() {
       // (بعد إغلاق حوار المطابقات مثلاً) يحدّثه ولا يُنشئ عرضاً مكرّراً.
       editingId.value = savedId;
       await router.replace(`/rentals/${savedId}/edit`);
-      notifySuccess("تمت إضافة العرض الإيجاري. أضف صوره من صفحته.");
+      notifySuccess("تمت إضافة عرض الإيجار. أضف صوره من صفحته.");
     }
 
     // بعد الحفظ صفحة العرض نفسه (وفيها الصور)، لا القائمة؛ وعرض أُضيف من
@@ -230,7 +230,7 @@ watch(
 
 <template>
   <AppPage
-    :title="isEditing ? 'تعديل عرض إيجاري' : 'إضافة عرض إيجاري'"
+    :title="isEditing ? 'تعديل عرض إيجار' : 'إضافة عرض إيجار'"
     :parent="
       isEditing
         ? { to: `/rentals/${editingId}`, label: 'العرض' }

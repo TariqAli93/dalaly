@@ -45,7 +45,7 @@ export function usePropertyActions(
     if (!can("properties.delete")) return;
     openConfirm({
       title: `حذف ${property.code}`,
-      body: "سيتم حذف العرض نهائياً من قاعدة البيانات. لا يمكن التراجع عن هذه العملية.",
+      body: "سيتم حذف العرض نهائياً. لا يمكن التراجع عن هذه العملية.",
       confirmText: "حذف",
       color: "error",
       onConfirm: async () => {

@@ -545,7 +545,7 @@ async function issue() {
   }
   openConfirm({
     title: `إصدار العقد ${record.value?.code}`,
-    body: "يُحفظ العقد كما هو الآن، مع بيانات الأطراف والعقار والمكتب، ولا يتغير بعد ذلك ولو عُدّلت تلك السجلات أو القالب. أي تصحيح لاحق يكون مراجعة جديدة.",
+    body: "يُحفظ العقد كما هو الآن، مع بيانات الأطراف والعقار والمكتب، ولا يتغير بعد ذلك ولو عُدّلت تلك السجلات أو القالب. أي تصحيح لاحق يكون بتعديل العقد في إصدار جديد.",
     confirmText: "إصدار",
     onConfirm: () =>
       run(
@@ -561,7 +561,7 @@ async function confirmReason(reason: string) {
   if (mode === "amend")
     await run(
       () => agreementsService.amendAgreement(agreementId.value, reason),
-      "فُتحت مراجعة جديدة كمسودة. المراجعة الصادرة السابقة محفوظة كما هي.",
+      "فُتح العقد للتعديل كمسودة. الإصدار السابق محفوظ كما هو.",
     );
   else if (mode === "cancel")
     await run(
@@ -787,7 +787,7 @@ watch(template, () => step.value === "content" && void loadReference());
         prepend-icon="mdi-file-edit-outline"
         :disabled="busy"
         @click="reasonMode = 'amend'"
-        >مراجعة جديدة</v-btn
+        >تعديل العقد</v-btn
       >
       <v-btn
         v-if="
@@ -827,7 +827,7 @@ watch(template, () => step.value === "content" && void loadReference());
           <v-list-item
             v-if="record.current_revision"
             prepend-icon="mdi-history"
-            title="سجل المراجعات"
+            title="سجل الإصدارات"
             @click="revisionsOpen = true"
           />
           <v-list-item
@@ -954,9 +954,9 @@ watch(template, () => step.value === "content" && void loadReference());
           density="compact"
           class="mb-2"
         >
-          مسودة المراجعة {{ record.current_revision + 1 }}:
-          {{ record.amend_reason }}. المراجعة
-          {{ record.current_revision }} الصادرة محفوظة كما هي.
+          مسودة الإصدار {{ record.current_revision + 1 }}:
+          {{ record.amend_reason }}. الإصدار {{ record.current_revision }} محفوظ
+          كما هو.
         </v-alert>
         <v-alert
           v-if="record.status === 'cancelled'"
@@ -1094,15 +1094,15 @@ watch(template, () => step.value === "content" && void loadReference());
       :model-value="reasonMode !== null"
       :title="
         reasonMode === 'amend'
-          ? 'فتح مراجعة جديدة'
+          ? 'تعديل عقد صادر'
           : `إلغاء العقد ${record?.code ?? ''}`
       "
       :body="
         reasonMode === 'amend'
-          ? 'يعود العقد مسودةً للمراجعة التالية. المراجعة الصادرة الحالية تبقى محفوظة كما هي، ويُسجَّل السبب معها عند الإصدار.'
-          : 'يبقى العقد وكل مراجعاته محفوظاً، ويُطبع بعد الإلغاء مختوماً «ملغى». لا يمكن التراجع عن الإلغاء.'
+          ? 'يعود العقد مسودةً لإصدار جديد. الإصدار الحالي يبقى محفوظاً كما هو، ويُسجَّل السبب مع الإصدار الجديد.'
+          : 'يبقى العقد وكل إصداراته محفوظاً، ويُطبع بعد الإلغاء مختوماً «ملغى». لا يمكن التراجع عن الإلغاء.'
       "
-      :confirm-text="reasonMode === 'amend' ? 'فتح مراجعة' : 'إلغاء العقد'"
+      :confirm-text="reasonMode === 'amend' ? 'فتح للتعديل' : 'إلغاء العقد'"
       :color="reasonMode === 'cancel' ? 'error' : 'primary'"
       :busy="busy"
       @update:model-value="!$event && (reasonMode = null)"

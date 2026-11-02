@@ -66,7 +66,7 @@ const rows = computed(() => {
          وتُقارَن أرقام البيع والإيجار في الحالة نفسها على سطر واحد. -->
     <table v-else class="performance__table">
       <caption class="d-sr-only">
-        عدد العروض في كل حالة، والمُنجز خلال آخر
+        عدد العروض في كل حالة، وما بِيع أو أُجِّر خلال آخر
         {{
           overview.recent_days
         }}
@@ -94,7 +94,7 @@ const rows = computed(() => {
           </td>
         </tr>
         <tr class="performance__sub">
-          <th scope="row">قيمة المتاحة</th>
+          <th scope="row">قيمة العروض المتاحة</th>
           <td v-for="row in rows" :key="row.kind">
             <span class="money">{{ formatMoney(row.value) }}</span> د.ع
             <template v-if="row.kind === 'rental'">{{
@@ -140,7 +140,9 @@ const rows = computed(() => {
           </td>
         </tr>
         <tr>
-          <th scope="row">مُنجز خلال {{ overview.recent_days }} يوماً</th>
+          <th scope="row">
+            بِيع أو أُجِّر خلال {{ overview.recent_days }} يوماً
+          </th>
           <td
             v-for="row in rows"
             :key="row.kind"
@@ -152,8 +154,8 @@ const rows = computed(() => {
       </tbody>
     </table>
     <p v-if="overview && rows.length" class="performance__note">
-      «المُنجز»: ما صار مباعاً أو مؤجراً خلال المدة وبقي كذلك. القيمة الشهرية
-      للإيجار: السنوي ÷ 12 ونصف السنوي ÷ 6.
+      «بِيع أو أُجِّر»: ما صار مباعاً أو مؤجراً خلال هذه الأيام وبقي كذلك.
+      القيمة الشهرية للإيجار: السنوي ÷ 12 ونصف السنوي ÷ 6.
     </p>
   </section>
 </template>

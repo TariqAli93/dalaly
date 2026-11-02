@@ -19,7 +19,7 @@ import PropertyLocationView from "../shared/PropertyLocationView.vue";
 import type { DetailSection } from "../shared/record";
 
 /**
- * جسم صفحة العرض الإيجاري، بتخطيط صفحة عرض البيع نفسه: تبويبات التفاصيل
+ * جسم صفحة عرض الإيجار، بتخطيط صفحة عرض البيع نفسه: تبويبات التفاصيل
  * والموقع والمتابعات والملاحظات والسجل في لوح، والصور في عمود ظاهر دائماً.
  * السعر والمالك والموقع في شريط RecordFacts فوقه.
  */
@@ -153,7 +153,7 @@ defineExpose({ followupSaved });
     class="listing-record"
     :class="{ 'listing-record--media-closed': !mediaOpen }"
   >
-    <section class="dal-panel" aria-label="بيانات العرض الإيجاري">
+    <section class="dal-panel" aria-label="بيانات عرض الإيجار">
       <v-tabs v-model="tab" color="primary" show-arrows>
         <v-tab value="details">التفاصيل</v-tab>
         <v-tab value="map">الموقع</v-tab>

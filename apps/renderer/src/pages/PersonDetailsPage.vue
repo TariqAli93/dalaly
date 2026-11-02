@@ -252,7 +252,7 @@ const facts = computed<RecordFact[]>(() => {
     },
     {
       key: "assigned",
-      label: "الموظف المتابع",
+      label: "الموظف المسؤول",
       value: p.assigned_user_name ?? "—",
     },
   ];

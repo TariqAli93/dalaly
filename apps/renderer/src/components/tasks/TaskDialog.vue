@@ -213,14 +213,14 @@ function onKeydown(event: KeyboardEvent) {
               role="radio"
               :aria-checked="intent === 'log'"
               prepend-icon="mdi-history"
-              >تسجيل أمر حدث</v-btn
+              >تسجيل ما حدث</v-btn
             >
           </v-btn-toggle>
           <p class="task-dialog__intent-hint">
             {{
               intent === "task"
                 ? "تبقى مفتوحة في المهام حتى تُنجزها، بموعد أو بدونه."
-                : "تُحفظ كأمر حدث فعلاً (مُنجز)، ولا تظهر في المهام المفتوحة."
+                : "تُحفظ كأمر تمّ فعلاً، ولا تظهر في المهام المفتوحة."
             }}
           </p>
         </div>
@@ -275,7 +275,7 @@ function onKeydown(event: KeyboardEvent) {
           :items="assignees"
           item-title="display_name"
           item-value="id"
-          label="الموظف المكلّف"
+          label="الموظف المسؤول"
           clearable
           hide-details="auto"
         />

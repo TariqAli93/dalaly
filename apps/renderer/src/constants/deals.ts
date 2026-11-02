@@ -7,17 +7,17 @@ export const DEAL_STAGES: Array<{
   color: string;
   closed?: boolean;
 }> = [
-  { value: "new", title: "فرصة جديدة", color: "default" },
+  { value: "new", title: "جديدة", color: "default" },
   { value: "contacted", title: "تم التواصل", color: "info" },
-  { value: "qualified", title: "مؤهلة", color: "info" },
+  { value: "qualified", title: "زبون جاد", color: "info" },
   { value: "viewing_scheduled", title: "معاينة مجدولة", color: "primary" },
   { value: "viewing_done", title: "تمت المعاينة", color: "primary" },
   { value: "negotiating", title: "تفاوض", color: "warning" },
   { value: "agreed", title: "تم الاتفاق", color: "success" },
   { value: "contract_preparation", title: "إعداد العقد", color: "success" },
   { value: "contract_issued", title: "صدر العقد", color: "success" },
-  { value: "won", title: "مكسوبة", color: "success", closed: true },
-  { value: "lost", title: "خاسرة", color: "error", closed: true },
+  { value: "won", title: "مكتملة", color: "success", closed: true },
+  { value: "lost", title: "لم تتم", color: "error", closed: true },
   { value: "cancelled", title: "ملغاة", color: "default", closed: true },
 ];
 

@@ -24,8 +24,7 @@ async function checkStatus(): Promise<SetupStatus> {
   try {
     while (Date.now() < deadline) {
       const health = await setupService.fetchSetupStatus();
-      if (!health.startup_state)
-        throw new Error("استجابة فحص النظام غير صالحة.");
+      if (!health.startup_state) throw new Error("تعذّر فحص حالة النظام.");
       status.value = health;
       startupState.value = health.startup_state;
       startupMessage.value =
@@ -36,7 +35,7 @@ async function checkStatus(): Promise<SetupStatus> {
       await new Promise((resolve) => setTimeout(resolve, 350));
     }
     throw new Error(
-      "انتهت مهلة تهيئة النظام. أعد المحاولة أو راجع سجلات الخادم.",
+      "انتهت مهلة تهيئة النظام. أعد المحاولة، وإن تكرر فأعد تشغيل البرنامج.",
     );
   } catch (error) {
     status.value = null;
@@ -44,7 +43,7 @@ async function checkStatus(): Promise<SetupStatus> {
     startupMessage.value =
       error instanceof Error && error.message.includes("مهلة")
         ? error.message
-        : "تعذر الوصول إلى الخادم المحلي. أعد المحاولة بعد التأكد من تشغيله.";
+        : "تعذر الاتصال بخدمة البرنامج. أعد المحاولة، وإن تكرر فأعد تشغيل البرنامج.";
     throw error;
   }
 }

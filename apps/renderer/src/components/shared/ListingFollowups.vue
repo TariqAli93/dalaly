@@ -229,7 +229,7 @@ defineExpose({ reload: load });
                 موعد: {{ fmt(item.scheduled_at) }}
               </span>
               <span v-if="item.assigned_user_name">
-                · المكلّف: {{ item.assigned_user_name }}</span
+                · الموظف المسؤول: {{ item.assigned_user_name }}</span
               >
               <span v-if="item.person_name">
                 · الزبون: {{ item.person_name }}</span

@@ -21,7 +21,7 @@ export const PERMISSION_MODULES: Array<{ key: string; title: string }> = [
   { key: "users", title: "المستخدمون" },
   { key: "roles", title: "الأدوار والصلاحيات" },
   { key: "settings", title: "الإعدادات" },
-  { key: "remote_access", title: "الوصول عن بُعد" },
+  { key: "remote_access", title: "الاتصال الخارجي" },
   { key: "backups", title: "النسخ الاحتياطي" },
   { key: "audit", title: "سجل التغييرات" },
   { key: "security", title: "الأمان" },

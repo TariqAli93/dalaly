@@ -243,7 +243,7 @@ function actionsOf(item: AgreementListItem): RowAction[] {
   if (item.current_revision > 0)
     actions.push({
       key: "revisions",
-      label: "سجل المراجعات",
+      label: "سجل الإصدارات",
       icon: "mdi-history",
       run: () => (revisionsOf.value = item),
     });
@@ -425,7 +425,7 @@ async function create(key: TemplateKey) {
             <small
               >{{ item.title
               }}<template v-if="item.current_revision > 1">
-                · مراجعة {{ item.current_revision }}</template
+                · الإصدار {{ item.current_revision }}</template
               ></small
             >
           </div>
@@ -475,7 +475,7 @@ async function create(key: TemplateKey) {
     <ReasonDialog
       :model-value="Boolean(cancelling)"
       :title="`إلغاء العقد ${cancelling?.code ?? ''}`"
-      body="يبقى العقد وكل مراجعاته محفوظاً للرجوع إليه، ويُطبع بعد الإلغاء مختوماً «ملغى». لا يمكن التراجع عن الإلغاء."
+      body="يبقى العقد وكل إصداراته محفوظاً للرجوع إليه، ويُطبع بعد الإلغاء مختوماً «ملغى». لا يمكن التراجع عن الإلغاء."
       confirm-text="إلغاء العقد"
       color="error"
       :busy="cancelBusy"

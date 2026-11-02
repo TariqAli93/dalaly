@@ -4,7 +4,7 @@ import { useConfirm } from "./useConfirm";
 import { useSnackbar } from "./useSnackbar";
 import { usePermissions } from "./usePermissions";
 
-/** أرشفة عرض إيجاري وإرجاعه وحذفه بعد تأكيد، كما في usePropertyActions. */
+/** أرشفة عرض إيجار وإرجاعه وحذفه بعد تأكيد، كما في usePropertyActions. */
 export function useRentalActions(
   onChanged: (
     action: "archive" | "restore" | "delete",
@@ -24,7 +24,7 @@ export function useRentalActions(
       onConfirm: async () => {
         await service.archiveRental(rental.id);
         await onChanged("archive", rental);
-        notifySuccess("تمت أرشفة العرض الإيجاري.");
+        notifySuccess("تمت أرشفة عرض الإيجار.");
       },
     });
   }
@@ -32,13 +32,13 @@ export function useRentalActions(
     if (!can("rentals.restore")) return;
     openConfirm({
       title: `إرجاع ${rental.code}`,
-      body: "هل تريد إرجاع هذا العرض الإيجاري إلى حالة متاح؟",
+      body: "هل تريد إرجاع عرض الإيجار هذا إلى حالة متاح؟",
       confirmText: "إرجاع",
       color: "success",
       onConfirm: async () => {
         await service.restoreRental(rental.id);
         await onChanged("restore", rental);
-        notifySuccess("تم إرجاع العرض الإيجاري إلى المتاح.");
+        notifySuccess("تم إرجاع عرض الإيجار إلى المتاح.");
       },
     });
   }
@@ -46,13 +46,13 @@ export function useRentalActions(
     if (!can("rentals.delete")) return;
     openConfirm({
       title: `حذف ${rental.code}`,
-      body: "سيُحذف العرض الإيجاري وصوره ومتابعاته نهائياً. لا يمكن التراجع عن هذه العملية.",
+      body: "سيُحذف عرض الإيجار وصوره ومتابعاته نهائياً. لا يمكن التراجع عن هذه العملية.",
       confirmText: "حذف",
       color: "error",
       onConfirm: async () => {
         await service.deleteRental(rental.id);
         await onChanged("delete", rental);
-        notifySuccess("تم حذف العرض الإيجاري.");
+        notifySuccess("تم حذف عرض الإيجار.");
       },
     });
   }

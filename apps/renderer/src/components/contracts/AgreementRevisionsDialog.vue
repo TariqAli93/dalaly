@@ -117,9 +117,9 @@ watch(
           @click="viewing = null"
         />
         <template v-if="viewing"
-          >{{ record?.code }} — المراجعة {{ viewing.revision }}</template
+          >{{ record?.code }} — الإصدار {{ viewing.revision }}</template
         >
-        <template v-else>سجل مراجعات {{ record?.code ?? "" }}</template>
+        <template v-else>سجل إصدارات {{ record?.code ?? "" }}</template>
       </v-card-title>
       <v-card-text class="revisions-body">
         <div v-if="viewing && ctx" class="revisions-preview">
@@ -137,7 +137,7 @@ watch(
             <v-list-item
               v-for="revision in record.revisions"
               :key="revision.revision"
-              :title="`المراجعة ${revision.revision}${revision.revision === record.current_revision ? ' (الأحدث)' : ''}`"
+              :title="`الإصدار ${revision.revision}${revision.revision === record.current_revision ? ' (الأحدث)' : ''}`"
               :subtitle="`صدرت ${formatDateTime(revision.issued_at)}${revision.issued_by_name ? ` · ${revision.issued_by_name}` : ''}${revision.reason ? ` · السبب: ${revision.reason}` : ''}`"
             >
               <template #append>
@@ -186,7 +186,7 @@ watch(
                 <tr v-for="item in record.exports" :key="item.id">
                   <td>{{ EXPORT_FORMAT_LABELS[item.format] }}</td>
                   <td>
-                    {{ item.revision ? `المراجعة ${item.revision}` : "مسودة" }}
+                    {{ item.revision ? `الإصدار ${item.revision}` : "مسودة" }}
                   </td>
                   <td class="text-medium-emphasis">
                     <bdi>{{ item.file_name ?? "—" }}</bdi>

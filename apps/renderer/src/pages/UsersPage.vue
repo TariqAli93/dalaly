@@ -185,7 +185,7 @@ onMounted(() => {
       <FilterBar
         v-model:search="search"
         search-label="بحث في المستخدمين"
-        placeholder="بحث باسم الدخول أو الاسم الظاهر"
+        placeholder="بحث باسم المستخدم أو الاسم الظاهر"
         :chips="chips"
         @remove="search = ''"
         @clear="search = ''"

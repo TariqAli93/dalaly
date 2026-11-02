@@ -116,7 +116,7 @@ const headers: GridHeader[] = [
   { key: "tenant_name", title: "المستأجر" },
   { key: "landlord_name", title: "المؤجر", priority: 2 },
   { key: "rental_name", title: "العرض", priority: 3 },
-  { key: "rent_amount", title: "البدل", align: "end" },
+  { key: "rent_amount", title: "بدل الإيجار", align: "end" },
   { key: "start_date", title: "المدة", sortable: true },
   { key: "next_due_date", title: "القسط القادم", priority: 2 },
   { key: "outstanding", title: "المتأخر", align: "end", priority: 2 },

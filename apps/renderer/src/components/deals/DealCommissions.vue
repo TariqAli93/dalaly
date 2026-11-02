@@ -130,7 +130,7 @@ function onCollected(voucher: VoucherDetail) {
             color="success"
             variant="tonal"
             label
-            >محصّلة</v-chip
+            >مقبوضة</v-chip
           >
           <v-spacer />
           <bdi class="deal-commissions__amount">{{
@@ -142,7 +142,7 @@ function onCollected(voucher: VoucherDetail) {
           class="deal-commissions__meta"
         >
           <span
-            >حُصِّل
+            >قُبض
             <bdi>{{
               formatAmount(commission.collected, commission.currency)
             }}</bdi>

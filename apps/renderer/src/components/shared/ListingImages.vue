@@ -219,7 +219,7 @@ async function setPrimary(image: ListingImageRecord) {
 function askDelete(image: ListingImageRecord) {
   openConfirm({
     title: "حذف الصورة",
-    body: "سيتم حذف الصورة نهائياً من القرص وقاعدة البيانات.",
+    body: "سيتم حذف الصورة نهائياً.",
     confirmText: "حذف",
     color: "error",
     onConfirm: async () => {

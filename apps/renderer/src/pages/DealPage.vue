@@ -123,7 +123,7 @@ const facts = computed<RecordFact[]>(() => {
     },
     {
       key: "assigned",
-      label: "المسؤول",
+      label: "الموظف المسؤول",
       value: d.assigned_user_name ?? "—",
       hint: d.expected_close_date
         ? `الإغلاق المتوقع ${formatDate(d.expected_close_date)}`
@@ -204,8 +204,8 @@ const OFFER_STATUS: Record<
   DealOfferRecord["status"],
   { title: string; color: string }
 > = {
-  proposed: { title: "مقترح", color: "info" },
-  countered: { title: "قوبل بعرض مضاد", color: "warning" },
+  proposed: { title: "بانتظار الرد", color: "info" },
+  countered: { title: "رُدّ بسعر آخر", color: "warning" },
   accepted: { title: "مقبول", color: "success" },
   rejected: { title: "مرفوض", color: "error" },
   withdrawn: { title: "مسحوب", color: "default" },
@@ -228,7 +228,7 @@ async function addOffer() {
     });
     offerAmount.value = "";
     offerNotes.value = "";
-    notifySuccess("سُجّل العرض.");
+    notifySuccess("سُجّل عرض السعر.");
     await load();
   } catch (cause) {
     notifyError(getErrorMessage(cause));
@@ -246,7 +246,7 @@ async function settleOffer(
     deal.value = await dealsService.setDealOfferStatus(d.id, offer.id, status);
     if (status === "accepted")
       notifySuccess(
-        `قُبل العرض؛ السعر المتفق عليه ${formatAmount(offer.amount, d.currency)}.`,
+        `قُبل عرض السعر؛ السعر المتفق عليه ${formatAmount(offer.amount, d.currency)}.`,
       );
   } catch (cause) {
     notifyError(getErrorMessage(cause));
@@ -317,14 +317,14 @@ async function addActivity(value: TaskFieldsPayload) {
         color="success"
         prepend-icon="mdi-trophy-outline"
         @click="openMove('won')"
-        >إغلاق كمكسوبة</v-btn
+        >تمّت الصفقة</v-btn
       >
       <v-btn
         v-if="can('deals.close') && !closed"
         variant="text"
         color="error"
         @click="openMove('lost')"
-        >خاسرة</v-btn
+        >لم تتم</v-btn
       >
     </template>
 
@@ -362,11 +362,8 @@ async function addActivity(value: TaskFieldsPayload) {
       </section>
 
       <div class="deal-grid">
-        <section
-          class="dal-panel deal-panel"
-          aria-label="العروض والعروض المضادة"
-        >
-          <h2 class="deal-panel__title">العروض</h2>
+        <section class="dal-panel deal-panel" aria-label="عروض الأسعار">
+          <h2 class="deal-panel__title">عروض الأسعار</h2>
           <form
             v-if="can('deals.update') && !closed"
             class="deal-offer-form"
@@ -378,7 +375,7 @@ async function addActivity(value: TaskFieldsPayload) {
               density="compact"
               variant="outlined"
               divided
-              aria-label="صاحب العرض"
+              aria-label="من قدّم السعر"
             >
               <v-btn value="client">{{ parties.client }}</v-btn>
               <v-btn value="owner">{{ parties.owner }}</v-btn>
@@ -400,11 +397,11 @@ async function addActivity(value: TaskFieldsPayload) {
               color="primary"
               variant="tonal"
               :loading="offerSaving"
-              >تسجيل العرض</v-btn
+              >تسجيل عرض السعر</v-btn
             >
           </form>
           <p v-if="!deal.offers.length" class="deal-panel__empty">
-            لم يُسجَّل عرض بعد.
+            لم يُسجَّل عرض سعر بعد.
           </p>
           <ul v-else class="deal-list">
             <li v-for="offer in deal.offers" :key="offer.id">
@@ -457,7 +454,7 @@ async function addActivity(value: TaskFieldsPayload) {
                   size="small"
                   variant="text"
                   @click="settleOffer(offer, 'countered')"
-                  >عرض مضاد</v-btn
+                  >رد بسعر آخر</v-btn
                 >
                 <v-btn
                   size="small"

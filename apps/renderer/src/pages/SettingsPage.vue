@@ -183,7 +183,7 @@ const systemItems = computed(() => [
     label: "المستخدم الحالي",
     value: currentUser.value?.display_name || currentUser.value?.username,
   },
-  { label: "اسم الدخول", value: currentUser.value?.username, ltr: true },
+  { label: "اسم المستخدم", value: currentUser.value?.username, ltr: true },
 ]);
 
 onMounted(() => {
@@ -347,7 +347,7 @@ onMounted(() => {
         <v-window-item value="security">
           <SettingsSection
             title="الرمز السري للدخول"
-            description="غيّر رمز الدخول الخاص بك. يطلب البرنامج الرمز الحالي أولاً."
+            description="غيّر الرمز السري الخاص بك. يطلب البرنامج الرمز الحالي أولاً."
           >
             <template v-if="can('security.change_pin')" #actions>
               <v-btn

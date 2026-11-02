@@ -34,7 +34,7 @@ defineProps<{ subtitle?: string }>();
             <div class="auth-photo__eyebrow">إدارة العروض العقارية</div>
             <h2>كل تفاصيل مكتبك،<br />في مكان واحد.</h2>
             <p>
-              {{ subtitle ?? "نظّم عروضك، تابع عملاءك، وأدر إيجاراتك بسهولة." }}
+              {{ subtitle ?? "نظّم عروضك، تابع زبائنك، وأدر إيجاراتك بسهولة." }}
             </p>
           </div>
           <div class="auth-photo__footer">

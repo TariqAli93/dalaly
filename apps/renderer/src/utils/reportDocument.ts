@@ -199,7 +199,7 @@ footer { margin-top: 4mm; font-size: 8pt; color: #666; }
   <h1>${escapeHtml(report.title)}</h1>
   <span class="period">${escapeHtml(report.period)}</span>
 </header>
-${sections || '<p class="empty">لا بيانات في هذه المدة.</p>'}
+${sections || '<p class="empty">لا بيانات في هذه الفترة.</p>'}
 ${report.notes.length ? `<div class="notes">${report.notes.map((note) => `<p>${escapeHtml(note)}</p>`).join("")}</div>` : ""}
 <footer>استُخرج في ${escapeHtml(formatDateTime(new Date()))}</footer>
 </body>

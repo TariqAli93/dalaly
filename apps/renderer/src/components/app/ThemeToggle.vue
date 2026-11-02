@@ -8,7 +8,7 @@ const { isDark, toggle } = useThemeMode();
   <v-btn
     :icon="isDark ? 'mdi-weather-sunny' : 'mdi-weather-night'"
     variant="text"
-    title="تبديل الثيم"
+    title="تبديل المظهر"
     :aria-label="
       isDark ? 'التبديل إلى الوضع الفاتح' : 'التبديل إلى الوضع الداكن'
     "

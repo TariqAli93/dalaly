@@ -51,7 +51,7 @@ const text = (value: ReportCell, column: ReportColumn, currency: Currency) =>
 
 <template>
   <div class="report">
-    <p v-if="empty" class="report__empty">لا بيانات في هذه المدة.</p>
+    <p v-if="empty" class="report__empty">لا بيانات في هذه الفترة.</p>
     <section
       v-for="section in report.sections"
       :key="sectionTitle(section)"

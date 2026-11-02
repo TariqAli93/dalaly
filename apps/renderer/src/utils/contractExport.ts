@@ -170,7 +170,7 @@ export async function exportSourceFor(
       document: revision.document,
       title: record.title,
       fileBase: safeFileName(
-        `${record.title} ${record.code}${revision.revision > 1 ? ` - مراجعة ${revision.revision}` : ""}`,
+        `${record.title} ${record.code}${revision.revision > 1 ? ` - الإصدار ${revision.revision}` : ""}`,
       ),
       ctx: {
         template: record.template_key,

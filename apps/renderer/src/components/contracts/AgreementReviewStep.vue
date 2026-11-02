@@ -178,7 +178,7 @@ watch(() => props.record.id, loadAttachments);
           {{
             ctx.watermark === "مسودة"
               ? "معاينة المسودة"
-              : `المراجعة ${record.current_revision}`
+              : `الإصدار ${record.current_revision}`
           }}
           · {{ pages }}
           {{ pages === 1 ? "صفحة" : "صفحات" }}

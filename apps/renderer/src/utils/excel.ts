@@ -33,7 +33,7 @@ export const IMPORT_FIELDS: ImportField[] = [
   },
   {
     key: "legal_type",
-    label: "الصفة القانونية",
+    label: "جنس العقار",
     keywords: ["صفة", "جنس", "قانون"],
     default: "طابو ملك صرف",
   },

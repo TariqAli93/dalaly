@@ -43,7 +43,7 @@ const needsReason = computed(
 );
 const reasonLabel = computed(() =>
   stage.value === "lost"
-    ? "سبب الخسارة *"
+    ? "سبب عدم الإتمام *"
     : stage.value === "cancelled"
       ? "سبب الإلغاء *"
       : "سبب إعادة الفتح *",

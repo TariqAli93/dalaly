@@ -430,9 +430,9 @@ async function confirmCancel() {
       <section
         v-if="lease.chain.length > 1"
         class="dal-panel lease-part mt-4"
-        aria-label="سلسلة التجديد"
+        aria-label="سجل التجديدات"
       >
-        <h3 class="lease-part__title">سلسلة التجديد</h3>
+        <h3 class="lease-part__title">سجل التجديدات</h3>
         <ol class="lease-chain">
           <li
             v-for="link in lease.chain"

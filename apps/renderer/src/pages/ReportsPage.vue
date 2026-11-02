@@ -339,18 +339,18 @@ const overviewCells = computed<MoneyCell[]>(() => {
     cells.push(
       {
         key: "sales",
-        label: "إجمالي المبيعات",
+        label: "صفقات البيع",
         values: [],
         count: data ? (data.sale?.totals.won ?? 0) : null,
-        note: "صفقة بيع مكتملة",
+        note: "مكتملة خلال الفترة",
         action: true,
       },
       {
         key: "rentals",
-        label: "إجمالي الإيجارات",
+        label: "صفقات الإيجار",
         values: [],
         count: data ? (data.rent?.totals.won ?? 0) : null,
-        note: "صفقة إيجار مكتملة",
+        note: "مكتملة خلال الفترة",
         action: true,
       },
     );
@@ -359,7 +359,7 @@ const overviewCells = computed<MoneyCell[]>(() => {
     cells.push(
       {
         key: "collected",
-        label: "العمولات المحصلة",
+        label: "العمولات المقبوضة",
         values: sections.map((section) => ({
           currency: section.currency,
           amount: section.totals.collected,
@@ -845,7 +845,7 @@ async function run(kind: "excel" | "pdf" | "print") {
           @select="onOverview"
         />
         <p class="reports-overview-note">
-          أرقام الفترة عبر التقارير، لا تخص التقرير المختار وحده.
+          أرقام الفترة كلها، لا التقرير المعروض وحده.
         </p>
       </div>
 

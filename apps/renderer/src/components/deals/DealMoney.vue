@@ -207,7 +207,7 @@ function onIssued(voucher: VoucherDetail) {
                 formatAmount(totals.commission_outstanding, totals.currency)
               }}</bdi>
               <small
-                >حُصِّل
+                >قُبض
                 <bdi>{{
                   formatAmount(totals.commission_collected, totals.currency)
                 }}</bdi></small

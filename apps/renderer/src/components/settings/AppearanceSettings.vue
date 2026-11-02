@@ -228,10 +228,10 @@ function setColor(key: keyof AppearanceColors, value: unknown) {
                   <p>ألوان واضحة ونص مقروء لتنظيم عروض المكتب.</p>
                   <div class="d-flex flex-wrap ga-2">
                     <v-btn color="primary" variant="flat" size="small"
-                      >إجراء أساسي</v-btn
+                      >زر أساسي</v-btn
                     >
                     <v-btn color="secondary" variant="flat" size="small"
-                      >إجراء ثانوي</v-btn
+                      >زر ثانوي</v-btn
                     >
                     <v-chip color="accent" variant="tonal" size="small" label
                       >تمييز</v-chip

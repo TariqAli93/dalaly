@@ -44,7 +44,7 @@ const { setRefreshHandler } = useRefresh();
 const { search, status, role, assigned, list, apply, clear } = usePeople();
 const ASSIGNED_FILTERS = [
   { title: "زبائني", value: "me" },
-  { title: "بلا موظف متابع", value: "unassigned" },
+  { title: "بلا موظف مسؤول", value: "unassigned" },
 ];
 const { items, total, loading, error, page, pageSize, sortBy, onTableOptions } =
   list;
@@ -257,7 +257,7 @@ onBeforeUnmount(() => list.cancel());
           <v-select
             v-model="assigned"
             :items="ASSIGNED_FILTERS"
-            label="الموظف المتابع"
+            label="الموظف المسؤول"
             hide-details
             clearable
             class="dal-toolbar__filter"

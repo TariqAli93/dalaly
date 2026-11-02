@@ -158,7 +158,7 @@ const currencyName = (currency: Currency) =>
                 formatAmount(totals.commission_recorded, totals.currency)
               }}</bdi>
               <small
-                >حُصِّل
+                >قُبض
                 <bdi>{{
                   formatAmount(totals.commission_collected, totals.currency)
                 }}</bdi></small

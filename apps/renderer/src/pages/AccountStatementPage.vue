@@ -11,7 +11,7 @@ import type { AccountStatement } from "../types";
 import DateField from "../components/app/DateField.vue";
 
 /**
- * كشف حساب: القيود المرحَّلة على الحساب في مدة، برصيد أول المدة ورصيد بعد
+ * كشف حساب: القيود المرحَّلة على الحساب في مدة، برصيد بداية الفترة ورصيد بعد
  * كل سطر على جهة الحساب المعتادة (المدين للأصول والمصروفات، والدائن لغيرها).
  * المسودات لا تظهر: لا أثر لها حتى تُرحَّل.
  */
@@ -109,7 +109,8 @@ const sideNote = computed(() =>
         variant="tonal"
         density="compact"
         class="mb-3"
-        >يعرض الكشف أول 2000 سطر في المدة؛ ضيّق التواريخ لرؤية البقية.</v-alert
+        >يعرض الكشف أول 2000 سطر من الفترة؛ اختر فترة أقصر لرؤية
+        البقية.</v-alert
       >
       <section class="dal-panel" aria-label="كشف الحساب">
         <v-table density="compact" class="statement">
@@ -126,7 +127,7 @@ const sideNote = computed(() =>
           <tbody>
             <tr class="statement__opening">
               <td colspan="5">
-                رصيد أول المدة
+                رصيد بداية الفترة
                 <template v-if="statement.from">
                   (قبل {{ formatDate(statement.from) }})</template
                 >
@@ -164,13 +165,13 @@ const sideNote = computed(() =>
             </tr>
             <tr v-if="!statement.lines.length">
               <td colspan="6" class="text-center text-medium-emphasis py-4">
-                لا قيود مرحَّلة على الحساب في هذه المدة.
+                لا قيود مرحَّلة على الحساب في هذه الفترة.
               </td>
             </tr>
           </tbody>
           <tfoot>
             <tr>
-              <th scope="row" colspan="5">رصيد آخر المدة</th>
+              <th scope="row" colspan="5">رصيد نهاية الفترة</th>
               <td class="statement__amount">
                 <bdi>{{
                   formatAmount(statement.closing_balance, currency)
