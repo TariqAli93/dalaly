@@ -1055,7 +1055,14 @@ watch(template, () => step.value === "content" && void loadReference());
           :readonly="!editable"
           class="content-studio"
           @print="exportAs('print')"
-        />
+        >
+          <!-- UX-12: ما يُعدَّل هنا نسخة هذا العقد، لا القالب. -->
+          <template v-if="editable" #status>
+            <span class="content-scope"
+              >لهذا العقد وحده؛ القالب والعقود الأخرى لا تتغير</span
+            >
+          </template>
+        </ContractStudio>
         <AgreementReviewStep
           v-else-if="step === 'review' && reviewCtx && reviewDocument"
           :record="record"
@@ -1117,6 +1124,9 @@ watch(template, () => step.value === "content" && void loadReference());
 </template>
 
 <style scoped>
+.content-scope {
+  margin-inline-end: 12px;
+}
 /* القوالب أربعة دائماً، بيعان ثم إيجاران: عمودان يجعلان كل صفّ نوعاً، بدل
    ثلاثة وقالب وحيد في الصف الثاني. */
 .chooser {

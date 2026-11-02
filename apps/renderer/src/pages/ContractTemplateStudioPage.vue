@@ -214,6 +214,7 @@ onBeforeUnmount(() => clearTimeout(stashTimer));
   <AppPage
     :title="`تصميم ${title}`"
     :parent="{ label: 'قوالب العقود', to: '/contracts/templates' }"
+    subtitle="تعديل القالب يغيّر العقود الجديدة فقط؛ العقود القائمة لا تتغير. لتعديل نص عقد واحد افتحه من «العقود» ثم «البنود والمحتوى»."
   >
     <template #header-actions>
       <v-btn
