@@ -39,3 +39,4 @@ apps/renderer/.impeccable/live/server.json
 .playwright-cli/
 docs/ux-audit/screenshots/*.png
 docs/ux-audit/screenshots/*.webp
+docs/ux-implementation/screenshots/*.png
