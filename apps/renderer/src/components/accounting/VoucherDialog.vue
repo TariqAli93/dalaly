@@ -26,6 +26,7 @@ import type {
   VoucherRecord,
   ExpenseCategoryRecord,
 } from "../../types";
+import DateField from "../app/DateField.vue";
 
 /**
  * إصدار سند قبض أو صرف. الغرض يحدد الحساب المقابل (عمولة المكتب إيراد، ومال
@@ -487,7 +488,7 @@ function onKeydown(event: KeyboardEvent) {
               type="warning"
               variant="tonal"
               density="compact"
-              >لقبض عمولة مسجّلة على صفقة استخدم «تسديد عمولة» أو «تحصيل» في
+              >لقبض عمولة مسجّلة على صفقة استخدم «تحصيل عمولة» أو «تحصيل» في
               صفّها، فينقص المتبقي منها. هذا السند يُسجَّل إيراداً لا يرتبط
               بعمولة.</v-alert
             >
@@ -523,9 +524,8 @@ function onKeydown(event: KeyboardEvent) {
               >
             </div>
             <template v-else>
-              <v-text-field
+              <DateField
                 v-model="form.voucher_date"
-                type="date"
                 label="التاريخ *"
                 :error-messages="fieldErrors.voucher_date"
               />

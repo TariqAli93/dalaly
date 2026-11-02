@@ -234,6 +234,7 @@ defineExpose({ reload: list.reload, count });
     "
     :initial="taskInitial"
     person="hidden"
+    intent="task"
     :save="saveTask"
   />
 </template>

@@ -19,6 +19,7 @@ import type {
   ReconciliationRecord,
   TransferSortKey,
 } from "../types";
+import DateField from "../components/app/DateField.vue";
 
 /**
  * الصناديق والمصارف: رصيد كل حساب اليوم أو في تاريخ يُختار، والتحويلات بينها،
@@ -211,9 +212,8 @@ onMounted(() => {
             >في {{ formatDate(asOf) }}</span
           >
         </h2>
-        <v-text-field
+        <DateField
           v-model="asOf"
-          type="date"
           label="في تاريخ"
           density="compact"
           hide-details
@@ -408,9 +408,8 @@ onMounted(() => {
           <v-alert v-if="voidError" type="error" variant="tonal" class="mb-3">{{
             voidError
           }}</v-alert>
-          <v-text-field
+          <DateField
             v-model="voidDate"
-            type="date"
             label="تاريخ الإلغاء"
             class="mb-3"
             hide-details

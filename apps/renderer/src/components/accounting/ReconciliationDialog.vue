@@ -10,6 +10,7 @@ import type {
   ReconciliationPayload,
   ReconciliationRecord,
 } from "../../types";
+import DateField from "../app/DateField.vue";
 
 /**
  * مطابقة صندوق أو مصرف: ما عُدَّ في الصندوق أو ما يظهر في كشف المصرف، مقابل
@@ -155,9 +156,8 @@ async function save() {
           hide-details="auto"
         />
         <div class="reconcile-form__pair">
-          <v-text-field
+          <DateField
             v-model="form.statement_date"
-            type="date"
             label="التاريخ *"
             hide-details="auto"
           />

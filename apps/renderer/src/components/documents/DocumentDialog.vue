@@ -7,6 +7,7 @@ import { readFileAsDataUrl } from "../../utils/files";
 import type { DocumentRecord, DocumentTypeRecord } from "../../types";
 import FormSection from "../shared/FormSection.vue";
 import PersonPicker from "../people/PersonPicker.vue";
+import DateField from "../app/DateField.vue";
 
 /**
  * إضافة مستمسك لزبون أو تعديل بياناته في حوار نموذج، بدل صف التصفية الذي كان
@@ -224,10 +225,9 @@ function onKeydown(event: KeyboardEvent) {
                 :items="SIDES"
                 label="الوجه المصوَّر"
               />
-              <v-text-field
+              <DateField
                 v-model="form.expires_at"
                 name="expires_at"
-                type="date"
                 label="تاريخ الانتهاء"
                 :error-messages="apiErrors.messages('expires_at')"
               />

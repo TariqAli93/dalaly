@@ -75,21 +75,44 @@ async function runCommit() {
 }
 
 function close() {
+  if (committing.value) return;
   open.value = false;
   setTimeout(reset, 300);
 }
+// النقر خارج الحوار لا يغلقه (persistent)، وEsc يغلقه ما لم يكن الاستيراد
+// جارياً، كزرّي الإغلاق والإلغاء (UX-21). على محتوى الحوار كله، فالتركيز يكون
+// عليه أول ما يُفتح؛ قوائم الاختيار خارجه فيُغلق Esc القائمة وحدها.
+const contentProps = {
+  onKeydown: (event: KeyboardEvent) => {
+    if (event.key === "Escape") close();
+  },
+};
 // الخادم يرقّم صفوف البيانات من 1، وأول سطر في الملف رؤوس الأعمدة: الصف
 // 1 هو السطر 2 الذي يراه المستخدم في إكسل.
 const fileLine = (row: number) => row + 1;
 </script>
 
 <template>
-  <v-dialog v-model="open" width="640" scrollable persistent>
+  <v-dialog
+    v-model="open"
+    width="640"
+    scrollable
+    persistent
+    :content-props="contentProps"
+    aria-labelledby="excel-import-title"
+  >
     <v-card>
       <v-card-title class="d-flex align-center">
-        <span>استيراد عروض من ملف إكسل</span>
+        <span id="excel-import-title">استيراد عروض من ملف إكسل</span>
         <v-spacer />
-        <v-btn icon="mdi-close" variant="text" @click="close" />
+        <v-btn
+          icon="mdi-close"
+          variant="text"
+          aria-label="إغلاق الاستيراد"
+          title="إغلاق (Esc)"
+          :disabled="committing"
+          @click="close"
+        />
       </v-card-title>
       <v-card-text style="max-height: 60vh">
         <!-- 1: اختيار الملف -->
@@ -195,6 +218,13 @@ const fileLine = (row: number) => row + 1;
           >السابق</v-btn
         >
         <v-spacer />
+        <v-btn
+          v-if="step < 4"
+          variant="text"
+          :disabled="committing"
+          @click="close"
+          >إلغاء</v-btn
+        >
         <v-btn
           v-if="step === 2"
           color="primary"

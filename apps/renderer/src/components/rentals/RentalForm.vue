@@ -17,12 +17,14 @@ import PhoneField from "../app/PhoneField.vue";
 import CountField from "../app/CountField.vue";
 import PersonPicker from "../people/PersonPicker.vue";
 import { AMENITY_OPTIONS } from "../../utils/amenities";
+import { useFormSections } from "../../composables/useFormSections";
 
 /**
- * نموذج العرض الإيجاري بأجزاء نموذج عرض البيع نفسها: أقسام بترتيب العمل (العرض،
- * الموقع، الإيجار والمساحة، المالك، المواصفات، الخريطة، الملاحظات)، والحقول
- * المطلوبة معلّمة بـ *، وأول حقل خاطئ يأخذ التركيز، وشريط حفظ ثابت. الصور في
- * صفحة العرض بعد الحفظ، كما في عروض البيع.
+ * نموذج العرض الإيجاري بأجزاء نموذج عرض البيع نفسها وترتيب أقسامه: العرض،
+ * الموقع، المساحة والإيجار، المالك ظاهرة وفيها كل حقل مطلوب؛ ثم المواصفات
+ * والعنوان والخريطة والاسم والملاحظات أقساماً اختيارية مطوية في عرض جديد
+ * (تفتح وحدها حين فيها بيانات أو خطأ). أول حقل خاطئ يأخذ التركيز بعد فتح قسمه،
+ * وشريط الحفظ ثابت. الصور في صفحة العرض بعد الحفظ، كما في عروض البيع.
  */
 const model = defineModel<RentalFormType>({ required: true });
 const props = defineProps<{
@@ -79,8 +81,27 @@ function ownerPicked(person: PersonRecord | null) {
 
 const errorsOf = (field: string) => props.fieldErrors?.[field] ?? [];
 
-function focusElement(element: HTMLElement | null) {
+// الأقسام الاختيارية وحقولها (أسماء الحقول في RentalForm).
+const sections = useFormSections(
+  model,
+  {
+    details: [
+      "rooms_count",
+      "bathrooms_count",
+      "floors_count",
+      "amenities",
+      "other_details",
+    ],
+    address: ["address_details"],
+    map: ["latitude", "longitude", "location_link"],
+    notes: ["name", "notes", "owner_notes"],
+  },
+  () => props.fieldErrors,
+);
+
+async function focusElement(element: HTMLElement | null) {
   if (!element) return;
+  await sections.reveal(element);
   element.scrollIntoView({ block: "center" });
   element.focus({ preventScroll: true });
 }
@@ -95,13 +116,13 @@ async function validate() {
   const result = await formRef.value?.validate();
   if (result && !result.valid) {
     const first = result.errors[0]?.id;
-    if (first !== undefined) focusElement(fieldElement(String(first)));
+    if (first !== undefined) await focusElement(fieldElement(String(first)));
   }
   return result?.valid ?? false;
 }
 async function focusField(name: string) {
   await nextTick();
-  focusElement(fieldElement(name));
+  await focusElement(fieldElement(name));
 }
 defineExpose({ validate, focusField });
 </script>
@@ -133,14 +154,6 @@ defineExpose({ validate, focusField });
             :error-messages="errorsOf('status')"
             label="الحالة *"
           />
-          <v-text-field
-            v-model="model.name"
-            name="name"
-            :error-messages="errorsOf('name')"
-            label="اسم العرض"
-            hint="اختياري؛ يُستخدم «إيجار» ورمز العرض عند تركه فارغاً"
-            persistent-hint
-          />
         </FormSection>
 
         <FormSection title="الموقع">
@@ -153,37 +166,9 @@ defineExpose({ validate, focusField });
             v-model:neighborhood-text="model.neighborhood"
             class="form-section__wide"
           />
-          <v-text-field
-            v-model="model.address_details"
-            name="address_details"
-            class="form-section__wide"
-            label="العنوان التفصيلي"
-          />
         </FormSection>
 
-        <FormSection title="الإيجار والمساحة">
-          <NumberField
-            v-model="model.rent_price"
-            name="rent_price"
-            :rules="[required, positive]"
-            :error-messages="errorsOf('rent_price')"
-            :decimals="false"
-            label="سعر الإيجار (د.ع) *"
-          />
-          <v-select
-            v-model="model.rent_period"
-            name="rent_period"
-            :items="RENT_PERIODS"
-            :rules="[required]"
-            :error-messages="errorsOf('rent_period')"
-            label="نوع الإيجار *"
-          />
-          <v-switch
-            v-model="model.is_negotiable"
-            label="السعر قابل للتفاوض"
-            color="primary"
-            hide-details
-          />
+        <FormSection title="المساحة والإيجار">
           <NumberField
             v-model="model.area_value"
             name="area_value"
@@ -198,6 +183,28 @@ defineExpose({ validate, focusField });
             :rules="[required]"
             :error-messages="errorsOf('area_unit')"
             label="وحدة المساحة *"
+          />
+          <v-select
+            v-model="model.rent_period"
+            name="rent_period"
+            :items="RENT_PERIODS"
+            :rules="[required]"
+            :error-messages="errorsOf('rent_period')"
+            label="نوع الإيجار *"
+          />
+          <NumberField
+            v-model="model.rent_price"
+            name="rent_price"
+            :rules="[required, positive]"
+            :error-messages="errorsOf('rent_price')"
+            :decimals="false"
+            label="سعر الإيجار (د.ع) *"
+          />
+          <v-switch
+            v-model="model.is_negotiable"
+            label="السعر قابل للتفاوض"
+            color="primary"
+            hide-details
           />
         </FormSection>
 
@@ -227,7 +234,14 @@ defineExpose({ validate, focusField });
           />
         </FormSection>
 
-        <FormSection title="المواصفات">
+        <FormSection
+          title="المواصفات والمميزات"
+          section="details"
+          collapsible
+          :open="sections.isOpen('details')"
+          :summary="sections.summary('details')"
+          @update:open="sections.setOpen('details', $event)"
+        >
           <CountField
             v-model="model.rooms_count"
             name="rooms_count"
@@ -266,7 +280,31 @@ defineExpose({ validate, focusField });
           />
         </FormSection>
 
-        <FormSection title="الموقع على الخريطة" :columns="1">
+        <FormSection
+          title="العنوان التفصيلي"
+          :columns="1"
+          section="address"
+          collapsible
+          :open="sections.isOpen('address')"
+          :summary="sections.summary('address')"
+          @update:open="sections.setOpen('address', $event)"
+        >
+          <v-text-field
+            v-model="model.address_details"
+            name="address_details"
+            label="العنوان التفصيلي"
+          />
+        </FormSection>
+
+        <FormSection
+          title="الموقع على الخريطة"
+          :columns="1"
+          section="map"
+          collapsible
+          :open="sections.isOpen('map')"
+          :summary="sections.summary('map')"
+          @update:open="sections.setOpen('map', $event)"
+        >
           <PropertyLocationEditor
             v-model:latitude="model.latitude"
             v-model:longitude="model.longitude"
@@ -274,7 +312,24 @@ defineExpose({ validate, focusField });
           />
         </FormSection>
 
-        <FormSection title="الملاحظات" :columns="2">
+        <FormSection
+          title="اسم العرض والملاحظات"
+          :columns="2"
+          section="notes"
+          collapsible
+          :open="sections.isOpen('notes')"
+          :summary="sections.summary('notes')"
+          @update:open="sections.setOpen('notes', $event)"
+        >
+          <v-text-field
+            v-model="model.name"
+            name="name"
+            class="form-section__wide"
+            :error-messages="errorsOf('name')"
+            label="اسم العرض"
+            hint="اختياري؛ يُستخدم «إيجار» ورمز العرض عند تركه فارغاً"
+            persistent-hint
+          />
           <v-textarea
             v-model="model.notes"
             name="notes"

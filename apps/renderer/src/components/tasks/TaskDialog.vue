@@ -1,8 +1,14 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue";
 import PersonPicker from "../people/PersonPicker.vue";
+import DateField from "../app/DateField.vue";
 import { getErrorMessage } from "../../services/api.service";
 import { useAssignees } from "../../composables/useAssignees";
+import {
+  intentStatus,
+  newTaskIntent,
+  type TaskIntent,
+} from "../../utils/taskIntent";
 import {
   FOLLOWUP_TYPES,
   TASK_PRIORITIES,
@@ -31,9 +37,14 @@ const props = withDefaults(
     initial?: Partial<TaskDialogValue> | null;
     /** "optional": متابعة عرض؛ "required": نشاط زبون؛ "hidden": بلا زبون. */
     person?: "optional" | "required" | "hidden";
+    /**
+     * ما يبدأ به سجل جديد: "task" مهمة يجب إنجازها (مفتوحة بموعد أو بدونه)،
+     * "log" أمر حدث (منجز). بلا قيمة يتبع الموعد حتى يختار المستخدم.
+     */
+    intent?: TaskIntent;
     save: (value: TaskFieldsPayload) => Promise<void>;
   }>(),
-  { subtitle: "", initial: null, person: "optional" },
+  { subtitle: "", initial: null, person: "optional", intent: undefined },
 );
 const emit = defineEmits<{ saved: [] }>();
 
@@ -41,6 +52,8 @@ const { assignees, loadAssignees } = useAssignees();
 const saving = ref(false);
 const error = ref<string | null>(null);
 const form = ref(blank());
+/** ما اختاره المستخدم بين المهمة وأمر حدث في هذا الفتح للحوار. */
+const chosenIntent = ref<TaskIntent | null>(null);
 let opener: HTMLElement | null = null;
 
 function blank() {
@@ -84,15 +97,44 @@ watch(open, (value) => {
     person_id: initial.person_id ?? null,
     outcome: initial.outcome ?? "",
   };
+  chosenIntent.value = null;
+  timeOnly.value = "";
   error.value = null;
   void loadAssignees();
 });
 
-/** حالة جديدة بلا اختيار: موعد ⇒ مفتوحة، وبلا موعد ⇒ أُنجزت (ما حدث). */
-const effectiveStatus = computed<TaskStatus>(
-  () => form.value.status ?? (form.value.scheduled_at ? "open" : "done"),
+// الموعد تاريخاً ووقتاً بحقلين بأرقام لاتينية، والقيمة datetime-local محلية كما
+// كانت. وقت يُكتب قبل التاريخ ينتظره؛ وتاريخ بلا وقت يبدأ بالتاسعة صباحاً،
+// ظاهرةً في حقل الوقت.
+const DEFAULT_TIME = "09:00";
+const timeOnly = ref("");
+const scheduledDate = computed({
+  get: () => form.value.scheduled_at.slice(0, 10),
+  set: (date: string | null | undefined) => {
+    form.value.scheduled_at = date
+      ? `${date}T${scheduledTime.value || DEFAULT_TIME}`
+      : "";
+  },
+});
+const scheduledTime = computed({
+  get: () => form.value.scheduled_at.slice(11, 16) || timeOnly.value,
+  set: (time: string | null | undefined) => {
+    timeOnly.value = time ?? "";
+    if (scheduledDate.value)
+      form.value.scheduled_at = `${scheduledDate.value}T${time || DEFAULT_TIME}`;
+  },
+});
+
+/** سجل جديد إما مهمة يجب إنجازها أو أمر حدث، يختاره المستخدم ظاهراً. */
+const intent = computed(() =>
+  newTaskIntent(chosenIntent.value, props.intent, form.value.scheduled_at),
 );
 const editing = computed(() => Boolean(props.initial?.id));
+/** الاختيار لسجل جديد؛ حالة صريحة من المستدعي أو سجل قائم تُعرض كحالة. */
+const choosingIntent = computed(() => !editing.value && !props.initial?.status);
+const effectiveStatus = computed<TaskStatus>(
+  () => form.value.status ?? intentStatus(intent.value),
+);
 
 async function submit() {
   if (saving.value) return;
@@ -144,6 +186,44 @@ function onKeydown(event: KeyboardEvent) {
       <v-card-subtitle v-if="subtitle">{{ subtitle }}</v-card-subtitle>
       <v-divider />
       <v-card-text class="task-dialog">
+        <div
+          v-if="choosingIntent"
+          class="task-dialog__wide task-dialog__intent"
+          role="radiogroup"
+          aria-label="نوع السجل"
+        >
+          <v-btn-toggle
+            :model-value="intent"
+            mandatory
+            divided
+            density="comfortable"
+            variant="outlined"
+            color="primary"
+            @update:model-value="chosenIntent = $event"
+          >
+            <v-btn
+              value="task"
+              role="radio"
+              :aria-checked="intent === 'task'"
+              prepend-icon="mdi-checkbox-blank-circle-outline"
+              >مهمة يجب إنجازها</v-btn
+            >
+            <v-btn
+              value="log"
+              role="radio"
+              :aria-checked="intent === 'log'"
+              prepend-icon="mdi-history"
+              >تسجيل أمر حدث</v-btn
+            >
+          </v-btn-toggle>
+          <p class="task-dialog__intent-hint">
+            {{
+              intent === "task"
+                ? "تبقى مفتوحة في المهام حتى تُنجزها، بموعد أو بدونه."
+                : "تُحفظ كأمر حدث فعلاً (مُنجز)، ولا تظهر في المهام المفتوحة."
+            }}
+          </p>
+        </div>
         <v-select
           v-model="form.type"
           :items="FOLLOWUP_TYPES"
@@ -161,18 +241,35 @@ function onKeydown(event: KeyboardEvent) {
         <v-textarea
           v-model="form.notes"
           class="task-dialog__wide"
-          label="ما الذي حدث أو ما المطلوب"
+          :label="
+            !choosingIntent
+              ? 'ما الذي حدث أو ما المطلوب'
+              : intent === 'task'
+                ? 'المطلوب'
+                : 'ما الذي حدث'
+          "
           rows="3"
           auto-grow
           hide-details="auto"
         />
-        <v-text-field
-          v-model="form.scheduled_at"
-          type="datetime-local"
-          label="الموعد (اختياري)"
-          hint="بموعد تصبح مهمة مفتوحة حتى تُنجز؛ بلا موعد تُسجّل كأمر حدث."
-          persistent-hint
-        />
+        <div class="task-dialog__when">
+          <DateField
+            v-model="scheduledDate"
+            :label="
+              choosingIntent && intent === 'task'
+                ? 'موعد الإنجاز (اختياري)'
+                : 'الموعد (اختياري)'
+            "
+            clearable
+            hide-details="auto"
+          />
+          <DateField
+            v-model="scheduledTime"
+            kind="time"
+            label="الساعة"
+            hide-details="auto"
+          />
+        </div>
         <v-select
           v-model="form.assigned_user_id"
           :items="assignees"
@@ -189,6 +286,7 @@ function onKeydown(event: KeyboardEvent) {
           hide-details="auto"
         />
         <v-select
+          v-if="!choosingIntent"
           :model-value="effectiveStatus"
           :items="TASK_STATUSES"
           label="الحالة"
@@ -236,6 +334,22 @@ function onKeydown(event: KeyboardEvent) {
 }
 .task-dialog__wide {
   grid-column: 1 / -1;
+}
+.task-dialog__when {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 8px;
+}
+.task-dialog__intent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.task-dialog__intent-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
 }
 @media (max-width: 600px) {
   .task-dialog {

@@ -8,6 +8,7 @@ import type { ScheduledBackupConfig } from "../../types";
 import SettingsSection from "../settings/SettingsSection.vue";
 import FormSection from "../shared/FormSection.vue";
 import { formatDateTime } from "../../utils/format";
+import DateField from "../app/DateField.vue";
 
 const { can } = usePermissions();
 const { notifySuccess, notifyError } = useSnackbar();
@@ -24,6 +25,9 @@ const password = ref("");
 const MIN_BACKUP_PASSWORD_LENGTH = 8;
 const backupPassword = ref("");
 const backupPasswordConfirm = ref("");
+// الإرسال المتوقف لا يعرض حقول البريد والتشفير ما لم تُطلب (UX-18)؛ القيم
+// المحفوظة باقية في config، وزر الحفظ ظاهر دائماً ليُحفظ الإيقاف نفسه.
+const setupOpen = ref(false);
 
 const config = ref<ScheduledBackupConfig>({
   enabled: false,
@@ -155,85 +159,98 @@ onMounted(load);
         class="mb-2"
       />
       <v-form @submit.prevent="save">
-        <FormSection title="المستلم والموعد">
-          <v-text-field
-            v-model="config.recipient"
-            label="البريد المستقبل"
-            type="email"
-            hide-details="auto"
-          />
-          <v-select
-            v-model="config.frequency"
-            :items="FREQ"
-            label="التكرار"
-            hide-details="auto"
-          />
-          <v-text-field
-            v-model="config.time"
-            label="وقت التنفيذ"
-            type="time"
-            hide-details="auto"
-          />
-        </FormSection>
-        <FormSection title="خادم البريد">
-          <v-text-field
-            v-model="config.smtpHost"
-            :label="t('backup.smtpHost')"
-            hide-details="auto"
-          />
-          <v-text-field
-            v-model="config.smtpPort"
-            :label="t('backup.smtpPort')"
-            inputmode="numeric"
-            hide-details="auto"
-          />
-          <v-text-field
-            v-model="config.smtpUser"
-            :label="t('backup.smtpUser')"
-            hide-details="auto"
-          />
-          <v-text-field
-            v-model="password"
-            class="form-section__wide"
-            :label="
-              config.hasPassword
-                ? t('backup.savedPassword')
-                : t('backup.smtpPassword')
-            "
-            type="password"
-            autocomplete="off"
-            :hint="t('backup.secureHint')"
-            persistent-hint
-          />
-        </FormSection>
-        <FormSection title="تشفير النسخة المرسلة" :columns="2">
-          <v-alert
-            type="warning"
-            variant="tonal"
-            density="compact"
-            class="form-section__wide"
-            :text="t('backup.encryptionWarning')"
-          />
-          <v-text-field
-            v-model="backupPassword"
-            :label="
-              config.hasBackupPassword
-                ? t('backup.savedEncryptionPassword')
-                : t('backup.encryptionPassword')
-            "
-            type="password"
-            autocomplete="new-password"
-            :hint="t('backup.encryptionHint')"
-            persistent-hint
-          />
-          <v-text-field
-            v-model="backupPasswordConfirm"
-            :label="t('backup.confirmEncryptionPassword')"
-            type="password"
-            autocomplete="new-password"
-            hide-details="auto"
-          />
-        </FormSection>
+        <p v-if="!config.enabled && !setupOpen" class="scheduled-closed">
+          الإرسال المجدول متوقف، والنسخ المحلية تعمل كما هي. إعدادات البريد
+          والتشفير تظهر عند تفعيله.
+          <v-btn
+            variant="text"
+            size="small"
+            append-icon="mdi-chevron-down"
+            @click="setupOpen = true"
+            >عرض الإعدادات دون تفعيل</v-btn
+          >
+        </p>
+        <template v-else>
+          <FormSection title="المستلم والموعد">
+            <v-text-field
+              v-model="config.recipient"
+              label="البريد المستقبل"
+              type="email"
+              hide-details="auto"
+            />
+            <v-select
+              v-model="config.frequency"
+              :items="FREQ"
+              label="التكرار"
+              hide-details="auto"
+            />
+            <DateField
+              kind="time"
+              v-model="config.time"
+              label="وقت التنفيذ"
+              hide-details="auto"
+            />
+          </FormSection>
+          <FormSection title="خادم البريد">
+            <v-text-field
+              v-model="config.smtpHost"
+              :label="t('backup.smtpHost')"
+              hide-details="auto"
+            />
+            <v-text-field
+              v-model="config.smtpPort"
+              :label="t('backup.smtpPort')"
+              inputmode="numeric"
+              hide-details="auto"
+            />
+            <v-text-field
+              v-model="config.smtpUser"
+              :label="t('backup.smtpUser')"
+              hide-details="auto"
+            />
+            <v-text-field
+              v-model="password"
+              class="form-section__wide"
+              :label="
+                config.hasPassword
+                  ? t('backup.savedPassword')
+                  : t('backup.smtpPassword')
+              "
+              type="password"
+              autocomplete="off"
+              :hint="t('backup.secureHint')"
+              persistent-hint
+            />
+          </FormSection>
+          <FormSection title="تشفير النسخة المرسلة" :columns="2">
+            <v-alert
+              type="warning"
+              variant="tonal"
+              density="compact"
+              class="form-section__wide"
+              :text="t('backup.encryptionWarning')"
+            />
+            <v-text-field
+              v-model="backupPassword"
+              :label="
+                config.hasBackupPassword
+                  ? t('backup.savedEncryptionPassword')
+                  : t('backup.encryptionPassword')
+              "
+              type="password"
+              autocomplete="new-password"
+              :hint="t('backup.encryptionHint')"
+              persistent-hint
+            />
+            <v-text-field
+              v-model="backupPasswordConfirm"
+              :label="t('backup.confirmEncryptionPassword')"
+              type="password"
+              autocomplete="new-password"
+              hide-details="auto"
+            />
+          </FormSection>
+        </template>
         <div class="scheduled-footer">
           <v-btn
             v-if="can('backups.schedule')"
@@ -259,6 +276,11 @@ onMounted(load);
 </template>
 
 <style scoped>
+.scheduled-closed {
+  margin: 0;
+  font-size: calc(13px * var(--dal-font-scale));
+  color: var(--dal-muted);
+}
 .scheduled-footer {
   display: flex;
   flex-wrap: wrap;

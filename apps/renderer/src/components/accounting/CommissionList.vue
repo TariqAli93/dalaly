@@ -109,7 +109,7 @@ function openCommission(commission: CommissionRecord) {
 const collectable = (commission: CommissionRecord) =>
   commission.status !== "cancelled" && commission.outstanding !== "0.00";
 
-/** From «تسديد عمولة»: only what is still owed, with the search focused. */
+/** From «تحصيل عمولة»: only what is still owed, with the search focused. */
 function showOutstanding() {
   search.value = "";
   currency.value = null;

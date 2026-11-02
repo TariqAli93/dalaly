@@ -413,7 +413,7 @@ export const QUICK_ADD: QuickAddItem[][] = [
   ],
   [
     {
-      title: "تسديد عمولة",
+      title: "تحصيل عمولة",
       to: "/accounting?new=commission",
       icon: "mdi-percent-circle-outline",
       permissions: ["vouchers.receipt", "commissions.read"],

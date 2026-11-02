@@ -22,7 +22,12 @@ import {
   sharePayment,
 } from "../utils/commissionVouchers";
 import { formatAmount, formatNumber } from "../utils/format";
-import { PERIOD_PRESETS, periodRange, type PeriodKey } from "../utils/periods";
+import {
+  PERIOD_PRESETS,
+  periodRange,
+  periodText,
+  type PeriodKey,
+} from "../utils/periods";
 import type {
   CommissionRecord,
   CommissionSplitRecord,
@@ -35,7 +40,7 @@ import type {
  * الحسابات: مساحة واحدة لصاحب المكتب تجيب أولاً عن ثلاثة أسئلة: كم في
  * الصناديق الآن، وكم بقي له من عمولات لم يقبضها، ومن أين جاء المال وأين صُرف.
  * تحتها الحركات المالية (السندات) والعمولات وحصص الموظفين في لوح واحد، وأوامر
- * القبض والمصروف وتسديد العمولة ظاهرة دائماً. الأرقام كلها من الخادم لكل عملة
+ * القبض والمصروف وتحصيل العمولة ظاهرة دائماً. الأرقام كلها من الخادم لكل عملة
  * (useAccountingSummary)؛ التفاصيل المحاسبية (الصناديق، القيود، الدليل) عند
  * الطلب من «عرض التفاصيل».
  */
@@ -69,6 +74,13 @@ const period = computed(() => periodRange(periodKey.value));
 const periodLabel = computed(
   () => PERIOD_PRESETS.find((item) => item.value === periodKey.value)!.title,
 );
+// الملخّص والقائمة نطاقان مستقلان (UX-03): القائمة تأخذ الفترة لتقول هل
+// تعرضها، ولا تطبّقها إلا بأمر صريح من المستخدم.
+const listPeriod = computed(() => ({
+  ...period.value,
+  label: periodLabel.value,
+  all: periodKey.value === "all",
+}));
 
 const summary = useAccountingSummary(period);
 const countNote = (counts: number[], noun: string) =>
@@ -175,7 +187,7 @@ const commissionList = useTemplateRef<{
 }>("commissionList");
 const shareList = useTemplateRef<{ reload: () => Promise<void> }>("shareList");
 
-/** «تسديد عمولة» and the outstanding card: the commissions still owed. */
+/** «تحصيل عمولة» and the outstanding card: the commissions still owed. */
 async function showOutstanding() {
   if (!can("commissions.read")) return;
   view.value = "commissions";
@@ -304,7 +316,7 @@ const details = computed(() =>
         variant="tonal"
         prepend-icon="mdi-percent-circle-outline"
         @click="showOutstanding"
-        >تسديد عمولة</v-btn
+        >تحصيل عمولة</v-btn
       >
       <v-btn
         v-if="can('vouchers.receipt')"
@@ -340,6 +352,12 @@ const details = computed(() =>
     <div class="acc">
       <template v-if="summary.available.value">
         <div class="acc__period">
+          <h2 class="acc__scope-title">
+            ملخّص {{ periodLabel }}
+            <span class="acc__scope-dates">{{
+              periodText(period.from, period.to)
+            }}</span>
+          </h2>
           <v-btn-toggle
             v-model="periodKey"
             mandatory
@@ -417,14 +435,47 @@ const details = computed(() =>
               >{{ item.title }}</v-tab
             >
           </v-tabs>
-          <VoucherList v-if="view === 'vouchers'" ref="voucherList" />
-          <CommissionList
-            v-else-if="view === 'commissions'"
-            ref="commissionList"
-            :initial-state="initialState"
-            @collect="collect"
+          <VoucherList
+            v-if="view === 'vouchers'"
+            ref="voucherList"
+            :period="summary.available.value ? listPeriod : null"
           />
-          <PayableShares v-else ref="shareList" @pay="pay" />
+          <template v-else-if="view === 'commissions'">
+            <div class="dal-scope" aria-live="polite">
+              <v-icon
+                icon="mdi-calendar-range"
+                size="16"
+                class="dal-scope__icon"
+              />
+              <span
+                ><strong>كل العمولات</strong>، بكل التواريخ<span
+                  class="dal-scope__muted"
+                >
+                  — «المقبوضة» و«الإجمالي» في الملخّص لفترة
+                  {{ periodLabel }} وحدها، و«المتبقية» حتى اليوم</span
+                ></span
+              >
+            </div>
+            <CommissionList
+              ref="commissionList"
+              :initial-state="initialState"
+              @collect="collect"
+            />
+          </template>
+          <template v-else>
+            <div class="dal-scope" aria-live="polite">
+              <v-icon
+                icon="mdi-calendar-range"
+                size="16"
+                class="dal-scope__icon"
+              />
+              <span
+                ><strong>حصص الموظفين التي لم تُدفع كلها</strong>، بكل
+                التواريخ</span
+              >
+            </div>
+            <PayableShares ref="shareList" @pay="pay" />
+          </template>
         </section>
         <v-alert v-else type="info" variant="tonal">
           قائمة الحركات والعمولات تحتاج صلاحية عرض السندات أو العمولات. تجد ما
@@ -465,6 +516,17 @@ const details = computed(() =>
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 12px;
+}
+.acc__scope-title {
+  margin: 0;
+  font-size: calc(15px * var(--dal-font-scale));
+  font-weight: 700;
+}
+.acc__scope-dates {
+  margin-inline-start: 6px;
+  font-size: calc(13px * var(--dal-font-scale));
+  font-weight: 400;
+  color: var(--dal-muted);
 }
 .acc__hint,
 .acc__held {

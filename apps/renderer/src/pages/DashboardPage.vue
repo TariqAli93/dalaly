@@ -11,16 +11,15 @@ import { useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import SummaryStrip from "../components/dashboard/SummaryStrip.vue";
 import QuickActions from "../components/dashboard/QuickActions.vue";
-import PriorityStrip from "../components/dashboard/PriorityStrip.vue";
+import AttentionQueue from "../components/dashboard/AttentionQueue.vue";
 import MatchWorkspace from "../components/dashboard/MatchWorkspace.vue";
-import DecisionsPanel from "../components/dashboard/DecisionsPanel.vue";
 import RiskPanel from "../components/dashboard/RiskPanel.vue";
 import PerformanceSummary from "../components/dashboard/PerformanceSummary.vue";
-import BusinessPanels from "../components/dashboard/BusinessPanels.vue";
-import OutstandingCommissions from "../components/dashboard/OutstandingCommissions.vue";
+import WorkSummary from "../components/dashboard/WorkSummary.vue";
 import DealDialog from "../components/deals/DealDialog.vue";
 import VoucherDialog from "../components/accounting/VoucherDialog.vue";
 import { fetchBusinessSummary } from "../services/dashboard.service";
+import * as commissionsService from "../services/commissions.service";
 import MatchDetailsDrawer from "../components/dashboard/MatchDetailsDrawer.vue";
 import CustomerDrawer from "../components/dashboard/CustomerDrawer.vue";
 import RecordFollowupDialog from "../components/shared/RecordFollowupDialog.vue";
@@ -36,13 +35,20 @@ import {
   STALE_DAY_OPTIONS,
   useOperationsDashboard,
 } from "../composables/useOperationsDashboard";
+import type { DashboardSection, KpiItem } from "../utils/dashboardKpi";
 import {
-  priorityItems,
-  type DashboardSection,
-  type KpiItem,
-} from "../utils/dashboardPriority";
-import { formatNumber, formatShortDate, formatTime } from "../utils/format";
+  attentionItems,
+  attentionTotals,
+  type AttentionItem,
+} from "../utils/attentionQueue";
+import {
+  formatAmount,
+  formatNumber,
+  formatShortDate,
+  formatTime,
+} from "../utils/format";
 import { commissionCollection } from "../utils/commissionVouchers";
+import { rentReceipt } from "../utils/leaseVouchers";
 import type {
   BusinessSummary,
   DashboardAppointment,
@@ -54,6 +60,7 @@ import type {
   CommissionRecord,
   FollowupTarget,
   OperationsKind,
+  OverdueInstallmentRecord,
   VoucherDetail,
   VoucherPayload,
 } from "../types";
@@ -82,10 +89,11 @@ const {
 const canMatch = computed(
   () => can("requests.read") && (can("properties.read") || can("rentals.read")),
 );
-const canSeeAppointments = computed(
+const canSeeTasks = computed(
   () =>
     (can("followups.read") && can("properties.read")) ||
-    (can("rentals.followups.read") && can("rentals.read")),
+    (can("rentals.followups.read") && can("rentals.read")) ||
+    (can("followups.read") && can("people.read")),
 );
 function canFollowup(kindOf: OperationsKind) {
   return kindOf === "sale"
@@ -116,6 +124,32 @@ async function loadBusiness() {
   }
 }
 void loadBusiness();
+// أقدم العمولات التي لم تُقبض كلها، لسطور «للتحصيل» (كانت لوح «العمولات غير
+// المستلمة»): الطلب نفسه، خمس منها والعدد الكلي.
+const COMMISSION_ROWS = 5;
+const commissions = ref<CommissionRecord[] | null>(null);
+const commissionTotal = ref<number | null>(null);
+const commissionsError = ref<string | null>(null);
+async function loadCommissions() {
+  if (!can("commissions.read")) return;
+  try {
+    const result = await commissionsService.listCommissionsPage(
+      { state: "open" },
+      {
+        page: 1,
+        page_size: COMMISSION_ROWS,
+        sort_by: "commission_date",
+        sort_order: "asc",
+      },
+    );
+    commissions.value = result.items;
+    commissionTotal.value = result.total;
+    commissionsError.value = null;
+  } catch (cause) {
+    commissionsError.value = getErrorMessage(cause);
+  }
+}
+void loadCommissions();
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
 function reloadFirstPage() {
   if (page.value !== 1) page.value = 1;
@@ -130,7 +164,7 @@ watch(q, () => {
 watch(staleDays, () => void dashboard.loadOverview());
 onMounted(() =>
   setRefreshHandler(async () => {
-    await Promise.all([dashboard.loadAll(), loadBusiness()]);
+    await Promise.all([dashboard.loadAll(), loadBusiness(), loadCommissions()]);
   }),
 );
 onBeforeUnmount(() => {
@@ -139,127 +173,160 @@ onBeforeUnmount(() => {
   businessController?.abort();
 });
 
-// ─── المؤشرات والأولوية ──────────────────────────────────────────────────
-// كل عدد يظهر في شريط الملخّص مرة واحدة؛ الأقسام تحته تعرض السجلات نفسها.
+// ─── المؤشرات ───────────────────────────────────────────────────────────
+// خمسة أرقام يُتصرَّف بها، كل منها يفتح قائمته الكاملة؛ ما لا يملك المستخدم
+// صلاحيته لا يظهر، وما لم يصل قسمه بعد يظهر قيد التحميل (null).
+const tasks = computed(() => business.value?.tasks ?? null);
+const leases = computed(() => business.value?.leases ?? null);
+const businessSettled = computed(
+  () => business.value !== null || businessError.value !== null,
+);
 const kpis = computed<KpiItem[]>(() => {
   const items: KpiItem[] = [];
-  const counts = matching.value?.counts;
-  const sum = (key: "with_matches" | "without_matches" | "open_requests") =>
-    (counts?.sale?.[key] ?? 0) + (counts?.rental?.[key] ?? 0);
-  if (canSeeAppointments.value)
-    items.push({
-      key: "appointments",
-      label: "مواعيد اليوم",
-      value: overview.value ? (overview.value.appointments?.today ?? 0) : null,
-      note: overview.value?.appointments
-        ? `خلال ${overview.value.appointments.days} أيام: ${formatNumber(overview.value.appointments.next_days, 0)}`
-        : undefined,
-      icon: "mdi-calendar-clock-outline",
-      tone: "error",
-      target: "appointments",
-    });
-  if (canMatch.value)
+  const pending = !businessSettled.value;
+  if (canSeeTasks.value && (pending || tasks.value)) {
     items.push(
       {
-        key: "matched",
-        label: "طلبات لها مطابقة",
-        value: matching.value ? sum("with_matches") : null,
-        note: matching.value
-          ? [
-              counts?.sale
-                ? `شراء ${formatNumber(counts.sale.with_matches, 0)}`
-                : null,
-              counts?.rental
-                ? `إيجار ${formatNumber(counts.rental.with_matches, 0)}`
-                : null,
-            ]
-              .filter(Boolean)
-              .join(" · ")
-          : undefined,
-        icon: "mdi-handshake-outline",
-        tone: "primary",
-        target: "matches",
+        key: "overdue",
+        label: "مهام فات موعدها",
+        value: tasks.value?.overdue.total ?? null,
+        note: "مفتوحة ومضى موعدها",
+        icon: "mdi-alarm",
+        tone: "error",
+        to: "/tasks?due=overdue",
       },
       {
-        key: "unmatched",
-        label: "طلبات بلا مطابقة",
-        value: matching.value ? sum("without_matches") : null,
-        note: matching.value
-          ? `من ${formatNumber(sum("open_requests"), 0)} طلباً مفتوحاً`
+        key: "today",
+        label: "مواعيد ومهام اليوم",
+        value: tasks.value?.today.total ?? null,
+        note: tasks.value
+          ? `خلال 7 أيام: ${formatNumber(tasks.value.week.total, 0)}`
           : undefined,
-        icon: "mdi-home-search-outline",
-        tone: "warning",
-        target: "risks",
+        icon: "mdi-calendar-today",
+        tone: "primary",
+        to: "/tasks?due=today",
       },
     );
-  if (canSeeAppointments.value)
+  }
+  if (can("leases.read") && (pending || leases.value))
     items.push({
-      key: "viewings",
-      label: "معاينات بلا نتيجة",
-      value: overview.value
-        ? (overview.value.viewings_without_outcome?.total ?? 0)
-        : null,
-      note: overview.value?.viewings_without_outcome
-        ? `خلال آخر ${overview.value.viewings_without_outcome.days} يوماً`
+      key: "installments",
+      label: "أقساط إيجار متأخرة",
+      value: leases.value?.overdue.total ?? null,
+      note: leases.value?.overdue.by_currency.length
+        ? leases.value.overdue.by_currency
+            .map((row) => formatAmount(row.left, row.currency))
+            .join(" · ")
         : undefined,
-      icon: "mdi-eye-check-outline",
-      tone: "warning",
-      target: "viewings",
+      icon: "mdi-home-clock-outline",
+      tone: "error",
+      to: "/leases?view=overdue",
     });
-  if (can("properties.read") || can("rentals.read"))
+  if (can("commissions.read"))
     items.push({
-      key: "stale",
-      label: "عروض راكدة",
-      value: overview.value
-        ? (overview.value.stale_listings.sale?.total ?? 0) +
-          (overview.value.stale_listings.rental?.total ?? 0)
-        : null,
-      note: overview.value
-        ? `بلا نشاط منذ ${overview.value.stale_days} يوماً`
-        : undefined,
-      icon: "mdi-timer-sand",
+      key: "commissions",
+      label: "عمولات لم تُقبض",
+      value: commissionTotal.value,
+      note: "حتى اليوم",
+      icon: "mdi-percent-circle-outline",
       tone: "warning",
-      target: "stale",
+      to: "/accounting?view=commissions&state=open",
     });
+  if (canMatch.value) {
+    const counts = matching.value?.counts;
+    const sum = (key: "with_matches" | "without_matches") =>
+      (counts?.sale?.[key] ?? 0) + (counts?.rental?.[key] ?? 0);
+    items.push({
+      key: "matched",
+      label: "طلبات لها عروض مطابقة",
+      value: matching.value ? sum("with_matches") : null,
+      note: matching.value
+        ? `بلا مطابقة: ${formatNumber(sum("without_matches"), 0)}`
+        : undefined,
+      icon: "mdi-handshake-outline",
+      tone: "primary",
+      target: "matches",
+    });
+  }
   return items;
 });
 
-// الأولويات بعد أن يستقرّ كل قسم مسموح (بيانات أو خطأ): الملخّص يصل عادةً
-// قبل المطابقة، فكانت الشريحة تقول «لا أعمال معلّقة» والمطابقات لم تصل بعد.
-const overviewSettled = computed(
-  () => overview.value !== null || overviewError.value !== null,
-);
-const matchingSettled = computed(
-  () =>
-    !canMatch.value || matching.value !== null || matchingError.value !== null,
-);
-const priorities = computed(() =>
-  overviewSettled.value && matchingSettled.value
-    ? priorityItems(overview.value, canMatch.value ? matching.value : null)
+// ─── يحتاج متابعتك ───────────────────────────────────────────────────────
+const queuePermissions = { can, canFollowup };
+const queueItems = computed<AttentionItem[] | null>(() =>
+  businessSettled.value
+    ? attentionItems(
+        {
+          business: business.value,
+          overview: overview.value,
+          matching: canMatch.value ? matching.value : null,
+          commissions: commissions.value,
+        },
+        queuePermissions,
+      )
     : null,
 );
-// ما فُحص فعلاً، فلا تنفي عبارة الهدوء شيئاً عن قسم لم يُحمَّل أو لا يُسمح به.
-const priorityScope = computed(() => ({
-  appointments: overview.value !== null && canSeeAppointments.value,
-  matching: matching.value !== null && canMatch.value,
-  failed:
-    overviewError.value !== null ||
-    (canMatch.value && matchingError.value !== null),
-}));
+const queueTotals = computed(() =>
+  attentionTotals({
+    business: business.value,
+    overview: overview.value,
+    matching: canMatch.value ? matching.value : null,
+    commissions: commissions.value,
+    commissionTotal: commissionTotal.value,
+  }),
+);
+// مصدر تعذّر تحميله يُذكر في القائمة نفسها، فلا يُقرأ غيابه «لا شيء ينتظرك».
+const queueFailures = computed(() => {
+  const failures: Array<{ key: string; label: string; retry: () => void }> = [];
+  if (businessError.value)
+    failures.push({
+      key: "business",
+      label: "المهام والأقساط والزبائن والصفقات",
+      retry: () => void loadBusiness(),
+    });
+  if (overviewError.value)
+    failures.push({
+      key: "overview",
+      label: "المواعيد والمعاينات",
+      retry: () => void dashboard.loadOverview(),
+    });
+  if (commissionsError.value)
+    failures.push({
+      key: "commissions",
+      label: "العمولات",
+      retry: () => void loadCommissions(),
+    });
+  return failures;
+});
+// ما فُحص فعلاً، فلا تنفي «لا شيء ينتظرك» ما لم يُحمَّل أو لا يُسمح به.
+const queueChecked = computed(() => {
+  const checked: string[] = [];
+  const summary = business.value;
+  if (summary?.tasks) checked.push("المهام");
+  if (summary?.leases) checked.push("أقساط الإيجار وانتهاؤه");
+  if (commissions.value) checked.push("العمولات");
+  if (summary?.customers || (canMatch.value && matching.value))
+    checked.push("الزبائن");
+  if (overview.value?.viewings_without_outcome) checked.push("المعاينات");
+  if (summary?.deals) checked.push("الصفقات");
+  return checked;
+});
+function act(item: AttentionItem) {
+  const action = item.action;
+  if (action.type === "route") void router.push(action.to);
+  else if (action.type === "collect-commission") collect(action.commission);
+  else if (action.type === "collect-installment")
+    collectInstallment(action.installment);
+  else if (action.type === "customer") showCustomer(action.customer);
+  else recordViewing(action.appointment);
+}
 
 // ─── التنقّل داخل اللوحة ──────────────────────────────────────────────────
-const decisionsTab = ref<"customers" | "appointments">("customers");
 const SECTION_IDS: Record<DashboardSection, string> = {
   matches: "dash-matches",
-  customers: "dash-decisions",
-  appointments: "dash-decisions",
-  risks: "risk-unmatched",
-  stale: "risk-stale",
-  viewings: "risk-viewings",
+  queue: "dash-queue",
 };
 async function openSection(section: DashboardSection) {
-  if (section === "appointments") decisionsTab.value = "appointments";
-  if (section === "customers") decisionsTab.value = "customers";
   await nextTick();
   const element = document.getElementById(SECTION_IDS[section]);
   if (!element) return;
@@ -403,8 +470,15 @@ function recordFollowup(match: DashboardMatch) {
   };
   followupOpen.value = true;
 }
-function openAppointment(item: DashboardAppointment) {
-  openListing({ kind: item.kind, id: item.listing_id });
+/** «تسجيل النتيجة» لمعاينة مضى موعدها: متابعة على عرضها. */
+function recordViewing(item: DashboardAppointment) {
+  followupTarget.value = {
+    kind: item.kind,
+    listingId: item.listing_id,
+    listingLabel: `${item.listing_code} · ${item.listing_name}`,
+    notes: "نتيجة المعاينة: ",
+  };
+  followupOpen.value = true;
 }
 
 // ─── من المطابقة إلى صفقة، ومن العمولة إلى قبضها ───────────────────────
@@ -429,7 +503,6 @@ function onDealSaved(deal: DealRecord) {
   void router.push(`/deals/${deal.id}`);
 }
 
-const owed = ref<{ reload: () => Promise<void> } | null>(null);
 const collectOpen = ref(false);
 const collectPreset = ref<Partial<VoucherPayload> | null>(null);
 const collectNote = ref("");
@@ -439,12 +512,30 @@ function collect(commission: CommissionRecord) {
   collectNote.value = note;
   collectOpen.value = true;
 }
+/** القسط المتأخر: سند قبض المتبقي منه، أمانة لحساب المؤجر (leaseVouchers). */
+function collectInstallment(row: OverdueInstallmentRecord) {
+  const { preset, note } = rentReceipt(
+    {
+      id: row.lease_id,
+      code: row.lease_code,
+      currency: row.currency,
+      landlord_person_id: row.landlord_person_id,
+      landlord_name: row.landlord_name,
+      tenant_person_id: row.tenant_person_id,
+      tenant_name: row.tenant_name,
+    },
+    row,
+  );
+  collectPreset.value = preset;
+  collectNote.value = note;
+  collectOpen.value = true;
+}
 function onCollected(voucher: VoucherDetail) {
   notifySuccess(`صدر سند القبض ${voucher.code}.`, {
     label: "فتح السند للطباعة",
     run: () => void router.push(`/accounting/vouchers/${voucher.id}`),
   });
-  void owed.value?.reload();
+  void loadCommissions();
   void loadBusiness();
 }
 
@@ -485,31 +576,26 @@ async function runBackup() {
     <div class="ops">
       <QuickActions />
       <SummaryStrip v-if="kpis.length" :items="kpis" @select="openSection" />
-      <v-alert
-        v-if="overviewError && !overview"
-        type="warning"
-        variant="tonal"
-        density="compact"
-        role="status"
-      >
-        تعذّر تحميل المواعيد وحالة العروض: {{ overviewError }}
-        <template #append>
-          <v-btn size="small" variant="text" @click="dashboard.loadOverview()"
-            >إعادة المحاولة</v-btn
-          >
-        </template>
-      </v-alert>
-      <PriorityStrip
-        :items="priorities"
-        :scope="priorityScope"
-        @select="openSection"
-      />
 
-      <!-- عمودان بحسب الأهمية: الرئيسي للعمل نفسه (المطابقات ثم المهام
-           والإيجارات والصفقات والمال)، والجانبي لمن ينتظر قراراً ثم الفرص
-           المعرّضة للضياع وحالة العروض. كانت ألواح الأعمال فوق المطابقات
-           فتدفعها تحت حافة الشاشة. -->
+      <!-- عمودان: «يحتاج متابعتك» أولاً (يمين الشاشة) لأنه ما يُفعل الآن، وتحته
+           ملخّص العمل وحالة العروض؛ وبجانبه المطابقة والفرص المعرّضة للضياع. -->
       <div class="ops__columns">
+        <div class="ops__column ops__column--queue">
+          <div id="dash-queue" tabindex="-1" class="ops__anchor">
+            <AttentionQueue
+              :items="queueItems"
+              :totals="queueTotals"
+              :failures="queueFailures"
+              :checked="queueChecked"
+              @act="act"
+            />
+          </div>
+          <WorkSummary :summary="business" />
+          <PerformanceSummary
+            :overview="overview"
+            @open="openListingsByStatus"
+          />
+        </div>
         <div class="ops__column ops__column--main">
           <div
             v-if="canMatch"
@@ -534,45 +620,32 @@ async function runBackup() {
               @deal="startDeal"
             />
           </div>
-          <BusinessPanels
-            :summary="business"
-            :loading="businessLoading"
-            :error="businessError"
-            @retry="loadBusiness"
-          />
-        </div>
-        <div class="ops__column ops__column--side">
-          <OutstandingCommissions
-            v-if="can('commissions.read')"
-            ref="owed"
-            @collect="collect"
-          />
-          <div
-            v-if="canMatch || canSeeAppointments"
-            id="dash-decisions"
-            tabindex="-1"
-            class="ops__anchor"
+          <v-alert
+            v-if="overviewError && !overview"
+            type="warning"
+            variant="tonal"
+            density="compact"
+            role="status"
           >
-            <DecisionsPanel
-              v-model:tab="decisionsTab"
-              :matching="canMatch ? matching : null"
-              :overview="overview"
-              @customer="showCustomer"
-              @appointment="openAppointment"
-            />
-          </div>
+            تعذّر تحميل المواعيد وحالة العروض: {{ overviewError }}
+            <template #append>
+              <v-btn
+                size="small"
+                variant="text"
+                @click="dashboard.loadOverview()"
+                >إعادة المحاولة</v-btn
+              >
+            </template>
+          </v-alert>
           <RiskPanel
             v-model:stale-days="staleDays"
             :matching="canMatch ? matching : null"
             :overview="overview"
             :stale-options="STALE_DAY_OPTIONS"
+            :show-viewings="false"
             @request="showUnmatched"
             @listing="openListing"
             @all="openAll"
-          />
-          <PerformanceSummary
-            :overview="overview"
-            @open="openListingsByStatus"
           />
         </div>
       </div>
@@ -623,11 +696,11 @@ async function runBackup() {
   container-type: inline-size;
   container-name: ops;
 }
-/* العمود الرئيسي أعرض بوضوح: المطابقة صفّ بجانبين (الطلب والعرض) يحتاج
-   مكانه، والجانبي قوائم قصيرة لا تحتاج أكثر من 320–420px. */
+/* القائمة أولاً بعرض يكفي سطرها (السبب والتاريخ والزر)، والمطابقة أعرض: صفّها
+   بجانبين (الطلب والعرض) يحتاج مكانه. */
 .ops__columns {
   display: grid;
-  grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr);
+  grid-template-columns: minmax(340px, 1fr) minmax(0, 1.55fr);
   gap: var(--dal-gutter);
   align-items: start;
 }

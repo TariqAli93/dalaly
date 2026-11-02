@@ -6,6 +6,7 @@ import * as requests from "../../services/requests.service";
 import { useApiFormErrors } from "../../composables/useApiFormErrors";
 import { usePermissions } from "../../composables/usePermissions";
 import { useSnackbar } from "../../composables/useSnackbar";
+import { useFormSections } from "../../composables/useFormSections";
 import { AMENITY_OPTIONS } from "../../utils/amenities";
 import {
   emptyRequestForm,
@@ -27,9 +28,11 @@ import PersonEditor from "../people/PersonEditor.vue";
 
 /**
  * إضافة طلب شراء أو إيجار وتعديله في حوار نموذج:
- * - أقسام بترتيب المكالمة: الزبون، المطلوب، الميزانية والمساحة، الموقع،
- *   المواصفات، الملاحظات. الزبون يُختار بالاسم أو الهاتف، أو يُضاف هنا دون
- *   مغادرة الطلب.
+ * - أقسام بترتيب المكالمة: الزبون، ثم شروط المطابقة (النوع ونوع الإيجار،
+ *   الميزانية، الموقع) ظاهرة؛ ثم التفضيلات (المساحة والأعداد والمميزات، ترتّب
+ *   العروض ولا تستبعدها) والحالة والملاحظات قسمين مطويين يفتحان وحدهما حين
+ *   فيهما بيانات أو خطأ، وقسم الحالة مفتوح عند التعديل. الزبون يُختار بالاسم
+ *   أو الهاتف، أو يُضاف هنا دون مغادرة الطلب.
  * - لا يُغلق بـ Esc أو بالنقر خارجه بعد أي تعديل؛ Ctrl+S وEnter يحفظان.
  * - أخطاء الخادم تحت حقولها؛ الحفظ يعيد السجل المحفوظ، والمطابقة للأب.
  */
@@ -82,6 +85,24 @@ const required = (value: unknown) =>
   "هذا الحقل مطلوب";
 const errorsOf = (field: string) => apiErrors.messages(field);
 
+// الوحدة والحالة لهما قيمة افتراضية فلا تفتحان قسميهما.
+const sections = useFormSections(
+  form,
+  {
+    preferences: [
+      "area_min",
+      "area_max",
+      "rooms_count",
+      "bathrooms_count",
+      "floors_count",
+      "amenity_keys",
+      "other_amenities",
+    ],
+    notes: ["other_requirements", "notes"],
+  },
+  () => apiErrors.errors.value,
+);
+
 // ما فُتح به الحوار، لمعرفة هل عُدّل.
 const openedWith = ref("");
 const dirty = computed(
@@ -115,11 +136,12 @@ function personCreated(person: PersonRecord) {
   form.value.person_id = person.id;
 }
 
-function focusFirstError(id?: string | number) {
+async function focusFirstError(id?: string | number) {
   if (id === undefined) return;
   const element =
     document.querySelector<HTMLElement>(`.request-form [name="${id}"]`) ??
     document.getElementById(String(id));
+  await sections.reveal(element);
   element?.focus();
 }
 
@@ -128,7 +150,7 @@ async function save() {
   apiErrors.clear();
   const result = await formRef.value?.validate();
   if (result && !result.valid) {
-    focusFirstError(result.errors[0]?.id);
+    await focusFirstError(result.errors[0]?.id);
     return;
   }
   saving.value = true;
@@ -181,7 +203,10 @@ function onKeydown(event: KeyboardEvent) {
       <v-card-text class="request-form__body">
         <v-form ref="formRef" class="request-form" @submit.prevent="save">
           <v-defaults-provider :defaults="FIELD_DEFAULTS">
-            <p class="dal-form__hint">الحقول المعلّمة بـ * مطلوبة.</p>
+            <p class="dal-form__hint">
+              الحقول المعلّمة بـ * مطلوبة. النوع والميزانية والموقع شروط
+              المطابقة؛ التفضيلات ترتّب العروض المطابقة ولا تستبعد عرضاً.
+            </p>
             <FormSection title="الزبون" :columns="2">
               <PersonPicker
                 v-model="form.person_id"
@@ -203,7 +228,7 @@ function onKeydown(event: KeyboardEvent) {
               </div>
             </FormSection>
 
-            <FormSection title="المطلوب">
+            <FormSection title="المطلوب والميزانية">
               <v-select
                 v-model="form.property_type"
                 name="property_type"
@@ -221,29 +246,19 @@ function onKeydown(event: KeyboardEvent) {
                 :error-messages="errorsOf('rent_period')"
                 label="نوع الإيجار *"
               />
-              <v-select
-                v-model="form.status"
-                name="status"
-                :items="statusItems"
-                :error-messages="errorsOf('status')"
-                label="الحالة"
-              />
-            </FormSection>
-
-            <FormSection title="الميزانية">
               <NumberField
                 v-model="form.budget_min"
                 name="budget_min"
                 :decimals="false"
                 :error-messages="errorsOf('budget_min')"
-                label="من (د.ع)"
+                label="الميزانية من (د.ع)"
               />
               <NumberField
                 v-model="form.budget_max"
                 name="budget_max"
                 :decimals="false"
                 :error-messages="errorsOf('budget_max')"
-                label="إلى (د.ع)"
+                label="الميزانية إلى (د.ع)"
               />
             </FormSection>
 
@@ -259,7 +274,14 @@ function onKeydown(event: KeyboardEvent) {
               />
             </FormSection>
 
-            <FormSection title="المساحة والمواصفات">
+            <FormSection
+              title="التفضيلات: المساحة والغرف والمميزات"
+              section="preferences"
+              collapsible
+              :open="sections.isOpen('preferences')"
+              :summary="sections.summary('preferences')"
+              @update:open="sections.setOpen('preferences', $event)"
+            >
               <NumberField
                 v-model="form.area_min"
                 name="area_min"
@@ -325,7 +347,21 @@ function onKeydown(event: KeyboardEvent) {
               </fieldset>
             </FormSection>
 
-            <FormSection title="الملاحظات" :columns="2">
+            <FormSection
+              title="الحالة والملاحظات"
+              section="notes"
+              collapsible
+              :open="sections.isOpen('notes', !!editing)"
+              :summary="sections.summary('notes')"
+              @update:open="sections.setOpen('notes', $event)"
+            >
+              <v-select
+                v-model="form.status"
+                name="status"
+                :items="statusItems"
+                :error-messages="errorsOf('status')"
+                label="الحالة"
+              />
               <v-textarea
                 v-model="form.other_requirements"
                 name="other_requirements"

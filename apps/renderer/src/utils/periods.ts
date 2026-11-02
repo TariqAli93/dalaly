@@ -1,4 +1,4 @@
-import { todayIso } from "./format";
+import { formatDate, todayIso } from "./format";
 
 /**
  * فترات جاهزة لصفحتي الحسابات والتقارير: تنتهي كلها اليوم (أو آخر الشهر
@@ -54,4 +54,11 @@ export function periodKeyOf(
       return presetRange.from === range.from && presetRange.to === range.to;
     })?.value ?? null
   );
+}
+
+/** «من 1/11/2026 إلى 2/11/2026»؛ بداية «منذ البداية» الثابتة لا تُكتب. */
+export function periodText(from: string, to: string) {
+  return from === EARLIEST_DATE
+    ? `حتى ${formatDate(to)}`
+    : `من ${formatDate(from)} إلى ${formatDate(to)}`;
 }

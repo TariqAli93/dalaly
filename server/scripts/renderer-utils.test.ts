@@ -6,10 +6,27 @@ import { splitAmenityKeys } from "../../apps/renderer/src/utils/amenities.js";
 import { escapeHtml } from "../../apps/renderer/src/utils/html.js";
 import { isZeroAmount } from "../../apps/renderer/src/utils/money.js";
 import { queryString } from "../../apps/renderer/src/utils/query.js";
+import { intentStatus, newTaskIntent } from "../../apps/renderer/src/utils/taskIntent.js";
+import { initialStatus } from "../src/modules/tasks/tasks.schema.js";
 
 test("an amount is zero only when the API sends zero", () => {
   for (const value of ["0", "0.00", "-0.00", "0.0"]) assert.ok(isZeroAmount(value), value);
   for (const value of ["0.01", "-0.50", "10.00", "", "00.00"]) assert.ok(!isZeroAmount(value), value);
+});
+
+test("a new task is open until done, dated or not; a logged event is done", () => {
+  // UX-04: «مهمة لزبون» without a date used to be saved as already done.
+  assert.equal(intentStatus(newTaskIntent(null, "task", "")), "open");
+  assert.equal(intentStatus(newTaskIntent(null, "task", "2026-11-03T10:00")), "open");
+  assert.equal(intentStatus(newTaskIntent(null, "log", "2026-11-03T10:00")), "done");
+  // The user's choice wins over the caller's and over the date.
+  assert.equal(newTaskIntent("log", "task", ""), "log");
+  assert.equal(newTaskIntent("task", undefined, ""), "task");
+  // Without a choice or a caller intent, the server's rule for a row sent without a status.
+  for (const date of ["", "2026-11-03T10:00"]) {
+    const scheduled_at = date ? new Date(date).toISOString() : null;
+    assert.equal(intentStatus(newTaskIntent(null, undefined, date)), initialStatus({ scheduled_at }), date || "no date");
+  }
 });
 
 test("printed HTML escapes markup and quotes", () => {
@@ -201,4 +218,143 @@ test("operational reports map to tables, request columns only with the requests"
   const bands = rental.tables.find((table) => table.title.includes("الإيجار الشهري"))!;
   assert.deepEqual(bands.rows.map((row) => row.cells.band), ["1,000,000 – 1,500,000 شهرياً", "3,000,000 فأكثر شهرياً"]);
   assert.ok(!rental.figures.some((figure) => figure.label === "طلبات مفتوحة"));
+});
+
+test("the attention queue orders by tier then date, once per record, with the right action", async () => {
+  const { attentionItems, attentionTotals } = await import("../../apps/renderer/src/utils/attentionQueue.js");
+  const task = (id: number, scheduled_at: string, extra: object = {}) => ({
+    source: "sale_followup", id, type: "visit", notes: null, scheduled_at, status: "open", priority: "normal",
+    overdue: true, person_id: null, person_name: null, property_id: 7, rental_id: null, listing_code: "H-0007",
+    listing_name: "بيت", request_code: null, ...extra,
+  });
+  const business = {
+    tasks: {
+      overdue: { total: 9, items: [task(2, "2026-10-28T09:00:00Z"), task(1, "2026-10-20T09:00:00Z", { person_id: 4, person_name: "سارة" })] },
+      today: { total: 1, items: [task(3, "2026-11-02T10:00:00Z", { overdue: false })] },
+      week: { total: 2, items: [] },
+    },
+    leases: {
+      expiring_days: 30,
+      expiring: { total: 1, items: [{ id: 5, code: "LS-5", end_date: "2026-11-20", days_left: 18, tenant_name: "علي" }] },
+      overdue: { total: 8, by_currency: [], items: [{ id: 11, seq: 1, due_date: "2026-10-01", left: "350000.00", days_overdue: 32, lease_id: 5, lease_code: "LS-5", currency: "IQD", tenant_name: "علي" }] },
+    },
+    customers: { contact_days: 30, needing_contact: { total: 2, rows: [
+      { person_id: 4, person_name: "سارة", phone: "0780", open_requests: 1, open_deals: 0, last_contact: null },
+      { person_id: 6, person_name: "محمد", phone: null, open_requests: 0, open_deals: 1, last_contact: "2026-09-01T00:00:00Z" },
+    ] } },
+    deals: { stalled_days: 14, stalled: { total: 1, items: [{ id: 3, code: "D-3", title: null, client_name: "كاظم", stage: "negotiating", stage_changed_at: "2026-10-01T00:00:00Z" }] } },
+  };
+  const overview = {
+    appointments: { today: 1, items: [] },
+    // Listing follow-up 2 is also an overdue task: one line, as the task.
+    viewings_without_outcome: { total: 2, days: 30, items: [
+      { id: 2, kind: "sale", listing_id: 7, listing_code: "H-0007", listing_name: "بيت", type: "visit", scheduled_at: "2026-10-28T09:00:00Z" },
+      { id: 9, kind: "rental", listing_id: 8, listing_code: "R-0008", listing_name: "شقة", type: "visit", scheduled_at: "2026-10-30T09:00:00Z" },
+    ] },
+  };
+  const matching = { customers: { total: 2, items: [
+    { person_id: 4, person_name: "سارة", person_phone: "0780", total_matches: 2, last_request_update_at: "2026-10-31" },
+    { person_id: 12, person_name: "زبون مطابق", person_phone: null, total_matches: 1, last_request_update_at: "2026-10-30" },
+  ] } };
+  const commissions = [{ id: 1, code: "CM-1", payer_name: "أحمد", deal_code: "D-1", commission_date: "2026-06-20", outstanding: "2500000.00", currency: "IQD" }];
+  const all = new Set(["people.read", "vouchers.receipt"]);
+  const permissions = { can: (p: string) => all.has(p), canFollowup: () => true };
+  const sources = { business, overview, matching, commissions } as never;
+  const items = attentionItems(sources, permissions);
+
+  assert.deepEqual(
+    items.map((item) => item.key),
+    [
+      "installment:11", "task:sale_followup:1", "task:sale_followup:2", // overdue, oldest first
+      "task:sale_followup:3", // today
+      "commission:1", // to collect
+      "person:4", "person:6", "person:12", // never contacted, then the longest silence
+      "deal:3", "task:rental_followup:9", "lease:5", // follow-up, by date
+    ],
+  );
+  const byKey = Object.fromEntries(items.map((item) => [item.key, item]));
+  assert.equal(byKey["installment:11"].action.type, "collect-installment");
+  assert.equal(byKey["commission:1"].action.type, "collect-commission");
+  assert.equal(byKey["task:sale_followup:1"].link, "/clients/4");
+  assert.equal(byKey["task:sale_followup:2"].link, "/properties/7");
+  // Sara waits on a call and has matches: one line, both reasons, the options drawer.
+  assert.equal(byKey["person:4"].action.type, "customer");
+  assert.match(byKey["person:4"].reason, /عروض مطابقة/);
+  assert.match(byKey["person:4"].reason, /لم يُتواصل معه/);
+  assert.equal(byKey["task:rental_followup:9"].action.type, "viewing");
+
+  // Without receipts the money rows open their records instead.
+  const readOnly = attentionItems(sources, { can: (p: string) => p === "people.read", canFollowup: () => false });
+  const ro = Object.fromEntries(readOnly.map((item) => [item.key, item]));
+  assert.deepEqual(ro["installment:11"].action, { type: "route", to: "/leases/5" });
+  assert.deepEqual(ro["commission:1"].action, { type: "route", to: "/accounting/commissions/1" });
+  assert.deepEqual(ro["task:rental_followup:9"].action, { type: "route", to: "/rentals/8" });
+
+  // Tier counts are the server's totals, not the five loaded rows.
+  assert.deepEqual(attentionTotals({ ...(sources as object), commissionTotal: 2 } as never), {
+    overdue: 17, today: 1, collect: 2, contact: 3, followup: 4,
+  });
+  // A failed business summary leaves today's appointments from the overview.
+  const now = new Date();
+  const appointment = { id: 40, kind: "sale", listing_id: 7, listing_code: "H-0007", listing_name: "بيت", type: "phone_call", scheduled_at: now.toISOString() };
+  const degraded = attentionItems({ business: null, overview: { appointments: { today: 1, items: [appointment] } }, matching: null, commissions: null } as never, permissions);
+  assert.deepEqual(degraded.map((item) => [item.key, item.tier]), [["task:sale_followup:40", "today"]]);
+});
+
+test("an optional form section opens for data, an error, the user or edit mode, never hiding a value", async () => {
+  const { hasValue, useFormSections } = await import("../../apps/renderer/src/composables/useFormSections.js");
+  for (const value of ["x", 0, 3, ["a"], { wifi: true }]) assert.ok(hasValue(value), JSON.stringify(value));
+  for (const value of ["", "  ", null, undefined, false, [], {}, { wifi: false }]) assert.ok(!hasValue(value), JSON.stringify(value));
+
+  // Plain holders, not Vue refs: the server package does not depend on vue
+  // (the composable resolves it from the renderer).
+  const model = { value: { plot_number: "", notes: "", amenities: {} as Record<string, boolean> } };
+  const errors = { value: {} as Record<string, string[]> };
+  const sections = useFormSections(model as never, { parcel: ["plot_number"], notes: ["notes", "amenities"] }, () => errors.value);
+  // A new, empty form starts with the optional sections closed.
+  assert.equal(sections.isOpen("parcel"), false);
+  assert.equal(sections.summary("parcel"), "اختياري");
+  // A record that has a value shows it (editing, a restored draft).
+  model.value.amenities = { wifi: true };
+  assert.equal(sections.isOpen("notes"), true);
+  assert.equal(sections.summary("notes"), "فيه بيانات");
+  // The user's choice wins over the data…
+  sections.setOpen("notes", false);
+  assert.equal(sections.isOpen("notes"), false);
+  // …but never over an error from the server on one of its fields.
+  errors.value = { notes: ["طويل جداً"] };
+  assert.equal(sections.isOpen("notes"), true);
+  // Edit mode can open a section with defaults only (the request's status).
+  assert.equal(sections.isOpen("parcel", true), true);
+  sections.setOpen("parcel", false);
+  assert.equal(sections.isOpen("parcel", true), false);
+  // Closing keeps the value: the fields stay mounted and in the model.
+  model.value.plot_number = "88";
+  assert.equal(model.value.plot_number, "88");
+});
+
+test("date and time fields read any digits and separators and store the native input formats", async () => {
+  const { parseDateInput, formatDateInput, withinBounds } = await import("../../apps/renderer/src/utils/dateInput.js");
+  // Day first, as written in Iraq; a four-digit first part is a year.
+  for (const text of ["2/11/2026", "02-11-2026", "٢/١١/٢٠٢٦", "2.11.26", "2026-11-02", "2026/11/2", " 2 / 11 / 2026 "])
+    assert.equal(parseDateInput(text, "date"), "2026-11-02", text);
+  for (const text of ["31/2/2026", "29/2/2025", "2/13/2026", "2/11", "x/11/2026", "0/1/2026"])
+    assert.equal(parseDateInput(text, "date"), null, text);
+  assert.equal(parseDateInput("29/2/2024", "date"), "2024-02-29");
+  assert.equal(parseDateInput("", "date"), "");
+  assert.equal(formatDateInput("2026-11-02", "date"), "02/11/2026");
+  assert.equal(formatDateInput(null, "date"), "");
+  // Times: 24 hours, with or without a separator, Arabic-Indic digits too.
+  for (const [text, value] of [["9:30", "09:30"], ["0930", "09:30"], ["٢٣:٠٥", "23:05"], ["930", "09:30"]] as const)
+    assert.equal(parseDateInput(text, "time"), value, text);
+  for (const text of ["24:00", "9:7", "9", "12:60"]) assert.equal(parseDateInput(text, "time"), null, text);
+  assert.equal(formatDateInput("09:30:00", "time"), "09:30");
+  // Months.
+  assert.equal(parseDateInput("11/2026", "month"), "2026-11");
+  assert.equal(parseDateInput("2026-1", "month"), "2026-01");
+  assert.equal(parseDateInput("13/2026", "month"), null);
+  assert.equal(formatDateInput("2026-11", "month"), "11/2026");
+  // Bounds compare the stored ISO text.
+  assert.ok(withinBounds("2026-11-02", "2026-11-01", "2026-11-30"));
+  assert.ok(!withinBounds("2026-12-01", undefined, "2026-11-30"));
 });

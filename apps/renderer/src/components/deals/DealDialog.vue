@@ -21,6 +21,7 @@ import type {
   RentalRecord,
   TaskPriority,
 } from "../../types";
+import DateField from "../app/DateField.vue";
 
 /**
  * إنشاء صفقة وتعديل بياناتها، بما يلزم فقط: النوع والعرض والزبون، ثم السعر
@@ -496,9 +497,8 @@ function onKeydown(event: KeyboardEvent) {
                 label="الموظف المسؤول"
                 clearable
               />
-              <v-text-field
+              <DateField
                 v-model="form.expected_close_date"
-                type="date"
                 label="الإغلاق المتوقع"
                 :error-messages="fieldErrors.expected_close_date"
               />

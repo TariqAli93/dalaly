@@ -8,6 +8,7 @@ import { useRefresh } from "../composables/useRefresh";
 import { accountTypeLabel } from "../constants/accounting";
 import { formatAmount, formatDate, todayIso } from "../utils/format";
 import type { AccountStatement } from "../types";
+import DateField from "../components/app/DateField.vue";
 
 /**
  * كشف حساب: القيود المرحَّلة على الحساب في مدة، برصيد أول المدة ورصيد بعد
@@ -64,17 +65,15 @@ const sideNote = computed(() =>
     :parent="{ to: '/accounting/accounts', label: 'دليل الحسابات' }"
   >
     <div class="statement-toolbar">
-      <v-text-field
+      <DateField
         v-model="from"
-        type="date"
         label="من تاريخ"
         density="compact"
         hide-details
         clearable
       />
-      <v-text-field
+      <DateField
         v-model="to"
-        type="date"
         label="إلى تاريخ"
         density="compact"
         hide-details

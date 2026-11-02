@@ -206,6 +206,23 @@ function buildSearchClause(term: string): SQL {
   return parts.length === 1 ? parts[0] : or(...parts)!;
 }
 
+// رمز عرض كامل كما يوزّعه propertyCodeAllocator (H-0001، L-0012).
+const RECORD_CODE = /^[a-z]+-\d+$/i;
+
+/**
+ * كلمة بحث هي رمز عرض كامل تضع ذلك العرض أولاً. لا تغيّر النتائج: H-0001 ما
+ * زال يطابق هاتفاً يحوي 0001، لكنه يأتي بعد العرض الذي رمزه H-0001، فيفتح
+ * Enter على أول صف العرضَ المقصود.
+ */
+function exactCodeFirst(term: string | undefined): SQL[] {
+  const codes = searchTokens(term)
+    .filter((token) => RECORD_CODE.test(token))
+    .map((token) => token.toLowerCase());
+  return codes.length
+    ? [desc(inArray(sql`lower(${properties.code})`, codes))]
+    : [];
+}
+
 /** شروط الفلاتر والبحث المشتركة بين القائمة الكاملة والقائمة المقسّمة. */
 function propertyConditions(
   filters: Omit<PropertyFilters, "limit" | "offset">,
@@ -286,7 +303,11 @@ export async function listProperties(filters: PropertyFilters) {
     .select()
     .from(properties)
     .where(where.length ? and(...where) : undefined)
-    .orderBy(desc(properties.createdAt), desc(properties.id))
+    .orderBy(
+      ...exactCodeFirst(filters.q ?? filters.search),
+      desc(properties.createdAt),
+      desc(properties.id),
+    )
     .$dynamic();
 
   // pagination اختياري من قاعدة البيانات (يعمل مع البحث والفلاتر).
@@ -369,7 +390,10 @@ export async function listPropertiesPage(
     .select({ property: properties, total: totalRowsColumn() })
     .from(properties)
     .where(condition)
-    .orderBy(...propertyOrder(query.sort_by, query.sort_order))
+    .orderBy(
+      ...exactCodeFirst(query.q ?? query.search),
+      ...propertyOrder(query.sort_by, query.sort_order),
+    )
     .limit(query.page_size)
     .offset(pageOffset(query.page, query.page_size));
 

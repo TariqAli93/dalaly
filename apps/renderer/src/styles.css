@@ -231,11 +231,13 @@ body {
   .v-list-item__content {
   display: none;
 }
-/* Compact navigation with aligned icon, title, and disclosure columns. */
-.dal-nav-drawer .v-list-item {
+/* Compact navigation with aligned icon, title, and disclosure columns. 32px
+   rows with 1px gaps fit all 14 destinations at 1366×768 (UX-10). `.v-list`
+   outranks Vuetify's compact one-line 40px, whatever order the styles load. */
+.dal-nav-drawer .v-list.v-list--nav .v-list-item {
   border-radius: var(--dal-radius-control);
-  margin-block: 2px;
-  min-height: 36px;
+  margin-block: 1px;
+  min-height: 32px;
   padding-block: 0;
   transition:
     background-color 180ms ease,
@@ -489,6 +491,41 @@ body {
   color: var(--dal-muted);
 }
 
+/* نطاق ما تعرضه قائمة أو تقرير (فترته، أو «كل التواريخ») في سطر فوقه، مع
+   أزرار تغييره الصريحة. */
+.dal-scope {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  min-height: 36px;
+  padding: 2px 12px;
+  border-bottom: 1px solid var(--dal-stroke);
+  font-size: calc(13px * var(--dal-font-scale));
+  color: rgb(var(--v-theme-on-surface));
+}
+.dal-scope strong {
+  font-weight: 600;
+}
+.dal-scope__icon,
+.dal-scope__muted {
+  color: var(--dal-muted);
+}
+
+/* قراءة الحقول (UX-19): الوسم العائم فوق الحقل كان 0.75em (9.75px بخط 13px)
+   فصار 0.85em. والإرشاد تحت حقل معطّل يشرح كيف يُفعَّل («اختر المحافظة
+   أولاً»)، فيُقرأ بتباين النص الباهت لا بشفافية الحقل المعطّل؛ الحقل نفسه
+   يبقى باهتاً. */
+.v-field .v-label.v-field-label--floating {
+  --v-field-label-scale: 0.85em;
+}
+.v-input.v-input--disabled .v-input__details {
+  opacity: 1;
+}
+.v-input.v-input--disabled .v-input__details .v-messages {
+  color: var(--dal-muted);
+}
+
 /* لوح مكتبي: حدّ رفيع، بلا ظلّ، حشو مضغوط. بديل البطاقة. */
 .dal-panel {
   border: 1px solid var(--dal-stroke);
@@ -618,6 +655,10 @@ body {
 }
 .listing-record__media {
   padding: 12px;
+}
+/* الصور مطوية في تبويب غير «التفاصيل»: عمودها بعرض عنوانه وزرّه فقط. */
+.listing-record--media-closed {
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 200px);
 }
 @media (max-width: 1100px) {
   .listing-record {
@@ -962,7 +1003,6 @@ body {
    ("24p 11:58:31 ،2026/10/"). */
 :is(.v-application, .v-overlay) input[type="tel"],
 :is(.v-application, .v-overlay) input[type="email"],
-:is(.v-application, .v-overlay) input[type="date"],
 :is(.v-application, .v-overlay) bdi:not([dir]) {
   direction: ltr;
   unicode-bidi: isolate;

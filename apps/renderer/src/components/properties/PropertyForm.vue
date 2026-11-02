@@ -19,12 +19,16 @@ import PhoneField from "../app/PhoneField.vue";
 import PersonPicker from "../people/PersonPicker.vue";
 import CountField from "../app/CountField.vue";
 import { AMENITY_OPTIONS } from "../../utils/amenities";
+import { useFormSections } from "../../composables/useFormSections";
 
 /**
- * نموذج العرض بترتيب العمل على الهاتف: العرض، ثم الموقع والقطعة (هوية القطعة
- * التي يكشف بها التكرار)، ثم المساحة والسعر، ثم المالك؛ والتفاصيل الإضافية
- * بعدها ظاهرة لا مطويّة. الحقول المطلوبة معلّمة بـ *، وأول حقل خاطئ يأخذ
- * التركيز. أخطاء الخادم تصل عبر fieldErrors باسم الحقل في الطلب.
+ * نموذج العرض بترتيب العمل على الهاتف: العرض، ثم الموقع، ثم المساحة والسعر،
+ * ثم المالك؛ هذه ظاهرة دائماً وفيها كل حقل مطلوب. ما بعدها أقسام اختيارية
+ * مطوية في عرض جديد (القطعة والمقاطعة، المواصفات، العنوان، الخريطة، الاسم
+ * والملاحظات) تُفتح بنقرة، وتفتح وحدها حين فيها بيانات أو خطأ. الحقول
+ * المطلوبة معلّمة بـ *، وأول حقل خاطئ يأخذ التركيز بعد فتح قسمه. أخطاء الخادم
+ * تصل عبر fieldErrors باسم الحقل في الطلب. ترتيب الأقسام هو ترتيب نموذج
+ * الإيجار.
  */
 const model = defineModel<PropertyForm>({ required: true });
 
@@ -92,8 +96,40 @@ const computedTotal = computed(() => {
 
 const errorsOf = (field: string) => props.fieldErrors?.[field] ?? [];
 
-function focusElement(element: HTMLElement | null) {
+// الأقسام الاختيارية وحقولها (أسماء الحقول في PropertyForm).
+const sections = useFormSections(
+  model,
+  {
+    parcel: [
+      "plot_number",
+      "plot_letter",
+      "subdistrict_number",
+      "subdistrict_name",
+    ],
+    details: [
+      "frontage",
+      "nazal",
+      "street_width",
+      "rooms_count",
+      "bathrooms_count",
+      "amenities",
+    ],
+    address: [
+      "mahalla",
+      "alley",
+      "house_number",
+      "nearest_landmark",
+      "address_details",
+    ],
+    map: ["latitude", "longitude", "location_link"],
+    notes: ["name", "notes", "owner_notes"],
+  },
+  () => props.fieldErrors,
+);
+
+async function focusElement(element: HTMLElement | null) {
   if (!element) return;
+  await sections.reveal(element);
   element.scrollIntoView({ block: "center" });
   element.focus({ preventScroll: true });
 }
@@ -111,7 +147,7 @@ async function validate() {
   const result = await formRef.value?.validate();
   if (result && !result.valid) {
     const first = result.errors[0]?.id;
-    if (first !== undefined) focusElement(fieldElement(String(first)));
+    if (first !== undefined) await focusElement(fieldElement(String(first)));
   }
   return result?.valid ?? false;
 }
@@ -119,7 +155,7 @@ async function validate() {
 /** بعد خطأ من الخادم: التركيز على أول حقل يحمل رسالته. */
 async function focusField(name: string) {
   await nextTick();
-  focusElement(fieldElement(name));
+  await focusElement(fieldElement(name));
 }
 
 defineExpose({ validate, focusField, computedTotal });
@@ -136,62 +172,6 @@ defineExpose({ validate, focusField, computedTotal });
     <v-defaults-provider :defaults="FIELD_DEFAULTS">
       <div class="dal-form__body">
         <p class="dal-form__hint">الحقول المعلّمة بـ * مطلوبة.</p>
-
-        <FormSection title="الموقع والقطعة">
-          <LocationSelects
-            v-model:governorate-id="model.governorate_id"
-            v-model:district-id="model.district_id"
-            v-model:neighborhood-id="model.neighborhood_id"
-            v-model:governorate-text="model.governorate_text"
-            v-model:district-text="model.district_text"
-            v-model:neighborhood-text="model.neighborhood_text"
-            class="form-section__wide"
-          />
-          <v-text-field
-            v-model="model.plot_number"
-            name="plot_number"
-            :error-messages="errorsOf('plot_number')"
-            label="رقم القطعة"
-          />
-          <v-text-field
-            v-model="model.plot_letter"
-            name="plot_letter"
-            :error-messages="errorsOf('plot_letter')"
-            label="حرف القطعة"
-            hint="عربي أو إنجليزي، مثل: أ أو A"
-          />
-          <v-text-field
-            v-model="model.subdistrict_number"
-            name="subdistrict_number"
-            label="رقم المقاطعة"
-          />
-          <v-text-field
-            v-model="model.subdistrict_name"
-            name="subdistrict_name"
-            label="اسم المقاطعة"
-          />
-          <template #after>
-            <v-alert
-              v-if="duplicate"
-              type="warning"
-              variant="tonal"
-              density="compact"
-              class="mt-3"
-              role="status"
-            >
-              هذه القطعة مسجّلة في عرض آخر: «{{ duplicate.label }}» باسم
-              {{ duplicate.owner }}. الحفظ سيُرفض ما دامت هوية القطعة نفسها.
-              <template #append>
-                <v-btn
-                  variant="text"
-                  size="small"
-                  :to="`/properties/${duplicate.id}`"
-                  >فتح العرض</v-btn
-                >
-              </template>
-            </v-alert>
-          </template>
-        </FormSection>
 
         <FormSection title="العرض">
           <v-select
@@ -218,15 +198,39 @@ defineExpose({ validate, focusField, computedTotal });
             :error-messages="errorsOf('status')"
             label="الحالة *"
           />
-          <v-text-field
-            v-model="model.name"
-            name="name"
+        </FormSection>
+
+        <FormSection title="الموقع">
+          <LocationSelects
+            v-model:governorate-id="model.governorate_id"
+            v-model:district-id="model.district_id"
+            v-model:neighborhood-id="model.neighborhood_id"
+            v-model:governorate-text="model.governorate_text"
+            v-model:district-text="model.district_text"
+            v-model:neighborhood-text="model.neighborhood_text"
             class="form-section__wide"
-            :error-messages="errorsOf('name')"
-            label="اسم العرض"
-            hint="اختياري؛ يُستخدم «عقار» ورمز العرض عند تركه فارغاً"
-            persistent-hint
           />
+          <template #after>
+            <v-alert
+              v-if="duplicate"
+              type="warning"
+              variant="tonal"
+              density="compact"
+              class="mt-3"
+              role="status"
+            >
+              هذه القطعة مسجّلة في عرض آخر: «{{ duplicate.label }}» باسم
+              {{ duplicate.owner }}. الحفظ سيُرفض ما دامت هوية القطعة نفسها.
+              <template #append>
+                <v-btn
+                  variant="text"
+                  size="small"
+                  :to="`/properties/${duplicate.id}`"
+                  >فتح العرض</v-btn
+                >
+              </template>
+            </v-alert>
+          </template>
         </FormSection>
 
         <FormSection title="المساحة والسعر">
@@ -309,17 +313,50 @@ defineExpose({ validate, focusField, computedTotal });
             :error-messages="errorsOf('owner_phone')"
             label="هاتف المالك *"
           />
-          <v-textarea
-            v-model="model.owner_notes"
-            name="owner_notes"
-            class="form-section__wide"
-            label="ملاحظات المالك"
-            rows="2"
-            auto-grow
+        </FormSection>
+
+        <FormSection
+          title="رقم القطعة والمقاطعة"
+          section="parcel"
+          collapsible
+          :open="sections.isOpen('parcel')"
+          :summary="sections.summary('parcel')"
+          @update:open="sections.setOpen('parcel', $event)"
+        >
+          <v-text-field
+            v-model="model.plot_number"
+            name="plot_number"
+            :error-messages="errorsOf('plot_number')"
+            label="رقم القطعة"
+            hint="مع المحافظة والقضاء والحي تكشف القطعة المسجّلة من قبل"
+          />
+          <v-text-field
+            v-model="model.plot_letter"
+            name="plot_letter"
+            :error-messages="errorsOf('plot_letter')"
+            label="حرف القطعة"
+            hint="عربي أو إنجليزي، مثل: أ أو A"
+          />
+          <v-text-field
+            v-model="model.subdistrict_number"
+            name="subdistrict_number"
+            label="رقم المقاطعة"
+          />
+          <v-text-field
+            v-model="model.subdistrict_name"
+            name="subdistrict_name"
+            label="اسم المقاطعة"
           />
         </FormSection>
 
-        <FormSection title="تفاصيل إضافية">
+        <FormSection
+          title="المواصفات والمميزات"
+          section="details"
+          collapsible
+          :open="sections.isOpen('details')"
+          :summary="sections.summary('details')"
+          @update:open="sections.setOpen('details', $event)"
+        >
           <v-text-field
             v-model="model.frontage"
             name="frontage"
@@ -345,6 +382,30 @@ defineExpose({ validate, focusField, computedTotal });
             name="bathrooms_count"
             label="عدد الحمامات"
           />
+          <div class="form-section__wide">
+            <div class="dal-form__label">المميزات</div>
+            <v-chip-group v-model="amenities" column multiple>
+              <v-chip
+                v-for="item in AMENITY_OPTIONS"
+                :key="item.key"
+                :value="item.key"
+                filter
+                variant="outlined"
+              >
+                {{ item.title }}
+              </v-chip>
+            </v-chip-group>
+          </div>
+        </FormSection>
+
+        <FormSection
+          title="العنوان التفصيلي"
+          section="address"
+          collapsible
+          :open="sections.isOpen('address')"
+          :summary="sections.summary('address')"
+          @update:open="sections.setOpen('address', $event)"
+        >
           <v-text-field v-model="model.mahalla" name="mahalla" label="المحلة" />
           <v-text-field v-model="model.alley" name="alley" label="الزقاق" />
           <v-text-field
@@ -363,23 +424,17 @@ defineExpose({ validate, focusField, computedTotal });
             class="form-section__wide"
             label="العنوان التفصيلي"
           />
-          <div class="form-section__wide">
-            <div class="dal-form__label">المميزات</div>
-            <v-chip-group v-model="amenities" column multiple>
-              <v-chip
-                v-for="item in AMENITY_OPTIONS"
-                :key="item.key"
-                :value="item.key"
-                filter
-                variant="outlined"
-              >
-                {{ item.title }}
-              </v-chip>
-            </v-chip-group>
-          </div>
         </FormSection>
 
-        <FormSection title="الموقع على الخريطة" :columns="1">
+        <FormSection
+          title="الموقع على الخريطة"
+          :columns="1"
+          section="map"
+          collapsible
+          :open="sections.isOpen('map')"
+          :summary="sections.summary('map')"
+          @update:open="sections.setOpen('map', $event)"
+        >
           <PropertyLocationEditor
             v-model:latitude="model.latitude"
             v-model:longitude="model.longitude"
@@ -387,12 +442,35 @@ defineExpose({ validate, focusField, computedTotal });
           />
         </FormSection>
 
-        <FormSection title="ملاحظات العقار" :columns="1">
+        <FormSection
+          title="اسم العرض والملاحظات"
+          :columns="1"
+          section="notes"
+          collapsible
+          :open="sections.isOpen('notes')"
+          :summary="sections.summary('notes')"
+          @update:open="sections.setOpen('notes', $event)"
+        >
+          <v-text-field
+            v-model="model.name"
+            name="name"
+            :error-messages="errorsOf('name')"
+            label="اسم العرض"
+            hint="اختياري؛ يُستخدم «عقار» ورمز العرض عند تركه فارغاً"
+            persistent-hint
+          />
           <v-textarea
             v-model="model.notes"
             name="notes"
             label="ملاحظات العقار"
             rows="3"
+            auto-grow
+          />
+          <v-textarea
+            v-model="model.owner_notes"
+            name="owner_notes"
+            label="ملاحظات المالك"
+            rows="2"
             auto-grow
           />
         </FormSection>

@@ -17,6 +17,7 @@ import type {
   LeaseSchedule,
   RentalRecord,
 } from "../../types";
+import DateField from "../app/DateField.vue";
 
 /**
  * إيجار بلا عقد في النظام: عقد ورقي قديم أو إيجار اتُّفق عليه خارج المكتب.
@@ -253,15 +254,13 @@ async function save() {
               :items="LEASE_FREQUENCIES"
               label="دورية الدفع"
             />
-            <v-text-field
+            <DateField
               v-model="form.start_date"
-              type="date"
               label="تاريخ البدء *"
               :error-messages="fieldErrors.start_date"
             />
-            <v-text-field
+            <DateField
               v-model="form.end_date"
-              type="date"
               label="آخر يوم في الإيجار *"
               :error-messages="fieldErrors.end_date"
             />
