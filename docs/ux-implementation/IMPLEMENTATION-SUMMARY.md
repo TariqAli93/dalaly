@@ -172,6 +172,16 @@ the chooser already says so, never-issued drafts can be deleted, and no
 abandoned-draft problem was observed. The editors, persistence and issued
 documents are unchanged.
 
+## Follow-up — Latin digits in native date and number fields
+
+Found during this work (not in the audit): Chromium draws `<input type="number|date|time|datetime-local|month">` in the application locale (`--lang ar-IQ`), so they showed Arabic-Indic digits, and empty date fields showed a broken placeholder («قنس/رهش/موي»). A probe showed that neither the input's `lang` nor CSS changes this; Chromium reduces any Arabic `--lang` to `ar`, and an English locale switches the native controls to English and takes the date order from Windows' region.
+
+- The 25 number fields use the existing `NumberField` (Latin digits; Arabic-Indic typing is converted). Arrow-key stepping of the native number field is gone.
+- The 29 date fields, the month field and the backup time field use a new `components/app/DateField.vue` (`utils/dateInput.ts`): Latin `dd/mm/yyyy` (`hh:mm`, `mm/yyyy`), any digits and separators accepted, an invalid entry shown with a message and sent as empty, and the system calendar through a button or Alt+↓ (a hidden native input, so `min`/`max` still bound the picker and are checked). The bound value keeps the native formats (`YYYY-MM-DD`, `HH:MM`, `YYYY-MM`).
+- The task dialog's date-time field is a date field and a time field writing the same local `YYYY-MM-DDTHH:MM`; a date without a time shows 09:00 in the time field.
+
+Electron: no input on the checked screens holds an Arabic-Indic digit; a task typed «٥/١١/٢٠٢٦», 14:30 and then picked 7/11 was stored as `2026-11-07T11:30Z` (14:30 Baghdad). The calendar popup itself still follows Chromium's Arabic locale.
+
 ## Backend and data
 
 One backend change, as the brief allowed for UX-01: an `ORDER BY` prefix in
@@ -193,11 +203,10 @@ explicit status.
 
 ## Deferred, with the decision needed
 
-| Item                                                                                                                           | Why deferred                                                                        | Decision needed                                                     |
-| ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Navigation regroup to 8–9 destinations                                                                                         | Adds a click to rental offers/requests                                              | Usability test with office staff; accept a click for fewer choices? |
-| Explicit «بدء مسودة» for contracts (UX-13)                                                                                     | Behaviour change; no observed problem                                               | Owner choice if abandoned drafts appear                             |
-| Ordinary vs expert contract editing (UX-12)                                                                                    | Large editor change                                                                 | Product scope for a simplified clause editor                        |
-| Commission list date filter                                                                                                    | Needs an API filter (`commissions/paged` has none)                                  | Approve an API addition                                             |
-| Request match counts on the client page                                                                                        | Not in the request list payload                                                     | Approve an API field                                                |
-| Arabic-Indic digits in number inputs of the studio inspector, and the mirrored placeholder of `datetime-local` («قنس/رهش/موي») | Seen during this work, not in the audit; Chromium localises native inputs by `lang` | Choose a fix (input `lang`, or custom pickers)                      |
+| Item                                        | Why deferred                                       | Decision needed                                                     |
+| ------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------- |
+| Navigation regroup to 8–9 destinations      | Adds a click to rental offers/requests             | Usability test with office staff; accept a click for fewer choices? |
+| Explicit «بدء مسودة» for contracts (UX-13)  | Behaviour change; no observed problem              | Owner choice if abandoned drafts appear                             |
+| Ordinary vs expert contract editing (UX-12) | Large editor change                                | Product scope for a simplified clause editor                        |
+| Commission list date filter                 | Needs an API filter (`commissions/paged` has none) | Approve an API addition                                             |
+| Request match counts on the client page     | Not in the request list payload                    | Approve an API field                                                |
