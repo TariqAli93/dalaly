@@ -24,6 +24,7 @@ import { usePermissions } from "../composables/usePermissions";
 import { useSnackbar } from "../composables/useSnackbar";
 import { useRefresh } from "../composables/useRefresh";
 import { useNewFromQuery } from "../composables/useNewFromQuery";
+import { useCreateShortcut } from "../composables/useCreateShortcut";
 import { useConfirm } from "../composables/useConfirm";
 import { createPagedList } from "../composables/usePagedList";
 import {
@@ -202,6 +203,7 @@ void list.reload();
 useNewFromQuery(() => {
   if (can("documents.manage")) openCreate();
 });
+useCreateShortcut(openCreate, () => can("documents.manage"));
 onMounted(async () => {
   setRefreshHandler(list.reload);
   try {
@@ -220,6 +222,8 @@ onBeforeUnmount(() => list.cancel());
         v-if="can('documents.manage')"
         color="primary"
         prepend-icon="mdi-file-upload-outline"
+        title="إضافة مستمسك (Ctrl+N)"
+        aria-keyshortcuts="Control+N"
         @click="openCreate"
         >إضافة مستمسك</v-btn
       >

@@ -107,11 +107,12 @@ const openRequests = computed(() =>
 </template>
 
 <style scoped>
+/* شريط مسطّح بعرض اللوح يفصله خط رفيع عن النشاط تحته: لا بطاقة داخل لوح
+   (سطح فوق سطح). الهوامش السالبة تعوّض حشو جسم التبويب (8px 16px). */
 .open-work {
-  margin-bottom: 12px;
-  padding: 8px 12px;
-  border: 1px solid var(--dal-stroke);
-  border-radius: var(--dal-radius-card);
+  margin: -8px -16px 12px;
+  padding: 8px 16px 10px;
+  border-bottom: 1px solid var(--dal-stroke);
 }
 .open-work__title {
   margin: 0 0 4px;

@@ -20,7 +20,7 @@ import { useConfirm } from "../composables/useConfirm";
 import { useRefresh } from "../composables/useRefresh";
 import { useNewFromQuery } from "../composables/useNewFromQuery";
 import { usePeople } from "../composables/usePeople";
-import { isDialogOpen } from "../utils/dialog";
+import { useCreateShortcut } from "../composables/useCreateShortcut";
 import {
   PERSON_ROLES,
   PERSON_STATUS_FILTERS,
@@ -204,24 +204,12 @@ function actionsOf(person: PersonRecord): RowAction[] {
   return actions;
 }
 
-function onShortcut(event: KeyboardEvent) {
-  if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyN") return;
-  if (event.altKey || event.shiftKey || !can("people.create")) return;
-  if (isDialogOpen()) return;
-  event.preventDefault();
-  openCreate();
-}
+useCreateShortcut(openCreate, () => can("people.create"));
 
 // قبل أن يُظهر الجدول خياراته الأولى، فلا يطلب الصفحة نفسها مرتين.
 void list.reload();
-onMounted(() => {
-  setRefreshHandler(list.reload);
-  window.addEventListener("keydown", onShortcut);
-});
-onBeforeUnmount(() => {
-  window.removeEventListener("keydown", onShortcut);
-  list.cancel();
-});
+onMounted(() => setRefreshHandler(list.reload));
+onBeforeUnmount(() => list.cancel());
 </script>
 
 <template>

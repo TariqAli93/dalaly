@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { AuditLogRecord } from "../../types";
-import { formatDateTime } from "../../utils/format";
+import { formatDateTimeSeconds } from "../../utils/format";
 
 defineProps<{ logs: AuditLogRecord[]; loading?: boolean }>();
 
@@ -74,7 +74,7 @@ function detail(log: AuditLogRecord) {
           </div>
           <div class="text-caption text-medium-emphasis">
             {{ log.user_name || "النظام" }} ·
-            {{ formatDateTime(log.created_at) }}
+            {{ formatDateTimeSeconds(log.created_at) }}
           </div>
         </div>
       </v-timeline-item>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import AppPage from "../components/app/AppPage.vue";
 import DataGrid from "../components/shared/DataGrid.vue";
@@ -19,7 +19,7 @@ import { useSnackbar } from "../composables/useSnackbar";
 import { useRefresh } from "../composables/useRefresh";
 import { useAuth } from "../composables/useAuth";
 import { roleLabel } from "../constants/permissions";
-import { isDialogOpen } from "../utils/dialog";
+import { useCreateShortcut } from "../composables/useCreateShortcut";
 import type { ManagedUserRecord, RoleRecord } from "../types";
 
 /**
@@ -152,21 +152,13 @@ function actionsOf(user: ManagedUserRecord): RowAction[] {
   return actions;
 }
 
-function onShortcut(event: KeyboardEvent) {
-  if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyN") return;
-  if (event.altKey || event.shiftKey || !can("users.create")) return;
-  if (isDialogOpen()) return;
-  event.preventDefault();
-  openDialog();
-}
+useCreateShortcut(openDialog, () => can("users.create"));
 
 onMounted(() => {
   setRefreshHandler(loadUsers);
   void loadUsers();
   void loadRoles();
-  window.addEventListener("keydown", onShortcut);
 });
-onBeforeUnmount(() => window.removeEventListener("keydown", onShortcut));
 </script>
 
 <template>

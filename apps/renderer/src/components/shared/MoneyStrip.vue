@@ -83,7 +83,7 @@ const isZero = (values: CurrencyAmount[]) =>
   flex: 1 1 170px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: flex-end;
   gap: 2px;
   min-width: 0;
   padding: 10px 16px;

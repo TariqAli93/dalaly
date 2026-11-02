@@ -16,6 +16,7 @@ import { createPagedList } from "../composables/usePagedList";
 import { usePermissions } from "../composables/usePermissions";
 import { useRefresh } from "../composables/useRefresh";
 import { useNewFromQuery } from "../composables/useNewFromQuery";
+import { useCreateShortcut } from "../composables/useCreateShortcut";
 import { useSnackbar } from "../composables/useSnackbar";
 import {
   LEASE_STATES,
@@ -130,6 +131,10 @@ const dialog = ref(false);
 useNewFromQuery(() => {
   if (can("leases.manage")) dialog.value = true;
 });
+useCreateShortcut(
+  () => (dialog.value = true),
+  () => can("leases.manage") && view.value === "leases",
+);
 function onCreated(lease: LeaseDetail) {
   notifySuccess(`سُجّل الإيجار ${lease.code}.`);
   void router.push(`/leases/${lease.id}`);
@@ -159,6 +164,8 @@ void list.loadFirstPage();
         v-if="can('leases.manage') && view === 'leases'"
         variant="tonal"
         prepend-icon="mdi-plus"
+        title="إيجار بلا عقد في النظام (Ctrl+N)"
+        aria-keyshortcuts="Control+N"
         @click="dialog = true"
         >إيجار بلا عقد في النظام</v-btn
       >

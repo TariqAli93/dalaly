@@ -37,6 +37,11 @@ const slots = useSlots();
 
 const extraOpen = ref(false);
 const searchRef = ref<{ $el?: HTMLElement } | null>(null);
+// صف ثانٍ ثابت (عروض سريعة أو ترتيب): زر «فلاتر إضافية» في آخره. بدونه يقف
+// الزر في صف البحث نفسه، فلا يأخذ صفاً كاملاً (36px) لنفسه، ولا يقفز حين تظهر
+// الشرائح لأنها لا تنقله.
+const fixedSubRow = Boolean(slots.views || slots.end);
+const hasSubRow = () => fixedSubRow || props.chips.length > 0;
 
 let timer: ReturnType<typeof setTimeout> | undefined;
 function schedule() {
@@ -91,7 +96,10 @@ defineExpose({ focusSearch, applyNow });
 
 <template>
   <div class="dal-toolbar">
-    <div class="dal-toolbar__row">
+    <div
+      class="dal-toolbar__row"
+      :class="{ 'dal-toolbar__row--single': !hasSubRow() }"
+    >
       <v-text-field
         ref="searchRef"
         v-model="search"
@@ -105,12 +113,23 @@ defineExpose({ focusSearch, applyNow });
         @keydown="onSearchKeydown"
       />
       <slot name="filters" />
+      <v-btn
+        v-if="slots.extra && !fixedSubRow"
+        variant="text"
+        size="small"
+        prepend-icon="mdi-tune-variant"
+        class="dal-toolbar__extra"
+        :aria-label="
+          extraCount ? `فلاتر إضافية، مفعّل منها ${extraCount}` : 'فلاتر إضافية'
+        "
+        @click="extraOpen = true"
+      >
+        فلاتر إضافية
+        <span v-if="extraCount" class="dal-count ms-1">{{ extraCount }}</span>
+      </v-btn>
     </div>
 
-    <div
-      v-if="slots.views || slots.end || slots.extra || chips.length"
-      class="dal-toolbar__row dal-toolbar__row--sub"
-    >
+    <div v-if="hasSubRow()" class="dal-toolbar__row dal-toolbar__row--sub">
       <slot name="views" />
       <div v-if="chips.length" class="dal-toolbar__chips">
         <v-chip
@@ -130,7 +149,7 @@ defineExpose({ focusSearch, applyNow });
       </div>
       <v-spacer />
       <v-btn
-        v-if="slots.extra"
+        v-if="slots.extra && fixedSubRow"
         variant="text"
         size="small"
         prepend-icon="mdi-tune-variant"

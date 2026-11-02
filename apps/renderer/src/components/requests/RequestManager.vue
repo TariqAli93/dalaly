@@ -27,7 +27,7 @@ import { useNewFromQuery } from "../../composables/useNewFromQuery";
 import { useLocations } from "../../composables/useLocations";
 import { useRequests } from "../../composables/useRequests";
 import { formatMoney } from "../../utils/format";
-import { isDialogOpen } from "../../utils/dialog";
+import { useCreateShortcut } from "../../composables/useCreateShortcut";
 import {
   requestLabel,
   requestPath,
@@ -261,25 +261,15 @@ function openMatch(match: MatchResult) {
   );
 }
 
-function onShortcut(event: KeyboardEvent) {
-  if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyN") return;
-  if (event.altKey || event.shiftKey || !can("requests.create")) return;
-  if (isDialogOpen()) return;
-  event.preventDefault();
-  openCreate();
-}
+useCreateShortcut(openCreate, () => can("requests.create"));
 
 // قبل أن يُظهر الجدول خياراته الأولى، فلا يطلب الصفحة نفسها مرتين.
 void list.reload();
 onMounted(() => {
   void loadLocations();
   setRefreshHandler(list.reload);
-  window.addEventListener("keydown", onShortcut);
 });
-onBeforeUnmount(() => {
-  window.removeEventListener("keydown", onShortcut);
-  list.cancel();
-});
+onBeforeUnmount(() => list.cancel());
 </script>
 
 <template>

@@ -101,7 +101,7 @@ const emit = defineEmits<{
             icon="mdi-delete-outline"
             size="small"
             variant="text"
-            color="error"
+            class="location-row__delete"
             :aria-label="`حذف ${noun} ${item.name}`"
             :title="`حذف ${item.name}`"
             @click="emit('remove', item)"
@@ -175,5 +175,16 @@ button.location-row__name {
 }
 .location-row__switch {
   flex: 0 0 auto;
+}
+/* أوامر الصف هادئة حتى يُشار إليه، كأوامر صفوف الجداول: عمودان من أيقونات
+   حمراء كانا يصرخان في ثمانية عشر صفاً لأمر نادر. الحذف يحمرّ عند الإشارة. */
+.location-row .v-btn {
+  color: var(--dal-muted);
+}
+.location-row:is(:hover, :focus-within) .v-btn {
+  color: rgb(var(--v-theme-on-surface));
+}
+.location-row:is(:hover, :focus-within) .location-row__delete {
+  color: rgb(var(--v-theme-error));
 }
 </style>

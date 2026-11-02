@@ -456,7 +456,10 @@ defineExpose({ focusFirstRow, focusRow, remember });
   ) {
   color: rgb(var(--v-theme-on-surface));
 }
-@container grid (max-width: 70rem) {
+/* 62rem (992px): شاشة 1366px والقائمة موسّعة تترك للوح نحو 1110px، فتبقى
+   أعمدة الأولوية 2 (الصفة والموظف المتابع، موقع الطلب) ظاهرة عليها؛ كانت
+   70rem تُخفيها على أشيع شاشات المكاتب. 1280px (1024px للوح) تُبقيها كذلك. */
+@container grid (max-width: 62rem) {
   .dal-grid__table :deep(.dal-col-p2) {
     display: none;
   }

@@ -14,6 +14,7 @@ import { usePermissions } from "../composables/usePermissions";
 import { useSnackbar } from "../composables/useSnackbar";
 import { useRefresh } from "../composables/useRefresh";
 import { useNewFromQuery } from "../composables/useNewFromQuery";
+import { useCreateShortcut } from "../composables/useCreateShortcut";
 import { useAssignees } from "../composables/useAssignees";
 import { createPagedList } from "../composables/usePagedList";
 import {
@@ -205,6 +206,10 @@ function openCreate() {
 useNewFromQuery(() => {
   if (can("followups.create") && can("people.read")) openCreate();
 });
+useCreateShortcut(
+  openCreate,
+  () => can("followups.create") && can("people.read"),
+);
 async function saveTask(value: TaskFieldsPayload) {
   const task = editing.value;
   if (!task) {
@@ -322,6 +327,8 @@ onBeforeUnmount(() => {
         v-if="can('followups.create') && can('people.read')"
         color="primary"
         prepend-icon="mdi-plus"
+        title="مهمة لزبون (Ctrl+N)"
+        aria-keyshortcuts="Control+N"
         @click="openCreate"
         >مهمة لزبون</v-btn
       >
@@ -445,8 +452,17 @@ onBeforeUnmount(() => {
             }}</v-chip
           >
         </template>
+        <!-- السجل الذي تخصّه المهمة رابط إليه (العرض، وإلا ملف الزبون)، كما
+             في قائمة أوامر الصف، فلا يمرّ المستخدم بالقائمة ليفتحه. -->
         <template #item.linked="{ item }">
-          <span class="dal-clip" :title="linkedLabel(item)">{{
+          <router-link
+            v-if="recordOf(item)"
+            :to="recordOf(item)!"
+            class="record-link dal-clip"
+            :title="linkedLabel(item)"
+            >{{ linkedLabel(item) }}</router-link
+          >
+          <span v-else class="dal-clip" :title="linkedLabel(item)">{{
             linkedLabel(item) || "—"
           }}</span>
         </template>

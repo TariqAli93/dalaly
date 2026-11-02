@@ -253,7 +253,7 @@ Every size is `calc(Npx * var(--dal-font-scale))`; scale 0.9 / 1 / 1.125 / 1.25 
 
 **The One Family Rule.** One family at a time, the user's choice. No display face, no second family for numbers.
 
-**The Latin Digits Rule.** Every number renders in Latin digits through `utils/format.ts` (`numberingSystem: "latn"`, `en-US` grouping). Latin data (money, phones, codes, ISO-style contract dates) is isolated with `direction: ltr; unicode-bidi: isolate` (`.money`, `<bdi>`, tel/email/date inputs) and uses tabular figures. Dates and times from `formatDate` / `formatDateTime` / `formatTime` carry Arabic «م/ص», «،» and RLM marks, so they are isolated as `<bdi dir="rtl">`; forcing them LTR scrambles them. Only a `<bdi>` without `dir` is forced LTR.
+**The Latin Digits Rule.** Every number renders in Latin digits through `utils/format.ts` (`numberingSystem: "latn"`, `en-US` grouping). Date-times read to the minute (`formatDateTime`); only the audit log shows seconds (`formatDateTimeSeconds`), where events follow each other inside one minute. Latin data (money, phones, codes, ISO-style contract dates) is isolated with `direction: ltr; unicode-bidi: isolate` (`.money`, `<bdi>`, tel/email/date inputs) and uses tabular figures. Dates and times from `formatDate` / `formatDateTime` / `formatTime` carry Arabic «م/ص», «،» and RLM marks, so they are isolated as `<bdi dir="rtl">`; forcing them LTR scrambles them. Only a `<bdi>` without `dir` is forced LTR.
 
 ## Layout
 
@@ -275,7 +275,7 @@ Every size is `calc(Npx * var(--dal-font-scale))`; scale 0.9 / 1 / 1.125 / 1.25 
 
 **The Command Bar Owns the Page Rule.** Title, context, count, status and page actions go in the 48px bar. No in-content page header, subtitle block or breadcrumbs.
 
-**The Data First Rule.** Table columns carry a priority: priority 2 hides under 70rem of grid width, priority 3 under 54rem, so a narrow pane drops columns before it scrolls sideways.
+**The Data First Rule.** Table columns carry a priority: priority 2 hides under 62rem of grid width (992px, so a 1366px screen with the navigation expanded still shows roles, assignees and request locations), priority 3 under 54rem, so a narrow pane drops columns before it scrolls sideways.
 
 ## Elevation & Depth
 
@@ -322,6 +322,7 @@ Two radii: 4px (`--dal-radius-control`) for buttons, icon buttons, fields, chips
 - **Summary strip:** one panel of equal cells (150px basis, labels wrap rather than truncate) divided by vertical hairlines. The value (22px / 700, tabular) leads at the start in a fixed 2.4em column, with the label 13px / 600 and note 12px muted beside it, so the eye never crosses the cell. Value colour is state: `warning` when a human must decide, `error` for overdue work, muted at zero, and ink otherwise (an opportunity is not an alarm). Each cell is a button that opens its section.
 - **Quick actions** (`QuickActions`, top of the dashboard): a 13px / 600 muted «عمليات سريعة» label, 8px above one row of equal boxes, one per allowed action, spaced by the page gutter. Each box is a small panel on the canvas (surface, hairline, 8px, 64px min height) with a 20px muted icon centred over a 13px / 600 label; hover is the surface-variant fill. When the dashboard is narrower than 880px the boxes split into two rows (four and three), the shorter row centred under the full one at the same box width.
 - **Money strip** (`MoneyStrip`, accounting and reports): the same panel of equal cells (170px basis), but the label sits above the value because amounts are long: one 20px / 700 tabular line per currency (dinars and dollars are never added), a 12px muted note under it saying what the figure covers ("حتى اليوم", "هذا الشهر"). A count cell shows one number instead. `warning` marks money still owed; zero is muted. Cells that open a list are buttons.
+- **Report figures** (`ReportFigures`, top of each report section): one panel the width of the report's tables, cells divided by hairlines (each cell draws its start and top line; the grid sits 1px past the panel edge so only inner lines show at any wrap). Rows are balanced by measured width, at least 180px a cell: eight figures are two rows of four, not six and two. A 13px / 600 muted label over the value at the cell's foot, so a row's numbers share one line when a label wraps; the number is 20px / 700 tabular in ink, the currency (د.ع, $) beside it 12px / 600 muted. Colour comes from the figure's tone only (`good` success, `bad` error, `warn` warning) and a zero is muted whatever its tone.
 - **Panel figures:** inside a dashboard panel, a band of equal cells under the header, divided by hairlines, number (18px / 700) above a 12px muted label; each cell links to its filtered list. Same state colours as the summary strip.
 - **Ledger rows:** dashboard lists (tasks, rentals, deals, customers, risks, customers awaiting a decision) share one row anatomy: what and who at the start (13px / 600 over a 12px muted line, both truncating), and one scannable value at the end (time, amount, days; 12px / 600, tabular, with an optional 12px muted caption). Rows are full-bleed with hairlines between them, hover fill, and an inset focus ring. Colour marks only that end value, and only when it carries state the row doesn't already imply. In «يحتاج متابعتك» the row icon is muted (18px), the tier is a neutral 12px tag, every row's action is the same neutral tonal button, and an overdue row says so only through its red date. Tables of counts (حالة العروض) set the row labels at 400 and the numbers at 600 in ink; teal appears on hover.
 - **Match row** (`MatchRow`): the request and the listing side by side, names 14px / 600 in ink (teal on hover), a muted arrow between them. Below them, the required terms in one muted line with a muted check, then the preferences: a meter of 12 x 4px segments filled in `primary` for each one met, and one hairline tag per preference (✓ in ink when met, ✕ muted when not; no dashed borders or strikethrough). The row's only coloured control is the tonal primary «تسجيل متابعة». This is the one place on the dashboard where the brand teal leads.
@@ -345,7 +346,7 @@ Two radii: 4px (`--dal-radius-control`) for buttons, icon buttons, fields, chips
 
 `DataGrid` wraps `v-data-table(-server)`: 36px header on surface-variant with muted 12px / 600 titles, 40px rows, 8px cell padding, hover fill, nowrap cells, hairline row borders. Rows are the keyboard unit (roving tabindex). Selection is a teal fill at 12% with `aria-selected`, not a stripe. Listing rows lead with a 36 x 28px thumbnail (4px radius, 6px vertical margin) inside the 40px row; a missing image shows a teal-tinted placeholder icon. Name cells stack a 600 link over a 12px muted code; long text truncates with the full text in `title`. Footer: page sizes 10 / 25 / 50 / 100 with 32px controls.
 
-**Row actions:** up to two inline icon buttons (out of tab order, native `title`), the rest in one shared "⋯" menu with text labels; Shift+F10 or the Menu key opens every action. Inline icons rest in `muted` (still 4.5:1) and take full ink on the hovered, focused or selected row; an action with its own colour (favourite, danger) keeps it.
+**Row actions:** up to two inline icon buttons (out of tab order, native `title`), the rest in one shared "⋯" menu with text labels; Shift+F10 or the Menu key opens every action. Inline icons rest in `muted` (still 4.5:1) and take full ink on the hovered, focused or selected row; an action with its own colour (favourite, danger) keeps it. Row controls outside `DataGrid` (the locations page's toggle, edit and delete) follow the same rule, and a delete icon turns red only on its hovered or focused row. A cell that names another record links to it (`record-link`), so the row menu is not the only way there.
 
 **Four data states:** a skeleton of 8 rows on first load (a progress bar while rows are present); empty with an icon, a title and the next step; no-match with "مسح الفلاتر"; error with "إعادة المحاولة" (inline alert when stale rows remain). All are compact and sit inside the data area. `EmptyState` shows a 24px muted icon on a 48px surface-variant tile (8px), a 14px / 700 title and a 12px muted line capped at 44ch.
 
@@ -353,11 +354,13 @@ The footer's page-size select is 32px like its buttons (the compact density's ex
 
 ### Filter Bar
 
-Inside the list panel above the grid, hairline below: search field (Ctrl+F, ↓ to the first row), inline primary filters, then a sub-row of quick views (`aria-pressed` toggles), active-filter chips, and "فلاتر إضافية" with a count opening a 340px end drawer.
+Inside the list panel above the grid, hairline below: search field (Ctrl+F, ↓ to the first row), inline primary filters, then a sub-row of quick views (`aria-pressed` toggles), active-filter chips, and "فلاتر إضافية" with a count opening a 340px end drawer. A bar without quick views or a sort control has no standing sub-row: "فلاتر إضافية" sits at the end of the search row, and the chips row appears only while a filter is active, so a list never spends a 36px row on one button.
 
 ### Forms
 
 Page forms are one panel (`.dal-form`) of `FormSection` fieldsets (14px / 700 legend, hairline between sections) ending in a sticky `FormActionsBar`: unsaved-changes dot in waiting ochre, then Save (primary, Ctrl+S) and Cancel (text).
+
+The location fields (`LocationSelects`: governorate, district, neighbourhood) keep their manual-entry switch in the field's own details line, as a 12px / 600 `primary-text` link beside the hint («اختر المحافظة أولاً، أو إدخال يدوي»), not as a row of buttons under the fields; a disabled select keeps that link at full contrast because it is the way out of the disabled state.
 
 ### Menus, Tooltips and Dialogs
 
@@ -383,7 +386,7 @@ Shortcuts match `event.code`, so they work on the Arabic layout; none fire while
 | ----------------- | -------------------------------------------------- | -------------------------------------- |
 | Ctrl+K            | Global search across listings, customers, requests | Everywhere                             |
 | Ctrl+F            | Focus the page search                              | Lists                                  |
-| Ctrl+N            | New record of the page's type                      | Sale, rentals, people, requests, users |
+| Ctrl+N            | New record of the page's type (`useCreateShortcut`) | Sale, rentals, people, requests, tasks, documents, deals, leases, users |
 | Ctrl+S            | Save                                               | Forms and form dialogs                 |
 | Esc               | Close dialog or pane, or clear search              | Everywhere                             |
 | ↑ / ↓, Home / End | Previous / next, first / last row                  | Tables                                 |
@@ -398,7 +401,9 @@ Shortcuts match `event.code`, so they work on the Arabic layout; none fire while
 
 ### Motion
 
-Colour and background transitions only, 150 to 180ms ease (nav items, buttons, summary cells). No ripple. Under `prefers-reduced-motion`, skeleton shimmer and progress animation stop, dialogs and expansions fade (120ms) without movement, and the nav drawer stops sliding.
+Three durations and two curves, as tokens in `styles.css`: `--dal-motion-fast` 100ms (anything leaving), `--dal-motion-base` 160ms (feedback: colour and background on nav items, buttons, summary cells; menus opening), `--dal-motion-enter` 200ms (a dialog appearing), with `--dal-ease` (decelerating) in and `--dal-ease-exit` (accelerating) out. Nothing moves longer than 200ms: the user opens dozens of dialogs a day. No ripple, no entrance choreography, no motion that moves layout.
+
+Dialogs and menus use the CSS transitions `dal-dialog` (fade with an 8px rise and a 1.5% scale) and `dal-menu` (fade with a 4px drop from the activator's edge), set as Vuetify defaults in `main.ts` for `VDialog`, `VMenu`, `VSelect`, `VAutocomplete` and `VCombobox`, instead of Vuetify's JavaScript scale-from-the-button transition, which ignored the reduced-motion setting. Under `prefers-reduced-motion`, skeleton shimmer and progress animation stop, dialogs, menus and expansions fade (120ms) without movement, and the nav drawer stops sliding.
 
 ## Do's and Don'ts
 

@@ -119,9 +119,10 @@ const vuetify = createVuetify({
     global: { ripple: false },
 
     VTextField: field,
-    VSelect: field,
-    VAutocomplete: field,
-    VCombobox: field,
+    // قوائم الاختيار تحمل حركة قائمتها بنفسها، لا من إعداد VMenu.
+    VSelect: { ...field, transition: "dal-menu" },
+    VAutocomplete: { ...field, transition: "dal-menu" },
+    VCombobox: { ...field, transition: "dal-menu" },
     VTextarea: field,
     VNumberInput: field, // Vuetify 3.8+؛ الإصدارات الأقدم تتجاهل المفتاح
     // الأيقونة داخل الحقل بدل خارجه، فيصطف مع بقية حقول النموذج بدل أن
@@ -140,6 +141,11 @@ const vuetify = createVuetify({
     VCard: { variant: "flat", rounded: "lg" },
     // VDialog وVMenu لا يملكان خاصية rounded فكانت تُتجاهل بصمت: الحوار
     // يأخذ استدارته من VCard، والقوائم من vuetify-overrides.css.
+
+    // حركة الحوارات والقوائم بـ CSS (styles.css، «حركة الطبقات العائمة») بدل
+    // تكبير Vuetify من مكان الزر بـ JavaScript: أسرع، وتحترم تقليل الحركة.
+    VDialog: { transition: "dal-dialog" },
+    VMenu: { transition: "dal-menu" },
 
     VChip: { rounded: true },
     VAlert: { rounded: "lg" },

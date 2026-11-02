@@ -12,6 +12,7 @@ import { usePermissions } from "../composables/usePermissions";
 import { useSnackbar } from "../composables/useSnackbar";
 import { useRefresh } from "../composables/useRefresh";
 import { useNewFromQuery } from "../composables/useNewFromQuery";
+import { useCreateShortcut } from "../composables/useCreateShortcut";
 import { useAssignees } from "../composables/useAssignees";
 import { createPagedList } from "../composables/usePagedList";
 import {
@@ -208,6 +209,7 @@ function newDeal(kind: DealType = "sale") {
 useNewFromQuery((value) => {
   if (can("deals.create")) newDeal(value === "rent" ? "rent" : "sale");
 });
+useCreateShortcut(() => newDeal(), () => can("deals.create"));
 const stageDialog = ref(false);
 const moving = ref<DealRecord | null>(null);
 const movingTo = ref<DealStage | null>(null);
@@ -291,6 +293,8 @@ onBeforeUnmount(() => {
         v-if="can('deals.create')"
         color="primary"
         prepend-icon="mdi-handshake-outline"
+        title="صفقة جديدة (Ctrl+N)"
+        aria-keyshortcuts="Control+N"
         @click="newDeal()"
         >صفقة جديدة</v-btn
       >

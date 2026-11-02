@@ -1,12 +1,5 @@
 <script setup lang="ts">
-import {
-  computed,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  useTemplateRef,
-  watch,
-} from "vue";
+import { computed, onMounted, ref, useTemplateRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import PropertyFilters from "../components/properties/PropertyFilters.vue";
@@ -22,7 +15,7 @@ import { useRefresh } from "../composables/useRefresh";
 import { useFavorites } from "../composables/useFavorites";
 import { usePermissions } from "../composables/usePermissions";
 import { exportPropertyFolder } from "../utils/listingExport";
-import { isDialogOpen } from "../utils/dialog";
+import { useCreateShortcut } from "../composables/useCreateShortcut";
 import { PROPERTY_SORT_OPTIONS } from "../constants/domain";
 import { getErrorMessage } from "../services/api.service";
 import type { FollowupTarget, PropertyRecord } from "../types";
@@ -167,14 +160,8 @@ function logFollowup() {
   followupOpen.value = true;
 }
 
-// Ctrl+N: عرض جديد من القائمة. code لا key، فيعمل مع العربية؛ لا يُعترض في حوار.
-function onShortcut(event: KeyboardEvent) {
-  if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyN") return;
-  if (event.altKey || event.shiftKey || !can("properties.create")) return;
-  if (isDialogOpen()) return;
-  event.preventDefault();
-  createProperty();
-}
+// Ctrl+N: عرض جديد من القائمة.
+useCreateShortcut(createProperty, () => can("properties.create"));
 
 // ?view=favorites (رابط «المفضلة» القديم والمساعدة): القائمة تبدأ بالمفضلة.
 // يبقى في العنوان: استبدال العنوان أثناء تحويل الرابط القديم يلغي التحويل.
@@ -185,9 +172,7 @@ void reloadProperties();
 onMounted(() => {
   setRefreshHandler(reloadProperties);
   void loadFavoriteIds();
-  window.addEventListener("keydown", onShortcut);
 });
-onBeforeUnmount(() => window.removeEventListener("keydown", onShortcut));
 </script>
 
 <template>

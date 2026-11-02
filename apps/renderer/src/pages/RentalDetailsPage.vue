@@ -299,8 +299,12 @@ const followupTarget = computed<FollowupTarget | null>(() =>
         class="dal-panel rental-leases"
         aria-label="إيجارات العرض"
       >
-        <h2 class="rental-leases__title">الإيجارات</h2>
-        <LeaseList :filters="{ rental_id: rental.id }" />
+        <header class="dal-panel__header">
+          <h2 class="dal-section-title">الإيجارات</h2>
+        </header>
+        <div class="rental-leases__body">
+          <LeaseList :filters="{ rental_id: rental.id }" />
+        </div>
       </section>
       <RentalDetailsPanel
         ref="panel"
@@ -323,13 +327,11 @@ const followupTarget = computed<FollowupTarget | null>(() =>
 </template>
 
 <style scoped>
+/* لوح بترويسة اللوح الموحّدة (40px وخط رفيع) كبقية ألواح السجل. */
 .rental-leases {
-  padding: 12px 16px;
-  margin-bottom: 12px;
+  margin-bottom: var(--dal-gutter);
 }
-.rental-leases__title {
-  margin: 0 0 8px;
-  font-size: 0.95rem;
-  font-weight: 700;
+.rental-leases__body {
+  padding: 8px 16px 12px;
 }
 </style>

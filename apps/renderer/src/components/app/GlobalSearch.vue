@@ -285,7 +285,7 @@ onBeforeUnmount(() => {
     @click="show"
   >
     <v-icon icon="mdi-magnify" size="18" aria-hidden="true" />
-    <span class="dal-omnibox__label">بحث شامل…</span>
+    <span class="dal-omnibox__label">بحث شامل</span>
     <kbd class="dal-omnibox__kbd">Ctrl+K</kbd>
   </button>
 

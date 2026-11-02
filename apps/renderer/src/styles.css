@@ -5,6 +5,14 @@
   /* Bundled Cairo keeps Arabic typography consistent while offline. */
   --dalaly-font: Cairo, "Segoe UI", Tahoma, sans-serif;
   --dal-font-scale: 1;
+  /* الحركة: مدّتان ومنحنيان للتطبيق كله. تغذية راجعة (لون، خلفية) بالمدّة
+     الأساسية، وما يظهر (حوار، قائمة) بمدّة الدخول ويختفي بالسريعة؛ لا شيء
+     يتجاوز 200ms لأن المستخدم يفتح عشرات الحوارات في اليوم. */
+  --dal-motion-fast: 100ms;
+  --dal-motion-base: 160ms;
+  --dal-motion-enter: 200ms;
+  --dal-ease: cubic-bezier(0.2, 0, 0, 1);
+  --dal-ease-exit: cubic-bezier(0.4, 0, 1, 1);
 }
 
 html {
@@ -95,11 +103,28 @@ body {
     opacity: 0.6;
   }
 
-  :is(.v-application, .v-overlay) .v-dialog-transition-enter-active,
-  :is(.v-application, .v-overlay) .v-dialog-transition-leave-active,
-  :is(.v-application, .v-overlay) .v-expand-transition-enter-active,
-  :is(.v-application, .v-overlay) .v-expand-transition-leave-active {
+  /* الحوارات والقوائم (dal-dialog وdal-menu أدناه) والتوسّع: تلاشٍ بلا
+     إزاحة ولا تغيّر ارتفاع متحرّك. */
+  :is(.v-application, .v-overlay)
+    :is(
+      .dal-dialog-enter-active,
+      .dal-dialog-leave-active,
+      .dal-menu-enter-active,
+      .dal-menu-leave-active,
+      .expand-transition-enter-active,
+      .expand-transition-leave-active,
+      .expand-x-transition-enter-active,
+      .expand-x-transition-leave-active
+    ) {
     transition: opacity 120ms linear !important;
+  }
+  :is(.v-application, .v-overlay)
+    :is(
+      .dal-dialog-enter-from,
+      .dal-dialog-leave-to,
+      .dal-menu-enter-from,
+      .dal-menu-leave-to
+    ) {
     transform: none !important;
   }
 
@@ -240,8 +265,8 @@ body {
   min-height: 32px;
   padding-block: 0;
   transition:
-    background-color 180ms ease,
-    color 180ms ease;
+    background-color var(--dal-motion-base) var(--dal-ease),
+    color var(--dal-motion-base) var(--dal-ease);
 }
 .dal-nav-drawer .v-list-item .v-list-item__prepend > .v-icon {
   font-size: calc(18px * var(--dal-font-scale));
@@ -845,9 +870,9 @@ body {
   font-weight: 600;
   font-size: calc(13px * var(--dal-font-scale));
   transition:
-    background-color 180ms ease,
-    border-color 180ms ease,
-    color 180ms ease;
+    background-color var(--dal-motion-base) var(--dal-ease),
+    border-color var(--dal-motion-base) var(--dal-ease),
+    color var(--dal-motion-base) var(--dal-ease);
 }
 :is(.v-application, .v-overlay) .v-btn--icon {
   border-radius: var(--dal-radius-control);
@@ -1063,6 +1088,42 @@ body {
   + .v-card-actions {
   border-top: 1px solid var(--dal-stroke);
 }
+/* ===== حركة الطبقات العائمة =====
+   حوار Vuetify الافتراضي يُكبَّر من مكان زرّه بـ JavaScript (225ms) فلا تصله
+   قواعد تقليل الحركة. هنا الحوار يظهر بتلاشٍ وارتفاع 8px (200ms) ويختفي أسرع
+   (100ms)، والقائمة تنزل 4px من حافة زرّها (160ms). الأسماء تُضبط افتراضياً في
+   main.ts (VDialog وVMenu وقوائم الاختيار). */
+.dal-dialog-enter-active {
+  transition:
+    opacity var(--dal-motion-enter) var(--dal-ease),
+    transform var(--dal-motion-enter) var(--dal-ease);
+}
+.dal-dialog-leave-active {
+  transition:
+    opacity var(--dal-motion-fast) var(--dal-ease-exit),
+    transform var(--dal-motion-fast) var(--dal-ease-exit);
+}
+.dal-dialog-enter-from,
+.dal-dialog-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.985);
+}
+.dal-menu-enter-active {
+  transition:
+    opacity var(--dal-motion-base) var(--dal-ease),
+    transform var(--dal-motion-base) var(--dal-ease);
+}
+.dal-menu-leave-active {
+  transition:
+    opacity var(--dal-motion-fast) var(--dal-ease-exit),
+    transform var(--dal-motion-fast) var(--dal-ease-exit);
+}
+.dal-menu-enter-from,
+.dal-menu-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

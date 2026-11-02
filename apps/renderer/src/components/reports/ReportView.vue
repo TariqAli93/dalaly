@@ -12,6 +12,7 @@ import {
   type ReportTable,
 } from "../../utils/reportDocument";
 import type { Currency } from "../../types";
+import ReportFigures from "./ReportFigures.vue";
 
 /**
  * تقرير على الشاشة: لكل عملة أرقامها الإجمالية ثم جداولها. كل عمود يُرتَّب
@@ -68,22 +69,11 @@ const text = (value: ReportCell, column: ReportColumn, currency: Currency) =>
         class="mb-3"
         >{{ section.warning }}</v-alert
       >
-      <dl class="report__figures">
-        <div v-for="figure in section.figures" :key="figure.label">
-          <dt>{{ figure.label }}</dt>
-          <dd
-            :class="{
-              'text-success': figure.tone === 'good',
-              'text-error': figure.tone === 'bad',
-              'text-warning': figure.tone === 'warn',
-            }"
-          >
-            <bdi>{{
-              cellText(figure.value, figure.kind ?? "money", section.currency)
-            }}</bdi>
-          </dd>
-        </div>
-      </dl>
+      <ReportFigures
+        v-if="section.figures.length"
+        :figures="section.figures"
+        :currency="section.currency"
+      />
 
       <div
         v-for="table in section.tables"
@@ -203,22 +193,6 @@ const text = (value: ReportCell, column: ReportColumn, currency: Currency) =>
   margin: 0 0 8px;
   font-size: 1rem;
   font-weight: 700;
-}
-.report__figures {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
-  gap: 10px 16px;
-  margin: 0 0 12px;
-}
-.report__figures dt {
-  font-size: 0.75rem;
-  color: rgb(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
-}
-.report__figures dd {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
 }
 .report__table {
   padding: 8px 12px 4px;

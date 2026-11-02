@@ -1044,7 +1044,10 @@ Shared building blocks live in `components/shared/` and every list, record
 and form uses them rather than its own copy:
 
 - `FilterBar` (search, inline filters, chips, an extra-filters drawer, 300 ms
-  apply, `Ctrl+F` by `event.code`) inside a `.dal-panel.dal-listpanel`;
+  apply, `Ctrl+F` by `event.code`) inside a `.dal-panel.dal-listpanel`; a
+  list page starts its record with `Ctrl+N` through `useCreateShortcut`
+  (sale and rental listings, customers, requests, tasks, documents, deals,
+  leases, users), which checks the permission when the key is pressed;
 - `DataGrid` (+ `grid.ts`, `RowActions`): roving-tabindex rows, Enter opens,
   Space selects, `Shift+F10` menu, focus restored after `Alt+←`, and separate
   loading, empty, no-match and error-with-retry states; `compact` lists all

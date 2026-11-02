@@ -93,6 +93,8 @@ watch(neighborhoodText, (text) => {
 </script>
 
 <template>
+  <!-- مبدّل الإدخال اليدوي في سطر تفاصيل الحقل (مع تلميحه)، لا زرّاً تحت كل
+       حقل: صف الأزرار الثلاثة (36px) كان يفصل الموقع عن بقية النموذج. -->
   <div class="location-grid">
     <div class="location-field">
       <v-select
@@ -105,20 +107,33 @@ watch(neighborhoodText, (text) => {
         clearable
         class="w-100"
         @update:model-value="selectGovernorate"
-      />
+      >
+        <template #details>
+          <button
+            type="button"
+            class="location-field__toggle"
+            @click="toggleGovManual"
+          >
+            إدخال يدوي
+          </button>
+        </template>
+      </v-select>
       <v-text-field
         v-else
         v-model="governorateText"
         label="المحافظة (إدخال يدوي)"
         class="w-100"
-      />
-      <v-btn
-        variant="text"
-        :prepend-icon="govManual ? 'mdi-format-list-bulleted' : 'mdi-pencil'"
-        @click="toggleGovManual"
       >
-        {{ govManual ? "اختيار من القائمة" : "إدخال يدوي" }}
-      </v-btn>
+        <template #details>
+          <button
+            type="button"
+            class="location-field__toggle"
+            @click="toggleGovManual"
+          >
+            اختيار من القائمة
+          </button>
+        </template>
+      </v-text-field>
     </div>
 
     <div class="location-field">
@@ -130,27 +145,38 @@ watch(neighborhoodText, (text) => {
         item-value="id"
         label="المنطقة"
         :disabled="!governorateId"
-        :hint="
-          !governorateId ? 'اختر المحافظة أولاً أو أدخل المنطقة يدوياً' : ''
-        "
+        :hint="!governorateId ? 'اختر المحافظة أولاً، أو' : ''"
         persistent-hint
         clearable
         class="w-100"
         @update:model-value="selectDistrict"
-      />
+      >
+        <template #details>
+          <button
+            type="button"
+            class="location-field__toggle"
+            @click="toggleDistManual"
+          >
+            إدخال يدوي
+          </button>
+        </template>
+      </v-select>
       <v-text-field
         v-else
         v-model="districtText"
         label="المنطقة (إدخال يدوي)"
         class="w-100"
-      />
-      <v-btn
-        variant="text"
-        :prepend-icon="distManual ? 'mdi-format-list-bulleted' : 'mdi-pencil'"
-        @click="toggleDistManual"
       >
-        {{ distManual ? "اختيار من القائمة" : "إدخال يدوي" }}
-      </v-btn>
+        <template #details>
+          <button
+            type="button"
+            class="location-field__toggle"
+            @click="toggleDistManual"
+          >
+            اختيار من القائمة
+          </button>
+        </template>
+      </v-text-field>
     </div>
 
     <div class="location-field">
@@ -162,24 +188,37 @@ watch(neighborhoodText, (text) => {
         item-value="id"
         label="الحي"
         :disabled="!districtId"
-        :hint="!districtId ? 'اختر المنطقة أولاً أو أدخل الحي يدوياً' : ''"
+        :hint="!districtId ? 'اختر المنطقة أولاً، أو' : ''"
         persistent-hint
         clearable
         class="w-100"
-      />
+      >
+        <template #details>
+          <button
+            type="button"
+            class="location-field__toggle"
+            @click="toggleNeighManual"
+          >
+            إدخال يدوي
+          </button>
+        </template>
+      </v-select>
       <v-text-field
         v-else
         v-model="neighborhoodText"
         label="الحي (إدخال يدوي)"
         class="w-100"
-      />
-      <v-btn
-        variant="text"
-        :prepend-icon="neighManual ? 'mdi-format-list-bulleted' : 'mdi-pencil'"
-        @click="toggleNeighManual"
       >
-        {{ neighManual ? "اختيار من القائمة" : "إدخال يدوي" }}
-      </v-btn>
+        <template #details>
+          <button
+            type="button"
+            class="location-field__toggle"
+            @click="toggleNeighManual"
+          >
+            اختيار من القائمة
+          </button>
+        </template>
+      </v-text-field>
     </div>
   </div>
 </template>
@@ -191,17 +230,31 @@ watch(neighborhoodText, (text) => {
   gap: 16px;
 }
 .location-field {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  min-width: 0;
 }
-/* الحقل بطوله الطبيعي وإن حمل جاره تلميحاً (والأعمدة تتمدّد معاً)، وزر الإدخال
-   اليدوي أسفل عموده فتصطفّ الأزرار الثلاثة. */
-.location-field > :deep(.v-input) {
-  flex: 0 0 auto;
+/* الحقل المعطّل يبهت كله، لكن مبدّله هو المخرج منه فيبقى بتباين كامل. */
+.location-field :deep(.v-input--disabled .v-input__details) {
+  pointer-events: auto;
 }
-.location-field > :deep(.v-btn) {
-  margin-top: auto;
+.location-field :deep(.v-input__details) {
+  align-items: baseline;
+  gap: 4px;
+}
+.location-field__toggle {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: calc(12px * var(--dal-font-scale));
+  font-weight: 600;
+  line-height: 1.5;
+  color: rgb(var(--v-theme-primary-text));
+  cursor: pointer;
+  white-space: nowrap;
+}
+.location-field__toggle:hover {
+  text-decoration: underline;
 }
 @media (max-width: 960px) {
   .location-grid {

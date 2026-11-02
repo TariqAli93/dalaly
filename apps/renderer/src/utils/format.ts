@@ -1,6 +1,16 @@
 // منسّقات Intl تُنشأ مرة واحدة: إنشاء منسّق لكل خلية يكلّف أضعاف التنسيق
 // نفسه (docs/OPERATIONS_DASHBOARD.md، "Formatters").
+// بلا ثوانٍ: موعد متابعة أو تاريخ إضافة يُقرأ إلى الدقيقة، والثواني ضجيج في
+// كل خلية وسطر. سجل التدقيق وحده يحتاجها (formatDateTimeSeconds).
 const DATE_TIME = new Intl.DateTimeFormat("ar-IQ", {
+  numberingSystem: "latn",
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+});
+const DATE_TIME_SECONDS = new Intl.DateTimeFormat("ar-IQ", {
   numberingSystem: "latn",
   year: "numeric",
   month: "numeric",
@@ -12,10 +22,16 @@ const DATE_TIME = new Intl.DateTimeFormat("ar-IQ", {
 const MONEY = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 const NUMBERS = new Map<number, Intl.NumberFormat>();
 
-/** تاريخ ووقت بالعربية مع أرقام لاتينية، كما في بقية الواجهة. */
+/** تاريخ ووقت (إلى الدقيقة) بالعربية مع أرقام لاتينية، كما في بقية الواجهة. */
 export function formatDateTime(value: string | number | Date) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? "—" : DATE_TIME.format(date);
+}
+
+/** التاريخ والوقت بالثواني: لسجل التدقيق، حيث تتوالى الأحداث في الدقيقة نفسها. */
+export function formatDateTimeSeconds(value: string | number | Date) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : DATE_TIME_SECONDS.format(date);
 }
 
 const DATE = new Intl.DateTimeFormat("ar-IQ", {

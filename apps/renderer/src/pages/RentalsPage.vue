@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue";
+import { computed, onMounted, ref, useTemplateRef } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
 import RentalFilters from "../components/rentals/RentalFilters.vue";
@@ -14,7 +14,7 @@ import { useRefresh } from "../composables/useRefresh";
 import { useRentals } from "../composables/useRentals";
 import { useRentalActions } from "../composables/useRentalActions";
 import { exportRentalFolder } from "../utils/listingExport";
-import { isDialogOpen } from "../utils/dialog";
+import { useCreateShortcut } from "../composables/useCreateShortcut";
 import { RENTAL_SORT_OPTIONS } from "../constants/domain";
 import type { FollowupTarget, RentalRecord, RentalStatus } from "../types";
 
@@ -137,13 +137,7 @@ function logFollowup() {
   followupOpen.value = true;
 }
 
-function onShortcut(event: KeyboardEvent) {
-  if (!(event.ctrlKey || event.metaKey) || event.code !== "KeyN") return;
-  if (event.altKey || event.shiftKey || !can("rentals.create")) return;
-  if (isDialogOpen()) return;
-  event.preventDefault();
-  createRental();
-}
+useCreateShortcut(createRental, () => can("rentals.create"));
 
 // ?status=<حالة> من لوحة التحكم: القائمة تبدأ بها وحدها.
 const LINKED: RentalStatus[] = [
@@ -168,9 +162,7 @@ onMounted(() => {
     Promise.all([reloadRentals(), loadFavoriteIds()]).then(() => undefined),
   );
   void loadFavoriteIds();
-  window.addEventListener("keydown", onShortcut);
 });
-onBeforeUnmount(() => window.removeEventListener("keydown", onShortcut));
 </script>
 
 <template>
