@@ -88,7 +88,7 @@ const bodyId = useId();
   min-height: 32px;
   padding: 2px 6px 2px 10px;
   margin-inline-start: -6px;
-  border-radius: 6px;
+  border-radius: var(--dal-radius-control);
   font: inherit;
   color: inherit;
   transition: background-color 150ms ease;

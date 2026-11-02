@@ -2,8 +2,8 @@
 @import "./assets/fonts/fonts.css";
 
 :root {
-  /* Bundled Cairo keeps Arabic typography consistent while offline. */
-  --dalaly-font: Cairo, "Segoe UI", Tahoma, sans-serif;
+  --dalaly-font: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif;
+  --dal-display-font: var(--dalaly-font);
   --dal-font-scale: 1;
   /* الحركة: مدّتان ومنحنيان للتطبيق كله. تغذية راجعة (لون، خلفية) بالمدّة
      الأساسية، وما يظهر (حوار، قائمة) بمدّة الدخول ويختفي بالسريعة؛ لا شيء
@@ -49,18 +49,20 @@ body {
   text-transform: none;
 }
 
-/* ─── استدارة القوائم ────────────────────────────────────────────
+/* ─── زوايا القوائم ──────────────────────────────────────────────
    VMenu لا يملك خاصية rounded، وVSelect يمرّر contentClass خاصاً به،
-   فالإعداد الافتراضي لا يصل للقوائم المنسدلة. نطابق 8px الحقول هنا. */
+   فالإعداد الافتراضي لا يصل للقوائم المنسدلة. نطابق زاوية الحاويات هنا. */
 .v-overlay.v-menu > .v-overlay__content {
-  border-radius: 8px;
+  border-radius: var(--dal-radius-card);
 }
 
+/* الروابط كما في دليل الهوية: النحاس الداكن، وليل دجلة عند المرور. */
 .record-link {
-  color: rgb(var(--v-theme-primary-text));
+  color: rgb(var(--v-theme-link));
   text-decoration: none;
 }
 .record-link:hover {
+  color: rgb(var(--v-theme-primary-text));
   text-decoration: underline;
 }
 /* Vuetify تفرض Roboto على أصناف text-* وهي لا تحتوي حروفاً عربية،
@@ -147,6 +149,17 @@ body {
   --dal-active: rgb(var(--v-theme-primary));
   --dal-on-active: rgb(var(--v-theme-on-primary));
   --dal-selection: rgba(var(--v-theme-primary), 0.09);
+  /* العناوين بليل دجلة على الفاتح (العنوان في الدليل)، وبالحبر على الداكن. */
+  --dal-heading: rgb(var(--v-theme-primary-text));
+  /* النحاس: قاعدة 2px تحت الترويسة وعلامة العنصر المحدد. */
+  --dal-brass: rgb(var(--v-theme-accent));
+  /* نص ثانوي على شريط التنقّل: بين النحاس والحجر الجيري، كالطابوق البغدادي
+     تحت الاسم في الغلاف. */
+  --dal-nav-soft: color-mix(
+    in srgb,
+    rgb(var(--v-theme-sidebar-accent)) 45%,
+    rgb(var(--v-theme-on-sidebar))
+  );
 }
 .v-theme--dalalyLight {
   --dal-shadow-rest: 0 1px 2px rgba(0, 0, 0, 0.06), 0 0 1px rgba(0, 0, 0, 0.08);
@@ -157,6 +170,7 @@ body {
 }
 .v-theme--dalalyDark {
   --dal-selection: rgba(var(--v-theme-primary), 0.14);
+  --dal-heading: rgb(var(--v-theme-on-surface));
   --dal-shadow-rest: 0 1px 2px rgba(0, 0, 0, 0.4);
   --dal-shadow-pop: 0 10px 28px rgba(0, 0, 0, 0.55);
   --dal-scroll: rgba(255, 255, 255, 0.24);
@@ -164,12 +178,16 @@ body {
   --dal-scrim: rgba(0, 0, 0, 0.5);
 }
 
-/* مقياس الرموز الموحّد. زاويتان فقط: 4px للعناصر (أزرار، حقول، شرائح، عناصر
-   القائمة) و8px للحاويات (ألواح، حوارات، قوائم). المقاسات بكثافة سطح المكتب:
-   شريط أوامر 48px، صفوف جدول 40px، وحشو خلايا 8px. */
+/* مقياس الرموز الموحّد. الهوية مبنية على شبكة مربّعة بلا انحناء: الزوايا
+   حادّة في العناصر (أزرار، حقول، شرائح، عناصر القائمة) والحاويات (ألواح،
+   حوارات، قوائم)، ويبقى الرمزان لتُعدَّل كلها من هنا. المقاسات بكثافة سطح
+   المكتب: شريط أوامر 48px، صفوف جدول 40px، وحشو خلايا 8px. */
 :root {
-  --dal-radius-control: 4px;
-  --dal-radius-card: 8px;
+  --dal-radius-control: 0;
+  --dal-radius-card: 0;
+  /* النمط الزخرفي المشتق من طبقات الزقّورة (الدليل: الغلاف واللافتة والظرف):
+     ثلاث طبقات نحاسية على الأرضية الداكنة. صورة ثابتة واحدة، بلا حركة. */
+  --dal-zig: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='48'%3E%3Cg fill='%23B8924F'%3E%3Crect x='8' y='34' width='40' height='6' fill-opacity='.22'/%3E%3Crect x='16' y='24' width='24' height='6' fill-opacity='.22'/%3E%3Crect x='24' y='14' width='8' height='6' fill-opacity='.4'/%3E%3C/g%3E%3C/svg%3E");
   --dal-space-1: 4px;
   --dal-space-2: 8px;
   --dal-space-3: 12px;
@@ -206,7 +224,7 @@ body {
   background-color: var(--dal-scroll);
   background-clip: padding-box;
   border: 3px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--dal-radius-card);
 }
 :is(.v-application, .v-overlay) ::-webkit-scrollbar-thumb:hover {
   background-color: var(--dal-scroll-hover);
@@ -225,22 +243,35 @@ body {
 .dal-nav-drawer :focus-visible {
   outline-color: rgb(var(--v-theme-on-sidebar));
 }
-/* بارتفاع شريط الأوامر نفسه، فتبدأ القائمة ومحتوى الصفحة على خط واحد. */
+/* بارتفاع شريط الأوامر نفسه، فتبدأ القائمة ومحتوى الصفحة على خط واحد. تحته
+   قاعدة نحاسية تمتدّ مع خط شريط الأوامر، كخط النحاس تحت ترويسة الورق الرسمي. */
 .dal-brand {
   display: flex;
   align-items: center;
   gap: 10px;
   padding-inline: 16px;
   min-height: var(--dal-bar-height);
+  max-height: var(--dal-bar-height);
+  border-bottom: 1px solid var(--dal-brass);
+}
+.v-navigation-drawer--rail .dal-brand {
+  justify-content: center;
+  padding-inline: 0;
+}
+.dal-brand__mark {
+  flex: none;
+  color: rgb(var(--v-theme-on-sidebar));
 }
 .dal-brand__title {
-  font-size: calc(17px * var(--dal-font-scale));
-  font-weight: 700;
-  line-height: 1.2;
+  font-family: var(--dal-display-font);
+  font-size: calc(20px * var(--dal-font-scale));
+  font-weight: 600;
+  line-height: 1.15;
 }
 .dal-brand__sub {
-  font-size: calc(12px * var(--dal-font-scale));
-  color: rgba(var(--v-theme-on-sidebar), 0.75);
+  font-size: calc(11px * var(--dal-font-scale));
+  font-weight: 500;
+  color: var(--dal-nav-soft);
 }
 .dal-nav-drawer .v-list {
   padding-inline: 10px;
@@ -292,16 +323,18 @@ body {
 .dal-nav-drawer .v-list-item-title {
   font-size: calc(13px * var(--dal-font-scale));
 }
+/* المحدد: الحجر الجيري بشفافية خفيفة على ليل دجلة وعلامة نحاسية على حافته؛
+   لون الأساسي هو لون الشريط نفسه في الهوية فلا يصلح تعبئةً هنا. */
 .dal-nav-drawer .v-list-item--active {
-  background: var(--dal-active);
-  color: var(--dal-on-active);
+  background: rgba(var(--v-theme-on-sidebar), 0.11);
+  color: rgb(var(--v-theme-on-sidebar));
   font-weight: 600;
 }
 .dal-nav-drawer .v-list-item__overlay {
   opacity: 0;
 }
 .dal-nav-drawer .v-list-item:hover:not(.v-list-item--active) {
-  background: rgba(var(--v-theme-on-sidebar), 0.08);
+  background: rgba(var(--v-theme-on-sidebar), 0.06);
 }
 .dal-nav-drawer .v-list-item-subtitle {
   color: rgba(var(--v-theme-on-sidebar), 0.75);
@@ -310,17 +343,38 @@ body {
 }
 .dal-nav-drawer .v-divider {
   border-color: rgb(var(--v-theme-on-sidebar));
-  opacity: 0.15;
+  opacity: 0.12;
 }
-/* شريط تحديد رفيع على الحافة الأمامية (يمين في RTL). */
+/* علامة التحديد على الحافة الأمامية (يمين في RTL): نحاس بزاوية حادّة.
+   ‎::after طبقة Vuetify نفسها (إطار بشفافية 0 يملأ العنصر)، فتُلغى خصائصها
+   هنا وإلا بقيت العلامة مخفية. */
 .dal-nav-drawer .v-list-item--active::after {
   content: "";
   position: absolute;
-  inset-block: 7px;
+  inset: 0;
   inset-inline-start: 0;
+  inset-inline-end: auto;
   width: 3px;
-  border-radius: 2px;
-  background: currentColor;
+  border: 0;
+  border-radius: 0;
+  opacity: 1;
+  background: rgb(var(--v-theme-sidebar-accent));
+}
+/* شريط الزقّورة أسفل القائمة، كالشريط في أسفل غلاف الدليل. إعادة الضبط في
+   Vuetify تجعل background-repeat: no-repeat لكل عنصر، فيُكتب التكرار صراحة. */
+.dal-nav-band {
+  height: 24px;
+  background-image: var(--dal-zig);
+  background-repeat: repeat-x;
+  background-size: 28px 24px;
+  background-position: center bottom;
+}
+/* نافذة مكبّرة على شاشة 1366×768 (نحو 690px ارتفاعاً): الشريط يدفع القائمة
+   إلى التمرير، والعناصر الأربعة عشر أولى بالمكان منه. */
+@media (max-height: 759px) {
+  .dal-nav-band {
+    display: none;
+  }
 }
 .app-shell {
   min-height: 100vh;
@@ -369,8 +423,10 @@ body {
 }
 
 /* ===== شريط الأوامر (48px): عنوان الصفحة وسياقها وأوامرها، ثم أدوات عامة ===== */
+/* القاعدة النحاسية تحت شريط الأوامر تكمل قاعدة ترويسة القائمة: ترويسة
+   واحدة بعرض النافذة كترويسة الورق الرسمي في الدليل. */
 .dal-commandbar.v-app-bar {
-  border-bottom: 1px solid var(--dal-stroke);
+  border-bottom: 1px solid var(--dal-brass);
 }
 .dal-commandbar .v-toolbar__content {
   gap: 4px;
@@ -396,9 +452,11 @@ body {
   min-width: 4em;
   max-width: min(24em, 30vw);
   margin: 0;
-  font-size: calc(16px * var(--dal-font-scale));
-  font-weight: 700;
+  font-family: var(--dal-display-font);
+  font-size: calc(18px * var(--dal-font-scale));
+  font-weight: 600;
   line-height: 1.4;
+  color: var(--dal-heading);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -460,14 +518,14 @@ body {
   }
 }
 .dal-commandbar__parent:hover {
-  color: rgb(var(--v-theme-primary-text));
+  color: rgb(var(--v-theme-link));
   text-decoration: underline;
 }
 .dal-count {
   flex: none;
   min-width: 24px;
   padding: 1px 8px;
-  border-radius: 9999px;
+  border-radius: var(--dal-radius-control);
   background: var(--dal-hover);
   color: var(--dal-muted);
   font-size: calc(12px * var(--dal-font-scale));
@@ -571,10 +629,11 @@ body {
   flex: none;
   border-bottom: 1px solid var(--dal-stroke);
 }
+/* عنوان القسم في الدليل: خط الواجهة بوزن 600 وبلون العناوين. */
 .dal-section-title {
   font-size: calc(14px * var(--dal-font-scale));
-  font-weight: 700;
-  color: rgb(var(--v-theme-on-surface));
+  font-weight: 600;
+  color: var(--dal-heading);
 }
 
 /* ===== ملخّص السجل المحدد في اللوحة الجانبية (MasterDetailLayout) ===== */
@@ -837,7 +896,7 @@ body {
   padding: 12px;
   background: rgb(var(--v-theme-surface));
   min-height: 64px;
-  border-radius: 8px;
+  border-radius: var(--dal-radius-card);
 }
 
 .detail-label {
@@ -910,9 +969,11 @@ body {
   border-color: var(--dal-stroke);
 }
 :is(.v-application, .v-overlay) .v-card-title {
-  font-size: calc(17px * var(--dal-font-scale));
+  font-family: var(--dal-display-font);
+  font-size: calc(18px * var(--dal-font-scale));
   font-weight: 600;
-  line-height: 1.65;
+  line-height: 1.6;
+  color: var(--dal-heading);
   white-space: normal;
   padding: 16px 20px 8px;
   letter-spacing: 0;
@@ -936,6 +997,12 @@ body {
   border-radius: var(--dal-radius-control);
   font-weight: 600;
   font-size: calc(12px * var(--dal-font-scale));
+}
+/* هياكل التحميل بزوايا العناصر نفسها، فلا تتغيّر الهيئة حين تصل البيانات. */
+:is(.v-application, .v-overlay) .v-skeleton-loader,
+:is(.v-application, .v-overlay)
+  .v-skeleton-loader__bone:not(.v-skeleton-loader__avatar) {
+  border-radius: var(--dal-radius-control);
 }
 :is(.v-application, .v-overlay) .v-tab {
   font-size: calc(13px * var(--dal-font-scale));
@@ -1005,11 +1072,10 @@ body {
 }
 .v-overlay .v-menu > .v-overlay__content,
 .v-menu > .v-overlay__content {
-  border-radius: 8px;
+  border-radius: var(--dal-radius-card);
   box-shadow: var(--dal-shadow-pop);
 }
 .v-dialog > .v-overlay__content > .v-card {
-  max-height: calc(100dvh - 48px);
   box-shadow: var(--dal-shadow-pop);
 }
 .dal-panel.v-card {
@@ -1037,21 +1103,23 @@ body {
   unicode-bidi: isolate;
   font-variant-numeric: tabular-nums;
 }
-.v-theme--dalalyLight .v-btn.bg-primary:hover {
-  filter: brightness(0.94);
+/* الأساسي ليل دجلة: التعتيم لا يُرى عليه، فالمرور والضغط يفتّحانه بطبقة
+   الزرّ نفسها (بلون نصه). */
+.v-btn.bg-primary:hover > .v-btn__overlay {
+  opacity: 0.1;
 }
 
 /* ===== صقل ثانٍ للعناصر المشتركة (2026-11) =====
    عرض فقط: لا يغيّر سلوك أي مكوّن. */
 
 /* ضغط مرئي على الزر الأساسي، كما في أزرار Windows. */
-.v-theme--dalalyLight .v-btn.bg-primary:active {
-  filter: brightness(0.88);
+.v-btn.bg-primary:active > .v-btn__overlay {
+  opacity: 0.18;
 }
 
-/* تحديد النص بلون الهوية بدل أزرق المتصفح. */
+/* تحديد النص بنحاس الهوية بدل أزرق المتصفح. */
 :is(.v-application, .v-overlay) ::selection {
-  background: rgba(var(--v-theme-primary), 0.22);
+  background: rgba(var(--v-theme-accent), 0.32);
 }
 
 /* قوائم بأسلوب سطح المكتب: حشو 4px حول العناصر، فيُظلَّل العنصر بزاوية العنصر
@@ -1072,6 +1140,7 @@ body {
    الفاتحة، وبحشو 16px أفقياً كتلميحات الويب. */
 .v-tooltip > .v-overlay__content {
   padding: 4px 8px;
+  border-radius: var(--dal-radius-control);
   border: 1px solid var(--dal-stroke);
   font-family: var(--dalaly-font);
   font-size: calc(12px * var(--dal-font-scale));

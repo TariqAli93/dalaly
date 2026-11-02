@@ -29,6 +29,8 @@
   font-weight: 600 900;
   font-display: swap;
 }
+/* خط الواجهة في هوية دلالي: أربعة أوزان كما في دليل الهوية (400 للنص، 500
+   للوسوم، 600 للأزرار والعناوين الصغيرة، 700 للأرقام البارزة). */
 @font-face {
   font-family: "IBM Plex Sans Arabic";
   src: url("./ibmplexsansarabic/IBMPlexSansArabic-Regular.ttf")
@@ -38,7 +40,29 @@
 }
 @font-face {
   font-family: "IBM Plex Sans Arabic";
+  src: url("./ibmplexsansarabic/IBMPlexSansArabic-Medium.ttf")
+    format("truetype");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Sans Arabic";
+  src: url("./ibmplexsansarabic/IBMPlexSansArabic-SemiBold.ttf")
+    format("truetype");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Sans Arabic";
   src: url("./ibmplexsansarabic/IBMPlexSansArabic-Bold.ttf") format("truetype");
-  font-weight: 600 900;
+  font-weight: 700 900;
+  font-display: swap;
+}
+/* خط العناوين: كوفي هندسي (متغيّر 400–700) لعنوان الصفحة واسم البرنامج
+   وعناوين الحوارات فقط؛ كل ما سواها بخط الواجهة. */
+@font-face {
+  font-family: "Reem Kufi";
+  src: url("./reemkufi/ReemKufi-Variable.ttf") format("truetype");
+  font-weight: 400 700;
   font-display: swap;
 }

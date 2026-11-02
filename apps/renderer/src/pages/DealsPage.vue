@@ -570,7 +570,7 @@ onBeforeUnmount(() => {
 .deals-board__column {
   flex: 0 0 240px;
   background: rgb(var(--v-theme-surface-variant), 0.35);
-  border-radius: 8px;
+  border-radius: var(--dal-radius-card);
   padding: 8px;
   display: flex;
   flex-direction: column;
@@ -612,7 +612,7 @@ onBeforeUnmount(() => {
 .deals-card {
   background: rgb(var(--v-theme-surface));
   border: 1px solid rgb(var(--v-border-color), var(--v-border-opacity));
-  border-radius: 6px;
+  border-radius: var(--dal-radius-control);
   padding: 8px;
   display: flex;
   flex-direction: column;

@@ -111,8 +111,11 @@ async function submit() {
 
 <style scoped>
 .login-title {
-  font-size: calc(26px * var(--dal-font-scale));
-  font-weight: 700;
+  font-family: var(--dal-display-font);
+  font-size: calc(30px * var(--dal-font-scale));
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--dal-heading);
   margin-bottom: 8px;
 }
 </style>

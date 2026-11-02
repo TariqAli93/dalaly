@@ -26,7 +26,7 @@ const manifest = JSON.parse(fs.readFileSync(path.join(rendererDist, ".vite", "ma
 const bundledFiles = new Set(Object.values(manifest).flatMap(entry => [entry.file, ...(entry.css ?? []), ...(entry.assets ?? [])]).filter(Boolean));
 const missingBundles = [...bundledFiles].filter(file => !fs.existsSync(path.join(rendererDist, file)));
 const hasBundled = (name) => [...bundledFiles].some(file => file.includes(name));
-if (missingBundles.length || !hasBundled("splash-background") || !hasBundled("Cairo-") || !hasBundled("materialdesignicons-webfont")) {
+if (missingBundles.length || !hasBundled("ReemKufi-") || !hasBundled("Cairo-") || !hasBundled("materialdesignicons-webfont")) {
   console.error("Renderer is missing bundled splash/font assets:", missingBundles);
   process.exit(1);
 }

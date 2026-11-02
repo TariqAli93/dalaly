@@ -128,7 +128,7 @@ onBeforeUnmount(() => actionTitles?.disconnect());
           :aria-label="`حساب المستخدم: ${displayName}`"
           :title="displayName"
         >
-          <v-avatar color="primary" variant="tonal" size="26">
+          <v-avatar color="primary" variant="tonal" size="26" rounded="0">
             <span>{{ userName.slice(0, 1) }}</span>
           </v-avatar>
           <span class="dal-profile-name">{{ userName }}</span>

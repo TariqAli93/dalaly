@@ -643,7 +643,7 @@ async function addActivity(value: TaskFieldsPayload) {
 }
 .deal-stages__list li {
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--dal-radius-control);
   font-size: 0.8rem;
   border: 1px solid rgb(var(--v-border-color), var(--v-border-opacity));
   color: rgb(var(--v-theme-on-surface-variant));

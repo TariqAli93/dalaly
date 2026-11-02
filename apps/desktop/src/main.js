@@ -105,7 +105,7 @@ async function createWindow(initialPath = "/") {
     minWidth: 1024,
     minHeight: 720,
     title: "دلالي",
-    backgroundColor: "#F3F5F6",
+    backgroundColor: "#F4EFE6",
     autoHideMenuBar: true,
     // تبقى مخفية حتى تكتمل شاشة البدء، لمنع الوميض والظهور خلف الـ Splash.
     show: false,

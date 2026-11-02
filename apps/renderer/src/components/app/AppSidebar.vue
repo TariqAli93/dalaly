@@ -105,15 +105,20 @@ const helpActive = computed(() => route.path === "/help");
     :temporary="!mdAndUp"
     width="232"
   >
+    <!-- الترويسة كترويسة الورق الرسمي في دليل الهوية: الاسم بالكوفي وسطر
+         الوصف تحته، وقاعدة نحاسية أسفلها (styles.css). -->
     <div class="dal-brand">
-      <v-icon icon="mdi-home-city-outline" size="26" aria-hidden="true" />
+      <v-icon
+        class="dal-brand__mark"
+        icon="mdi-home-city-outline"
+        size="26"
+        aria-hidden="true"
+      />
       <div v-if="!isRail">
         <div class="dal-brand__title">دلالي</div>
         <div class="dal-brand__sub">إدارة العروض العقارية</div>
       </div>
     </div>
-
-    <v-divider />
 
     <nav aria-label="التنقل الرئيسي" @keydown="onNavKeydown">
       <v-list nav density="compact">
@@ -202,17 +207,19 @@ const helpActive = computed(() => route.path === "/help");
           </template>
         </v-tooltip>
       </v-list>
+      <div class="dal-nav-band" aria-hidden="true" />
     </template>
   </v-navigation-drawer>
 </template>
 
 <style scoped>
+/* عناوين الأقسام بالنحاس، كأرقام الأقسام في الدليل. */
 .v-list .v-list-subheader.dal-nav-section {
   min-height: 24px;
   font-size: calc(12px * var(--dal-font-scale));
   font-weight: 600;
-  color: rgb(var(--v-theme-on-sidebar));
-  opacity: 0.78;
+  color: rgb(var(--v-theme-sidebar-accent));
+  opacity: 1;
   letter-spacing: 0;
 }
 .v-list-item.dal-nav-item {

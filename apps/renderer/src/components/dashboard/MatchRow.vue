@@ -289,7 +289,7 @@ const prefSlots = computed(() =>
 }
 .match__more {
   padding: 0 6px;
-  border-radius: 9999px;
+  border-radius: var(--dal-radius-control);
   background: var(--dal-hover);
   color: var(--dal-muted);
   font-weight: 600;

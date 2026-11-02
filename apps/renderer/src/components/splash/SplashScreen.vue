@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from "vue";
-import skyline from "../../assets/images/splash-background.webp";
 type Stage = { progress?: number; message?: string; isError?: boolean };
 type SplashAPI = {
   onProgress: (callback: (stage: Stage) => void) => () => void;
@@ -67,18 +66,20 @@ onMounted(() => {
 onBeforeUnmount(() => unsubscribe?.());
 </script>
 <template>
+  <!-- غلاف دليل الهوية مصغّراً (465×300): الاسم بالكوفي على ليل دجلة، سطر
+       الوصف بالطابوق، قاعدة نحاسية، وشريط الزقّورة أسفل منطقة التحميل. -->
   <v-app class="splash-app" dir="rtl">
-    <v-sheet class="splash-window" rounded="lg">
+    <v-sheet class="splash-window" rounded="0">
       <section class="splash-upper" aria-label="دلالي لإدارة العروض العقارية">
-        <v-img :src="skyline" alt="" cover class="skyline" eager />
         <div class="branding">
           <h1>دلالي</h1>
           <p>إدارة العروض العقارية</p>
+          <span class="branding__rule" aria-hidden="true" />
         </div>
         <div class="feature-grid">
           <div v-for="feature in features" :key="feature.label" class="feature">
-            <v-sheet class="feature-icon" rounded="lg" elevation="1"
-              ><v-icon :icon="feature.icon" size="27" /></v-sheet
+            <span class="feature-icon"
+              ><v-icon :icon="feature.icon" size="22" /></span
             ><span>{{ feature.label }}</span>
           </div>
         </div>
@@ -95,13 +96,15 @@ onBeforeUnmount(() => unsubscribe?.());
           v-if="!failed"
           :model-value="progress"
           color="primary"
+          bg-color="#F4EFE6"
+          bg-opacity="0.14"
           height="2"
           location="bottom"
           :aria-label="message"
           class="startup-progress"
         />
       </section>
-      <v-sheet class="information-panel" color="#193638" rounded="lg">
+      <v-sheet class="information-panel" color="#0A2028" rounded="0">
         <div v-if="failed" class="startup-error" role="alert">
           <p>{{ message }}</p>
           <div class="recovery-actions">
@@ -120,7 +123,7 @@ onBeforeUnmount(() => unsubscribe?.());
         </div>
         <div v-else class="benefit-grid">
           <div v-for="benefit in benefits" :key="benefit.label" class="benefit">
-            <v-icon :icon="benefit.icon" size="21" /><span>{{
+            <v-icon :icon="benefit.icon" size="18" /><span>{{
               benefit.label
             }}</span>
           </div>
@@ -130,10 +133,12 @@ onBeforeUnmount(() => unsubscribe?.());
   </v-app>
 </template>
 <style scoped>
+/* شاشة البدء نافذة مستقلة بلا ثيم التطبيق: ألوان الهوية مكتوبة هنا كما هي
+   في الدليل (ليل دجلة، الحجر الجيري، الطابوق، النحاس). */
 .splash-app {
   background: transparent;
-  color: #193638;
-  font-family: Cairo, "Segoe UI", Tahoma, sans-serif;
+  color: #f4efe6;
+  font-family: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
@@ -149,42 +154,48 @@ onBeforeUnmount(() => unsubscribe?.());
   height: 100dvh;
   overflow: hidden;
   padding: 0px;
-  background: #f9fafb;
-  border: 1px solid #e4e8ea;
+  background: #0e2a33;
+  color: #f4efe6;
+  border: 1px solid #0a2028;
 }
+/* شريط الزقّورة فوق سطر التحميل مباشرة، فلا يمرّ النص فوق النقش. */
 .splash-upper {
   position: relative;
   flex: 1;
   min-height: 0;
-}
-.skyline {
-  position: absolute;
-  inset: 0;
-  opacity: 0.84;
-  pointer-events: none;
-}
-.skyline::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.14);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='48'%3E%3Cg fill='%23B8924F'%3E%3Crect x='8' y='34' width='40' height='6' fill-opacity='.22'/%3E%3Crect x='16' y='24' width='24' height='6' fill-opacity='.22'/%3E%3Crect x='24' y='14' width='8' height='6' fill-opacity='.4'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 28px 24px;
+  background-position: center bottom 20px;
 }
 .branding {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  padding-top: 29px;
+  padding-top: 22px;
 }
 .branding h1 {
   margin: 0;
-  font-size: 39px;
-  font-weight: 800;
-  line-height: 1.35;
+  font-family: "Reem Kufi", "IBM Plex Sans Arabic", sans-serif;
+  font-size: 42px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #f4efe6;
 }
 .branding p {
   margin: 0;
-  font-size: 19px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 400;
   line-height: 1.5;
+  color: #d4bf9a;
+}
+.branding__rule {
+  width: 40px;
+  height: 2px;
+  margin-top: 10px;
+  background: #b8924f;
 }
 .feature-grid,
 .benefit-grid {
@@ -195,7 +206,7 @@ onBeforeUnmount(() => unsubscribe?.());
 }
 .feature-grid {
   position: relative;
-  margin-top: 19px;
+  margin-top: 14px;
 }
 .feature,
 .benefit {
@@ -209,19 +220,18 @@ onBeforeUnmount(() => unsubscribe?.());
 .feature-icon {
   display: grid;
   place-items: center;
-  width: 50px;
-  height: 50px;
-  color: #193638;
-  border-radius: 13px !important;
-  box-shadow: 0 2px 7px rgba(25, 54, 56, 0.12) !important;
+  width: 40px;
+  height: 40px;
+  color: #b8924f;
+  border: 1px solid rgba(244, 239, 230, 0.18);
 }
 .feature span {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
 }
 .loading-status {
   position: absolute;
-  bottom: 3px;
+  bottom: 5px;
   inset-inline: 8px;
   display: flex;
   justify-content: space-between;
@@ -229,17 +239,15 @@ onBeforeUnmount(() => unsubscribe?.());
   /* مرحلة التشغيل تحمل معنى: أصغر حجم مقروء في نافذة 465×300. */
   font-size: 11px;
   line-height: 1.25;
-  color: #3d575b;
+  color: #d4bf9a;
 }
 .startup-progress {
   position: absolute;
   bottom: 0;
-  border-radius: 2px;
 }
 .information-panel {
-  margin-top: 5px;
-  color: #fff;
-  border-radius: 11px !important;
+  color: #d4bf9a;
+  border-top: 1px solid #b8924f;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -255,9 +263,13 @@ onBeforeUnmount(() => unsubscribe?.());
   width: 100%;
 }
 .benefit {
-  gap: 7px;
+  gap: 6px;
+}
+.benefit .v-icon {
+  color: #b8924f;
 }
 .benefit span {
+  color: #d4bf9a;
   font-size: 10px;
   line-height: 1.55;
   white-space: nowrap;
@@ -265,6 +277,7 @@ onBeforeUnmount(() => unsubscribe?.());
 .startup-error {
   padding: 6px 10px;
   text-align: center;
+  color: #f4efe6;
 }
 /* شاشة الاسترداد تُقرأ تحت ضغط: نص 13px وأزرار بحجمها. */
 .startup-error p {

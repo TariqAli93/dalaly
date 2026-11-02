@@ -81,12 +81,12 @@ const arMessages = {
 // كثافة سطح المكتب: حقول بإطار ومضغوطة (40px) — لغة برامج Windows لا
 // لغة الويب. hideDetails:"auto" يحذف شريط الرسائل (22px) المحجوز تحت كل
 // حقل ولا يُظهره إلا عند خطأ تحقق أو hint، وهو أكبر مكسب في كثافة النماذج.
-// rounded: true هو 4px: زاويتان فقط في النظام، 4px للعناصر و8px للألواح
-// والحوارات (VCard وVAlert وVSnackbar).
+// rounded: "0": الهوية مبنية على شبكة مربّعة، فالحقول والأزرار والشرائح
+// والحوارات (VCard وVAlert وVSnackbar) بزوايا حادّة؛ الرموز في styles.css.
 const field = {
   variant: "outlined",
   density: "compact",
-  rounded: true,
+  rounded: "0",
   // hideDetails: "auto",
 };
 
@@ -137,8 +137,8 @@ const vuetify = createVuetify({
     // بـ !important فتمسح ظل كل نافذة حوار وقائمة تحتوي VCard، فتبدو
     // الحوارات ملتصقة بالخلفية. flat يعطي المظهر نفسه بلا هذا الأثر، ومن
     // يمرّر elevation صراحةً يحصل عليه كما كان.
-    VBtn: { variant: "flat", density: "comfortable", rounded: true },
-    VCard: { variant: "flat", rounded: "lg" },
+    VBtn: { variant: "flat", density: "comfortable", rounded: "0" },
+    VCard: { variant: "flat", rounded: "0" },
     // VDialog وVMenu لا يملكان خاصية rounded فكانت تُتجاهل بصمت: الحوار
     // يأخذ استدارته من VCard، والقوائم من vuetify-overrides.css.
 
@@ -147,9 +147,12 @@ const vuetify = createVuetify({
     VDialog: { transition: "dal-dialog" },
     VMenu: { transition: "dal-menu" },
 
-    VChip: { rounded: true },
-    VAlert: { rounded: "lg" },
-    VSnackbar: { rounded: "lg" },
+    VChip: { rounded: "0" },
+    VBtnGroup: { rounded: "0" },
+    VBtnToggle: { rounded: "0" },
+    VAlert: { rounded: "0" },
+    VSnackbar: { rounded: "0" },
+    VExpansionPanels: { rounded: "0" },
     VTabs: { height: 40 },
     // تشمل قوائم VSelect وVAutocomplete المنسدلة: 40px للعنصر بدل 48
     VList: { density: "compact" },

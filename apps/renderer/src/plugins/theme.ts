@@ -70,10 +70,11 @@ export function contrastingText(color: string) {
   return luminance(hex) > 0.179 ? "#000000" : "#FFFFFF";
 }
 
-// حبر النص في الثيم المخصّص: درجتا النص في الثيمين الأساسيين بدل الأسود
-// والأبيض الخالصين، فيبقى الثيم من عائلة دلالي نفسها. نشترط 7:1 (AAA) لا
-// 4.5 لأن النص الثانوي يُشتق منه بالشفافية ويحتاج هامشاً؛ وإلا فالخالص.
-const INK = { dark: "#1B2B30", light: "#EDF5F5" };
+// حبر النص في الثيم المخصّص: درجتا النص في الهوية (الفحم على الفاتح والحجر
+// الجيري على الداكن) بدل الأسود والأبيض الخالصين، فيبقى الثيم من عائلة دلالي
+// نفسها. نشترط 7:1 (AAA) لا 4.5 لأن النص الثانوي يُشتق منه بالشفافية ويحتاج
+// هامشاً؛ وإلا فالخالص.
+const INK = { dark: "#1C2326", light: "#F4EFE6" };
 
 function ink(background: string) {
   const pure = contrastingText(background);
@@ -107,11 +108,28 @@ function readableOn(color: string, toward: string, against: string[]) {
   return toward;
 }
 
+/** لون الهوية المختار يدوياً ما دام مقروءاً (4.5:1) على كل خلفية، وإلا المشتق. */
+function brandOr(
+  brand: string | undefined,
+  against: string[],
+  derived: () => string,
+) {
+  return brand && against.every((bg) => contrast(brand, bg) >= 4.5)
+    ? brand
+    : derived();
+}
+
 /**
  * الرموز المشتقة تُحسب لكل ثيم، الأساسي والمخصّص، فلا يفقد ما يستخدم
- * muted أو primary-text لونه في الثيم الأساسي.
+ * muted أو primary-text أو link لونه في الثيم الأساسي. الثيمان الأساسيان
+ * يحملان درجتَي الهوية لـ muted (ضفاف) وlink (النحاس الداكن)، وتبقيان ما
+ * دامتا مقروءتين على أسطح الثيم؛ إن اختار المستخدم أسطحاً لا تُقرآن عليها
+ * اشتُقّتا.
  */
-function withDerivedTokens(theme: ThemeDefinition): ThemeDefinition {
+function withDerivedTokens(
+  theme: ThemeDefinition,
+  brand: Colors = {},
+): ThemeDefinition {
   const colors = theme.colors as Colors;
   const reading = [colors.surface, colors.background, colors.workspace].filter(
     (bg): bg is string => !!bg,
@@ -122,76 +140,104 @@ function withDerivedTokens(theme: ThemeDefinition): ThemeDefinition {
     colors: {
       ...colors,
       // مطابق لما يرسمه Vuetify لنص medium-emphasis على surface تماماً
-      muted: mix(colors["on-surface"]!, colors.surface!, medium),
+      muted: brandOr(brand.muted, reading, () =>
+        mix(colors["on-surface"]!, colors.surface!, medium),
+      ),
       "primary-text": readableOn(
         colors.primary!,
         colors["on-surface"]!,
         reading,
       ),
+      // الروابط بلون التمييز (النحاس) مقرّباً من الحبر حتى 4.5:1، كما في
+      // دليل الهوية: النحاس لا يُكتب به نص صغير على الفاتح بل بدرجته الداكنة.
+      link: brandOr(brand.link, reading, () =>
+        readableOn(colors.accent!, colors["on-surface"]!, reading),
+      ),
+      // عناوين أقسام القائمة الجانبية ومؤشّر العنصر المحدد: النحاس على ليل
+      // دجلة، أو أقرب درجة منه تُقرأ على لون الشريط المختار.
+      "sidebar-accent": readableOn(colors.accent!, colors["on-sidebar"]!, [
+        colors.sidebar!,
+      ]),
     },
   };
 }
 
 // ─── الثيمان الأساسيان ───────────────────────────────────────────────
 
-// Large neutral areas, white surfaces, and restrained brand accents.
-const dalalyLight = withDerivedTokens({
-  dark: false,
-  variables: { "medium-emphasis-opacity": 0.75 },
-  colors: {
-    primary: "#116466",
-    secondary: "#E8EEF0",
-    accent: "#C27C3A",
-    // 60% canvas/navigation, 30% neutral surfaces, 10% primary accents.
-    background: "#F3F5F6",
-    workspace: "#F3F5F6",
-    surface: "#FFFFFF",
-    sidebar: "#193638",
-    "on-sidebar": "#FFFFFF",
-    "on-background": "#1B2B30",
-    "on-workspace": "#1B2B30",
-    "on-surface": "#1B2B30",
-    "on-secondary": "#1B2B30",
-    "on-primary": "#FFFFFF",
-    "surface-variant": "#E6ECEE",
-    "on-surface-variant": "#52646A",
-    border: "#D9E2E5",
-    error: "#b3261e",
-    // بدون تعريف صريح ترجع Vuetify إلى ألوان Material الافتراضية
-    // (كهرماني وأزرق) وهي خارج نظام التصميم. القيم أدناه من عائلة
-    // الأوكر والسيج نفسها، وبتباين ≥4.5:1 على الأبيض.
-    warning: "#8a5a1f",
-    success: "#2f6d4f",
-    info: "#5b6f62",
-  },
-});
+// ألوان دليل الهوية (لوحة «الألوان»): ليل دجلة ‎#0E2A33 للتنقّل والأوامر
+// والعناوين، الحجر الجيري ‎#F4EFE6 خلفيةً والورق ‎#FBF8F2 للألواح بحدّ
+// ‎#E3D8C4، الطابوق البغدادي ‎#D4BF9A مسانداً، النحاس ‎#B8924F للتمييز
+// ودرجته الداكنة ‎#7E5F2B للنص الصغير والروابط، الفحم ‎#1C2326 للنص، وضفاف
+// ‎#4A6468 للنص الثانوي والبيانات والجداول.
+const BRAND_LIGHT: Colors = { muted: "#4A6468", link: "#7E5F2B" };
+const BRAND_DARK: Colors = { muted: "#B9C4C2", link: "#D9B474" };
 
-const dalalyDark = withDerivedTokens({
-  dark: true,
-  variables: { "medium-emphasis-opacity": 0.75 },
-  colors: {
-    primary: "#74C8C0",
-    secondary: "#192C30",
-    accent: "#E7AE77",
-    background: "#1D3034",
-    workspace: "#142428",
-    surface: "#192C30",
-    sidebar: "#193638",
-    "on-sidebar": "#FFFFFF",
-    "on-background": "#EDF5F5",
-    "on-workspace": "#EDF5F5",
-    "on-surface": "#EDF5F5",
-    "on-secondary": "#EDF5F5",
-    "on-primary": "#102729",
-    "surface-variant": "#213B40",
-    "on-surface-variant": "#A7B9BB",
-    border: "#355057",
-    error: "#ffb4ab",
-    warning: "#d8a15f",
-    success: "#7fc9a3",
-    info: "#9db5a7",
+const dalalyLight = withDerivedTokens(
+  {
+    dark: false,
+    variables: { "medium-emphasis-opacity": 0.75 },
+    colors: {
+      primary: "#0E2A33",
+      secondary: "#EDE5D6",
+      accent: "#B8924F",
+      background: "#F4EFE6",
+      workspace: "#F4EFE6",
+      surface: "#FBF8F2",
+      sidebar: "#0E2A33",
+      "on-sidebar": "#F4EFE6",
+      "on-background": "#1C2326",
+      "on-workspace": "#1C2326",
+      "on-surface": "#1C2326",
+      "on-secondary": "#1C2326",
+      "on-primary": "#F4EFE6",
+      "on-accent": "#0E2A33",
+      "surface-variant": "#EDE5D6",
+      "on-surface-variant": "#4A6468",
+      border: "#E3D8C4",
+      error: "#b3261e",
+      // بدون تعريف صريح ترجع Vuetify إلى ألوان Material الافتراضية
+      // (كهرماني وأزرق) وهي خارج نظام التصميم. الانتظار بالنحاس الداكن،
+      // والمستقر بلون ضفاف، وكلها بتباين ≥4.5:1 على الورق والحجر.
+      warning: "#7e5f2b",
+      success: "#2f6d4f",
+      info: "#4a6468",
+    },
   },
-});
+  BRAND_LIGHT,
+);
+
+// الداكن على ليل دجلة كغلاف الدليل: الألواح أفتح قليلاً من الأرضية والتنقّل
+// أعمق منها، والأساسي بالطابوق البغدادي ونصّه بليل دجلة.
+const dalalyDark = withDerivedTokens(
+  {
+    dark: true,
+    variables: { "medium-emphasis-opacity": 0.75 },
+    colors: {
+      primary: "#D4BF9A",
+      secondary: "#1A3C47",
+      accent: "#B8924F",
+      background: "#0E2A33",
+      workspace: "#0A1F26",
+      surface: "#12313B",
+      sidebar: "#0A2028",
+      "on-sidebar": "#F4EFE6",
+      "on-background": "#F4EFE6",
+      "on-workspace": "#F4EFE6",
+      "on-surface": "#F4EFE6",
+      "on-secondary": "#F4EFE6",
+      "on-primary": "#0E2A33",
+      "on-accent": "#0E2A33",
+      "surface-variant": "#1A3C47",
+      "on-surface-variant": "#C9C2B4",
+      border: "#2A4A55",
+      error: "#ffb4ab",
+      warning: "#d9b474",
+      success: "#7fc9a3",
+      info: "#a9bec1",
+    },
+  },
+  BRAND_DARK,
+);
 
 export const dalalyThemes: Record<string, ThemeDefinition> = {
   dalalyLight,
@@ -206,6 +252,7 @@ export function createTheme(
 ): ThemeDefinition {
   const base = dark ? dalalyDark : dalalyLight;
   const baseColors = base.colors as Colors;
+  const brand = dark ? BRAND_DARK : BRAND_LIGHT;
 
   // قيمة غير صالحة ("#ggg"، نص فارغ، مفتاح ناقص من إعداد قديم) ترجع
   // إلى لون الثيم الأساسي بدل أن تنتج NaN ونصاً أبيض على خلفية بيضاء.
@@ -218,7 +265,7 @@ export function createTheme(
 
   const onSurface = ink(c.surface);
 
-  // في الداكن يكون الـ workspace أعمق من الخلفية (‎#142428 تحت ‎#1D3034
+  // في الداكن يكون الـ workspace أعمق من الخلفية (‎#0A1F26 تحت ‎#0E2A33
   // في الثيم الأساسي)، ومزج 30% أسود يعيد العلاقة نفسها لأي لون.
   const workspace = dark ? mix("#000000", c.background, 0.3) : c.background;
 
@@ -242,30 +289,37 @@ export function createTheme(
     ...readingSurfaces.map((bg) => mutedAlpha(ink(bg), bg)),
   );
 
-  return withDerivedTokens({
-    ...base,
-    variables: {
-      ...base.variables,
-      "high-emphasis-opacity": 1,
-      "medium-emphasis-opacity": medium,
+  return withDerivedTokens(
+    {
+      ...base,
+      variables: {
+        ...base.variables,
+        "high-emphasis-opacity": 1,
+        "medium-emphasis-opacity": medium,
+      },
+      colors: {
+        ...baseColors,
+        ...c,
+        workspace,
+        "surface-variant": surfaceVariant,
+        "on-surface": onSurface,
+        "on-background": ink(c.background),
+        "on-workspace": ink(workspace),
+        // يُحسب على surface-variant نفسها لا على السطح، وإلا فـ secondary
+        // داكن مع سطح فاتح يعطي تلميحات وإشعارات بنص أسود على داكن.
+        "on-surface-variant": ink(surfaceVariant),
+        "on-primary": ink(c.primary),
+        "on-secondary": ink(c.secondary),
+        "on-accent": ink(c.accent),
+        "on-sidebar": ink(c.sidebar),
+        // حدّ الهوية الدافئ على سطحها؛ وعلى سطح مخصّص مشتق منه، فيبقى من
+        // درجته أياً كان اللون المختار
+        border:
+          c.surface === baseColors.surface
+            ? baseColors.border!
+            : mix(onSurface, c.surface, 0.15),
+      },
     },
-    colors: {
-      ...baseColors,
-      ...c,
-      workspace,
-      "surface-variant": surfaceVariant,
-      "on-surface": onSurface,
-      "on-background": ink(c.background),
-      "on-workspace": ink(workspace),
-      // يُحسب على surface-variant نفسها لا على السطح، وإلا فـ secondary
-      // داكن مع سطح فاتح يعطي تلميحات وإشعارات بنص أسود على داكن.
-      "on-surface-variant": ink(surfaceVariant),
-      "on-primary": ink(c.primary),
-      "on-secondary": ink(c.secondary),
-      "on-accent": ink(c.accent),
-      "on-sidebar": ink(c.sidebar),
-      // مشتق من السطح نفسه، فيبقى من درجته أياً كان اللون المختار
-      border: mix(onSurface, c.surface, 0.15),
-    },
-  });
+    brand,
+  );
 }

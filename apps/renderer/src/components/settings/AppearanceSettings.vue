@@ -28,7 +28,7 @@ const modeLabel = computed(() =>
   editMode.value === "dalalyDark" ? "الداكن" : "الفاتح",
 );
 const presets = [
-  { label: "دلالي", key: "default", color: "#116466" },
+  { label: "دلالي", key: "default", color: "#0E2A33" },
   { label: "أزرق هادئ", key: "blue", color: "#315F9A" },
   { label: "زيتوني", key: "olive", color: "#52683F" },
 ];
@@ -197,7 +197,7 @@ function setColor(key: keyof AppearanceColors, value: unknown) {
                       size="18"
                       aria-hidden="true" /></v-btn
                 ></template>
-                <v-sheet border rounded="lg" class="color-picker">
+                <v-sheet border rounded="0" class="color-picker">
                   <div class="dal-section-title color-picker__title">
                     {{ field.label }}
                   </div>
@@ -217,13 +217,13 @@ function setColor(key: keyof AppearanceColors, value: unknown) {
               <v-sheet
                 class="appearance-preview"
                 color="background"
-                rounded="lg"
+                rounded="0"
               >
-                <v-sheet color="sidebar" class="preview-nav" rounded="lg">
+                <v-sheet color="sidebar" class="preview-nav" rounded="0">
                   <v-icon icon="mdi-home-city-outline" size="24" />
                   <strong>دلالي</strong>
                 </v-sheet>
-                <v-sheet class="preview-content" border rounded="lg">
+                <v-sheet class="preview-content" border rounded="0">
                   <strong>مساحة عملك</strong>
                   <p>ألوان واضحة ونص مقروء لتنظيم عروض المكتب.</p>
                   <div class="d-flex flex-wrap ga-2">
@@ -233,7 +233,7 @@ function setColor(key: keyof AppearanceColors, value: unknown) {
                     <v-btn color="secondary" variant="flat" size="small"
                       >زر ثانوي</v-btn
                     >
-                    <v-chip color="accent" variant="tonal" size="small" label
+                    <v-chip color="accent" variant="flat" size="small" label
                       >تمييز</v-chip
                     >
                   </div>
@@ -288,7 +288,7 @@ function setColor(key: keyof AppearanceColors, value: unknown) {
   width: 12px;
   height: 12px;
   margin-inline-end: 8px;
-  border-radius: 50%;
+  border-radius: var(--dal-radius-control);
 }
 .appearance-pair {
   display: grid;

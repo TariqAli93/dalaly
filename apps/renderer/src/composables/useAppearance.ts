@@ -7,14 +7,43 @@ import {
 } from "../plugins/theme";
 
 const STORAGE_KEY = "dalaly.appearance.v1";
+// خط الهوية أولاً وافتراضياً؛ البقية اختيارات المستخدم.
 export const fontOptions = [
+  "IBM Plex Sans Arabic",
   "Cairo",
   "Tajawal",
   "Almarai",
-  "IBM Plex Sans Arabic",
   "Segoe UI",
   "Tahoma",
 ];
+const DEFAULT_FONT = "IBM Plex Sans Arabic";
+// الإعدادات تُحفظ كاملة عند أي تغيير، فمن غيّر حجم الخط وحده قبل الهوية
+// الجديدة حُفظت عنده ألوان دلالي السابقة وخطّها الافتراضي كأنها اختياره.
+// قيمة تساوي افتراضياً سابقاً ليست اختياراً، فتُترك للافتراضي الحالي.
+const LEGACY_DEFAULTS: {
+  font: string;
+  colors: Record<AppearanceMode, AppearanceColors>;
+} = {
+  font: "Cairo",
+  colors: {
+    dalalyLight: {
+      primary: "#116466",
+      secondary: "#E8EEF0",
+      accent: "#C27C3A",
+      background: "#F3F5F6",
+      surface: "#FFFFFF",
+      sidebar: "#193638",
+    },
+    dalalyDark: {
+      primary: "#74C8C0",
+      secondary: "#192C30",
+      accent: "#E7AE77",
+      background: "#1D3034",
+      surface: "#192C30",
+      sidebar: "#193638",
+    },
+  },
+};
 export const fontSizes = [
   { title: "صغير", value: "small", scale: 0.9 },
   { title: "متوسط", value: "medium", scale: 1 },
@@ -44,7 +73,7 @@ function defaultColors(mode: AppearanceMode): AppearanceColors {
 }
 function defaults(): Preferences {
   return {
-    font: "Cairo",
+    font: DEFAULT_FONT,
     fontSize: "medium",
     fluid: true,
     maxWidth: 1440,
@@ -59,7 +88,8 @@ function readPreferences(): Preferences {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
     if (!saved || typeof saved !== "object") return result;
-    if (fontOptions.includes(saved.font)) result.font = saved.font;
+    if (fontOptions.includes(saved.font) && saved.font !== LEGACY_DEFAULTS.font)
+      result.font = saved.font;
     if (fontSizes.some((size) => size.value === saved.fontSize))
       result.fontSize = saved.fontSize;
     if (typeof saved.fluid === "boolean") result.fluid = saved.fluid;
@@ -68,7 +98,11 @@ function readPreferences(): Preferences {
     for (const mode of ["dalalyLight", "dalalyDark"] as const) {
       for (const { key } of colorFields) {
         const value = saved.colors?.[mode]?.[key];
-        if (typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value))
+        if (
+          typeof value === "string" &&
+          /^#[0-9a-f]{6}$/i.test(value) &&
+          value.toUpperCase() !== LEGACY_DEFAULTS.colors[mode][key]
+        )
           result.colors[mode][key] = value;
       }
     }

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import ThemeToggle from "../components/app/ThemeToggle.vue";
-import loginResidence from "../assets/login-residence.webp";
 defineProps<{ subtitle?: string }>();
 </script>
 
@@ -18,28 +17,27 @@ defineProps<{ subtitle?: string }>();
             العقاري
           </div>
         </div>
-        <aside
-          class="auth-photo"
-          :style="{
-            backgroundImage: `linear-gradient(180deg, #10272955 0%, #10272933 25%, #102729d9 100%), url(${loginResidence})`,
-          }"
-          aria-label="منزل معاصر عند الغروب"
-        >
-          <div class="auth-photo__brand">
-            <v-icon icon="mdi-home-city-outline" size="38" /><strong
-              >دلالي</strong
-            >
-          </div>
-          <div class="auth-photo__copy">
-            <div class="auth-photo__eyebrow">إدارة العروض العقارية</div>
-            <h2>كل تفاصيل مكتبك،<br />في مكان واحد.</h2>
-            <p>
+        <!-- غلاف دليل الهوية: الاسم بالكوفي على ليل دجلة، سطر الوصف بالطابوق،
+             قاعدة نحاسية، الشعار النصّي بالنحاس، وشريط الزقّورة في الأسفل.
+             الألوان أدوار الثيم (الشريط الجانبي ونصّه ونحاسه) فتتبع المظهر. -->
+        <aside class="auth-cover" aria-label="عن دلالي">
+          <div class="auth-cover__top">دلالي · للمكاتب العقارية</div>
+          <div class="auth-cover__brand">
+            <v-icon
+              icon="mdi-home-city-outline"
+              size="56"
+              class="auth-cover__mark"
+              aria-hidden="true"
+            />
+            <div class="auth-cover__name">دلالي</div>
+            <div class="auth-cover__sub">إدارة العروض العقارية</div>
+            <div class="auth-cover__rule" aria-hidden="true" />
+            <p class="auth-cover__lead">
               {{ subtitle ?? "نظّم عروضك، تابع زبائنك، وأدر إيجاراتك بسهولة." }}
             </p>
           </div>
-          <div class="auth-photo__footer">
-            <span>دلالي · للمكاتب العقارية</span>
-          </div>
+          <p class="auth-cover__tagline">كل تفاصيل مكتبك، في مكان واحد.</p>
+          <div class="auth-cover__band" aria-hidden="true" />
         </aside>
       </v-card>
     </section>
@@ -51,7 +49,7 @@ defineProps<{ subtitle?: string }>();
   display: grid;
   grid-template-columns: 1fr 1fr;
   min-height: min(640px, calc(100dvh - 64px));
-  box-shadow: var(--dal-shadow-pop);
+  border: 1px solid var(--dal-stroke);
   overflow: hidden;
   width: 100%;
   height: 100%;
@@ -88,49 +86,68 @@ defineProps<{ subtitle?: string }>();
   font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
 }
-.auth-photo {
+.auth-cover {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  color: white;
-  padding: 32px;
-  background-position: center;
-  background-size: cover;
-  background-color: #193638;
+  background: rgb(var(--v-theme-sidebar));
+  color: rgb(var(--v-theme-on-sidebar));
 }
-.auth-photo__brand {
+.auth-cover__top {
+  padding: 28px 32px 0;
+  font-size: calc(13px * var(--dal-font-scale));
+  font-weight: 500;
+  color: var(--dal-nav-soft);
+}
+.auth-cover__brand {
+  flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 15px;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px 32px;
+  text-align: center;
 }
-.auth-photo__brand strong {
-  font-size: calc(32px * var(--dal-font-scale));
-  font-weight: 700;
+.auth-cover__mark {
+  color: rgb(var(--v-theme-on-sidebar));
 }
-.auth-photo__copy {
-  margin-top: auto;
-  padding-block: 32px;
+.auth-cover__name {
+  font-family: var(--dal-display-font);
+  font-size: calc(64px * var(--dal-font-scale));
+  font-weight: 600;
+  line-height: 1.2;
 }
-.auth-photo__eyebrow {
-  font-size: calc(13px * var(--dal-font-scale));
-  color: #d6eeee;
-  margin-bottom: 12px;
+.auth-cover__sub {
+  margin-top: -8px;
+  font-size: calc(18px * var(--dal-font-scale));
+  color: var(--dal-nav-soft);
 }
-.auth-photo h2 {
-  font-size: calc(32px * var(--dal-font-scale));
-  line-height: 1.65;
-  font-weight: 700;
+.auth-cover__rule {
+  width: 64px;
+  height: 2px;
+  background: var(--dal-brass);
 }
-.auth-photo p {
-  margin-top: 12px;
-  font-size: calc(13px * var(--dal-font-scale));
-  color: #d6eeee;
+.auth-cover__lead {
+  max-width: 30ch;
+  margin: 0;
+  font-size: calc(14px * var(--dal-font-scale));
+  line-height: 1.8;
+  color: var(--dal-nav-soft);
 }
-.auth-photo__footer {
-  display: flex;
-  justify-content: space-between;
-  font-size: calc(12px * var(--dal-font-scale));
-  color: #d6eeee;
+.auth-cover__tagline {
+  margin: 0;
+  padding: 0 32px 24px;
+  text-align: center;
+  font-size: calc(18px * var(--dal-font-scale));
+  font-weight: 500;
+  color: rgb(var(--v-theme-sidebar-accent));
+}
+.auth-cover__band {
+  height: 96px;
+  background-image: var(--dal-zig);
+  background-repeat: repeat;
+  background-size: 56px 48px;
+  background-position: center bottom;
 }
 @media (max-width: 800px) {
   .auth-screen {
@@ -141,7 +158,7 @@ defineProps<{ subtitle?: string }>();
     min-height: calc(100dvh - 32px);
     max-width: 480px;
   }
-  .auth-photo {
+  .auth-cover {
     display: none;
   }
   .auth-form-side {

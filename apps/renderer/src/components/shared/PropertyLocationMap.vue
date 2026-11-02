@@ -299,7 +299,7 @@ onBeforeUnmount(() => {
     class="property-location-map"
     :class="{ 'map-dark': dark }"
     border
-    rounded="lg"
+    rounded="0"
     role="region"
     aria-label="خريطة موقع العقار"
     :style="{ height }"
@@ -312,7 +312,7 @@ onBeforeUnmount(() => {
     />
     <v-sheet
       v-if="loading && !offline"
-      class="map-loading pa-2 rounded-lg"
+      class="map-loading pa-2 rounded-0"
       role="status"
     >
       <v-progress-circular indeterminate size="18" width="2" class="me-2" />جارِ
