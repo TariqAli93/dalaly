@@ -185,19 +185,19 @@ watch(
 
 <style scoped>
 .customer-block + .customer-block {
-  margin-top: 14px;
+  margin-top: 16px;
   padding-top: 12px;
   border-top: 1px solid var(--dal-stroke);
 }
 .customer-block h3 {
   font-size: calc(13px * var(--dal-font-scale));
-  font-weight: 700;
-  margin: 0 0 6px;
+  font-weight: 600;
+  margin: 0 0 8px;
 }
 .customer-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px 12px;
+  gap: 8px 12px;
   margin: 0;
 }
 .customer-grid dt,
@@ -213,8 +213,8 @@ watch(
   margin-top: 8px;
 }
 .customer-notes p {
-  margin: 2px 0 0;
-  font-size: calc(12.5px * var(--dal-font-scale));
+  margin: 4px 0 0;
+  font-size: calc(13px * var(--dal-font-scale));
   white-space: pre-line;
 }
 .customer-muted {
@@ -228,7 +228,7 @@ watch(
 .customer-request__head {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
   padding: 8px 4px;
   text-align: start;
@@ -236,9 +236,11 @@ watch(
 .customer-request__title {
   flex: 1;
   min-width: 0;
-  font-size: calc(12.5px * var(--dal-font-scale));
+  font-size: calc(13px * var(--dal-font-scale));
 }
+/* يبدأ تحت عنوان الطلب لا تحت السهم: الحشو 4 + السهم 16 + الفجوة 8. */
 .customer-request__body {
-  padding: 0 4px 8px 24px;
+  padding: 0 4px 8px;
+  padding-inline-start: 28px;
 }
 </style>

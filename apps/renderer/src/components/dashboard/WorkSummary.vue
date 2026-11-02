@@ -173,7 +173,7 @@ const monthLink = computed(() =>
   gap: 8px;
   padding: 8px 12px 4px;
   font-size: calc(12px * var(--dal-font-scale));
-  font-weight: 700;
+  font-weight: 600;
 }
 .work__caption small {
   margin-inline-start: 4px;
@@ -199,7 +199,7 @@ const monthLink = computed(() =>
   display: grid;
   align-content: start;
   min-width: 0;
-  padding: 6px 12px 8px;
+  padding: 8px 12px;
   border-inline-start: 1px solid var(--dal-stroke);
   color: inherit;
   text-decoration: none;
@@ -251,7 +251,7 @@ const monthLink = computed(() =>
 }
 .work__money > div {
   min-width: 0;
-  padding: 6px 12px;
+  padding: 8px 12px;
 }
 .work__money > div:nth-of-type(even) {
   border-inline-start: 1px solid var(--dal-stroke);
@@ -264,7 +264,7 @@ const monthLink = computed(() =>
   margin: 0;
   padding: 8px 12px 0;
   font-size: calc(12px * var(--dal-font-scale));
-  font-weight: 700;
+  font-weight: 600;
 }
 .work__money dt {
   font-size: calc(12px * var(--dal-font-scale));
@@ -281,13 +281,13 @@ const monthLink = computed(() =>
 .work__money dd {
   margin: 0;
   font-size: calc(15px * var(--dal-font-scale));
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
 }
 .work__note {
   margin: 0;
-  padding: 6px 12px 8px;
+  padding: 8px 12px;
   border-top: 1px solid var(--dal-stroke);
   font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
