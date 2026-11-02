@@ -302,14 +302,15 @@ test("the attention queue orders by tier then date, once per record, with the ri
 });
 
 test("an optional form section opens for data, an error, the user or edit mode, never hiding a value", async () => {
-  const { ref } = await import("vue");
   const { hasValue, useFormSections } = await import("../../apps/renderer/src/composables/useFormSections.js");
   for (const value of ["x", 0, 3, ["a"], { wifi: true }]) assert.ok(hasValue(value), JSON.stringify(value));
   for (const value of ["", "  ", null, undefined, false, [], {}, { wifi: false }]) assert.ok(!hasValue(value), JSON.stringify(value));
 
-  const model = ref({ plot_number: "", notes: "", amenities: {} as Record<string, boolean> });
-  const errors = ref<Record<string, string[]>>({});
-  const sections = useFormSections(model, { parcel: ["plot_number"], notes: ["notes", "amenities"] }, () => errors.value);
+  // Plain holders, not Vue refs: the server package does not depend on vue
+  // (the composable resolves it from the renderer).
+  const model = { value: { plot_number: "", notes: "", amenities: {} as Record<string, boolean> } };
+  const errors = { value: {} as Record<string, string[]> };
+  const sections = useFormSections(model as never, { parcel: ["plot_number"], notes: ["notes", "amenities"] }, () => errors.value);
   // A new, empty form starts with the optional sections closed.
   assert.equal(sections.isOpen("parcel"), false);
   assert.equal(sections.summary("parcel"), "اختياري");
