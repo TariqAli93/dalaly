@@ -93,7 +93,7 @@ const prefSlots = computed(() =>
     </div>
 
     <div class="match__link" aria-hidden="true">
-      <v-icon icon="mdi-arrow-left" size="18" />
+      <v-icon icon="mdi-arrow-left" size="16" />
       <span
         v-if="others > 0"
         class="match__more"
@@ -103,12 +103,10 @@ const prefSlots = computed(() =>
     </div>
 
     <div class="match__side">
+      <!-- لا وسم «متاح»: المساحة لا تعرض إلا العروض المتاحة. -->
       <div class="match__eyebrow">
         عرض {{ offer.kind === "sale" ? "بيع" : "إيجار" }}
         <bdi>{{ offer.code }}</bdi>
-        <v-chip size="x-small" color="primary" variant="tonal" label
-          >متاح</v-chip
-        >
       </div>
       <button
         type="button"
@@ -138,15 +136,11 @@ const prefSlots = computed(() =>
     </div>
 
     <!-- الدليل ثم الأوامر: الشروط الأساسية سطر هادئ واحد (كلها متحققة في كل
-         صف هنا)، والتفضيلات وحدها تفرّق بين صف وآخر فتأخذ المقياس والعلامات. -->
+         صف هنا)، والتفضيلات وحدها تفرّق بين صف وآخر فتأخذ المقياس ولون
+         العلامة، ومعها زر المتابعة. -->
     <div class="match__why">
       <span class="match__verdict">
-        <v-icon
-          icon="mdi-check-decagram-outline"
-          size="16"
-          color="success"
-          aria-hidden="true"
-        />
+        <v-icon icon="mdi-check" size="16" aria-hidden="true" />
         <span>الشروط الأساسية متحققة:</span>
         <span class="match__required">
           <span
@@ -180,7 +174,7 @@ const prefSlots = computed(() =>
         >
           <v-icon
             :icon="reason.matched ? 'mdi-check' : 'mdi-close'"
-            size="12"
+            size="14"
             aria-hidden="true"
           />
           {{ reason.label }}
@@ -222,7 +216,7 @@ const prefSlots = computed(() =>
   display: grid;
   grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr);
   gap: 4px 12px;
-  padding: 12px 16px 10px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--dal-stroke);
   transition: background-color 150ms ease;
 }
@@ -247,19 +241,22 @@ const prefSlots = computed(() =>
   font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
 }
+/* بحجم عنوان اللوح لا أكبر منه؛ لون العلامة يظهر عند المرور فقط. */
 .match__title {
-  font-size: calc(15px * var(--dal-font-scale));
-  font-weight: 700;
+  font-size: calc(14px * var(--dal-font-scale));
+  font-weight: 600;
   line-height: 1.5;
   text-align: start;
-  color: rgb(var(--v-theme-primary-text));
+  color: rgb(var(--v-theme-on-surface));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
   border-radius: var(--dal-radius-control);
+  transition: color 150ms ease;
 }
 .match__title:hover {
+  color: rgb(var(--v-theme-primary-text));
   text-decoration: underline;
 }
 .match__line {
@@ -274,7 +271,7 @@ const prefSlots = computed(() =>
   color: var(--dal-muted);
 }
 .match__price {
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .match__link {
@@ -282,7 +279,7 @@ const prefSlots = computed(() =>
   place-items: center;
   align-content: center;
   gap: 4px;
-  color: rgb(var(--v-theme-primary-text));
+  color: var(--dal-muted);
   font-size: calc(12px * var(--dal-font-scale));
   font-variant-numeric: tabular-nums;
 }
@@ -306,10 +303,8 @@ const prefSlots = computed(() =>
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 8px;
+  gap: 4px 8px;
   margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed var(--dal-stroke);
 }
 .match__verdict {
   display: inline-flex;
@@ -317,34 +312,31 @@ const prefSlots = computed(() =>
   align-items: center;
   gap: 4px;
   font-size: calc(12px * var(--dal-font-scale));
-  font-weight: 600;
-  color: rgb(var(--v-theme-success));
+  color: var(--dal-muted);
 }
 .match__required {
-  font-weight: 400;
   color: rgb(var(--v-theme-on-surface));
 }
 .match__prefs {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: calc(12px * var(--dal-font-scale));
   font-weight: 600;
-  color: var(--dal-muted);
   font-variant-numeric: tabular-nums;
 }
-/* مقطع لكل تفضيل؛ المتحقق بلون التطابق والناقص خط فارغ. */
+/* مقطع لكل تفضيل: المتحقق بلون العلامة، والناقص خط فارغ. */
 .match__meter {
   display: inline-flex;
   gap: 2px;
 }
 .match__meter i {
-  width: 10px;
+  width: 12px;
   height: 4px;
   background: var(--dal-stroke);
 }
 .match__meter i.match__meter-on {
-  background: rgb(var(--v-theme-success));
+  background: rgb(var(--v-theme-primary));
 }
 .match__divider {
   width: 1px;
@@ -352,24 +344,19 @@ const prefSlots = computed(() =>
   background: var(--dal-stroke);
   margin-inline: 2px;
 }
+/* العلامة (✓ أو ✕) تكفي للفرق، والناقص باهت فقط: لا حدّ متقطع ولا شطب. */
 .reason {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   padding: 0 6px;
   border-radius: var(--dal-radius-control);
   font-size: calc(12px * var(--dal-font-scale));
   line-height: 20px;
   border: 1px solid var(--dal-stroke);
 }
-.reason--met .v-icon {
-  color: rgb(var(--v-theme-success));
-}
 .reason--missed {
   color: var(--dal-muted);
-  border-style: dashed;
-  text-decoration: line-through;
-  text-decoration-color: rgba(var(--v-theme-on-surface), 0.3);
 }
 .match__actions {
   display: inline-flex;

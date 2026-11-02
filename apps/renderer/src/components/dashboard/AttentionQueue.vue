@@ -110,22 +110,23 @@ const tierTitle = (value: AttentionTier) =>
     <p v-else-if="!filtered.length && !failures.length" class="queue__empty">
       <v-icon
         icon="mdi-check-circle-outline"
-        size="18"
+        size="16"
         color="success"
         aria-hidden="true"
       />
-      لا شيء ينتظرك الآن.
+      لا شيء ينتظرك الآن
       <span v-if="checked.length" class="queue__checked"
-        >فُحص: {{ checked.join("، ") }}.</span
+        >فُحص: {{ checked.join("، ") }}</span
       >
     </p>
+    <!-- اللون للقيمة في طرف السطر وحدها (التاريخ المتأخر)، لا للأيقونة ولا
+         للوسم ولا للزر: المرتبة مكتوبة في الوسم، والقائمة تُقرأ قائمةً واحدة. -->
     <ul v-else class="queue__rows">
       <li v-for="item in visible" :key="item.key" class="queue__row">
         <v-icon
           :icon="item.icon"
-          size="20"
+          size="18"
           class="queue__icon"
-          :class="`queue__icon--${item.tier}`"
           aria-hidden="true"
         />
         <div class="queue__text">
@@ -134,9 +135,7 @@ const tierTitle = (value: AttentionTier) =>
               item.title
             }}</router-link>
             <span v-else>{{ item.title }}</span>
-            <span class="queue__tier" :class="`queue__tier--${item.tier}`">{{
-              tierTitle(item.tier)
-            }}</span>
+            <span class="queue__tier">{{ tierTitle(item.tier) }}</span>
           </div>
           <div class="queue__reason" :title="item.reason">
             {{ item.reason }}
@@ -155,8 +154,7 @@ const tierTitle = (value: AttentionTier) =>
         </div>
         <v-btn
           size="small"
-          :variant="item.tier === 'overdue' ? 'flat' : 'tonal'"
-          :color="item.tier === 'overdue' ? 'primary' : undefined"
+          variant="tonal"
           class="queue__action"
           :aria-label="`${item.actionLabel}: ${item.title}`"
           @click="emit('act', item)"
@@ -189,7 +187,7 @@ const tierTitle = (value: AttentionTier) =>
   border-bottom: 1px solid var(--dal-stroke);
 }
 .queue__tiers :deep(.v-chip-group) {
-  padding: 6px 0;
+  padding: 8px 0;
 }
 .queue__failure {
   margin: 8px 12px 0;
@@ -201,7 +199,7 @@ const tierTitle = (value: AttentionTier) =>
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   margin: 0;
   padding: 16px;
   font-size: calc(14px * var(--dal-font-scale));
@@ -218,11 +216,11 @@ const tierTitle = (value: AttentionTier) =>
 }
 .queue__row {
   display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) auto auto;
+  grid-template-columns: 18px minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 4px 10px;
+  gap: 4px 12px;
   min-height: 52px;
-  padding: 6px 12px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--dal-stroke);
 }
 .queue__row:last-child {
@@ -231,20 +229,13 @@ const tierTitle = (value: AttentionTier) =>
 .queue__icon {
   color: var(--dal-muted);
 }
-.queue__icon--overdue {
-  color: rgb(var(--v-theme-error));
-}
-.queue__icon--today,
-.queue__icon--collect {
-  color: rgb(var(--v-theme-primary));
-}
 .queue__text {
   min-width: 0;
 }
 .queue__title {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
   font-size: calc(14px * var(--dal-font-scale));
   font-weight: 600;
@@ -264,34 +255,26 @@ const tierTitle = (value: AttentionTier) =>
 .queue__tier {
   flex: none;
   padding: 0 6px;
-  border-radius: 4px;
-  font-size: calc(11px * var(--dal-font-scale));
-  font-weight: 600;
-  line-height: 18px;
+  border-radius: var(--dal-radius-control);
+  font-size: calc(12px * var(--dal-font-scale));
+  font-weight: 400;
+  line-height: 20px;
   color: var(--dal-muted);
-  background: rgba(var(--v-theme-on-surface), 0.06);
-}
-.queue__tier--overdue {
-  color: rgb(var(--v-theme-error));
-  background: rgba(var(--v-theme-error), 0.1);
-}
-.queue__tier--today {
-  color: rgb(var(--v-theme-primary-text));
-  background: rgba(var(--v-theme-primary), 0.1);
+  background: var(--dal-hover);
 }
 .queue__reason {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: calc(12.5px * var(--dal-font-scale));
+  font-size: calc(12px * var(--dal-font-scale));
   line-height: 1.5;
   color: var(--dal-muted);
 }
 .queue__meta {
   display: grid;
   justify-items: end;
-  font-size: calc(12.5px * var(--dal-font-scale));
-  line-height: 1.4;
+  font-size: calc(12px * var(--dal-font-scale));
+  line-height: 1.5;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }

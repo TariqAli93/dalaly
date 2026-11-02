@@ -163,17 +163,18 @@ function price(match: MatchResult) {
 }
 .request-matches__row {
   display: grid;
-  gap: 1px;
+  gap: 2px;
   width: 100%;
-  padding: 6px 8px;
+  padding: 4px 8px;
   text-align: start;
   border-radius: var(--dal-radius-control);
+  transition: background-color 150ms ease;
 }
 .request-matches__row:hover {
   background: var(--dal-hover);
 }
 .request-matches__main {
-  font-size: calc(12.5px * var(--dal-font-scale));
+  font-size: calc(13px * var(--dal-font-scale));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -183,7 +184,7 @@ function price(match: MatchResult) {
   color: var(--dal-muted);
 }
 .request-matches__partial {
-  margin-top: 6px;
+  margin-top: 8px;
   font-size: calc(12px * var(--dal-font-scale));
 }
 .request-matches__partial summary {

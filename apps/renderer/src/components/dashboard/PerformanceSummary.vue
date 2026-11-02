@@ -152,10 +152,8 @@ const rows = computed(() => {
       </tbody>
     </table>
     <p v-if="overview && rows.length" class="performance__note">
-      «المُنجز» ما حالته الآن مباع أو مؤجر وسُجّل تغييرها إليها خلال المدة.
-      القيمة الشهرية للإيجار: السنوي ÷ 12 ونصف السنوي ÷ 6. هذا الجدول يعدّ
-      العروض وحدها؛ العمولات في «الحسابات»، وعقود الإيجار ودفعاتها في «الإيجارات
-      السارية».
+      «المُنجز»: ما صار مباعاً أو مؤجراً خلال المدة وبقي كذلك. القيمة الشهرية
+      للإيجار: السنوي ÷ 12 ونصف السنوي ÷ 6.
     </p>
   </section>
 </template>
@@ -175,7 +173,7 @@ const rows = computed(() => {
 }
 .performance__table th,
 .performance__table td {
-  padding: 6px 12px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--dal-stroke);
   text-align: start;
   vertical-align: middle;
@@ -193,8 +191,9 @@ const rows = computed(() => {
   color: var(--dal-muted);
   background: var(--dal-hover);
 }
+/* دفتر: الوسوم عادية والأرقام أثقل، فتُقرأ الأعمدة لا الوسوم. */
 .performance__table tbody th {
-  font-weight: 600;
+  font-weight: 400;
 }
 .performance__table tbody tr:last-child > * {
   border-bottom: 0;
@@ -211,23 +210,26 @@ const rows = computed(() => {
   color: var(--dal-muted);
 }
 .performance__link {
-  padding: 0 6px;
-  margin-inline-end: -6px;
+  padding: 0 4px;
+  margin-inline-end: -4px;
   border-radius: var(--dal-radius-control);
-  color: rgb(var(--v-theme-primary-text));
-  font-weight: 700;
+  font-weight: 600;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
 }
 .performance__link:hover {
   background: var(--dal-hover);
+  color: rgb(var(--v-theme-primary-text));
   text-decoration: underline;
 }
 .performance__done {
   color: rgb(var(--v-theme-success));
-  font-weight: 700;
+  font-weight: 600;
 }
 .performance__zero {
   color: var(--dal-muted);
-  font-weight: 700;
+  font-weight: 600;
 }
 .performance__table + .performance__note {
   border-top: 1px solid var(--dal-stroke);

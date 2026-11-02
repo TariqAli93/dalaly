@@ -8,7 +8,7 @@ import { formatNumber } from "../../utils/format";
  * أن قسمه لم يُحمَّل بعد؛ ما لا يملك المستخدم صلاحيته لا يُمرَّر أصلاً.
  * الرقم بجانب وسمه لا في طرف الخلية الآخر، فلا تقفز العين عبر 300px في شاشة
  * عريضة. اللون للحالة لا للزينة: أحمر لما فات موعده، وأوكر لما ينتظر قراراً،
- * وأساسي لفرصة عمل، وباهت للصفر.
+ * وباهت للصفر؛ وغير ذلك بلون النص، فيبرز ما يحتاج تصرّفاً وحده.
  */
 defineProps<{ items: KpiItem[] }>();
 const emit = defineEmits<{ select: [DashboardSection] }>();
@@ -66,7 +66,7 @@ function toneClass(item: KpiItem) {
     "value label"
     "value note";
   align-items: center;
-  column-gap: 10px;
+  column-gap: 12px;
   min-width: 0;
   min-height: 56px;
   padding: 8px 16px;
@@ -94,7 +94,7 @@ function toneClass(item: KpiItem) {
   font-weight: 700;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
-  color: rgb(var(--v-theme-primary-text));
+  color: rgb(var(--v-theme-on-surface));
 }
 /* الوسم يلتفّ إلى سطرين في خلية ضيقة بدل أن يُقصّ: هو ما يُقرأ أولاً. */
 .summary__label {

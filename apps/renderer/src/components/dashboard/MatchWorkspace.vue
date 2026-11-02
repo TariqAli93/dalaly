@@ -78,8 +78,8 @@ const filters = computed(() => {
           مطابقة العروض بطلبات الزبائن
         </h2>
         <p>
-          عروض متاحة تحقق نوع العقار والموقع والميزانية (ونوع الإيجار) المطلوبة؛
-          التفضيلات ترتّبها فقط.
+          عروض متاحة تحقق نوع العقار والموقع والميزانية (ونوع الإيجار) المطلوبة،
+          مرتّبة بالتفضيلات
         </p>
       </div>
       <!-- الأداتان معاً: تلتفّان كوحدة واحدة تحت العنوان حين يضيق اللوح. -->
@@ -114,7 +114,7 @@ const filters = computed(() => {
           hide-details
           clearable
           prepend-inner-icon="mdi-magnify"
-          placeholder="اسم الزبون أو هاتفه أو رمز الطلب"
+          placeholder="الاسم أو الهاتف أو رمز الطلب"
           aria-label="بحث في المطابقات والزبائن"
         />
       </div>
@@ -223,14 +223,14 @@ const filters = computed(() => {
 .workspace__header {
   flex-wrap: wrap;
   gap: 8px 16px;
-  padding-block: 10px;
+  padding-block: 8px;
 }
 .workspace__heading {
   flex: 1 1 260px;
   min-width: 0;
 }
 .workspace__heading p {
-  margin: 2px 0 0;
+  margin: 4px 0 0;
   font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
   text-wrap: pretty;
@@ -275,7 +275,8 @@ const filters = computed(() => {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 6px 12px;
+  min-height: 40px;
+  padding: 4px 12px;
   border-top: 1px solid var(--dal-stroke);
   font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);

@@ -144,8 +144,8 @@ const listing = computed(() => {
           </tbody>
         </table>
         <p class="details-muted">
-          الشروط الأساسية تقرّر المطابقة، والتفضيلات ترتّب العروض فقط. لا نسبة
-          مئوية: التفضيلات المتحققة {{ match.match.preferences_met }} من
+          الشروط الأساسية تقرّر المطابقة، والتفضيلات ترتّب العروض فقط. التفضيلات
+          المتحققة {{ match.match.preferences_met }} من
           {{ match.match.preferences_total }}.
         </p>
       </section>
@@ -202,19 +202,19 @@ const listing = computed(() => {
 
 <style scoped>
 .details-block + .details-block {
-  margin-top: 14px;
+  margin-top: 16px;
   padding-top: 12px;
   border-top: 1px solid var(--dal-stroke);
 }
 .details-block h3 {
   font-size: calc(13px * var(--dal-font-scale));
-  font-weight: 700;
-  margin: 0 0 6px;
+  font-weight: 600;
+  margin: 0 0 8px;
 }
 .details-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px 12px;
+  gap: 8px 12px;
   margin: 0;
 }
 .details-grid dt {
@@ -223,11 +223,11 @@ const listing = computed(() => {
 }
 .details-grid dd {
   margin: 0;
-  font-size: calc(12.5px * var(--dal-font-scale));
+  font-size: calc(13px * var(--dal-font-scale));
   overflow-wrap: anywhere;
 }
 .details-muted {
-  margin: 6px 0 0;
+  margin: 8px 0 0;
   font-size: calc(12px * var(--dal-font-scale));
   color: var(--dal-muted);
 }

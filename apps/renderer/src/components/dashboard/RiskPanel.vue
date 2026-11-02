@@ -137,7 +137,10 @@ function openViewing(item: DashboardAppointment) {
           </span>
         </button>
         <div v-if="matching.unmatched.total > EXAMPLES" class="risk__all">
-          <span>تظهر {{ EXAMPLES }} من {{ matching.unmatched.total }}.</span>
+          <span
+            >تظهر {{ EXAMPLES }} من
+            {{ formatNumber(matching.unmatched.total, 0) }}</span
+          >
           <v-btn
             v-for="kind in matching.kinds"
             :key="kind"
@@ -204,8 +207,8 @@ function openViewing(item: DashboardAppointment) {
         </button>
         <div v-if="stale.total > EXAMPLES" class="risk__all">
           <span
-            >تظهر {{ EXAMPLES }} من {{ stale.total }}. القائمة الكاملة مرتّبة
-            بأقدم تعديل، وهو تقريب: لا تُحسب فيه المتابعات.</span
+            >تظهر {{ EXAMPLES }} من {{ formatNumber(stale.total, 0) }} · القائمة
+            الكاملة مرتّبة بأقدم تعديل</span
           >
           <v-btn
             v-if="overview?.stale_listings.sale?.total"
@@ -283,7 +286,7 @@ function openViewing(item: DashboardAppointment) {
   color: var(--dal-muted);
 }
 .risk {
-  padding: 10px 12px;
+  padding: 12px;
   border-bottom: 1px solid var(--dal-stroke);
 }
 .risk:last-child {
@@ -338,10 +341,10 @@ function openViewing(item: DashboardAppointment) {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  column-gap: 10px;
+  column-gap: 12px;
   width: calc(100% - var(--risk-indent) + 8px);
   margin-inline-start: calc(var(--risk-indent) - 8px);
-  padding: 5px 8px;
+  padding: 4px 8px;
   text-align: start;
   border-radius: var(--dal-radius-control);
   transition: background-color 150ms ease;
@@ -354,7 +357,7 @@ function openViewing(item: DashboardAppointment) {
 }
 .risk__row-text {
   display: grid;
-  gap: 1px;
+  gap: 2px;
   min-width: 0;
 }
 .risk__row-main {

@@ -34,20 +34,23 @@ const actions = computed(() =>
 </template>
 
 <style scoped>
+/* شريط أدوات لا قسم: الأزرار بلون النص وأيقوناتها باهتة، فيبقى لون العلامة
+   للأمر الأساسي في كل صف لا لثمانية أزرار متجاورة. */
 .quick {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
-  padding: 6px 12px;
+  min-height: 40px;
+  padding: 4px 12px;
 }
 .quick__title {
   margin: 0;
   margin-inline-end: 8px;
   font-size: calc(13px * var(--dal-font-scale));
-  font-weight: 700;
+  font-weight: 600;
 }
-.quick__action {
-  color: rgb(var(--v-theme-primary-text));
+.quick__action :deep(.v-btn__prepend) {
+  color: var(--dal-muted);
 }
 </style>
