@@ -25,6 +25,7 @@ interface DalalyConfigBridge {
     body?: unknown;
   }) => Promise<{ status: number; body: unknown }>;
   openMapLink?: (url: string) => Promise<{ ok: boolean }>;
+  openExternalLink?: (url: string) => Promise<{ ok: boolean }>;
   saveDatabaseUrl: (
     databaseUrl: string,
   ) => Promise<{ ok: boolean; message?: string }>;

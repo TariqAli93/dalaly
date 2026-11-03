@@ -44,6 +44,11 @@ Electron main (apps/desktop/src)
   its session. Documents open in `DocumentViewer`, which fetches the file
   with the header; nothing opens an API URL in the system browser
   (`safeExternalUrl` refuses loopback hosts).
+- **Contact links** (the developer's phone, WhatsApp, e-mail and website in
+  «حول التطبيق») open through `platform.openExternal`, which in Electron is
+  the `links:open-external` IPC. Main checks the sender and accepts only
+  what `safeContactUrl` allows: a web address as above, a bare `mailto:`
+  address with no parameters, or a `tel:` number.
 - **Logging**: the API's pino output is piped into electron-log in
   production. Request URLs are logged without their query string (image
   URLs carry a media token), and only failed (5xx) or slow

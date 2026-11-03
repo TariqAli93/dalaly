@@ -4,7 +4,7 @@ import { buildMapLink, coordinateNumber, mapLinkUrl, parseMapLink, parseGoogleMa
 import { propertyPayloadSchema } from "../src/modules/properties/properties.schema.js";
 import { rentalPayloadSchema } from "../src/modules/rentals/rentals.schema.js";
 import { resolveMapLink } from "../src/modules/locations/map-link.service.js";
-import { safeExternalUrl, safeMapLinkUrl } from "../../apps/desktop/src/external-links.js";
+import { safeContactUrl, safeExternalUrl, safeMapLinkUrl } from "../../apps/desktop/src/external-links.js";
 
 const property = { property_type: "أرض", legal_type: "طابو ملك صرف", area_value: 100, area_unit: "متر", pricing_method: "سعر إجمالي مباشر", total_price: 1000000, owner_name: "اختبار", owner_phone: "07700000000" };
 const rental = { property_type: "house", area_value: 100, area_unit: "متر", rent_price: 250000, rent_period: "monthly", owner_name: "اختبار", owner_phone: "07700000000" };
@@ -79,6 +79,14 @@ test("short links: validate each redirect, prevent SSRF and cap redirect loops",
   assert.equal(calls, 0);
   assert.deepEqual(await resolveMapLink(buildMapLink({ lat: 33, lng: 44 }), redirect("https://evil.test") as typeof fetch), { lat: 33, lng: 44 });
   assert.equal(calls, 0);
+});
+
+test("Electron contact links open only web, bare e-mail and phone addresses", () => {
+  for (const url of ["tel:07824082356", "tel:+9647824082356", "mailto:business@codelapps.com", "https://wa.me/9647824082356"])
+    assert.equal(safeContactUrl(url), url);
+  assert.equal(safeContactUrl("https://codelapps.com"), "https://codelapps.com/");
+  for (const url of ["mailto:a@b.com?attach=C:/x", "mailto:a@b.com,c@d.com", "mailto:", "tel:12", "tel:0782 408", "tel:*#06#", "javascript:alert(1)", "file:///C:/x.exe", "http://127.0.0.1:34567/api", "ms-settings:", "callto:07824082356"])
+    assert.equal(safeContactUrl(url), null, url);
 });
 
 test("Electron link guards reject executable schemes and spoofed mapping hosts", () => {

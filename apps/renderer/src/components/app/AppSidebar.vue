@@ -105,21 +105,6 @@ const helpActive = computed(() => route.path === "/help");
     :temporary="!mdAndUp"
     width="232"
   >
-    <!-- الترويسة كترويسة الورق الرسمي في دليل الهوية: الاسم بالكوفي وسطر
-         الوصف تحته، وقاعدة نحاسية أسفلها (styles.css). -->
-    <div class="dal-brand">
-      <v-icon
-        class="dal-brand__mark"
-        icon="mdi-home-city-outline"
-        size="26"
-        aria-hidden="true"
-      />
-      <div v-if="!isRail">
-        <div class="dal-brand__title">دلالي</div>
-        <div class="dal-brand__sub">إدارة العروض العقارية</div>
-      </div>
-    </div>
-
     <nav aria-label="التنقل الرئيسي" @keydown="onNavKeydown">
       <v-list nav density="compact">
         <template v-for="(section, index) in sections" :key="section.key">

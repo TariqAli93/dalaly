@@ -139,6 +139,18 @@ export const webPlatform: PlatformAdapter = {
     return { ok: true };
   },
 
+  async openExternal(url: string) {
+    // البريد والهاتف يفتحان ببرنامجيهما دون مغادرة الصفحة، والموقع في لسان جديد.
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    if (/^https?:/i.test(url)) {
+      anchor.target = "_blank";
+      anchor.rel = "noopener noreferrer";
+    }
+    anchor.click();
+    return { ok: true };
+  },
+
   unavailableReason(feature: string) {
     return `${feature}: ${DEMO_NOTICE}`;
   },

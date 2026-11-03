@@ -2,8 +2,9 @@
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AppPage from "../components/app/AppPage.vue";
-import PhoneLink from "../components/shared/PhoneLink.vue";
-import { CODEL, CODEL_LOGO } from "../constants/about";
+import CodelContacts from "../components/help/CodelContacts.vue";
+import CodelLogo from "../components/help/CodelLogo.vue";
+import { CODEL } from "../constants/about";
 import { usePermissions } from "../composables/usePermissions";
 import { useSetup } from "../composables/useSetup";
 
@@ -288,8 +289,6 @@ const nothingFound = computed(
 
 // ─── حول التطبيق ────────────────────────────────────────────────────────
 const version = computed(() => status.value?.app_version ?? null);
-const year = new Date().getFullYear();
-const hasContact = Boolean(CODEL.website || CODEL.email || CODEL.phone);
 </script>
 
 <template>
@@ -438,47 +437,20 @@ const hasContact = Boolean(CODEL.website || CODEL.email || CODEL.phone);
             <section class="dal-panel" aria-labelledby="help-support-title">
               <header class="dal-panel__header">
                 <h2 id="help-support-title" class="dal-section-title">الدعم</h2>
+                <CodelLogo
+                  variant="mark"
+                  :height="18"
+                  class="help__support-logo"
+                />
               </header>
               <div class="help__support">
-                <div class="codel-mark codel-mark--small">
-                  <img
-                    v-if="CODEL_LOGO"
-                    :src="CODEL_LOGO"
-                    alt="شعار شركة كودل (Codel)"
-                  />
-                  <bdi v-else dir="ltr" class="codel-mark__text">{{
-                    CODEL.nameEn
-                  }}</bdi>
-                </div>
                 <p>
                   للمساعدة أو الإبلاغ عن مشكلة تواصل مع {{ CODEL.nameAr }} (<bdi
                     dir="ltr"
                     >{{ CODEL.nameEn }}</bdi
-                  >)، مطوّرة البرنامج.
+                  >)، مطوّر البرنامج.
                 </p>
-                <dl v-if="hasContact" class="help__contact">
-                  <template v-if="CODEL.phone">
-                    <dt>الهاتف وواتساب</dt>
-                    <dd>
-                      <PhoneLink :phone="CODEL.phone" :name="CODEL.nameAr" />
-                    </dd>
-                  </template>
-                  <template v-if="CODEL.email">
-                    <dt>البريد</dt>
-                    <dd>
-                      <bdi>{{ CODEL.email }}</bdi>
-                    </dd>
-                  </template>
-                  <template v-if="CODEL.website">
-                    <dt>الموقع</dt>
-                    <dd>
-                      <bdi>{{ CODEL.website }}</bdi>
-                    </dd>
-                  </template>
-                </dl>
-                <p v-else class="help__note help__note--flat">
-                  بيانات التواصل مع كودل لم تُضف إلى هذا الإصدار بعد.
-                </p>
+                <CodelContacts />
               </div>
             </section>
           </div>
@@ -488,9 +460,9 @@ const hasContact = Boolean(CODEL.website || CODEL.email || CODEL.phone);
       <section v-else class="dal-panel about" aria-labelledby="about-title">
         <div class="about__app">
           <span class="about__logo" aria-hidden="true">
-            <v-icon icon="mdi-home-city-outline" size="40" />
+            <v-icon icon="mdi-home-city-outline" size="32" />
           </span>
-          <div>
+          <div class="about__app-text">
             <h2 id="about-title" class="about__name">
               دلالي <bdi dir="ltr" class="about__latin">Dalaly</bdi>
             </h2>
@@ -498,61 +470,37 @@ const hasContact = Boolean(CODEL.website || CODEL.email || CODEL.phone);
               برنامج مكتبي لإدارة مكتب العقارات: العروض والطلبات والزبائن
               والصفقات والعقود والحسابات والتقارير، على هذا الجهاز ودون إنترنت.
             </p>
-            <p class="about__version">
-              الإصدار
-              <bdi dir="ltr">{{ version ?? "—" }}</bdi>
-            </p>
           </div>
+          <p class="about__version">
+            الإصدار
+            <bdi dir="ltr">{{ version ?? "—" }}</bdi>
+          </p>
         </div>
 
-        <div class="about__credit">
-          <div class="codel-mark">
-            <img
-              v-if="CODEL_LOGO"
-              :src="CODEL_LOGO"
-              alt="شعار شركة كودل (Codel)"
-            />
-            <bdi v-else dir="ltr" class="codel-mark__text">{{
-              CODEL.nameEn
-            }}</bdi>
-          </div>
-          <div class="about__credit-text">
-            <p class="about__credit-ar">
-              تم تطوير هذا التطبيق بواسطة {{ CODEL.nameAr }} (<bdi dir="ltr">{{
-                CODEL.nameEn
-              }}</bdi
-              >)
+        <div class="about__developer">
+          <div class="about__credit">
+            <h3 class="about__eyebrow">التطوير والتصميم</h3>
+            <CodelLogo :height="36" class="about__codel" />
+            <p class="about__credit-text">
+              تم تطوير وتصميم البرنامج بواسطة
+              <bdi dir="ltr">{{ CODEL.nameEn }}</bdi> - {{ CODEL.nameAr }}
             </p>
-            <p class="about__credit-en" dir="ltr" lang="en">
-              Developed by {{ CODEL.nameEn }}
-            </p>
-            <dl v-if="hasContact" class="help__contact">
-              <template v-if="CODEL.website">
-                <dt>الموقع</dt>
-                <dd>
-                  <bdi>{{ CODEL.website }}</bdi>
-                </dd>
-              </template>
-              <template v-if="CODEL.email">
-                <dt>البريد</dt>
-                <dd>
-                  <bdi>{{ CODEL.email }}</bdi>
-                </dd>
-              </template>
-              <template v-if="CODEL.phone">
-                <dt>الهاتف وواتساب</dt>
-                <dd><PhoneLink :phone="CODEL.phone" :name="CODEL.nameAr" /></dd>
-              </template>
-            </dl>
-            <p v-else class="help__note help__note--flat">
-              بيانات التواصل مع كودل لم تُضف إلى هذا الإصدار بعد.
+            <p class="about__address">
+              <v-icon
+                icon="mdi-map-marker-outline"
+                size="16"
+                aria-hidden="true"
+              />
+              <span class="d-sr-only">العنوان:</span>
+              {{ CODEL.address }}
             </p>
           </div>
+          <CodelContacts class="about__contacts" />
         </div>
 
         <p class="about__copyright">
-          <bdi dir="ltr">© {{ year }} {{ CODEL.nameEn }}.</bdi>
-          جميع الحقوق محفوظة.
+          <bdi dir="ltr">© {{ CODEL.nameEn }}</bdi> - {{ CODEL.nameAr }} — جميع
+          الحقوق محفوظة
         </p>
       </section>
     </div>
@@ -645,9 +593,6 @@ const hasContact = Boolean(CODEL.website || CODEL.email || CODEL.phone);
   color: var(--dal-muted);
   font-size: calc(12px * var(--dal-font-scale));
 }
-.help__note--flat {
-  padding: 0;
-}
 .help__table {
   width: 100%;
   border-collapse: collapse;
@@ -709,59 +654,20 @@ kbd {
   margin: 0;
   line-height: 1.7;
 }
-.help__contact {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 4px 12px;
-  margin: 0;
-  font-size: calc(13px * var(--dal-font-scale));
-}
-.help__contact dt {
+.help__support-logo {
+  margin-inline-start: auto;
   color: var(--dal-muted);
 }
-.help__contact dd {
-  margin: 0;
-}
 
-/* شعار كودل على سطح محايد ثابت، فيبقى مقروءاً في الوضعين، بنسبته كما هي. */
-.codel-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 132px;
-  height: 64px;
-  padding: 8px 12px;
-  border: 1px solid var(--dal-stroke);
-  border-radius: var(--dal-radius-card);
-  background: #ffffff;
-  flex: none;
-}
-.codel-mark--small {
-  width: 104px;
-  height: 48px;
-}
-.codel-mark img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-.codel-mark__text {
-  color: #1a1a1a;
-  font-size: calc(20px * var(--dal-font-scale));
-  font-weight: 700;
-}
-.codel-mark--small .codel-mark__text {
-  font-size: calc(16px * var(--dal-font-scale));
-}
-
+/* حول التطبيق: البرنامج وإصداره، ثم المطوّر بشعاره وطرق التواصل معه في
+   عمودين يصيران عموداً واحداً حين يضيق اللوح، ثم سطر الحقوق. */
 .about {
   display: grid;
-  max-width: 760px;
+  container-type: inline-size;
 }
-.about__app,
-.about__credit {
+.about__app {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
   padding: 16px;
   border-bottom: 1px solid var(--dal-stroke);
@@ -770,17 +676,23 @@ kbd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   flex: none;
   border-radius: var(--dal-radius-card);
   background: rgb(var(--v-theme-sidebar));
   color: rgb(var(--v-theme-on-sidebar));
 }
+.about__app-text {
+  flex: 1;
+  min-width: 0;
+}
 .about__name {
   margin: 0;
-  font-size: calc(18px * var(--dal-font-scale));
-  font-weight: 700;
+  font-family: var(--dal-display-font);
+  font-size: calc(20px * var(--dal-font-scale));
+  font-weight: 600;
+  color: var(--dal-heading);
 }
 .about__latin {
   margin-inline-start: 6px;
@@ -788,37 +700,82 @@ kbd {
   font-size: calc(14px * var(--dal-font-scale));
   font-weight: 600;
 }
-.about__desc,
-.about__version,
-.about__credit-ar,
-.about__credit-en {
-  margin: 4px 0 0;
+.about__desc {
+  margin: 2px 0 0;
   font-size: calc(13px * var(--dal-font-scale));
   line-height: 1.7;
 }
 .about__version {
+  flex: none;
+  align-self: flex-start;
+  margin: 0;
   color: var(--dal-muted);
+  font-size: calc(13px * var(--dal-font-scale));
+}
+.about__version bdi {
+  color: rgb(var(--v-theme-on-surface));
+  font-weight: 600;
+}
+.about__developer {
+  display: grid;
+  grid-template-columns: minmax(240px, 5fr) minmax(0, 6fr);
+  gap: 24px;
+  padding: 16px;
+}
+.about__credit {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 10px;
+}
+/* النحاس المقروء على الورق (link)؛ sidebar-accent مضبوط على الشريط الداكن. */
+.about__eyebrow {
+  margin: 0;
+  color: rgb(var(--v-theme-link));
+  font-size: calc(12px * var(--dal-font-scale));
+  font-weight: 600;
+}
+.about__codel {
+  margin-block: 4px;
+  color: var(--dal-heading);
+}
+.about__credit-text,
+.about__address {
+  margin: 0;
+  font-size: calc(13px * var(--dal-font-scale));
+  line-height: 1.7;
 }
 .about__credit-text {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
+  font-weight: 600;
 }
-.about__credit-ar {
-  margin: 0;
-  font-size: calc(14px * var(--dal-font-scale));
-  font-weight: 700;
-}
-.about__credit-en {
-  margin: 0 0 6px;
-  text-align: end;
+.about__address {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   color: var(--dal-muted);
+}
+.about__contacts {
+  padding-inline-start: 24px;
+  border-inline-start: 1px solid var(--dal-stroke);
 }
 .about__copyright {
   margin: 0;
-  padding: 12px 16px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--dal-stroke);
   color: var(--dal-muted);
   font-size: calc(12px * var(--dal-font-scale));
+}
+@container (max-width: 639px) {
+  .about__developer {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .about__contacts {
+    padding-inline-start: 0;
+    padding-top: 4px;
+    border-inline-start: 0;
+    border-top: 1px solid var(--dal-stroke);
+  }
 }
 @media (max-width: 1100px) {
   .help__columns {

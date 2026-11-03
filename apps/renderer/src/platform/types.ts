@@ -93,6 +93,12 @@ export interface PlatformAdapter {
   ): Promise<{ ok: boolean; message?: string }>;
 
   /**
+   * يفتح رابط تواصل (موقع، بريد، هاتف) في برنامجه على الجهاز لا في نافذة
+   * البرنامج. في Electron تتحقق العملية الرئيسية من الرابط وترفض ما سواه.
+   */
+  openExternal(url: string): Promise<{ ok: boolean }>;
+
+  /**
    * رسالة تُعرض للمستخدم عندما تكون الوظيفة غير متاحة على هذه المنصّة.
    * ترجع null إن كانت الوظيفة مدعومة.
    */

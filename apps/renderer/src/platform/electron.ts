@@ -103,6 +103,12 @@ export const electronPlatform: PlatformAdapter = {
     return api.saveDatabaseUrl(databaseUrl);
   },
 
+  async openExternal(url: string) {
+    const api = bridge();
+    if (!api?.openExternalLink) return { ok: false };
+    return api.openExternalLink(url);
+  },
+
   unavailableReason() {
     return null;
   },

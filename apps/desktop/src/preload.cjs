@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld("dalalyConfig", {
     ipcRenderer.invoke("startup:renderer-ready", health),
   setupRequest: (input) => ipcRenderer.invoke("setup:request", input),
   openMapLink: (url) => ipcRenderer.invoke("maps:open-external", url),
+  openExternalLink: (url) => ipcRenderer.invoke("links:open-external", url),
   // يحفظ DATABASE_URL الناتج عن تهيئة النظام (First Run Wizard).
   saveDatabaseUrl: (databaseUrl) =>
     ipcRenderer.invoke("config:save-database-url", databaseUrl),

@@ -34,6 +34,16 @@ export function safeExternalUrl(value) {
   }
 }
 
+// Contact links in «حول التطبيق»: a web address as above, a bare e-mail
+// address (no subject, body or attachment parameters) or a phone number.
+export function safeContactUrl(value) {
+  if (typeof value !== "string") return null;
+  if (/^mailto:[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(value))
+    return value;
+  if (/^tel:\+?\d{6,15}$/.test(value)) return value;
+  return safeExternalUrl(value);
+}
+
 export function safeMapLinkUrl(value) {
   const safe = safeExternalUrl(value);
   if (!safe) return null;

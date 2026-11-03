@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { useDisplay } from "vuetify";
 import { useRouter } from "vue-router";
 import { useAuth } from "../../composables/useAuth";
 import { usePageTitle } from "../../composables/usePageTitle";
@@ -10,19 +11,23 @@ import QuickAdd from "./QuickAdd.vue";
 import NotificationBell from "./NotificationBell.vue";
 
 // شريط الأوامر: عنوان الصفحة (h1) وسياقها وأوامرها على الحافة الأمامية، ثم
-// الأدوات العامة. الصفحة تكتب العنوان والسياق عبر AppPage، وترسل أوامرها
+// الأدوات العامة. الصفحة تكتب العنوان والسياق عبر AppPage， وترسل أوامرها
 // وحالتها إلى #dal-page-actions و#dal-page-status.
-defineProps<{ canRefresh?: boolean }>();
+const props = defineProps<{ canRefresh?: boolean; rail?: boolean }>();
 const emit = defineEmits<{ refresh: []; "toggle-drawer": [] }>();
 
 const router = useRouter();
 const { currentUser, logout } = useAuth();
 const { pageTitle, pageParent, pageCount } = usePageTitle();
+const { mdAndUp } = useDisplay();
 
 const userName = computed(() => currentUser.value?.username ?? "مستخدم");
 const displayName = computed(
   () => currentUser.value?.display_name || userName.value,
 );
+// الترويسة فوق القائمة الجانبية وبعرضها: كاملة مع القائمة الموسّعة، والعلامة
+// وحدها مع الطيّ وعلى الجوال (الدرج هناك طافٍ لا يشغل عموداً).
+const brandExpanded = computed(() => mdAndUp.value && !props.rail);
 
 async function onLogout() {
   await logout();
@@ -65,10 +70,24 @@ onBeforeUnmount(() => actionTitles?.disconnect());
   <v-app-bar
     color="background"
     class="dal-commandbar"
-    height="48"
+    height="49"
     flat
     role="banner"
   >
+    <!-- الترويسة كترويسة الورق الرسمي في دليل الهوية: الاسم بالكوفي وسطر
+         الوصف تحته، وقاعدة نحاسية أسفلها (styles.css). -->
+    <div class="dal-brand" :class="{ 'dal-brand--rail': !brandExpanded }">
+      <v-icon
+        class="dal-brand__mark"
+        icon="mdi-home-city-outline"
+        size="26"
+        aria-hidden="true"
+      />
+      <div v-if="brandExpanded">
+        <div class="dal-brand__title">دلالي</div>
+        <div class="dal-brand__sub">إدارة العروض العقارية</div>
+      </div>
+    </div>
     <v-app-bar-nav-icon
       aria-label="طيّ أو فتح قائمة التنقل"
       @click="emit('toggle-drawer')"

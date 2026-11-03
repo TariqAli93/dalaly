@@ -4,6 +4,7 @@ import { appConfigPath, readAppConfig, writeAppConfig } from "./app-config.js";
 import { createBackupScheduler, registerBackupHandlers } from "./backup.js";
 import { registerDocumentExport } from "./document-export.js";
 import {
+  safeContactUrl,
   safeExternalUrl,
   safeMapLinkUrl,
   isSameDocumentNavigation,
@@ -357,6 +358,18 @@ function stopLocalApi() {
 ipcMain.handle("maps:open-external", async (event, value) => {
   if (!trustedMainSender(event)) return { ok: false };
   const url = safeMapLinkUrl(value);
+  if (!url) return { ok: false };
+  try {
+    await shell.openExternal(url);
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+});
+
+ipcMain.handle("links:open-external", async (event, value) => {
+  if (!trustedMainSender(event)) return { ok: false };
+  const url = safeContactUrl(value);
   if (!url) return { ok: false };
   try {
     await shell.openExternal(url);

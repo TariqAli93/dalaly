@@ -89,13 +89,14 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onShortcut));
   <a class="dal-skip" href="#dal-main" @click.prevent="focusMain"
     >تخطَّ إلى المحتوى</a
   >
-  <AppSidebar v-model="drawer" v-model:rail="rail" />
   <AppTopbar
     :can-refresh="canRefresh"
+    :rail="rail"
     @refresh="refresh"
     @toggle-drawer="toggleNav"
   />
   <v-main class="dal-main">
+    <AppSidebar v-model="drawer" v-model:rail="rail" />
     <v-container
       id="dal-main"
       :fluid="appearance.fluid"

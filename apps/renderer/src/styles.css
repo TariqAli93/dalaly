@@ -195,7 +195,7 @@ body {
   --dal-space-5: 20px;
   --dal-space-6: 24px;
   --dal-space-8: 32px;
-  --dal-bar-height: 48px;
+  --dal-bar-height: 49px;
   --dal-gutter: 12px;
   --dal-row-height: 40px;
   --dal-head-height: 36px;
@@ -243,18 +243,29 @@ body {
 .dal-nav-drawer :focus-visible {
   outline-color: rgb(var(--v-theme-on-sidebar));
 }
-/* بارتفاع شريط الأوامر نفسه، فتبدأ القائمة ومحتوى الصفحة على خط واحد. تحته
-   قاعدة نحاسية تمتدّ مع خط شريط الأوامر، كخط النحاس تحت ترويسة الورق الرسمي. */
+/* في شريط الأوامر على حافته الأمامية، فوق القائمة مباشرة وبعرضها (AppSidebar:
+   width و rail-width)، ويتغيّر عرضه بتوقيت الدرج في Vuetify فيتحرّكان معاً.
+   تحته قاعدة نحاسية تمتدّ مع خط شريط الأوامر، كخط النحاس تحت ترويسة الورق
+   الرسمي. */
 .dal-brand {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 10px;
+  width: 232px;
   padding-inline: 16px;
+  overflow: hidden;
+  white-space: nowrap;
+  background: rgb(var(--v-theme-sidebar));
+  color: rgb(var(--v-theme-on-sidebar));
   min-height: var(--dal-bar-height);
   max-height: var(--dal-bar-height);
+  height: var(--dal-bar-height);
   border-bottom: 1px solid var(--dal-brass);
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.v-navigation-drawer--rail .dal-brand {
+.dal-brand--rail {
+  width: 56px;
   justify-content: center;
   padding-inline: 0;
 }
@@ -427,10 +438,13 @@ body {
    واحدة بعرض النافذة كترويسة الورق الرسمي في الدليل. */
 .dal-commandbar.v-app-bar {
   border-bottom: 1px solid var(--dal-brass);
+  max-height: var(--dal-bar-height) !important;
+  height: var(--dal-bar-height) !important;
+  width: 100% !important;
 }
 .dal-commandbar .v-toolbar__content {
   gap: 4px;
-  padding-inline: 4px 12px;
+  padding-inline: 0px 12px;
   /* الأدوات العامة تُطوى بحسب عرض الشريط نفسه لا النافذة: القائمة الموسّعة
      أو المطويّة تغيّر ما يتّسع له، وصفحة سجل بأوامر كثيرة تحتاج مكانها. */
   container: dal-commandbar / inline-size;
