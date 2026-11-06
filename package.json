@@ -26,6 +26,7 @@
     "perf:dashboard": "node scripts/perf/dashboard.mjs",
     "perf:business": "node scripts/perf/business.mjs",
     "perf:search": "pnpm --filter @dalaly/server exec tsx ../scripts/perf/search.mjs",
+    "tutorial:generate": "node scripts/tutorial/generate.mjs",
     "dist": "pnpm fetch:cloudflared && pnpm build && pnpm build:desktop",
     "package": "pnpm dist",
     "package:portable": "pnpm fetch:cloudflared && pnpm build && pnpm --filter @dalaly/desktop package:portable",
@@ -36,6 +37,7 @@
     "typecheck": "pnpm --filter @dalaly/server typecheck && pnpm --filter @dalaly/renderer typecheck && pnpm --filter @dalaly/desktop typecheck"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^1.4.0",
     "@eslint/js": "^9.39.5",
     "@playwright/test": "^1.61.1",
     "concurrently": "^9.2.1",

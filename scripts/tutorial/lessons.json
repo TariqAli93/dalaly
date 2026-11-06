@@ -1,0 +1,3313 @@
+{
+  "$comment": "Declarative lesson data for Dalaly Tutorial Studio. lessons are authored workflows keyed by their navigation path (section); every other page in NAV_SECTIONS gets a generic tour built from discovery, narrated from sections. Steps use the primitives in engine/executor.mjs; level is required (default), optional (UI that may legitimately be absent) or informational (emphasis only, never counted as a demonstrated workflow). {{number}}/{{total}}/{{username}}/{{pin}} and the dates {{today}}/{{in2days}}/{{in7days}}/{{in30days}}/{{in1year}} are filled in by the planner. All people, phones, documents and amounts are fictional.",
+  "intro": {
+    "id": "intro",
+    "title": "مقدمة وتسجيل الدخول",
+    "section": "/login",
+    "steps": [
+      {
+        "id": "title",
+        "action": "title",
+        "kicker": "دليل الاستخدام",
+        "title": "دلالي",
+        "subtitle": "إدارة مكتب العقارات: العروض والطلبات والزبائن والصفقات والحسابات",
+        "say": "هلا بيكم. بهذا الدليل راح نتعرف على دلالي، البرنامج اللي ينظم شغل مكتب العقارات، من أول عرض يوصل للمكتب لحد ما تنغلق الصفقة وتنقبض العمولة."
+      },
+      {
+        "id": "login-screen",
+        "action": "highlight",
+        "target": {
+          "label": "اسم المستخدم",
+          "exact": true
+        },
+        "say": "أول ما نفتح البرنامج تطلع شاشة الدخول. كل موظف إله اسم مستخدم ورمز سري، وصلاحياته هي اللي تحدد شنو يشوف وشنو يكدر يعدّل."
+      },
+      {
+        "id": "username",
+        "action": "fill",
+        "target": {
+          "label": "اسم المستخدم",
+          "exact": true
+        },
+        "value": "{{username}}",
+        "workflow": "login",
+        "say": "نكتب اسم المستخدم،"
+      },
+      {
+        "id": "pin",
+        "action": "fill",
+        "target": {
+          "label": "الرمز السري",
+          "exact": true
+        },
+        "value": "{{pin}}",
+        "workflow": "login",
+        "say": "والرمز السري."
+      },
+      {
+        "id": "submit",
+        "action": "click",
+        "target": {
+          "role": "button",
+          "name": "تسجيل الدخول",
+          "exact": true
+        },
+        "workflow": "login",
+        "expect": {
+          "url": "^/(\\?.*)?$",
+          "visible": {
+            "role": "navigation",
+            "name": "التنقل الرئيسي"
+          }
+        },
+        "say": "ونضغط تسجيل الدخول."
+      },
+      {
+        "id": "home",
+        "action": "pause",
+        "holdMs": 600,
+        "say": "وصلنا للبرنامج. على اليمين القائمة الجانبية بكل أقسام المكتب، وبالأعلى شريط الأوامر والبحث الشامل."
+      }
+    ]
+  },
+  "lessons": [
+    {
+      "id": "dashboard",
+      "section": "/",
+      "kind": "overview",
+      "title": "لوحة التحكم",
+      "steps": [
+        {
+          "id": "title",
+          "action": "title",
+          "kicker": "الدرس {{number}} من {{total}}",
+          "title": "لوحة التحكم",
+          "subtitle": "صورة يومية لشغل المكتب",
+          "say": "نبدي بلوحة التحكم، الشاشة اللي تجمع شغل اليوم كله بمكان واحد."
+        },
+        {
+          "id": "open",
+          "action": "navigate",
+          "to": "/",
+          "navTitle": "لوحة التحكم",
+          "workflow": "overview"
+        },
+        {
+          "id": "quick",
+          "action": "highlight",
+          "target": {
+            "role": "heading",
+            "name": "عمليات سريعة",
+            "exact": true
+          },
+          "workflow": "overview",
+          "say": "بالأعلى العمليات السريعة، أزرار للأشياء اللي نسويها كل يوم، مثل إضافة عرض أو زبون أو طلب."
+        },
+        {
+          "id": "attention",
+          "action": "highlight",
+          "target": {
+            "role": "heading",
+            "name": "/^يحتاج متابعتك/"
+          },
+          "workflow": "overview",
+          "say": "وهنا قائمة يحتاج متابعتك: المتابعات والمواعيد اللي لازم تنسوّى، والمتأخرة تبين أول شي حتى ما تفوت."
+        },
+        {
+          "id": "summary",
+          "action": "highlight",
+          "target": {
+            "role": "heading",
+            "name": "ملخّص العمل",
+            "exact": true
+          },
+          "workflow": "overview",
+          "say": "ملخص العمل يعرض حال الصفقات والزبائن والعروض بنظرة وحدة."
+        },
+        {
+          "id": "matching",
+          "action": "highlight",
+          "target": {
+            "role": "heading",
+            "name": "مطابقة العروض بطلبات الزبائن",
+            "exact": true
+          },
+          "workflow": "overview",
+          "say": "وهذا قسم مهم: مطابقة العروض بطلبات الزبائن. دلالي يقارن كل طلب مفتوح ويّه العروض المتاحة حسب النوع والموقع والسعر، ويطلع المطابقات جاهزة."
+        },
+        {
+          "id": "risk",
+          "action": "highlight",
+          "target": {
+            "role": "heading",
+            "name": "فرص معرّضة للضياع",
+            "exact": true
+          },
+          "workflow": "overview",
+          "say": "وبالأخير فرص معرّضة للضياع، تنبهنا على الأشياء اللي تحتاج انتباه قبل ما تروح من إيدنا."
+        },
+        {
+          "id": "value",
+          "action": "pause",
+          "say": "يعني من أول ما يفتح البرنامج، الموظف يعرف شنو عليه اليوم ووين الفرص، بدون ما يدوّر بين الأقسام."
+        }
+      ]
+    },
+    {
+      "id": "followups",
+      "section": "/tasks",
+      "kind": "workflow",
+      "title": "المهام والمتابعات: موعد يتسجّل وينجز",
+      "steps": [
+        {
+          "id": "title",
+          "action": "title",
+          "kicker": "الدرس {{number}} من {{total}}",
+          "title": "المهام والمتابعات",
+          "subtitle": "متابعة بموعدها، تطلع بالمهام، وتنغلق بنتيجتها",
+          "say": "كل اتصال أو معاينة لازم تنسوّى، تتسجل بدلالي كمتابعة إلها موعد وموظف مسؤول. بهذا الدرس نسجّل موعد معاينة على عرض، وبعدين ننجزه ونكتب نتيجته."
+        },
+        {
+          "id": "open-listings",
+          "action": "navigate",
+          "to": "/properties",
+          "navTitle": "عروض البيع",
+          "workflow": "schedule",
+          "say": "المتابعة دائماً تخص سجل معين، فنبدي من العرض نفسه."
+        },
+        {
+          "id": "find",
+          "action": "search",
+          "target": {
+            "role": "textbox",
+            "name": "بحث في عروض البيع",
+            "exact": true
+          },
+          "value": "H-0001",
+          "workflow": "schedule",
+          "expect": {
+            "text": {
+              "target": {
+                "role": "region",
+                "name": "عروض البيع",
+                "exact": true
+              },
+              "contains": "H-0001"
+            }
+          },
+          "say": "نكتب رمز العرض حتى نوصله بسرعة."
+        },
+        {
+          "id": "open-listing",
+          "action": "open",
+          "target": {
+            "role": "link",
+            "name": "/H-0001/",
+            "nth": 0,
+            "within": {
+              "role": "region",
+              "name": "عروض البيع",
+              "exact": true
+            }
+          },
+          "workflow": "schedule",
+          "expect": {
+            "url": "^/properties/\\d+$"
+          }
+        },
+        {
+          "id": "tab",
+          "action": "click",
+          "target": {
+            "role": "tab",
+            "name": "المتابعات",
+            "exact": true
+          },
+          "workflow": "schedule",
+          "expect": {
+            "visible": {
+              "role": "button",
+              "name": "إضافة متابعة",
+              "exact": true
+            }
+          },
+          "say": "بتبويب المتابعات نشوف كل اللي صار ويّه هذا العرض، واللي لازم يصير."
+        },
+        {
+          "id": "add",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "إضافة متابعة",
+            "exact": true
+          },
+          "workflow": "schedule",
+          "expect": {
+            "visible": {
+              "role": "dialog"
+            }
+          },
+          "say": "نضغط إضافة متابعة."
+        },
+        {
+          "id": "intent",
+          "action": "click",
+          "target": {
+            "role": "radio",
+            "name": "مهمة يجب إنجازها",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "workflow": "schedule",
+          "expect": {
+            "visible": {
+              "role": "textbox",
+              "name": "المطلوب",
+              "exact": true
+            }
+          },
+          "say": "نختار مهمة يجب إنجازها، لأن المعاينة شي لازم يصير بموعده، مو شي صار وخلص."
+        },
+        {
+          "id": "type",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "النوع",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "معاينة",
+          "workflow": "schedule",
+          "say": "نوعها معاينة، لأن عندنا زبون يريد يشوف البيت."
+        },
+        {
+          "id": "notes",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "المطلوب",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "معاينة البيت مع الزبون حيدر الموسوي",
+          "workflow": "schedule",
+          "zoom": true,
+          "say": "ونكتب المطلوب بوضوح، حتى أي موظف يفتحها يفهمها."
+        },
+        {
+          "id": "date",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "موعد الإنجاز (اختياري)",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "{{in2days}}",
+          "workflow": "schedule",
+          "zoom": true,
+          "say": "الموعد بعد يومين،"
+        },
+        {
+          "id": "time",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "الساعة",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "10:30",
+          "workflow": "schedule",
+          "say": "الساعة عشرة ونص الصبح."
+        },
+        {
+          "id": "priority",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "الأولوية",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "مرتفعة",
+          "workflow": "schedule",
+          "say": "وأولويتها مرتفعة لأن الزبون جدي."
+        },
+        {
+          "id": "save",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "حفظ",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "workflow": "schedule",
+          "expect": {
+            "hidden": {
+              "role": "dialog"
+            },
+            "api": {
+              "get": "/tasks/paged?q=%D8%AD%D9%8A%D8%AF%D8%B1&page=1&page_size=25",
+              "contains": "معاينة البيت مع الزبون حيدر الموسوي"
+            }
+          },
+          "say": "نحفظ، والمتابعة انربطت بالعرض مباشرة."
+        },
+        {
+          "id": "saved",
+          "action": "verify",
+          "target": {
+            "text": "معاينة البيت مع الزبون حيدر الموسوي"
+          },
+          "workflow": "schedule"
+        },
+        {
+          "id": "open-tasks",
+          "action": "navigate",
+          "to": "/tasks",
+          "navTitle": "المهام والمتابعات",
+          "workflow": "complete",
+          "say": "هسه نروح لقسم المهام. هنا تتجمع متابعات كل العروض والزبائن، ويّه موعد كل وحدة وحالتها."
+        },
+        {
+          "id": "find-task",
+          "action": "search",
+          "target": {
+            "role": "textbox",
+            "name": "بحث في الملاحظات والنتائج",
+            "exact": true
+          },
+          "value": "حيدر",
+          "workflow": "complete",
+          "zoom": true,
+          "expect": {
+            "text": {
+              "target": {
+                "role": "region",
+                "name": "المهام",
+                "exact": true
+              },
+              "contains": "معاينة البيت مع الزبون حيدر الموسوي"
+            }
+          },
+          "say": "ونلكاها بالبحث بسرعة: نكتب اسم الزبون، وتطلع المعاينة اللي سجلناها."
+        },
+        {
+          "id": "complete",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "/^إنجاز وتسجيل النتيجة: معاينة/",
+            "nth": 0
+          },
+          "workflow": "complete",
+          "expect": {
+            "visible": {
+              "role": "dialog",
+              "name": "إنجاز المهمة"
+            }
+          },
+          "say": "يوم المعاينة، بعد ما تخلص، نضغط إنجاز وتسجيل النتيجة."
+        },
+        {
+          "id": "outcome",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "النتيجة (اختياري)",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "تمت المعاينة والزبون يريد يومين حتى يقرر",
+          "workflow": "complete",
+          "zoom": true,
+          "say": "ونكتب شنو صار: الزبون شاف البيت ويريد يومين حتى يقرر."
+        },
+        {
+          "id": "done",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "حفظ",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "workflow": "complete",
+          "expect": {
+            "hidden": {
+              "role": "dialog"
+            },
+            "api": {
+              "get": "/tasks/paged?q=%D8%AD%D9%8A%D8%AF%D8%B1&status=done&page=1&page_size=25",
+              "contains": "تمت المعاينة والزبون يريد يومين حتى يقرر"
+            }
+          },
+          "say": "نحفظ، فالمهمة تنغلق ونتيجتها تبقى محفوظة بسجل العرض."
+        },
+        {
+          "id": "wrap",
+          "action": "pause",
+          "say": "هيج كل موعد إله صاحب ووقت ونتيجة. المدير يشوف شنو انسوّى وشنو متأخر، والزبون ما ينسى."
+        }
+      ]
+    },
+    {
+      "id": "sale-listings",
+      "section": "/properties",
+      "kind": "workflow",
+      "title": "عروض البيع: إضافة عرض والبحث عنه",
+      "steps": [
+        {
+          "id": "title",
+          "action": "title",
+          "kicker": "الدرس {{number}} من {{total}}",
+          "title": "عروض البيع",
+          "subtitle": "إضافة عرض بيع جديد، حفظه، والرجوع له بالبحث والفلاتر",
+          "say": "بهذا الدرس راح نشوف شلون نضيف عرض بيع جديد للمكتب، ونتأكد إنه انحفظ صح، وبعدين نلكاه بالبحث والفلاتر."
+        },
+        {
+          "id": "open-list",
+          "action": "navigate",
+          "to": "/properties",
+          "navTitle": "عروض البيع",
+          "workflow": "create",
+          "say": "نختار قسم عروض البيع من القائمة الجانبية. هنا كل البيوت والأراضي والشقق المعروضة للبيع عند المكتب."
+        },
+        {
+          "id": "add",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "إضافة عرض",
+            "exact": true
+          },
+          "workflow": "create",
+          "expect": {
+            "url": "^/properties/new$"
+          },
+          "say": "هسه نضغط على زر إضافة عرض حتى نفتح نموذج العرض الجديد."
+        },
+        {
+          "id": "required-note",
+          "action": "highlight",
+          "target": {
+            "text": "الحقول المعلّمة بـ * مطلوبة."
+          },
+          "level": "informational",
+          "say": "النموذج مقسّم لمجموعات واضحة، والحقول المطلوبة عليها نجمة، فما ينحفظ عرض ناقص."
+        },
+        {
+          "id": "type",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "نوع العقار *",
+            "exact": true
+          },
+          "value": "بيت",
+          "workflow": "create",
+          "zoom": true,
+          "say": "نختار نوع العقار: بيت."
+        },
+        {
+          "id": "governorate",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "المحافظة",
+            "exact": true
+          },
+          "value": "بغداد",
+          "workflow": "create",
+          "say": "بعدها نحدد الموقع: المحافظة بغداد،"
+        },
+        {
+          "id": "district",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "المنطقة",
+            "exact": true
+          },
+          "value": "الكرادة",
+          "workflow": "create",
+          "say": "والمنطقة الكرادة،"
+        },
+        {
+          "id": "neighborhood",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "الحي",
+            "exact": true
+          },
+          "value": "زيونة",
+          "workflow": "create",
+          "say": "والحي زيونة. اختيار الموقع من القائمة يخلي البحث والمطابقة دقيقة."
+        },
+        {
+          "id": "area",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "المساحة *",
+            "exact": true
+          },
+          "value": "250",
+          "workflow": "create",
+          "zoom": true,
+          "say": "نكتب المساحة، مئتين وخمسين متر."
+        },
+        {
+          "id": "unit-price",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "سعر متر (د.ع) *",
+            "exact": true
+          },
+          "value": "1200000",
+          "workflow": "create",
+          "zoom": true,
+          "say": "والتسعير هنا على المتر، فنكتب سعر المتر: مليون ومية وألفين ألف دينار."
+        },
+        {
+          "id": "total",
+          "action": "highlight",
+          "target": {
+            "text": "/300,000,000/"
+          },
+          "workflow": "create",
+          "expect": {
+            "text": {
+              "contains": "300,000,000"
+            }
+          },
+          "say": "لاحظوا السعر الكلي انحسب لوحده: ثلاث مية مليون دينار، فما نحتاج نحسبه يدوياً."
+        },
+        {
+          "id": "owner-name",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "اسم المالك *",
+            "exact": true
+          },
+          "value": "سلمان الجبوري",
+          "workflow": "create",
+          "zoom": true,
+          "say": "بمجموعة المالك نكتب اسم صاحب العقار،"
+        },
+        {
+          "id": "owner-phone",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "هاتف المالك *",
+            "exact": true
+          },
+          "value": "07700000123",
+          "workflow": "create",
+          "zoom": true,
+          "say": "ورقم هاتفه حتى نتواصل ويّاه بأي وقت."
+        },
+        {
+          "id": "save",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "حفظ",
+            "exact": true
+          },
+          "workflow": "create",
+          "say": "هسه نضغط حفظ."
+        },
+        {
+          "id": "matches",
+          "action": "highlight",
+          "target": {
+            "role": "dialog"
+          },
+          "level": "optional",
+          "workflow": "matching",
+          "say": "بعد الحفظ مباشرة، دلالي يدوّر بطلبات الشراء المسجلة، وإذا لكه زبون يناسبه هذا العرض يطلعه هنا.",
+          "expect": {
+            "text": {
+              "target": {
+                "role": "dialog"
+              },
+              "contains": "/PR-d+|طلب/"
+            }
+          }
+        },
+        {
+          "id": "matches-close",
+          "action": "close",
+          "target": {
+            "role": "button",
+            "name": "إغلاق",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "level": "optional",
+          "workflow": "matching"
+        },
+        {
+          "id": "saved",
+          "action": "verify",
+          "target": {
+            "role": "heading",
+            "level": 1
+          },
+          "workflow": "create",
+          "expect": {
+            "url": "^/properties/\\d+$",
+            "text": {
+              "contains": "سلمان الجبوري"
+            },
+            "api": {
+              "get": "/properties/paged?q=%D8%B3%D9%84%D9%85%D8%A7%D9%86&page=1&page_size=25",
+              "contains": "سلمان الجبوري"
+            }
+          },
+          "say": "العرض انحفظ وانفتحت صفحته مباشرة، وبيها كل المعلومات اللي دخلناها."
+        },
+        {
+          "id": "back-to-list",
+          "action": "navigate",
+          "to": "/properties",
+          "navTitle": "عروض البيع",
+          "workflow": "search",
+          "say": "نرجع لقائمة عروض البيع."
+        },
+        {
+          "id": "search",
+          "action": "search",
+          "target": {
+            "role": "textbox",
+            "name": "بحث في عروض البيع",
+            "exact": true
+          },
+          "value": "سلمان",
+          "workflow": "search",
+          "zoom": true,
+          "expect": {
+            "count": {
+              "target": {
+                "role": "link",
+                "name": "/^عقار /",
+                "within": {
+                  "role": "region",
+                  "name": "عروض البيع",
+                  "exact": true
+                }
+              },
+              "min": 1,
+              "max": 1
+            },
+            "text": {
+              "target": {
+                "role": "region",
+                "name": "عروض البيع",
+                "exact": true
+              },
+              "contains": "سلمان الجبوري"
+            }
+          },
+          "say": "ونجرب البحث: نكتب اسم المالك، سلمان، والنتيجة تطلع مباشرة. نكدر نبحث بالرمز أو المنطقة أو اسم المالك أو رقمه."
+        },
+        {
+          "id": "open-result",
+          "action": "open",
+          "target": {
+            "role": "link",
+            "name": "/^عقار /",
+            "nth": 0,
+            "within": {
+              "role": "region",
+              "name": "عروض البيع",
+              "exact": true
+            }
+          },
+          "workflow": "search",
+          "expect": {
+            "url": "^/properties/\\d+$",
+            "text": {
+              "contains": "سلمان الجبوري"
+            }
+          },
+          "say": "ومن نضغط على العرض، تنفتح صفحته بكل تفاصيله."
+        },
+        {
+          "id": "back-for-filters",
+          "action": "navigate",
+          "to": "/properties",
+          "navTitle": "عروض البيع",
+          "workflow": "filter"
+        },
+        {
+          "id": "clear-search",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "بحث في عروض البيع",
+            "exact": true
+          },
+          "value": "",
+          "workflow": "filter",
+          "expect": {
+            "count": {
+              "target": {
+                "role": "link",
+                "name": "/^عقار /",
+                "within": {
+                  "role": "region",
+                  "name": "عروض البيع",
+                  "exact": true
+                }
+              },
+              "min": 3
+            }
+          }
+        },
+        {
+          "id": "filter-type",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "النوع",
+            "exact": true
+          },
+          "value": "بيت",
+          "workflow": "filter",
+          "zoom": true,
+          "expect": {
+            "count": {
+              "target": {
+                "role": "link",
+                "name": "/^عقار /",
+                "within": {
+                  "role": "region",
+                  "name": "عروض البيع",
+                  "exact": true
+                }
+              },
+              "min": 2
+            }
+          },
+          "say": "ومن يتصل زبون ويسأل عن بيت، نمسح البحث ونستخدم الفلاتر: نختار النوع بيت، فتبقى البيوت بس."
+        },
+        {
+          "id": "filter-governorate",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "المحافظة",
+            "exact": true
+          },
+          "value": "بغداد",
+          "workflow": "filter",
+          "expect": {
+            "text": {
+              "target": {
+                "role": "region",
+                "name": "عروض البيع",
+                "exact": true
+              },
+              "contains": "سلمان الجبوري"
+            }
+          },
+          "say": "ونضيف المحافظة بغداد، والقائمة تضيق للعروض اللي تناسب طلبه، ومن ضمنها العرض الجديد."
+        },
+        {
+          "id": "wrap",
+          "action": "pause",
+          "say": "بهذي الطريقة كل عرض يدخل المكتب ينسجل مرة وحدة بمعلومات كاملة، ويكدر أي موظف يوصله بثواني."
+        }
+      ]
+    },
+    {
+      "id": "rental-listings",
+      "section": "/rentals",
+      "kind": "workflow",
+      "title": "عروض الإيجار: تسجيل شقة للإيجار",
+      "steps": [
+        {
+          "id": "title",
+          "action": "title",
+          "kicker": "الدرس {{number}} من {{total}}",
+          "title": "عروض الإيجار",
+          "subtitle": "شقة جديدة للإيجار: نوعها وسعرها ونوع الإيجار",
+          "say": "عروض الإيجار هي البيوت والشقق والمحلات اللي أصحابها يريدون يأجروها عن طريق المكتب. هسه نسجّل شقة جديدة ونتأكد إنها انحفظت."
+        },
+        {
+          "id": "open-list",
+          "action": "navigate",
+          "to": "/rentals",
+          "navTitle": "عروض الإيجار",
+          "workflow": "create",
+          "say": "نفتح قسم عروض الإيجار. القائمة تبين كل عرض ويّه نوعه وموقعه ومبلغ إيجاره."
+        },
+        {
+          "id": "add",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "إضافة عرض إيجار",
+            "exact": true
+          },
+          "workflow": "create",
+          "expect": {
+            "url": "^/rentals/new$"
+          },
+          "say": "نضغط إضافة عرض إيجار."
+        },
+        {
+          "id": "type",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "نوع العقار *",
+            "exact": true
+          },
+          "value": "شقة",
+          "workflow": "create",
+          "zoom": true,
+          "say": "نوع العقار شقة."
+        },
+        {
+          "id": "governorate",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "المحافظة",
+            "exact": true
+          },
+          "value": "بغداد",
+          "workflow": "create",
+          "say": "بغداد،"
+        },
+        {
+          "id": "district",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "المنطقة",
+            "exact": true
+          },
+          "value": "الكرادة",
+          "workflow": "create",
+          "say": "منطقة الكرادة."
+        },
+        {
+          "id": "area",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "المساحة *",
+            "exact": true
+          },
+          "value": "140",
+          "workflow": "create",
+          "zoom": true,
+          "say": "المساحة مية وأربعين متر."
+        },
+        {
+          "id": "rent-type",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "نوع الإيجار *",
+            "exact": true
+          },
+          "value": "شهري",
+          "workflow": "create",
+          "zoom": true,
+          "say": "ونوع الإيجار شهري، يعني البدل يندفع كل شهر."
+        },
+        {
+          "id": "price",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "سعر الإيجار (د.ع) *",
+            "exact": true
+          },
+          "value": "850000",
+          "workflow": "create",
+          "zoom": true,
+          "say": "وسعر الإيجار ثمن مية وخمسين ألف دينار بالشهر."
+        },
+        {
+          "id": "owner-name",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "اسم المالك *",
+            "exact": true
+          },
+          "value": "كريم عبد الحسين الزبيدي",
+          "workflow": "create",
+          "zoom": true,
+          "say": "نكتب اسم صاحب الشقة،"
+        },
+        {
+          "id": "owner-phone",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "هاتف المالك *",
+            "exact": true
+          },
+          "value": "07700000401",
+          "workflow": "create",
+          "zoom": true,
+          "say": "ورقم هاتفه."
+        },
+        {
+          "id": "save",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "حفظ",
+            "exact": true
+          },
+          "workflow": "create",
+          "say": "ونحفظ."
+        },
+        {
+          "id": "matches",
+          "action": "highlight",
+          "target": {
+            "role": "dialog"
+          },
+          "level": "optional",
+          "workflow": "matching",
+          "say": "وإذا أكو طلب إيجار يناسب الشقة، دلالي يطلعه هنا مباشرة.",
+          "expect": {
+            "text": {
+              "target": {
+                "role": "dialog"
+              },
+              "contains": "/RR-d+|طلب/"
+            }
+          }
+        },
+        {
+          "id": "matches-close",
+          "action": "close",
+          "target": {
+            "role": "button",
+            "name": "إغلاق",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "level": "optional",
+          "workflow": "matching"
+        },
+        {
+          "id": "saved",
+          "action": "verify",
+          "target": {
+            "role": "heading",
+            "level": 1
+          },
+          "workflow": "create",
+          "expect": {
+            "url": "^/rentals/\\d+$",
+            "text": {
+              "contains": "كريم عبد الحسين الزبيدي"
+            },
+            "api": {
+              "get": "/rentals/paged?q=%D9%83%D8%B1%D9%8A%D9%85&page=1&page_size=25",
+              "contains": "كريم عبد الحسين الزبيدي"
+            }
+          },
+          "say": "انحفظت الشقة وانفتحت صفحتها: السعر ونوع الإيجار والموقع وبيانات المالك."
+        },
+        {
+          "id": "back",
+          "action": "navigate",
+          "to": "/rentals",
+          "navTitle": "عروض الإيجار",
+          "workflow": "search"
+        },
+        {
+          "id": "search",
+          "action": "search",
+          "target": {
+            "role": "textbox",
+            "name": "بحث في عروض الإيجار",
+            "exact": true
+          },
+          "value": "كريم",
+          "workflow": "search",
+          "zoom": true,
+          "expect": {
+            "text": {
+              "target": {
+                "role": "region",
+                "name": "عروض الإيجار",
+                "exact": true
+              },
+              "contains": "كريم عبد الحسين الزبيدي"
+            }
+          },
+          "say": "ومن يتصل المالك يسأل عن شقته، نكتب اسمه بالبحث فتطلع مباشرة."
+        },
+        {
+          "id": "wrap",
+          "action": "pause",
+          "say": "كل عروض الإيجار مرتبة بمكان واحد بأسعارها وحالتها، فمن يجي مستأجر نعرف شنو متوفر إله بنفس اللحظة."
+        }
+      ]
+    },
+    {
+      "id": "purchase-request",
+      "section": "/purchase-requests",
+      "kind": "workflow",
+      "title": "طلبات الشراء: تسجيل طلب ومطابقته",
+      "steps": [
+        {
+          "id": "title",
+          "action": "title",
+          "kicker": "الدرس {{number}} من {{total}}",
+          "title": "طلبات الشراء",
+          "subtitle": "تسجيل طلب زبون ومطابقته ويّه العروض",
+          "say": "من يجي زبون يدوّر على عقار يشتريه، نسجّل طلبه بدلالي حتى ما يضيع، ودلالي يطابقه ويّه العروض الموجودة."
+        },
+        {
+          "id": "open-list",
+          "action": "navigate",
+          "to": "/purchase-requests",
+          "navTitle": "طلبات الشراء",
+          "workflow": "create",
+          "say": "نفتح طلبات الشراء. هنا كل طلب مفتوح ويّه ميزانيته والمنطقة اللي يريدها."
+        },
+        {
+          "id": "add",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "إضافة طلب شراء",
+            "exact": true
+          },
+          "workflow": "create",
+          "expect": {
+            "visible": {
+              "role": "dialog"
+            }
+          },
+          "say": "نضغط إضافة طلب شراء."
+        },
+        {
+          "id": "customer",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "الزبون *",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "query": "سارة",
+          "value": "/سارة محمد/",
+          "workflow": "create",
+          "say": "نختار الزبون من سجل الزبائن، سارة محمد. نكتب أول اسمها فيطلع."
+        },
+        {
+          "id": "type",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "نوع العقار *",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "بيت",
+          "workflow": "create",
+          "say": "تريد بيت،"
+        },
+        {
+          "id": "budget",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "الميزانية إلى (د.ع)",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "350000000",
+          "workflow": "create",
+          "zoom": true,
+          "say": "وميزانيتها لحد ثلاث مية وخمسين مليون دينار."
+        },
+        {
+          "id": "governorate",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "المحافظة",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "بغداد",
+          "workflow": "create",
+          "say": "بمحافظة بغداد."
+        },
+        {
+          "id": "save",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "حفظ ومطابقة",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "workflow": "create",
+          "expect": {
+            "api": {
+              "get": "/purchase-requests/paged?page=1&page_size=50",
+              "contains": [
+                "سارة محمد",
+                "350000000"
+              ]
+            }
+          },
+          "say": "ونضغط حفظ ومطابقة، فينحفظ الطلب ويبدي دلالي يدوّر على العروض المناسبة."
+        },
+        {
+          "id": "matches",
+          "action": "highlight",
+          "target": {
+            "role": "dialog",
+            "name": "/العروض المطابقة/"
+          },
+          "level": "optional",
+          "workflow": "matching",
+          "expect": {
+            "text": {
+              "target": {
+                "role": "dialog",
+                "name": "/العروض المطابقة/"
+              },
+              "contains": "/عقار|H-|V-|L-/"
+            }
+          },
+          "say": "وهاي العروض المطابقة: بيوت ببغداد ضمن ميزانيتها. هسه الموظف يتصل بسارة ويعرض عليها الأنسب بدل ما يدوّر يدوياً."
+        },
+        {
+          "id": "matches-close",
+          "action": "close",
+          "target": {
+            "role": "button",
+            "name": "إغلاق",
+            "exact": true,
+            "within": {
+              "role": "dialog",
+              "name": "/العروض المطابقة/"
+            }
+          },
+          "level": "optional",
+          "workflow": "matching"
+        },
+        {
+          "id": "wrap",
+          "action": "pause",
+          "say": "الطلب يبقى مفتوح ومحفوظ، وكل ما يدخل عرض جديد يناسبه، دلالي ينبهنا عليه بلوحة التحكم."
+        }
+      ]
+    },
+    {
+      "id": "rental-requests",
+      "section": "/rental-requests",
+      "kind": "workflow",
+      "title": "طلبات الإيجار: طلب مستأجر ومطابقته",
+      "steps": [
+        {
+          "id": "title",
+          "action": "title",
+          "kicker": "الدرس {{number}} من {{total}}",
+          "title": "طلبات الإيجار",
+          "subtitle": "طلب مستأجر بميزانيته، ودلالي يطابقه ويّه العروض",
+          "say": "طلبات الإيجار مثل طلبات الشراء، بس للزبائن اللي يدورون على بيت أو شقة يأجروها. نسجّل طلب مستأجر ونشوف شلون يطابقه دلالي."
+        },
+        {
+          "id": "open-list",
+          "action": "navigate",
+          "to": "/rental-requests",
+          "navTitle": "طلبات الإيجار",
+          "workflow": "create",
+          "say": "نفتح طلبات الإيجار."
+        },
+        {
+          "id": "add",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "إضافة طلب إيجار",
+            "exact": true
+          },
+          "workflow": "create",
+          "expect": {
+            "visible": {
+              "role": "dialog",
+              "name": "إضافة طلب إيجار"
+            }
+          },
+          "say": "نضغط إضافة طلب إيجار."
+        },
+        {
+          "id": "customer",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "الزبون *",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "query": "عمار",
+          "value": "/عمار جاسم الربيعي/",
+          "workflow": "create",
+          "say": "الزبون عمار الربيعي، موجود بسجل الزبائن."
+        },
+        {
+          "id": "type",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "نوع العقار *",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "شقة",
+          "workflow": "create",
+          "say": "يريد شقة،"
+        },
+        {
+          "id": "rent-type",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "نوع الإيجار *",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "شهري",
+          "workflow": "create",
+          "say": "بإيجار شهري،"
+        },
+        {
+          "id": "budget",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "الميزانية إلى (د.ع)",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "900000",
+          "workflow": "create",
+          "zoom": true,
+          "say": "وميزانيته لحد تسع مية ألف دينار بالشهر."
+        },
+        {
+          "id": "governorate",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "المحافظة",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "بغداد",
+          "workflow": "create",
+          "say": "ببغداد،"
+        },
+        {
+          "id": "district",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "المنطقة",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "الكرادة",
+          "workflow": "create",
+          "say": "بمنطقة الكرادة."
+        },
+        {
+          "id": "save",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "حفظ ومطابقة",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "workflow": "create",
+          "expect": {
+            "api": {
+              "get": "/rental-requests/paged?page=1&page_size=50",
+              "contains": [
+                "عمار جاسم الربيعي",
+                "900000"
+              ]
+            }
+          },
+          "say": "حفظ ومطابقة."
+        },
+        {
+          "id": "matches",
+          "action": "highlight",
+          "target": {
+            "role": "dialog",
+            "name": "/المطابق/"
+          },
+          "level": "optional",
+          "workflow": "matching",
+          "say": "ودلالي طلع العروض المطابقة، ويبين لكل عرض شنو المتطابق: نوع العقار، ونوع الإيجار، والسعر ضمن الميزانية، والمنطقة. المطابقة الكاملة تطلع أول شي.",
+          "expect": {
+            "text": {
+              "target": {
+                "role": "dialog",
+                "name": "/المطابق/"
+              },
+              "contains": "/مطابقة (كاملة|جزئية)/"
+            }
+          }
+        },
+        {
+          "id": "matches-close",
+          "action": "close",
+          "target": {
+            "role": "button",
+            "name": "إغلاق",
+            "exact": true,
+            "within": {
+              "role": "dialog",
+              "name": "/المطابق/"
+            }
+          },
+          "level": "optional",
+          "workflow": "matching"
+        },
+        {
+          "id": "find",
+          "action": "search",
+          "target": {
+            "role": "textbox",
+            "name": "بحث في طلبات الإيجار",
+            "exact": true
+          },
+          "value": "RR-9003",
+          "workflow": "search",
+          "expect": {
+            "text": {
+              "target": {
+                "role": "region",
+                "name": "طلبات الإيجار",
+                "exact": true
+              },
+              "contains": "عمار جاسم الربيعي"
+            }
+          },
+          "say": "والطلب صار بالقائمة برمزه، ونلكاه بالبحث برمز الطلب."
+        },
+        {
+          "id": "wrap",
+          "action": "pause",
+          "say": "يعني المستأجر ما يحتاج يتصل كل يوم يسأل، أول ما يتوفر عرض يناسبه المكتب يعرف ويرجعله."
+        }
+      ]
+    },
+    {
+      "id": "customers",
+      "section": "/people",
+      "kind": "workflow",
+      "title": "الزبائن: إضافة زبون والوصول لملفه",
+      "steps": [
+        {
+          "id": "title",
+          "action": "title",
+          "kicker": "الدرس {{number}} من {{total}}",
+          "title": "الزبائن",
+          "subtitle": "تسجيل زبون جديد والرجوع لملفه بالبحث",
+          "say": "سجل الزبائن هو الأساس: كل مالك ومشتري ومستأجر يتسجل مرة وحدة، وكل عروضه وطلباته وصفقاته ترتبط بملفه."
+        },
+        {
+          "id": "open-list",
+          "action": "navigate",
+          "to": "/people",
+          "navTitle": "الزبائن",
+          "workflow": "create",
+          "say": "نفتح قسم الزبائن."
+        },
+        {
+          "id": "add",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "إضافة زبون",
+            "exact": true
+          },
+          "workflow": "create",
+          "expect": {
+            "visible": {
+              "role": "dialog"
+            }
+          },
+          "say": "ونضغط إضافة زبون."
+        },
+        {
+          "id": "name",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "الاسم الرباعي مع اللقب *",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "مريم كريم عبد الله الطائي",
+          "workflow": "create",
+          "zoom": true,
+          "say": "نكتب الاسم الرباعي ويّه اللقب، حتى نميز الزبون عن غيره."
+        },
+        {
+          "id": "phone",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "الهاتف",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "07700000301",
+          "workflow": "create",
+          "zoom": true,
+          "say": "ورقم الهاتف. إذا الرقم مسجل لزبون ثاني، دلالي ينبهنا حتى ما يتكرر نفس الشخص."
+        },
+        {
+          "id": "save",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "حفظ",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "workflow": "create",
+          "expect": {
+            "hidden": {
+              "role": "dialog"
+            },
+            "api": {
+              "get": "/people/paged?q=%D9%85%D8%B1%D9%8A%D9%85&page=1&page_size=25",
+              "contains": "مريم كريم عبد الله الطائي"
+            }
+          },
+          "say": "نحفظ، والزبونة انضافت للسجل."
+        },
+        {
+          "id": "search",
+          "action": "search",
+          "target": {
+            "role": "textbox",
+            "name": "بحث في الزبائن",
+            "exact": true
+          },
+          "value": "مريم",
+          "workflow": "search",
+          "zoom": true,
+          "expect": {
+            "text": {
+              "target": {
+                "role": "region",
+                "name": "الزبائن",
+                "exact": true
+              },
+              "contains": "مريم كريم عبد الله الطائي"
+            }
+          },
+          "say": "وبأي وقت نلكاها بالبحث، بالاسم أو الهاتف أو الرمز."
+        },
+        {
+          "id": "open",
+          "action": "open",
+          "target": {
+            "role": "link",
+            "name": "مريم كريم عبد الله الطائي",
+            "exact": true,
+            "within": {
+              "role": "region",
+              "name": "الزبائن",
+              "exact": true
+            }
+          },
+          "workflow": "search",
+          "expect": {
+            "url": "^/clients/\\d+$",
+            "text": {
+              "contains": "مريم كريم عبد الله الطائي"
+            }
+          },
+          "say": "ومن نفتح ملفها، نشوف معلوماتها، وكل شي مربوط بيها من عروض وطلبات وصفقات ومستمسكات بمكان واحد."
+        },
+        {
+          "id": "wrap",
+          "action": "pause",
+          "say": "هيج الموظف يعرف تاريخ الزبون كله قبل ما يرد عليه، والمكتب ما يخسر زبون بسبب معلومة ضايعة."
+        }
+      ]
+    },
+    {
+      "id": "documents",
+      "section": "/documents",
+      "kind": "workflow",
+      "title": "المستمسكات: رفع وثيقة زبون",
+      "steps": [
+        {
+          "id": "title",
+          "action": "title",
+          "kicker": "الدرس {{number}} من {{total}}",
+          "title": "المستمسكات",
+          "subtitle": "وثائق الزبائن محفوظة ومربوطة بأصحابها",
+          "say": "المستمسكات هي الوثائق الرسمية للزبائن، مثل البطاقة الوطنية وبطاقة السكن. بدل ما نحفظها بملفات متفرقة، نرفعها بدلالي ونربطها بصاحبها."
+        },
+        {
+          "id": "open-list",
+          "action": "navigate",
+          "to": "/documents",
+          "navTitle": "المستمسكات",
+          "workflow": "upload",
+          "say": "نفتح قسم المستمسكات."
+        },
+        {
+          "id": "add",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "إضافة مستمسك",
+            "exact": true
+          },
+          "workflow": "upload",
+          "expect": {
+            "visible": {
+              "role": "dialog",
+              "name": "إضافة مستمسك"
+            }
+          },
+          "say": "نضغط إضافة مستمسك."
+        },
+        {
+          "id": "customer",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "الزبون *",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "query": "سارة",
+          "value": "/سارة محمد/",
+          "workflow": "upload",
+          "say": "نختار الزبونة سارة محمد."
+        },
+        {
+          "id": "kind",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "النوع",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "/سكن|بطاقة|هوية/",
+          "level": "optional",
+          "workflow": "upload",
+          "say": "ونوع المستمسك."
+        },
+        {
+          "id": "name",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "اسم المستمسك *",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "بطاقة السكن — نسخة تجريبية",
+          "workflow": "upload",
+          "zoom": true,
+          "say": "نكتب اسم واضح للوثيقة،"
+        },
+        {
+          "id": "number",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "رقم المستمسك",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "TEST-2026-001",
+          "workflow": "upload",
+          "say": "ورقمها."
+        },
+        {
+          "id": "file",
+          "action": "upload",
+          "target": {
+            "role": "button",
+            "name": "ملف المستمسك *",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "specimen-id.png",
+          "workflow": "upload",
+          "say": "ونرفع صورة الوثيقة. هنا نستخدم صورة تجريبية بدل وثيقة حقيقية."
+        },
+        {
+          "id": "save",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "رفع وحفظ",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "workflow": "upload",
+          "expect": {
+            "hidden": {
+              "role": "dialog"
+            },
+            "api": {
+              "get": "/documents",
+              "contains": "بطاقة السكن — نسخة تجريبية"
+            }
+          },
+          "say": "نضغط رفع وحفظ."
+        },
+        {
+          "id": "listed",
+          "action": "verify",
+          "target": {
+            "text": "بطاقة السكن — نسخة تجريبية"
+          },
+          "workflow": "upload",
+          "say": "والوثيقة صارت بالقائمة ويّه اسم صاحبتها، وتطلع هم بملف الزبونة نفسه."
+        },
+        {
+          "id": "wrap",
+          "action": "pause",
+          "say": "من نحتاج نكتب عقد أو نراجع معاملة، الوثائق جاهزة بدقيقة، ومحفوظة ويّه النسخ الاحتياطية للمكتب."
+        }
+      ]
+    },
+    {
+      "id": "deals",
+      "section": "/deals",
+      "kind": "workflow",
+      "title": "الصفقات: صفقة جديدة ومراحلها",
+      "steps": [
+        {
+          "id": "title",
+          "action": "title",
+          "kicker": "الدرس {{number}} من {{total}}",
+          "title": "الصفقات",
+          "subtitle": "زبون جدي وعرض معين يتحولون لصفقة نتابعها مرحلة بمرحلة",
+          "say": "الصفقة هي اللحظة اللي يصير بيها زبون جدي مهتم بعرض معين. بهذا الدرس نفتح صفقة جديدة، نربطها بالزبون والعقار، وننقلها لمرحلتها الجاية."
+        },
+        {
+          "id": "open-board",
+          "action": "navigate",
+          "to": "/deals",
+          "navTitle": "الصفقات",
+          "workflow": "create",
+          "say": "لوحة الصفقات تعرض كل صفقة بعمود مرحلتها: من أول تواصل، للمعاينة والتفاوض، لحد العقد."
+        },
+        {
+          "id": "add",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "صفقة جديدة",
+            "exact": true
+          },
+          "workflow": "create",
+          "expect": {
+            "visible": {
+              "role": "dialog",
+              "name": "صفقة جديدة"
+            }
+          },
+          "say": "نضغط صفقة جديدة."
+        },
+        {
+          "id": "sale",
+          "action": "highlight",
+          "target": {
+            "role": "button",
+            "name": "بيع",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "level": "informational",
+          "say": "الصفقة بيع، والنوع الثاني إيجار."
+        },
+        {
+          "id": "listing",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "عرض البيع",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "query": "H-0002",
+          "value": "/H-0002/",
+          "workflow": "create",
+          "say": "نختار العرض برمزه،"
+        },
+        {
+          "id": "buyer",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "المشتري *",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "query": "سارة",
+          "value": "/سارة محمد/",
+          "workflow": "create",
+          "say": "والمشتري سارة محمد. البائع ينربط تلقائياً من مالك العرض."
+        },
+        {
+          "id": "commission",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "العمولة المتوقعة",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "4000000",
+          "workflow": "create",
+          "zoom": true,
+          "say": "ونكتب العمولة المتوقعة، أربع ملايين دينار، حتى تطلع بتقارير الصفقات المفتوحة."
+        },
+        {
+          "id": "save",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "حفظ",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "workflow": "create",
+          "expect": {
+            "url": "^/deals/\\d+$",
+            "text": {
+              "contains": "سارة محمد"
+            }
+          },
+          "say": "نحفظ، وتنفتح صفحة الصفقة: الأطراف والعرض والسعر المطلوب."
+        },
+        {
+          "id": "path",
+          "action": "highlight",
+          "target": {
+            "role": "region",
+            "name": "مسار الصفقة",
+            "exact": true
+          },
+          "level": "informational",
+          "say": "بالأعلى مسار الصفقة، يبين وين واكفة هسه وشنو المراحل الجاية."
+        },
+        {
+          "id": "move",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "نقل المرحلة",
+            "exact": true
+          },
+          "workflow": "stage",
+          "expect": {
+            "visible": {
+              "role": "dialog"
+            }
+          },
+          "say": "بعد ما اتصلنا بسارة واتفقنا على موعد، ننقل الصفقة. نضغط نقل المرحلة."
+        },
+        {
+          "id": "stage",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "إلى المرحلة",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "تم التواصل",
+          "workflow": "stage",
+          "say": "نختار المرحلة: تم التواصل."
+        },
+        {
+          "id": "confirm",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "نقل",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "workflow": "stage",
+          "expect": {
+            "hidden": {
+              "role": "dialog"
+            },
+            "text": {
+              "target": {
+                "role": "region",
+                "name": "سجل المراحل",
+                "exact": true
+              },
+              "contains": "تم التواصل"
+            }
+          },
+          "say": "ونضغط نقل."
+        },
+        {
+          "id": "history",
+          "action": "highlight",
+          "target": {
+            "role": "region",
+            "name": "سجل المراحل",
+            "exact": true
+          },
+          "workflow": "stage",
+          "say": "وكل نقلة تنحفظ بسجل المراحل: من نقلها ومتى. هيج نعرف تاريخ الصفقة كله."
+        },
+        {
+          "id": "back-board",
+          "action": "navigate",
+          "to": "/deals",
+          "navTitle": "الصفقات",
+          "workflow": "board",
+          "expect": {
+            "text": {
+              "target": {
+                "role": "list",
+                "name": "مراحل الصفقات المفتوحة"
+              },
+              "contains": "سارة محمد"
+            }
+          },
+          "say": "نرجع للوحة، والصفقة صارت بعمود تم التواصل."
+        },
+        {
+          "id": "table",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "الجدول",
+            "exact": true
+          },
+          "workflow": "board",
+          "say": "ونكدر نعرض نفس الصفقات بجدول،"
+        },
+        {
+          "id": "search",
+          "action": "search",
+          "target": {
+            "role": "textbox",
+            "name": "بحث برمز الصفقة أو الزبون أو العرض",
+            "exact": true
+          },
+          "value": "سارة",
+          "workflow": "board",
+          "zoom": true,
+          "expect": {
+            "text": {
+              "contains": "H-0002"
+            }
+          },
+          "say": "ونبحث باسم الزبون أو رمز الصفقة أو العرض."
+        },
+        {
+          "id": "board-view",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "اللوحة",
+            "exact": true
+          },
+          "level": "optional"
+        },
+        {
+          "id": "wrap",
+          "action": "pause",
+          "say": "هيج ما تبقى صفقة معلّقة بدون متابعة. المدير يشوف كل صفقة بأي مرحلة، والصفقات الراكدة تبين حتى ينتبه إلها."
+        }
+      ]
+    },
+    {
+      "id": "contracts",
+      "section": "/contracts",
+      "kind": "workflow",
+      "title": "العقود: مسودة عقد إيجار من القالب",
+      "steps": [
+        {
+          "id": "title",
+          "action": "title",
+          "kicker": "الدرس {{number}} من {{total}}",
+          "title": "العقود",
+          "subtitle": "مسودة عقد إيجار سكني من القالب، خطوة بخطوة",
+          "say": "دلالي يكتب العقد من بيانات الزبائن والعقار المسجلة، فما نعيد كتابة الأسماء والأرقام. بهذا الدرس نحضّر مسودة عقد إيجار سكني."
+        },
+        {
+          "id": "open-list",
+          "action": "navigate",
+          "to": "/contracts",
+          "navTitle": "العقود",
+          "workflow": "draft",
+          "say": "قسم العقود بيه كل العقود: المسودات والصادرة."
+        },
+        {
+          "id": "new",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "عقد جديد",
+            "exact": true
+          },
+          "workflow": "draft",
+          "expect": {
+            "visible": {
+              "text": "عقد إيجار سكني",
+              "exact": true
+            }
+          },
+          "say": "نضغط عقد جديد، فتطلع قائمة بأنواع العقود."
+        },
+        {
+          "id": "types",
+          "action": "highlight",
+          "target": {
+            "css": ".v-overlay--active .v-list"
+          },
+          "level": "informational",
+          "say": "عندنا أربع أنواع جاهزة: بيع نقدي، وبيع بالتقسيط، وإيجار سكني، وإيجار تجاري. كل نوع إله قالب بالبنود المناسبة إله."
+        },
+        {
+          "id": "template",
+          "action": "click",
+          "target": {
+            "text": "عقد إيجار سكني",
+            "exact": true
+          },
+          "workflow": "draft",
+          "expect": {
+            "url": "^/contracts/\\d+"
+          },
+          "say": "نختار عقد إيجار سكني، فتنفتح مسودة جديدة، وكل خطوة تنحفظ تلقائياً.",
+          "commits": true
+        },
+        {
+          "id": "landlord",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "اختر المؤجر",
+            "exact": true
+          },
+          "query": "النخبة",
+          "value": "/النخبة/",
+          "workflow": "draft",
+          "say": "أول خطوة الأطراف: المؤجر شركة النخبة العقارية،"
+        },
+        {
+          "id": "tenant",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "اختر المستأجر",
+            "exact": true
+          },
+          "query": "محمد",
+          "value": "/محمد كاظم/",
+          "workflow": "draft",
+          "say": "والمستأجر محمد كاظم. معلوماتهم تنسحب من سجل الزبائن."
+        },
+        {
+          "id": "to-property",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "التالي: العقار",
+            "exact": true
+          },
+          "workflow": "draft",
+          "expect": {
+            "url": "step=property"
+          },
+          "say": "التالي: العقار."
+        },
+        {
+          "id": "property",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "اختر عرض الإيجار",
+            "exact": true
+          },
+          "query": "R-9001",
+          "value": "/R-9001/",
+          "workflow": "draft",
+          "say": "نختار عرض الإيجار اللي يخصه العقد، فينملأ عنوانه ومواصفاته بالعقد."
+        },
+        {
+          "id": "to-details",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "التالي: التفاصيل",
+            "exact": true
+          },
+          "workflow": "draft",
+          "expect": {
+            "url": "step=details"
+          },
+          "say": "وبعدها التفاصيل."
+        },
+        {
+          "id": "rent",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "بدل الإيجار",
+            "exact": true
+          },
+          "value": "650000",
+          "workflow": "draft",
+          "zoom": true,
+          "say": "بدل الإيجار ست مية وخمسين ألف دينار،"
+        },
+        {
+          "id": "deposit",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "مبلغ التأمين (اختياري)",
+            "exact": true
+          },
+          "value": "500000",
+          "workflow": "draft",
+          "zoom": true,
+          "say": "والتأمين خمس مية ألف."
+        },
+        {
+          "id": "start",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "تاريخ بدء الإيجار",
+            "exact": true
+          },
+          "value": "{{in7days}}",
+          "workflow": "draft",
+          "zoom": true,
+          "say": "يبدي الإيجار بعد أسبوع،"
+        },
+        {
+          "id": "end",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "تاريخ انتهاء الإيجار",
+            "exact": true
+          },
+          "value": "{{in1year}}",
+          "workflow": "draft",
+          "zoom": true,
+          "say": "وينتهي بعد سنة."
+        },
+        {
+          "id": "to-content",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "التالي: البنود والمحتوى",
+            "exact": true
+          },
+          "workflow": "draft",
+          "expect": {
+            "url": "step=content"
+          },
+          "say": "الخطوة الرابعة البنود والمحتوى."
+        },
+        {
+          "id": "editor",
+          "action": "highlight",
+          "target": {
+            "role": "region",
+            "name": "محرر العقد",
+            "exact": true
+          },
+          "level": "informational",
+          "say": "هنا نص العقد من القالب، والحقول ملتها البيانات اللي دخلناها. نكدر نعدّل أي بند لهذا العقد بس، بدون ما نغيّر القالب."
+        },
+        {
+          "id": "to-review",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "/^5 المعاينة والإصدار/"
+          },
+          "workflow": "draft",
+          "expect": {
+            "url": "step=review"
+          },
+          "say": "وآخر خطوة المعاينة والإصدار."
+        },
+        {
+          "id": "readiness",
+          "action": "highlight",
+          "target": {
+            "role": "region",
+            "name": "جاهزية الإصدار",
+            "exact": true
+          },
+          "workflow": "draft",
+          "say": "دلالي يفحص العقد قبل الإصدار ويبين إذا أكو معلومة ناقصة."
+        },
+        {
+          "id": "preview",
+          "action": "highlight",
+          "target": {
+            "role": "region",
+            "name": "معاينة العقد",
+            "exact": true
+          },
+          "level": "informational",
+          "say": "ويّه معاينة العقد مثل ما راح ينطبع."
+        },
+        {
+          "id": "issue",
+          "action": "highlight",
+          "target": {
+            "role": "button",
+            "name": "إصدار العقد",
+            "exact": true
+          },
+          "level": "informational",
+          "say": "العقد هسه مسودة نكدر نعدلها بأي وقت. من نضغط إصدار العقد يصير نهائي وما يتعدّل، وأي تغيير بعدها يكون بملحق. هنا نخليه مسودة."
+        },
+        {
+          "id": "listed",
+          "action": "navigate",
+          "to": "/contracts",
+          "navTitle": "العقود",
+          "workflow": "draft",
+          "expect": {
+            "text": {
+              "target": {
+                "role": "region",
+                "name": "العقود",
+                "exact": true
+              },
+              "contains": "محمد كاظم"
+            }
+          },
+          "say": "ونرجع للقائمة، والمسودة محفوظة ويّه اسم المستأجر، جاهزة نكملها أو نصدرها."
+        },
+        {
+          "id": "wrap",
+          "action": "pause",
+          "say": "العقد يطلع موحد ومن بيانات صحيحة، فنقلل الأخطاء بالأسماء والمبالغ، والمسودة ما تختلط بالعقد الصادر."
+        }
+      ]
+    },
+    {
+      "id": "leases",
+      "section": "/leases",
+      "kind": "workflow",
+      "title": "الإيجارات السارية: الأقساط وتحصيلها",
+      "steps": [
+        {
+          "id": "title",
+          "action": "title",
+          "kicker": "الدرس {{number}} من {{total}}",
+          "title": "الإيجارات السارية",
+          "subtitle": "جدول الأقساط، المتأخر، وتحصيل الإيجار",
+          "say": "من ينكتب عقد إيجار، يصير إيجار ساري إله جدول أقساط. المكتب يتابع منو دفع ومنو متأخر، ويحصّل الإيجار لحساب المؤجر."
+        },
+        {
+          "id": "open-list",
+          "action": "navigate",
+          "to": "/leases",
+          "navTitle": "الإيجارات السارية",
+          "workflow": "collect",
+          "say": "نفتح الإيجارات السارية."
+        },
+        {
+          "id": "open-lease",
+          "action": "open",
+          "target": {
+            "role": "row",
+            "name": "/LS-000001/",
+            "nth": 0,
+            "within": {
+              "role": "region",
+              "name": "الإيجارات",
+              "exact": true
+            }
+          },
+          "workflow": "collect",
+          "expect": {
+            "url": "^/leases/\\d+$"
+          },
+          "say": "ونفتح إيجار المستأجر عمار الربيعي بنقرتين على السطر.",
+          "double": true
+        },
+        {
+          "id": "details",
+          "action": "highlight",
+          "target": {
+            "role": "region",
+            "name": "بيانات الإيجار",
+            "exact": true
+          },
+          "level": "informational",
+          "say": "بالأعلى المستأجر والمؤجر والعقار، ومبلغ الإيجار ومدته."
+        },
+        {
+          "id": "schedule",
+          "action": "scroll",
+          "target": {
+            "role": "region",
+            "name": "جدول الأقساط",
+            "exact": true
+          },
+          "workflow": "collect",
+          "say": "وهذا جدول الأقساط: كل قسط بتاريخ استحقاقه ومبلغه وحالته. القسط الأول مدفوع، والثاني فات موعده."
+        },
+        {
+          "id": "collect",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "تحصيل القسط 2",
+            "exact": true
+          },
+          "workflow": "collect",
+          "expect": {
+            "visible": {
+              "role": "dialog",
+              "name": "سند قبض جديد"
+            }
+          },
+          "say": "المستأجر جاب إيجار الشهر الثاني، فنضغط تحصيل على القسط الثاني."
+        },
+        {
+          "id": "voucher",
+          "action": "highlight",
+          "target": {
+            "role": "group",
+            "name": "السند",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "workflow": "collect",
+          "say": "دلالي يحضّر سند القبض لحاله: المبلغ المتبقي من القسط، والغرض أمانة لحساب المؤجر، لأن الإيجار مو إيراد للمكتب."
+        },
+        {
+          "id": "about",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "وذلك عن *",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "إيجار الشهر الثاني",
+          "workflow": "collect",
+          "zoom": true,
+          "say": "نكتب البيان: إيجار الشهر الثاني."
+        },
+        {
+          "id": "issue",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "إصدار",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "workflow": "collect",
+          "expect": {
+            "hidden": {
+              "role": "dialog"
+            },
+            "text": {
+              "target": {
+                "role": "region",
+                "name": "مال الإيجار",
+                "exact": true
+              },
+              "contains": "/RC-00000[3-9]/"
+            }
+          },
+          "say": "ونصدر السند."
+        },
+        {
+          "id": "receipt",
+          "action": "highlight",
+          "target": {
+            "role": "region",
+            "name": "مال الإيجار",
+            "exact": true
+          },
+          "workflow": "collect",
+          "say": "السند الجديد صار ضمن مال الإيجار، والمبلغ محسوب للمؤجر حتى نسلمه إله لاحقاً."
+        },
+        {
+          "id": "back",
+          "action": "navigate",
+          "to": "/leases",
+          "navTitle": "الإيجارات السارية",
+          "workflow": "overdue"
+        },
+        {
+          "id": "overdue",
+          "action": "click",
+          "target": {
+            "role": "tab",
+            "name": "/^الأقساط المتأخرة/"
+          },
+          "workflow": "overdue",
+          "expect": {
+            "visible": {
+              "role": "tab",
+              "name": "/^الأقساط المتأخرة/"
+            }
+          },
+          "say": "وتبويب الأقساط المتأخرة يجمع كل قسط فات موعده بكل الإيجارات، حتى نتصل بأصحابها قبل ما يتراكم المبلغ."
+        },
+        {
+          "id": "wrap",
+          "action": "pause",
+          "say": "هيج المكتب يعرف بأي لحظة منو دفع ومنو متأخر، وكل مبلغ إله سند واضح."
+        }
+      ]
+    },
+    {
+      "id": "accounting",
+      "section": "/accounting",
+      "kind": "workflow",
+      "title": "الحسابات: العمولات والسندات",
+      "steps": [
+        {
+          "id": "title",
+          "action": "title",
+          "kicker": "الدرس {{number}} من {{total}}",
+          "title": "الحسابات",
+          "subtitle": "تحصيل عمولة، والسند، والقيد المحاسبي وراه",
+          "say": "قسم الحسابات يجمع فلوس المكتب: العمولات، وسندات القبض والصرف، وأمانات الزبائن. بهذا الدرس نحصّل باقي عمولة صفقة ونتتبع السند لحد قيده."
+        },
+        {
+          "id": "open",
+          "action": "navigate",
+          "to": "/accounting",
+          "navTitle": "الحسابات",
+          "workflow": "collect",
+          "say": "نفتح الحسابات."
+        },
+        {
+          "id": "summary",
+          "action": "highlight",
+          "target": {
+            "role": "region",
+            "name": "ملخّص المال",
+            "exact": true
+          },
+          "workflow": "collect",
+          "say": "بالأعلى ملخص الفترة: الرصيد بالصناديق، والعمولات المقبوضة والمتبقية، والمصروفات."
+        },
+        {
+          "id": "search",
+          "action": "search",
+          "target": {
+            "role": "textbox",
+            "name": "بحث في الحركات المالية",
+            "exact": true
+          },
+          "value": "RC-000001",
+          "workflow": "trace",
+          "expect": {
+            "text": {
+              "target": {
+                "role": "region",
+                "name": "الحركات والعمولات",
+                "exact": true
+              },
+              "contains": "RC-000001"
+            }
+          },
+          "say": "وبالحركات المالية نبحث برقم السند أو الطرف أو البيان. هذا سند قبض الدفعة الأولى من عمولة بيع."
+        },
+        {
+          "id": "search-clear",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "بحث في الحركات المالية",
+            "exact": true
+          },
+          "value": "",
+          "level": "optional"
+        },
+        {
+          "id": "open-commission",
+          "action": "open",
+          "target": {
+            "role": "link",
+            "name": "العمولة CM-000001",
+            "exact": true,
+            "nth": 0,
+            "within": {
+              "role": "region",
+              "name": "الحركات والعمولات",
+              "exact": true
+            }
+          },
+          "workflow": "collect",
+          "expect": {
+            "url": "^/accounting/commissions/\\d+$"
+          },
+          "say": "نفتح العمولة نفسها."
+        },
+        {
+          "id": "commission",
+          "action": "highlight",
+          "target": {
+            "role": "region",
+            "name": "بيانات العمولة",
+            "exact": true
+          },
+          "workflow": "collect",
+          "say": "العمولة ستة ملايين دينار على المشتري، انقبض نصها وباقي ثلاث ملايين."
+        },
+        {
+          "id": "collect",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "تحصيل",
+            "exact": true
+          },
+          "workflow": "collect",
+          "expect": {
+            "visible": {
+              "role": "dialog",
+              "name": "سند قبض جديد"
+            }
+          },
+          "say": "الزبون دفع الباقي، فنضغط تحصيل."
+        },
+        {
+          "id": "about",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "وذلك عن *",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "الدفعة الثانية من عمولة البيع",
+          "workflow": "collect",
+          "zoom": true,
+          "say": "المبلغ والغرض جاهزين، نكتب البيان بس."
+        },
+        {
+          "id": "issue",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "إصدار",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "workflow": "collect",
+          "expect": {
+            "hidden": {
+              "role": "dialog"
+            },
+            "count": {
+              "target": {
+                "role": "link",
+                "name": "/^RC-/",
+                "within": {
+                  "role": "region",
+                  "name": "سندات العمولة",
+                  "exact": true
+                }
+              },
+              "min": 2
+            }
+          },
+          "say": "ونصدر السند. هسه العمولة مقبوضة بالكامل، وسنداتها الاثنين تحت."
+        },
+        {
+          "id": "open-voucher",
+          "action": "open",
+          "target": {
+            "role": "link",
+            "name": "/^RC-/",
+            "nth": 1,
+            "within": {
+              "role": "region",
+              "name": "سندات العمولة",
+              "exact": true
+            }
+          },
+          "workflow": "trace",
+          "expect": {
+            "url": "^/accounting/vouchers/\\d+$"
+          },
+          "say": "ومن نفتح السند الجديد،"
+        },
+        {
+          "id": "journal",
+          "action": "highlight",
+          "target": {
+            "role": "link",
+            "name": "/^JE-/",
+            "nth": 0
+          },
+          "workflow": "trace",
+          "say": "نشوف القيد المحاسبي اللي انسجل وراه تلقائياً. يعني كل دينار نعرف منين إجه ووين راح، بدون إدخال مرتين."
+        },
+        {
+          "id": "back",
+          "action": "navigate",
+          "to": "/accounting",
+          "navTitle": "الحسابات",
+          "workflow": "commissions"
+        },
+        {
+          "id": "commissions-tab",
+          "action": "click",
+          "target": {
+            "role": "tab",
+            "name": "العمولات",
+            "exact": true
+          },
+          "workflow": "commissions",
+          "expect": {
+            "visible": {
+              "role": "tab",
+              "name": "العمولات",
+              "exact": true
+            }
+          },
+          "say": "وتبويب العمولات يبين كل عمولة: شكد مسجّل، شكد انقبض، وشكد باقي على كل زبون."
+        },
+        {
+          "id": "wrap",
+          "action": "pause",
+          "say": "هيج صاحب المكتب يعرف حقه من كل صفقة، والمحاسب عنده سجل واضح يرجعله بأي وقت."
+        }
+      ]
+    },
+    {
+      "id": "reports",
+      "section": "/reports",
+      "kind": "workflow",
+      "title": "التقارير: الفترة والأرقام والتصدير",
+      "steps": [
+        {
+          "id": "title",
+          "action": "title",
+          "kicker": "الدرس {{number}} من {{total}}",
+          "title": "التقارير",
+          "subtitle": "نختار التقرير والفترة، نقرأ الأرقام، ونصدّرها",
+          "say": "التقارير تعطي صورة واضحة عن شغل المكتب، وأرقامها تطلع من البيانات المسجلة نفسها، مو من جداول يدوية."
+        },
+        {
+          "id": "open",
+          "action": "navigate",
+          "to": "/reports",
+          "navTitle": "التقارير",
+          "workflow": "report",
+          "say": "صفحة وحدة بيها كل التقارير: العقارات والصفقات والإيجارات والعمولات والحسابات والزبائن."
+        },
+        {
+          "id": "rentals",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "الإيجارات",
+            "exact": true,
+            "within": {
+              "role": "region",
+              "name": "فلاتر التقرير",
+              "exact": true
+            }
+          },
+          "workflow": "report",
+          "expect": {
+            "visible": {
+              "role": "heading",
+              "name": "الإيجارات السارية",
+              "exact": true
+            }
+          },
+          "say": "نختار تقرير الإيجارات."
+        },
+        {
+          "id": "overdue",
+          "action": "highlight",
+          "target": {
+            "role": "heading",
+            "name": "/^المتأخر اليوم/"
+          },
+          "workflow": "report",
+          "say": "يبين الإيجارات السارية ومجموع الإيجار الشهري، والأقساط المستحقة، والمتأخر لليوم، والإيجارات اللي راح تنتهي قريباً حتى نجدّدها بوقتها."
+        },
+        {
+          "id": "money",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "العمولات والحسابات",
+            "exact": true,
+            "within": {
+              "role": "region",
+              "name": "فلاتر التقرير",
+              "exact": true
+            }
+          },
+          "workflow": "report",
+          "expect": {
+            "visible": {
+              "role": "combobox",
+              "name": "التقرير",
+              "exact": true
+            }
+          },
+          "say": "وهسه تقرير العمولات والحسابات."
+        },
+        {
+          "id": "year",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "هذه السنة",
+            "exact": true
+          },
+          "workflow": "report",
+          "say": "نختار الفترة: هذه السنة."
+        },
+        {
+          "id": "commissions",
+          "action": "highlight",
+          "target": {
+            "role": "heading",
+            "name": "/^العمولات [(]/"
+          },
+          "workflow": "report",
+          "expect": {
+            "text": {
+              "contains": "CM-000001"
+            }
+          },
+          "say": "تقرير العمولات يبين المسجّل والمقبوض والمتبقي على الزبائن، ولكل عمولة صفقتها والدافع. هيج صاحب المكتب يعرف شكد إله بذمة الزبائن."
+        },
+        {
+          "id": "income-report",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "التقرير",
+            "exact": true
+          },
+          "value": "الإيرادات والمصروفات",
+          "workflow": "report",
+          "say": "ومن نفس المكان نختار تقرير الإيرادات والمصروفات."
+        },
+        {
+          "id": "income",
+          "action": "highlight",
+          "target": {
+            "role": "heading",
+            "name": "/^الإيرادات/"
+          },
+          "workflow": "report",
+          "expect": {
+            "text": {
+              "contains": "عمولات الوساطة"
+            }
+          },
+          "say": "الإيراد هنا عمولات الوساطة اللي قبضناها، أما الإيجار المحصّل فهو أمانة للمؤجر، فما ينحسب إيراد للمكتب."
+        },
+        {
+          "id": "export",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "Excel",
+            "exact": true
+          },
+          "workflow": "export",
+          "expect": {
+            "exported": {
+              "extension": "xlsx",
+              "label": "انحفظ ملف Excel"
+            }
+          },
+          "say": "ونصدّر التقرير لملف إكسل، حتى نرسله للإدارة أو نحتفظ بيه. ونفس الشي نكدر نطلعه PDF أو نطبعه."
+        },
+        {
+          "id": "wrap",
+          "action": "pause",
+          "say": "بدل ما نجمع الأرقام يدوياً آخر الشهر، التقرير جاهز بأي وقت، وصاحب المكتب يقرر على أساس أرقام حقيقية."
+        }
+      ]
+    },
+    {
+      "id": "settings",
+      "section": "/settings",
+      "kind": "workflow",
+      "title": "الإعدادات: بيانات المكتب والمظهر",
+      "steps": [
+        {
+          "id": "title",
+          "action": "title",
+          "kicker": "الدرس {{number}} من {{total}}",
+          "title": "الإعدادات",
+          "subtitle": "بيانات المكتب اللي تطلع بالعقود والتقارير",
+          "say": "بالإعدادات نضبط بيانات المكتب والمظهر والأمان والنسخ الاحتياطي. نبدي ببيانات المكتب لأنها تطلع بكل عقد وتقرير."
+        },
+        {
+          "id": "open",
+          "action": "navigate",
+          "to": "/settings",
+          "navTitle": "الإعدادات",
+          "workflow": "office"
+        },
+        {
+          "id": "office-tab",
+          "action": "click",
+          "target": {
+            "role": "tab",
+            "name": "معلومات المكتب",
+            "exact": true
+          },
+          "workflow": "office",
+          "expect": {
+            "visible": {
+              "role": "textbox",
+              "name": "اسم المكتب",
+              "exact": true
+            }
+          },
+          "say": "نفتح تبويب معلومات المكتب: الاسم والهاتف والعنوان."
+        },
+        {
+          "id": "owner",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "اسم صاحب المكتب",
+            "exact": true
+          },
+          "value": "علي حسن الكعبي",
+          "workflow": "office",
+          "zoom": true,
+          "say": "نكمّل اسم صاحب المكتب."
+        },
+        {
+          "id": "save",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "حفظ المعلومات",
+            "exact": true
+          },
+          "workflow": "office",
+          "expect": {
+            "api": {
+              "get": "/office",
+              "contains": "علي حسن الكعبي"
+            }
+          },
+          "say": "ونحفظ، فتطلع هاي البيانات بترويسة العقود والسندات والتقارير."
+        },
+        {
+          "id": "backup-tab",
+          "action": "click",
+          "target": {
+            "role": "tab",
+            "name": "النسخ الاحتياطي",
+            "exact": true
+          },
+          "workflow": "office",
+          "say": "وبتبويب النسخ الاحتياطي، المكتب ياخذ نسخة من قاعدة البيانات والملفات، ويكدر يخليها تلقائية حتى ما تضيع بياناته."
+        },
+        {
+          "id": "appearance-tab",
+          "action": "click",
+          "target": {
+            "role": "tab",
+            "name": "المظهر",
+            "exact": true
+          },
+          "workflow": "appearance",
+          "say": "والمظهر: كل موظف يختار الألوان وحجم الخط المريح إله."
+        },
+        {
+          "id": "theme",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "زيتوني",
+            "exact": true
+          },
+          "workflow": "appearance",
+          "say": "مثلاً ألوان زيتونية،"
+        },
+        {
+          "id": "theme-back",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "دلالي",
+            "exact": true
+          },
+          "workflow": "appearance",
+          "say": "ونرجع للألوان الأصلية."
+        },
+        {
+          "id": "wrap",
+          "action": "pause",
+          "say": "إعدادات مرتبة مرة وحدة، وكل عقد وتقرير يطلع باسم المكتب وبياناته الصحيحة."
+        }
+      ]
+    },
+    {
+      "id": "users",
+      "section": "/users",
+      "kind": "workflow",
+      "title": "المستخدمون: حساب لموظف جديد",
+      "steps": [
+        {
+          "id": "title",
+          "action": "title",
+          "kicker": "الدرس {{number}} من {{total}}",
+          "title": "المستخدمون",
+          "subtitle": "كل موظف بحسابه ودوره",
+          "say": "كل موظف بالمكتب يدخل بحسابه الخاص، فنعرف منو سوّى شنو. هسه نفتح حساب لموظفة استقبال جديدة."
+        },
+        {
+          "id": "open",
+          "action": "navigate",
+          "to": "/users",
+          "navTitle": "المستخدمون",
+          "workflow": "create"
+        },
+        {
+          "id": "add",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "إضافة مستخدم",
+            "exact": true
+          },
+          "workflow": "create",
+          "expect": {
+            "visible": {
+              "role": "dialog",
+              "name": "إضافة مستخدم"
+            }
+          },
+          "say": "نضغط إضافة مستخدم."
+        },
+        {
+          "id": "username",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "اسم المستخدم *",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "zainab.front",
+          "workflow": "create",
+          "zoom": true,
+          "say": "اسم المستخدم اللي تدخل بيه،"
+        },
+        {
+          "id": "display",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "الاسم الظاهر",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "زينب — الاستقبال",
+          "workflow": "create",
+          "say": "والاسم اللي يطلع بالسجلات،"
+        },
+        {
+          "id": "pin",
+          "action": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "الرمز السري *",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "246813",
+          "workflow": "create",
+          "say": "ورمز سري أولي تغيّره هي بعدين."
+        },
+        {
+          "id": "role",
+          "action": "select",
+          "target": {
+            "role": "combobox",
+            "name": "الأدوار",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "موظف مبيعات",
+          "workflow": "create",
+          "say": "ونعطيها دور موظف مبيعات، والدور هو اللي يحدد صلاحياتها."
+        },
+        {
+          "id": "close-menu",
+          "action": "click",
+          "target": {
+            "role": "textbox",
+            "name": "الاسم الظاهر",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "workflow": "create"
+        },
+        {
+          "id": "save",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "حفظ",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "workflow": "create",
+          "expect": {
+            "hidden": {
+              "role": "dialog"
+            },
+            "api": {
+              "get": "/users",
+              "contains": "zainab.front"
+            }
+          },
+          "say": "ونحفظ."
+        },
+        {
+          "id": "find",
+          "action": "search",
+          "target": {
+            "role": "textbox",
+            "name": "بحث في المستخدمين",
+            "exact": true
+          },
+          "value": "زينب",
+          "workflow": "create",
+          "expect": {
+            "text": {
+              "target": {
+                "role": "region",
+                "name": "المستخدمون",
+                "exact": true
+              },
+              "contains": "زينب"
+            }
+          },
+          "say": "والحساب صار بالقائمة، ونكدر نوقفه بأي وقت إذا الموظف ترك المكتب، وتبقى سجلاته محفوظة."
+        },
+        {
+          "id": "wrap",
+          "action": "pause",
+          "say": "حساب لكل موظف يعني مسؤولية واضحة، وكل تعديل بالبرنامج معروف منو سواه."
+        }
+      ]
+    },
+    {
+      "id": "roles",
+      "section": "/roles",
+      "kind": "overview",
+      "title": "الأدوار والصلاحيات",
+      "steps": [
+        {
+          "id": "title",
+          "action": "title",
+          "kicker": "الدرس {{number}} من {{total}}",
+          "title": "الأدوار والصلاحيات",
+          "subtitle": "منو يشوف شنو، ومنو يعدّل شنو",
+          "say": "الأدوار تحدد صلاحيات كل موظف: شنو يشوف، وشنو يضيف، وشنو يعدّل أو يحذف."
+        },
+        {
+          "id": "open",
+          "action": "navigate",
+          "to": "/roles",
+          "navTitle": "الأدوار والصلاحيات",
+          "workflow": "inspect"
+        },
+        {
+          "id": "roles",
+          "action": "highlight",
+          "target": {
+            "role": "region",
+            "name": "الأدوار",
+            "exact": true
+          },
+          "workflow": "inspect",
+          "say": "عندنا أدوار جاهزة، مثل موظف مبيعات ومدير المكتب ومدير النظام، ونكدر نضيف دور جديد."
+        },
+        {
+          "id": "open-role",
+          "action": "click",
+          "target": {
+            "role": "button",
+            "name": "تعديل الدور وصلاحياته: موظف مبيعات",
+            "exact": true
+          },
+          "workflow": "inspect",
+          "expect": {
+            "visible": {
+              "role": "dialog"
+            }
+          },
+          "say": "نفتح دور موظف المبيعات حتى نشوف صلاحياته."
+        },
+        {
+          "id": "find",
+          "action": "search",
+          "target": {
+            "role": "textbox",
+            "name": "ابحث عن صلاحية",
+            "exact": true,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "value": "عروض",
+          "workflow": "inspect",
+          "expect": {
+            "visible": {
+              "role": "checkbox",
+              "name": "إضافة عروض",
+              "exact": true
+            }
+          },
+          "say": "الصلاحيات مقسمة حسب أقسام البرنامج. نبحث مثلاً عن صلاحيات العروض."
+        },
+        {
+          "id": "group",
+          "action": "highlight",
+          "target": {
+            "role": "group",
+            "name": "/^تحديد كل صلاحيات عروض البيع/",
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "workflow": "inspect",
+          "say": "موظف المبيعات يكدر يضيف ويعدّل العروض ويصدّرها، بس ما يكدر يحذفها أو يأرشفها. هيج البيانات محمية من الحذف بالغلط."
+        },
+        {
+          "id": "close",
+          "action": "close",
+          "workflow": "inspect",
+          "expect": {
+            "hidden": {
+              "role": "dialog"
+            }
+          },
+          "say": "نسكّر بدون ما نغيّر شي."
+        },
+        {
+          "id": "wrap",
+          "action": "pause",
+          "say": "تقسيم الصلاحيات يخلي كل موظف يشتغل بمساحته، وصاحب المكتب مطمّن على بياناته وحساباته."
+        }
+      ]
+    }
+  ],
+  "outro": {
+    "id": "outro",
+    "title": "الخاتمة",
+    "section": "/",
+    "steps": [
+      {
+        "id": "home",
+        "action": "navigate",
+        "to": "/",
+        "navTitle": "لوحة التحكم"
+      },
+      {
+        "id": "title",
+        "action": "title",
+        "kicker": "دلالي",
+        "title": "شكراً لمتابعتكم",
+        "subtitle": "كل شغل المكتب بمكان واحد",
+        "say": "بهذا وصلنا لنهاية الدليل. شفنا شلون دلالي يرتب العروض والطلبات والزبائن، ويطابقها ويّه بعض، ويتابع الصفقات والعقود والحسابات لحد آخر خطوة. نتمنى يكون الدليل مفيد إلكم."
+      }
+    ]
+  },
+  "sections": {
+    "/contracts/templates": {
+      "tagline": "صياغة العقود المعتمدة بالمكتب",
+      "intro": "دلالي بيه أربع قوالب عقود جاهزة، والمكتب يكدر يعدّل صياغتها حسب شغله.",
+      "what": "هنا القوالب الأربعة، ولكل قالب محرر خاص وسجل نسخ.",
+      "value": "تعديل القالب مرة وحدة يكفي، وكل عقد بعدين يطلع بنفس الصياغة المعتمدة."
+    },
+    "/accounting/cash": {
+      "tagline": "أرصدة الصناديق والحسابات المصرفية",
+      "intro": "الصناديق والمصارف: هنا نتابع رصيد كل صندوق وحساب مصرفي للمكتب.",
+      "what": "نشوف رصيد كل صندوق، ونسجّل التحويل بين الصندوق والمصرف.",
+      "value": "الرصيد يطلع من الحركات المسجلة نفسها، فنعرف الفلوس وين بأي لحظة."
+    },
+    "/accounting/journal": {
+      "tagline": "السجل المحاسبي التفصيلي",
+      "intro": "القيود هي السجل المحاسبي التفصيلي، كل حركة مالية إلها قيد بطرف مدين وطرف دائن.",
+      "what": "هنا القيود حسب التاريخ، ونكدر نصفيها ونفتح أي قيد.",
+      "open": "ومن نفتح القيد نشوف أطرافه بالتفصيل.",
+      "value": "القيد المرحّل ما يتعدل، والتصحيح يكون بقيد عكسي، وهذا يخلي الحسابات موثوقة."
+    },
+    "/accounting/accounts": {
+      "tagline": "شجرة الحسابات",
+      "intro": "دليل الحسابات هو شجرة الحسابات اللي تنقيد عليها كل الحركات.",
+      "what": "البرنامج يجهز الحسابات الأساسية، ونكدر نفتح كشف أي حساب.",
+      "open": "ومن نفتح الحساب يطلع كشفه بالحركات والرصيد.",
+      "value": "كل رقم بالتقارير يرجع لحساب واضح، فنعرف مصدره بسهولة."
+    },
+    "/locations": {
+      "tagline": "المحافظات والمناطق والأحياء",
+      "intro": "المحافظات والمناطق والأحياء هي القوائم اللي تطلع بنماذج العروض والطلبات.",
+      "what": "نكدر نضيف منطقة أو حي جديد من يحتاج المكتب.",
+      "value": "توحيد أسماء المواقع يخلي البحث والمطابقة دقيقة."
+    }
+  }
+}

@@ -42,3 +42,12 @@ docs/**/screenshots/*.webp
 docs/**/screenshots/*.mp4
 docs/**/screenshots/*.webm
 docs/**/screenshots/*.png
+
+# Tutorial Studio (pnpm tutorial:generate): videos, recordings, the isolated
+# Electron profile, caches and reports are generated; a project-local FFmpeg
+# is downloaded only when none is installed, and the optional local voice
+# (Piper) and listening check (whisper.cpp) only when configured.
+scripts/tutorial/output/
+tools/ffmpeg/
+tools/piper/
+tools/whisper/

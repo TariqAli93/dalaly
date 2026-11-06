@@ -196,6 +196,17 @@ back to browser equivalents through `apps/renderer/src/platform/`.
 The Playwright capture suite and its `capture:*` scripts were removed; the
 `docs/CAPTURE-*.md` files describe its last run.
 
+## Tutorial Studio (video lessons)
+
+`pnpm tutorial:generate` drives the real Electron app against its own isolated
+`dalaly_tutorial` database, profile and API port, and records narrated Arabic
+lessons plus one assembled course (1080p30 H.264/AAC with subtitles) into
+`scripts/tutorial/output/`. It needs a Windows desktop session and FFmpeg 8.1+
+(real-time window capture); narration needs `GEMINI_API_KEY` (preferred) or
+`AZURE_SPEECH_KEY` and `AZURE_SPEECH_REGION`, and the run stops before
+recording when no voice is usable. See
+[docs/TUTORIAL_STUDIO.md](docs/TUTORIAL_STUDIO.md).
+
 ## Remote Access
 
 Remote access is optional. `cloudflared.exe` is not in the repository: packaging

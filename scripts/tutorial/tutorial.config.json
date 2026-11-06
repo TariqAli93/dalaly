@@ -1,0 +1,122 @@
+{
+  "$comment": "Dalaly Tutorial Studio — the one configuration file. Credentials never go here: GEMINI_API_KEY (preferred) or AZURE_SPEECH_KEY + AZURE_SPEECH_REGION for the voice, and optionally ANTHROPIC_API_KEY, are read from the environment or the developer's root .env (read only). Prices are list prices as of the date given and only feed the estimate printed before synthesis.",
+  "database": {
+    "name": "dalaly_tutorial",
+    "ownerComment": "dalaly-tutorial-studio"
+  },
+  "api": {
+    "port": 45711,
+    "rendererDefaultPort": 34567
+  },
+  "account": {
+    "username": "tutorial.admin",
+    "pin": "135790",
+    "displayName": "مدرّب دلالي"
+  },
+  "video": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "capture": "auto",
+    "jpegQuality": 92,
+    "crf": 18,
+    "preset": "medium",
+    "audioBitrate": "192k",
+    "burnSubtitles": true,
+    "subtitleFont": "Segoe UI",
+    "fadeSeconds": 0.4,
+    "maxZoom": 1.3,
+    "orientation": "landscape"
+  },
+  "quality": {
+    "minMotionFps": 24,
+    "maxClockDriftSeconds": 0.15,
+    "correctDriftAboveSeconds": 0.04,
+    "reportFreezeSeconds": 15,
+    "maxStallSeconds": 0.5
+  },
+  "narration": {
+    "provider": "auto",
+    "preference": ["gemini", "azure"],
+    "sampleRate": 48000,
+    "loudness": {
+      "I": -16,
+      "TP": -1.5,
+      "LRA": 11
+    },
+    "concurrency": {
+      "gemini": 2,
+      "azure": 3,
+      "piper": 2
+    },
+    "maxEstimatedCostUsd": 2,
+    "gemini": {
+      "model": "gemini-3.8-flash-tts",
+      "voice": "auto",
+      "voiceQueries": [
+        { "language_code": "ar-IQ", "gender": "male" },
+        { "language_code": "ar", "gender": "male", "accent": "Iraqi" }
+      ],
+      "fallbackVoice": "Charon",
+      "style": "a calm, warm, professional male software instructor speaking clearly at a moderate pace",
+      "pricing": {
+        "asOf": "2026-11-04",
+        "inputUsdPerMTok": 0.5,
+        "audioUsdPerMTok": 9,
+        "audioTokensPerSecond": 25
+      }
+    },
+    "azure": {
+      "voice": "ar-IQ-BasselNeural",
+      "locale": "ar-IQ",
+      "rate": "-6%",
+      "usdPerMillionCharacters": 15
+    },
+    "piper": {
+      "rate": "-6%"
+    },
+    "listening": {
+      "provider": "auto",
+      "geminiModel": "gemini-3.5-transcribe",
+      "geminiFallbackModel": "gemini-3.6-flash"
+    },
+    "validation": {
+      "silenceNoiseDb": -40,
+      "silenceMinSeconds": 0.3,
+      "minSecondsPerWord": 0.15,
+      "maxSecondsPerWord": 1.1,
+      "clipMinPeakDb": -12,
+      "clipMinMeanDb": -40,
+      "clipMinVoicedRatio": 0.55,
+      "windowMinVoicedRatio": 0.5,
+      "lessonMinVoicedShare": 0.6,
+      "lessonLoudnessLufs": [-20, -12],
+      "maxTruePeakDbfs": 0,
+      "listeningCheck": true,
+      "minRecall": 0.35,
+      "maxListenSeconds": 20
+    }
+  },
+  "planner": {
+    "provider": "auto",
+    "model": "claude-opus-5-5",
+    "maxTokens": 16000
+  },
+  "pacing": {
+    "cursorMs": 650,
+    "typeDelayMs": 55,
+    "afterStepMs": 350,
+    "afterSpeechMs": 450,
+    "titleCardMs": 2600,
+    "navigationSettleMs": 700,
+    "stepTimeoutMs": 15000
+  },
+  "run": {
+    "retries": 1,
+    "lessonTimeoutMs": 900000
+  }
+}
